@@ -1,15 +1,18 @@
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '@/auth/context/AuthProvider';
+import { useAuth } from '@/auth/context/useAuth';
 import {
   FaBars,
   FaTimes,
-  FaHome,
-  FaBox,
-  FaUsers,
-  FaMapMarkedAlt,
-  FaMotorcycle,
   FaSignOutAlt,
+  FaUsersCog,
+  FaCashRegister,
+  FaBoxes,
+  FaTruck,
+  FaMotorcycle,
 } from 'react-icons/fa';
+import { MdDashboard, MdOutlineProductionQuantityLimits, MdSettings } from 'react-icons/md';
+import { RiMoneyDollarCircleLine, RiFileChartLine } from 'react-icons/ri';
+import { HiOutlineClipboardList } from 'react-icons/hi';
 
 interface Props {
   isOpen: boolean;
@@ -26,32 +29,57 @@ export default function Sidebar({ isOpen, toggle }: Props) {
 
   const linksByRole = {
     admin: [
-      { to: '/admin', label: 'Inicio', icon: <FaHome /> },
-      { to: '/pedidos', label: 'Pedidos', icon: <FaBox /> },
-      { to: '/usuarios', label: 'Usuarios', icon: <FaUsers /> },
+      { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
+      { to: '/ventas', label: 'Ventas', icon: <FaCashRegister /> },
+      { to: '/almacen', label: 'Stock / Almacén', icon: <FaBoxes /> },
+      { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
+      { to: '/perfiles', label: 'Perfiles', icon: <FaUsersCog /> },
+      { to: '/reportes', label: 'Reportes', icon: <RiFileChartLine /> },
+      { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
     ],
     ecommerce: [
-      { to: '/ecommerce', label: 'Inicio', icon: <FaHome /> },
-      { to: '/pedidos', label: 'Pedidos', icon: <FaBox /> },
+      { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
+      { to: '/almacen', label: 'Almacén', icon: <FaBoxes /> },
+      { to: '/stock', label: 'Stock de productos', icon: <MdOutlineProductionQuantityLimits /> },
+      { to: '/ventas', label: 'Ventas', icon: <FaCashRegister /> },
+      { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
+      { to: '/perfiles', label: 'Perfiles', icon: <FaUsersCog /> },
+      { to: '/reportes', label: 'Reportes', icon: <RiFileChartLine /> },
+      { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
     ],
     courier: [
-      { to: '/courier', label: 'Inicio', icon: <FaHome /> },
-      { to: '/rutas', label: 'Rutas asignadas', icon: <FaMapMarkedAlt /> },
+      { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
+      { to: '/logistica', label: 'Pedidos / Logística', icon: <FaTruck /> },
+      { to: '/almacen', label: 'Stock / Almacén', icon: <FaBoxes /> },
+      { to: '/zonas', label: 'Zonas / Tarifas', icon: <HiOutlineClipboardList /> },
+      { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
+      { to: '/perfiles', label: 'Perfiles', icon: <FaUsersCog /> },
+      { to: '/reportes', label: 'Reportes', icon: <RiFileChartLine /> },
+      { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
     ],
     motorizado: [
-      { to: '/motorizado', label: 'Inicio', icon: <FaHome /> },
-      { to: '/mis-envios', label: 'Mis envíos', icon: <FaMotorcycle /> },
+      { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
+      { to: '/entregas', label: 'Entregas', icon: <FaMotorcycle /> },
+      { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
+      { to: '/reportes', label: 'Reporte', icon: <RiFileChartLine /> },
+      { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
     ],
   } as const;
 
-  const links = user ? linksByRole[user.role] : [];
+  const basePath = user ? `/${user.role}` : '';
+  const links = user
+    ? linksByRole[user.role].map(link => ({
+        ...link,
+        to: `${basePath}${link.to}`,
+      }))
+    : [];
 
   return (
     <aside
       className={`h-screen bg-[#1b1b77] text-white flex flex-col justify-between shadow-md transition-all duration-300
         ${isOpen ? 'w-64' : 'w-20'} fixed top-0 left-0 z-40`}>
       <div className="flex flex-col h-full p-4">
-        {/* Header: Título y botón toggle */}
+        {/* Título y botón toggle */}
         <div className="flex items-center justify-between mb-6">
           {isOpen && <h2 className="text-2xl font-bold">Tiktuy</h2>}
           <button onClick={toggle} className="text-white">

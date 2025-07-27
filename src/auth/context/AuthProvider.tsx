@@ -1,28 +1,16 @@
-// src/auth/context/AuthProvider.tsx
 import {
-  createContext,
-  useContext,
-  useEffect,
   useState,
+  useEffect,
+  type ReactNode,
 } from 'react';
 import { fetchMe } from '@/auth/services/auth.api';
-import type { User } from '@/auth/services/auth.api';
-
-import type { ReactNode } from'react';
-
-type AuthContextType = {
-  user: User | null;
-  login: (user: User) => void;
-  logout: () => void;
-};
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from './AuthContext';
+import type { User } from '@/auth/types/auth.types';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // 🔄 para no renderizar antes de verificar
+  const [loading, setLoading] = useState(true);
 
-  // Al iniciar, intenta restaurar sesión
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -35,35 +23,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(userData);
       })
       .catch(() => {
-        localStorage.removeItem('token'); // sesión inválida
+        localStorage.removeItem('token');
+        setUser(null);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('token', userData.token);
+  // login ahora acepta token + user opcional
+  const login = async (token: string, user?: User) => {
+    localStorage.setItem('token', token);
+
+    if (user) {
+      setUser(user);
+      return;
+    }
+
+    try {
+      const userData = await fetchMe(token);
+      setUser(userData);
+    } catch (error) {
+      logout();
+      throw new Error((error as Error).message || 'Token inválido');
+    }
   };
 
   const logout = () => {
-    setUser(null);
     localStorage.removeItem('token');
+    setUser(null);
   };
 
-  // Espera a validar la sesión antes de renderizar la app
-  if (loading) return null;
+  if (loading) return <div>Cargando sesión...</div>;
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe usarse dentro de <AuthProvider>');
-  }
-  return context;
 };

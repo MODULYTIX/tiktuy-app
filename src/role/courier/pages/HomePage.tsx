@@ -1,5 +1,5 @@
 import PrivateLayout from '@/shared/layout/PrivateLayout';
-import { useAuth } from '@/auth/context/AuthProvider';
+import { useAuth } from '@/auth/context/useAuth';
 
 export default function CourierHomePage() {
   const { user } = useAuth();

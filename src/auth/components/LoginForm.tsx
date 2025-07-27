@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLogin } from '@/auth/hooks/useLogin';
-import Logo from '@/assets/logos/logo-tiktuy.webp'; // o .png si tu logo es imagen
+import Logo from '@/assets/logos/logo-tiktuy.webp';
 
 export default function LoginForm() {
   const { login, loading, error } = useLogin();
@@ -64,8 +64,8 @@ export default function LoginForm() {
 
           <button
             type="submit"
-            className="mt-4 bg-gradient-to-r from-[#1b1b77] to-[#2e2ea2] text-white py-2 rounded shadow-md hover:opacity-90 transition"
-            disabled={loading}>
+            disabled={loading || !email || !password}
+            className="mt-4 bg-gradient-to-r from-[#1b1b77] to-[#2e2ea2] text-white py-2 rounded shadow-md hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? 'Entrando...' : 'INGRESAR'}
           </button>
 

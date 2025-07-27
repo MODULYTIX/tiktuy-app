@@ -12,4 +12,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'), // <- esto habilita @/
     },
   },
+  server: {
+    host: true, 
+    port: 5173, 
+  },
 });
