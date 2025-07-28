@@ -5,7 +5,7 @@ import {
   asociarCourier,
   desasociarCourier,
   type EcommerceCourier,
-} from '@/services/ecommerceCourier.api';
+} from '@/services/ecommerce/ecommerceCourier.api';
 import { FaEye, FaCheck, FaTimes } from 'react-icons/fa';
 
 export default function EcommerceHomePage() {

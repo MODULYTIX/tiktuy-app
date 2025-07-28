@@ -1,19 +1,23 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import Header from './Header';
+import { Outlet } from 'react-router-dom';
 
 export default function PrivateLayout() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(true);
+  const toggleSidebar = () => setIsOpen(!isOpen);
 
   return (
-    <div className="flex h-screen w-screen">
-      <Sidebar isOpen={isSidebarOpen} toggle={() => setIsSidebarOpen((v) => !v)} />
+    <div className="flex">
+      <Sidebar isOpen={isOpen} toggle={toggleSidebar} />
 
-      <main
-        className={`transition-all duration-300 overflow-y-auto bg-gray-50 p-8
-          ${isSidebarOpen ? 'ml-64' : 'ml-20'} flex-1`}>
-        <Outlet />
-      </main>
+      <div className={`flex-1 transition-all duration-300 ${isOpen ? 'ml-64' : 'ml-20'}`}>
+      <Header isOpen={isOpen} />
+
+        <main className="pt-16 p-6 bg-gray-50 min-h-screen">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }
