@@ -1,5 +1,40 @@
+// --- Tipos de rol y módulos ---
 export type Role = 'admin' | 'ecommerce' | 'courier' | 'motorizado';
+export type ModuloAsignado = 'stock' | 'producto' | 'movimiento' | 'pedidos';
 
+export type Rol = {
+  id: number;
+  nombre: Role;
+};
+
+export type Perfil = {
+  nombre?: string;
+  tipo?: string;
+  modulo_asignado?: ModuloAsignado;
+};
+
+// --- Tipos de usuario ---
+export type Trabajador = {
+  id?: number;
+  codigo_trabajador?: string;
+  estado?: string;
+  rol_perfil_id: number;
+  modulo_asignado: ModuloAsignado;
+  perfil?: Perfil;
+};
+
+export type User = {
+  uuid: string;
+  nombres: string;
+  apellidos: string;
+  correo: string;
+  DNI_CI: string;
+  estado: string;
+  rol?: Rol;
+  trabajador?: Trabajador;
+};
+
+// --- Tipos de login y registro ---
 export type LoginCredentials = {
   email: string;
   password: string;
@@ -12,12 +47,7 @@ export type RegisterData = {
   password: string;
   rol_id: number;
   estado: string;
-};
-
-export type User = {
-  id: string;
-  email: string;
-  role: Role;
+  DNI_CI: string;
 };
 
 export type LoginResponse = {
@@ -25,10 +55,34 @@ export type LoginResponse = {
   user: User;
 };
 
-// URL base del backend
+export type RegisterTrabajadorData = {
+  nombres: string;
+  apellidos: string;
+  correo: string;
+  contrasena: string; // ✅ corregido
+  estado: string;
+  DNI_CI: string;
+  rol_perfil_id: number;
+  modulo: ModuloAsignado;
+  codigo_trabajador?: string;
+};
+
+export type RegisterTrabajadorResponse = {
+  usuario: User;
+  perfilTrabajador: {
+    id: number;
+    estado: string;
+    codigo_trabajador: string;
+    modulo_asignado: ModuloAsignado;
+    rol_perfil_id: number;
+    perfil?: Perfil;
+    usuario: User;
+  };
+};
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-// Función de login
+// --- Login ---
 export async function loginRequest(
   credentials: LoginCredentials
 ): Promise<LoginResponse> {
@@ -37,77 +91,81 @@ export async function loginRequest(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       correo: credentials.email,
-      contraseña: credentials.password,
+      contrasena: credentials.password,
     }),
   });
 
   if (!res.ok) {
-    const { message } = await res.json().catch(() => ({}));
-    throw new Error(message || 'Error al iniciar sesión');
+    const { error } = await res.json().catch(() => ({}));
+    throw new Error(error || 'Error al iniciar sesión');
   }
 
-  const data = await res.json();
-
-  return {
-    token: data.token,
-    user: {
-      id: String(data.user.id),
-      email: data.user.correo,
-      role: data.user.rol,
-    },
-  };
+  return await res.json();
 }
 
-// Función de registro
+// --- Registro general ---
 export async function registerRequest(
-  userData: RegisterData
+  userData: RegisterData,
+  token: string
 ): Promise<LoginResponse> {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({
       nombres: userData.nombres,
       apellidos: userData.apellidos,
       correo: userData.email,
-      contraseña: userData.password,
+      contrasena: userData.password,
       rol_id: userData.rol_id,
-      estado: userData.estado,
+      estado_id: userData.estado, // solo si el backend espera estado_id
+      DNI_CI: userData.DNI_CI,
     }),
   });
 
   if (!res.ok) {
-    const { message } = await res.json().catch(() => ({}));
-    throw new Error(message || 'Error al registrar usuario');
+    const { error } = await res.json().catch(() => ({}));
+    throw new Error(error || 'Error al registrar usuario');
   }
 
-  const data = await res.json();
-
-  return {
-    token: data.token,
-    user: {
-      id: String(data.user.id),
-      email: data.user.correo,
-      role: data.user.rol,
-    },
-  };
+  return await res.json();
 }
 
-// Función para obtener el usuario actual mediante JWT
+// --- Obtener usuario actual ---
 export async function fetchMe(token: string): Promise<User> {
   const res = await fetch(`${API_URL}/auth/me`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   if (!res.ok) {
     throw new Error('Sesión inválida');
   }
 
-  const data = await res.json();
-
-  return {
-    id: String(data.id),
-    email: data.correo,
-    role: data.rol,
-  }; 
+  return await res.json();
 }
 
+// --- Registro de trabajador ---
+export async function registerTrabajadorRequest(
+  data: RegisterTrabajadorData,
+  token: string
+): Promise<RegisterTrabajadorResponse> {
+  const res = await fetch(`${API_URL}/auth/register-trabajador`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const { error } = await res.json().catch(() => ({}));
+    throw new Error(error || 'Error al registrar trabajador');
+  }
+
+  return await res.json();
+}

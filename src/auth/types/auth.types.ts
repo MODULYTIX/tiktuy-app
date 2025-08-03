@@ -1,28 +1,48 @@
-import type { Role } from '@/auth/constants/roles';
+import type { Role, ModuloAsignado } from '@/auth/constants/roles';
 
-// Tipo que se usa en el frontend
-export type User = {
-  id: string;
-  email: string;
-  role: Role;
+export type Rol = {
+  id: number;
+  nombre: Role;
 };
 
-//
-export type RawUser = {
+export type Perfil = {
+  nombre?: string;
+  tipo?: string;
+  modulo_asignado?: ModuloAsignado;
+};
+
+export type PerfilTrabajador = {
   id: number;
+  codigo_trabajador?: string;
+  modulo_asignado: ModuloAsignado;
+  rol_perfil_id: number;
+  perfil?: Perfil;
+};
+
+export type User = {
+  uuid: string;
   nombres: string;
   apellidos: string;
   correo: string;
-  rol: Role;
+  DNI_CI: string;
+  telefono?: string;
+  estado: string;
+  rol?: Rol;
+  trabajador?: PerfilTrabajador;
 };
 
-// Datos que se envían al hacer login
+// Login
 export type LoginCredentials = {
   email: string;
   password: string;
 };
 
-// registrar
+export type LoginResponse = {
+  token: string;
+  user: User;
+};
+
+// Registro general
 export type RegisterData = {
   nombres: string;
   apellidos: string;
@@ -30,10 +50,18 @@ export type RegisterData = {
   password: string;
   rol_id: number;
   estado: string;
+  DNI_CI: string;
 };
 
-// login
-export type LoginResponse = {
-  token: string;
-  user: User;
+// Registro de trabajador (para perfiles internos)
+export type RegisterTrabajadorData = {
+  nombres: string;
+  apellidos: string;
+  correo: string;       
+  contrasena: string;     
+  estado: string;
+  DNI_CI: string;
+  rol_perfil_id: number;
+  modulo: ModuloAsignado;
+  codigo_trabajador?: string;
 };

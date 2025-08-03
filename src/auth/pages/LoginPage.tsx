@@ -3,21 +3,41 @@ import { useNavigate } from 'react-router-dom';
 import BackgroundImage from '@/assets/images/login-background.webp';
 import LoginForm from '@/auth/components/LoginForm';
 import { useAuth } from '@/auth/context/useAuth';
-import { validRoles, roleDefaultPaths } from '@/auth/constants/roles';
+import {
+  validRoles,
+  roleDefaultPaths,
+  type Role,
+  moduloAsignadoValues,
+  type ModuloAsignado,
+} from '@/auth/constants/roles';
 
 export default function LoginPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user || typeof user.role !== 'string') return;
+    if (!user) return;
 
-    const role = user.role;
-    const targetPath = roleDefaultPaths[role];
     const currentPath = window.location.pathname;
 
-    if (validRoles.includes(role) && currentPath !== targetPath) {
-      navigate(targetPath, { replace: true });
+    // Redirección para roles principales
+    const role = user.rol?.nombre;
+    if (role && validRoles.includes(role)) {
+      const targetPath = roleDefaultPaths[role as Role];
+      if (currentPath !== targetPath) {
+        navigate(targetPath, { replace: true });
+      }
+      return;
+    }
+
+    // Redirección para trabajadores con módulo asignado
+    const moduloAsignado = user.trabajador?.perfil?.modulo_asignado;
+    if (
+      moduloAsignado &&
+      moduloAsignadoValues.includes(moduloAsignado as ModuloAsignado) &&
+      currentPath !== `/${moduloAsignado}`
+    ) {
+      navigate(`/${moduloAsignado}`, { replace: true });
     }
   }, [user, navigate]);
 

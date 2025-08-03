@@ -2,8 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import LoginPage from '@/auth/pages/LoginPage';
 import PrivateRoute from './PrivateRoute';
 import UnauthorizedPage from '@/shared/pages/UnauthorizedPage';
+import AuthGuard from './AuthGuard';
 
-// Rutas internas por rol
 import { ecommerceRoutes } from '@/role/ecommerce/routes';
 import { adminRoutes } from '@/role/admin/routes';
 import { courierRoutes } from '@/role/courier/routes';
@@ -14,8 +14,15 @@ import PrivateLayout from '@/shared/layout/PrivateLayout';
 export default function AppRouter() {
   return (
     <Routes>
-      {/* Ruta pública */}
-      <Route path="/" element={<LoginPage />} />
+      {/* Página de login */}
+      <Route
+        path="/"
+        element={
+          <AuthGuard>
+            <LoginPage />
+          </AuthGuard>
+        }
+      />
 
       {/* Admin */}
       <Route
@@ -68,6 +75,16 @@ export default function AppRouter() {
           <Route key={i} path={route.path} element={route.element} />
         ))}
       </Route>
+
+      {/* Trabajador (base común) */}
+      <Route
+        path="/stock"
+        element={
+          <PrivateRoute allowModulo>
+            <PrivateLayout />
+          </PrivateRoute>
+        }
+      />
 
       {/* Fallbacks */}
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
