@@ -12,6 +12,10 @@ export default function AlmacenPage() {
   const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [showModal, setShowModal] = useState(false);
+  const [almacenEditando, setAlmacenEditando] = useState<Almacenamiento | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
 
   const porPagina = 4;
   const totalPaginas = Math.ceil(almacenes.length / porPagina);
@@ -21,11 +25,19 @@ export default function AlmacenPage() {
   );
 
   const loadData = async () => {
+    if (!token) {
+      console.warn('Token no disponible. No se puede cargar almacenes.');
+      return;
+    }
+
     try {
+      setLoading(true);
       const data = await fetchAlmacenes(token);
       setAlmacenes(data);
     } catch (err) {
       console.error('Error al cargar almacenes:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,7 +59,10 @@ export default function AlmacenPage() {
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-3xl font-bold text-primary">Almacén</h1>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setAlmacenEditando(null);
+            setShowModal(true);
+          }}
           className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition">
           <PiGarageLight size={18} />
           <span>Nuevo Almacén</span>
@@ -70,28 +85,42 @@ export default function AlmacenPage() {
             </tr>
           </thead>
           <tbody className="text-gray-700">
-            {dataPaginada.map((alm) => (
-              <tr
-                key={alm.uuid}
-                className="border-t hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-2">{alm.nombre_almacen}</td>
-                <td className="px-4 py-2">{alm.departamento}</td>
-                <td className="px-4 py-2">{alm.ciudad}</td>
-                <td className="px-4 py-2">{alm.direccion}</td>
-                <td className="px-4 py-2">
-                  {new Date(alm.fecha_registro).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-2">
-                  <FaEdit size={16} className="text-orange-500 hover:text-orange-700 cursor-pointer" />
-                </td>
-              </tr>
-            ))}
-            {dataPaginada.length === 0 && (
+            {loading ? (
               <tr>
                 <td colSpan={6} className="text-center py-4 text-gray-500">
-                  Cargando
+                  Cargando...
                 </td>
               </tr>
+            ) : dataPaginada.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-4 text-gray-500">
+                  No hay almacenes registrados
+                </td>
+              </tr>
+            ) : (
+              dataPaginada.map((alm) => (
+                <tr
+                  key={alm.uuid}
+                  className="border-t hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-2">{alm.nombre_almacen}</td>
+                  <td className="px-4 py-2">{alm.departamento}</td>
+                  <td className="px-4 py-2">{alm.ciudad}</td>
+                  <td className="px-4 py-2">{alm.direccion}</td>
+                  <td className="px-4 py-2">
+                    {new Date(alm.fecha_registro).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-2">
+                    <FaEdit
+                      size={16}
+                      className="text-orange-500 hover:text-orange-700 cursor-pointer"
+                      onClick={() => {
+                        setAlmacenEditando(alm);
+                        setShowModal(true);
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
@@ -105,14 +134,24 @@ export default function AlmacenPage() {
         </div>
       </div>
 
-      {/* Modal de creación */}
-      {showModal && (
+      {showModal && token && (
         <CrearAlmacenModal
           token={token}
-          onClose={() => setShowModal(false)}
+          almacen={almacenEditando}
+          modo={almacenEditando ? 'editar' : 'crear'}
+          onClose={() => {
+            setShowModal(false);
+            setAlmacenEditando(null);
+          }}
           onSuccess={(nuevo) => {
-            setAlmacenes((prev) => [nuevo, ...prev]);
-            setPaginaActual(1); 
+            setAlmacenes((prev) => {
+              const existe = prev.some((a) => a.uuid === nuevo.uuid);
+              if (existe) {
+                return prev.map((a) => (a.uuid === nuevo.uuid ? nuevo : a));
+              }
+              return [nuevo, ...prev];
+            });
+            setPaginaActual(1);
           }}
         />
       )}

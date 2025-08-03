@@ -3,6 +3,7 @@ import { crearProducto } from '@/services/ecommerce/producto/producto.api';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { useAuth } from '@/auth/context';
+
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
@@ -19,13 +20,23 @@ interface Props {
 function generarCodigoConFecha(): string {
   const now = new Date();
 
-  const hora = String(now.getHours()).padStart(2, '0');     // 23
+  const hora = String(now.getHours()).padStart(2, '0'); // 23
   const minutos = String(now.getMinutes()).padStart(2, '0'); // 21
-  const year = String(now.getFullYear()).slice(2);           // 25
+  const year = String(now.getFullYear()).slice(2); // 25
 
   const meses = [
-    'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN',
-    'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'
+    'ENE',
+    'FEB',
+    'MAR',
+    'ABR',
+    'MAY',
+    'JUN',
+    'JUL',
+    'AGO',
+    'SEP',
+    'OCT',
+    'NOV',
+    'DIC',
   ];
   const mesAbrev = meses[now.getMonth()]; // JUL
 
@@ -34,7 +45,6 @@ function generarCodigoConFecha(): string {
 
   return `${hora}${mesAbrev}${year}${aleatorio}${minutos}`;
 }
-
 
 export default function ProductoFormModal({
   open,
@@ -127,7 +137,9 @@ export default function ProductoFormModal({
       <div className="w-full max-w-md bg-white shadow-lg h-full p-6 overflow-y-auto transition-transform duration-300">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <HiOutlineViewGridAdd />
-          <span>{initialData ? 'EDITAR PRODUCTO' : 'REGISTRAR NUEVO PRODUCTO'}</span>
+          <span>
+            {initialData ? 'EDITAR PRODUCTO' : 'REGISTRAR NUEVO PRODUCTO'}
+          </span>
         </h2>
         <p className="text-sm text-gray-500 mt-1">
           {initialData
@@ -164,13 +176,13 @@ export default function ProductoFormModal({
             placeholder="Ej. Zapato de vestir, tipo Oxford"
           />
 
-          <Select<Categoria, 'descripcion'>
+          <Select<Categoria, 'nombre'>
             name="categoria_id"
             label="Categoría"
             value={form.categoria_id}
             onChange={handleChange}
             options={categorias}
-            optionLabel="descripcion"
+            optionLabel="nombre"
             required
           />
 
@@ -232,14 +244,12 @@ export default function ProductoFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="border px-4 py-2 text-sm rounded hover:bg-gray-50"
-            >
+              className="border px-4 py-2 text-sm rounded hover:bg-gray-50">
               Cancelar
             </button>
             <button
               type="submit"
-              className="bg-black text-white px-4 py-2 text-sm rounded hover:opacity-90"
-            >
+              className="bg-black text-white px-4 py-2 text-sm rounded hover:opacity-90">
               {initialData ? 'Guardar cambios' : 'Crear nuevo'}
             </button>
           </div>
@@ -303,8 +313,7 @@ function Select<T extends { id: number }, K extends keyof T>({
       </label>
       <select
         {...rest}
-        className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-      >
+        className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary">
         <option value="">Seleccionar</option>
         {options.map((opt) => (
           <option key={opt.id} value={opt.id}>

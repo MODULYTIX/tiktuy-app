@@ -6,14 +6,17 @@ export interface Almacenamiento {
   departamento: string;
   direccion: string;
   fecha_registro: string;
-  estado: string;
+  estado: {
+    id: number;
+    nombre: string;
+  };
   ecommerce_id?: number;
   courier_id?: number;
 }
 
 export interface MovimientoPayload {
-  almacen_origen_id: number;
-  almacen_destino_id: number;
+  origen_id: number;
+  destino_id: number;
   descripcion: string;
   productos: {
     producto_id: string | number;
@@ -25,7 +28,7 @@ export interface MovimientoAlmacen {
   id: number;
   uuid: string;
   descripcion: string;
-  fecha_movimiento: string;
+  fecha: string;
   almacen_origen: {
     id: number;
     nombre_almacen: string;
@@ -35,8 +38,12 @@ export interface MovimientoAlmacen {
     nombre_almacen: string;
   };
   productos: {
-    producto_id: number;
+    id: number;
     cantidad: number;
+    producto: {
+      id: number;
+      nombre: string;
+      stock: number;
+    };
   }[];
 }
-

@@ -13,10 +13,7 @@ export async function fetchAlmacenes(token: string): Promise<Almacenamiento[]> {
   return res.json();
 }
 
-export async function fetchAlmacenByUuid(
-  uuid: string,
-  token: string
-): Promise<Almacenamiento> {
+export async function fetchAlmacenByUuid(uuid: string, token: string): Promise<Almacenamiento> {
   const res = await fetch(`${BASE_URL}/${uuid}`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -62,10 +59,7 @@ export async function updateAlmacenamiento(
   return res.json();
 }
 
-export async function deleteAlmacenamiento(
-  uuid: string,
-  token: string
-): Promise<void> {
+export async function deleteAlmacenamiento(uuid: string, token: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/${uuid}`, {
     method: 'DELETE',
     headers: {
@@ -76,8 +70,8 @@ export async function deleteAlmacenamiento(
   if (!res.ok) throw new Error('Error al eliminar almacén');
 }
 
-export async function registrarMovimiento(data: MovimientoPayload, token: string) {
-  const res = await fetch(`${import.meta.env.VITE_API_URL}/almacenamiento/movimiento`, {
+export async function registrarMovimiento(data: MovimientoPayload, token: string): Promise<MovimientoAlmacen> {
+  const res = await fetch(`${BASE_URL}/movimiento`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -39,8 +39,8 @@ export default function StockPage() {
   };
 
   useEffect(() => {
-    cargarProductos();
-  }, [filters]);
+    if (token) cargarProductos();
+  }, [filters, token]);
 
   return (
     <section className="mt-8 space-y-6">

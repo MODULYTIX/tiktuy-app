@@ -1,23 +1,12 @@
-import { useEffect, useState } from 'react';
 import { FaEye, FaEdit } from 'react-icons/fa';
 import Paginator from '../../Paginator';
-import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
-import { useAuth } from '@/auth/context';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 
-export default function StockTable() {
-  const { token } = useAuth();
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState(true);
+interface Props {
+  productos: Producto[];
+}
 
-  useEffect(() => {
-    if (!token) return;
-    fetchProductos(token)
-      .then(setProductos)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [token]);
-
+export default function StockTable({ productos }: Props) {
   const headers = [
     '',
     'Código',
@@ -45,8 +34,6 @@ export default function StockTable() {
       </>
     );
   };
-
-  if (loading) return <div className="p-4">Cargando productos...</div>;
 
   if (!productos.length) {
     return (
@@ -88,7 +75,7 @@ export default function StockTable() {
               </td>
               <td className="p-3">
                 <span className="text-white text-xs px-2 py-1 rounded bg-black">
-                  {prod.estado}
+                  {prod.estado?.nombre}
                 </span>
               </td>
               <td className="p-3 flex gap-3 mt-3">

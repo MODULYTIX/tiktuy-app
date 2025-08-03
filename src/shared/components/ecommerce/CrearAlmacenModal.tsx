@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { createAlmacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
+import { createAlmacenamiento, updateAlmacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 import { PiGarageLight } from 'react-icons/pi';
 import { FaSpinner } from 'react-icons/fa';
@@ -8,6 +8,8 @@ interface Props {
   token: string;
   onClose(): void;
   onSuccess(nuevo: Almacenamiento): void;
+  modo?: 'crear' | 'editar';
+  almacen?: Almacenamiento | null;
 }
 
 interface Ubigeo {
@@ -15,7 +17,13 @@ interface Ubigeo {
   nombre: string; // Formato: "DEPARTAMENTO/PROVINCIA/DISTRITO"
 }
 
-export default function CrearAlmacenModal({ token, onClose, onSuccess }: Props) {
+export default function CrearAlmacenModal({
+  token,
+  onClose,
+  onSuccess,
+  modo = 'crear',
+  almacen,
+}: Props) {
   const [form, setForm] = useState({
     nombre_almacen: '',
     departamento: '',
@@ -36,7 +44,6 @@ export default function CrearAlmacenModal({ token, onClose, onSuccess }: Props) 
       .then((res) => res.json())
       .then((data) => {
         const result: Ubigeo[] = [];
-
         Object.entries(data).forEach(([depName, provinciasObj]) => {
           Object.entries(provinciasObj as Record<string, any>).forEach(
             ([provName, distritosObj]) => {
@@ -51,11 +58,30 @@ export default function CrearAlmacenModal({ token, onClose, onSuccess }: Props) 
             }
           );
         });
-
         setUbigeos(result);
       })
       .catch(console.error);
   }, []);
+
+  // Precarga si es modo edición
+  useEffect(() => {
+    if (modo === 'editar' && almacen && ubigeos.length > 0) {
+      const match = ubigeos.find((u) => {
+        const [dep, , dist] = u.nombre.split('/');
+        return dep === almacen.departamento && dist === almacen.ciudad;
+      });
+
+      const [, provincia, distrito] = match?.nombre.split('/') ?? [];
+
+      setForm({
+        nombre_almacen: almacen.nombre_almacen || '',
+        departamento: almacen.departamento || '',
+        provincia: provincia || '',
+        distrito: match?.codigo || '',
+        direccion: almacen.direccion || '',
+      });
+    }
+  }, [modo, almacen, ubigeos]);
 
   // Carga provincias según departamento
   useEffect(() => {
@@ -63,13 +89,13 @@ export default function CrearAlmacenModal({ token, onClose, onSuccess }: Props) 
     setDistritos([]);
     if (!form.departamento) return;
 
-    const provs = ubigeos.filter(
-      (u) => u.nombre.startsWith(form.departamento + '/')
-    ).reduce((acc: Record<string, Ubigeo>, item) => {
-      const [, prov] = item.nombre.split('/');
-      if (!acc[prov]) acc[prov] = item;
-      return acc;
-    }, {});
+    const provs = ubigeos
+      .filter((u) => u.nombre.startsWith(form.departamento + '/'))
+      .reduce((acc: Record<string, Ubigeo>, item) => {
+        const [, prov] = item.nombre.split('/');
+        if (!acc[prov]) acc[prov] = item;
+        return acc;
+      }, {});
     setProvincias(Object.values(provs));
   }, [form.departamento, ubigeos]);
 
@@ -102,19 +128,35 @@ export default function CrearAlmacenModal({ token, onClose, onSuccess }: Props) 
     try {
       const selected = ubigeos.find((u) => u.codigo === form.distrito);
       const [departamento, , distrito] = selected?.nombre.split('/') ?? [];
-      const nuevo = await createAlmacenamiento(
-        {
-          nombre_almacen: form.nombre_almacen,
-          departamento,
-          ciudad: distrito,
-          direccion: form.direccion,
-        },
-        token
-      );
-      onSuccess(nuevo);
+
+      if (modo === 'crear') {
+        const nuevo = await createAlmacenamiento(
+          {
+            nombre_almacen: form.nombre_almacen,
+            departamento,
+            ciudad: distrito,
+            direccion: form.direccion,
+          },
+          token
+        );
+        onSuccess(nuevo);
+      } else if (modo === 'editar' && almacen) {
+        const actualizado = await updateAlmacenamiento(
+          almacen.uuid,
+          {
+            nombre_almacen: form.nombre_almacen,
+            departamento,
+            ciudad: distrito,
+            direccion: form.direccion,
+          },
+          token
+        );
+        onSuccess(actualizado);
+      }
+
       onClose();
     } catch {
-      setError('Error al crear almacén');
+      setError('Error al guardar almacén');
     } finally {
       setLoading(false);
     }
@@ -125,11 +167,15 @@ export default function CrearAlmacenModal({ token, onClose, onSuccess }: Props) 
       <div className="bg-white p-6 rounded-l-md w-full max-w-md h-full overflow-auto shadow-lg">
         <div className="flex items-center gap-2 mb-3">
           <PiGarageLight size={20} className="text-primaryDark" />
-          <h2 className="text-lg font-bold uppercase">Registrar Nuevo Almacén</h2>
+          <h2 className="text-lg font-bold uppercase">
+            {modo === 'editar' ? 'Editar Almacén' : 'Registrar Nuevo Almacén'}
+          </h2>
         </div>
 
         <p className="text-sm text-gray-600 mb-5">
-          Complete la información para registrar un nuevo almacén...
+          {modo === 'editar'
+            ? 'Modifique la información del almacén seleccionado.'
+            : 'Complete la información para registrar un nuevo almacén...'}
         </p>
 
         <div className="space-y-4 text-sm">
@@ -213,14 +259,17 @@ export default function CrearAlmacenModal({ token, onClose, onSuccess }: Props) 
         {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
 
         <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-sm border rounded hover:bg-gray-100">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm border rounded hover:bg-gray-100">
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
             className="bg-[#1A253D] text-white px-4 py-2 rounded flex items-center gap-2">
-            {loading && <FaSpinner className="animate-spin" />} Crear nuevo
+            {loading && <FaSpinner className="animate-spin" />}
+            {modo === 'editar' ? 'Guardar Cambios' : 'Crear nuevo'}
           </button>
         </div>
       </div>
