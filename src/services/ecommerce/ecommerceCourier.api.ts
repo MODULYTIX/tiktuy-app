@@ -1,8 +1,8 @@
-import type { EcommerceCourier, NuevaRelacionInput } from './ecommerceCourier.types';
+import type { CourierAsociado, EcommerceCourier, NuevaRelacionInput } from './ecommerceCourier.types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-// Obtener asociaciones ecommerce-courier
+// Obtener todas las asociaciones ecommerce-courier
 export async function fetchEcommerceCourier(token: string): Promise<EcommerceCourier[]> {
   const res = await fetch(`${API_URL}/ecommerce-courier`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -11,6 +11,17 @@ export async function fetchEcommerceCourier(token: string): Promise<EcommerceCou
   if (!res.ok) throw new Error('Error al obtener relaciones ecommerce-courier');
   return await res.json();
 }
+
+// Obtener solo couriers asociados (estado = Activo)
+export async function fetchCouriersAsociados(token: string): Promise<CourierAsociado[]> {
+  const res = await fetch(`${API_URL}/ecommerce-courier/asociados`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) throw new Error('Error al obtener couriers asociados');
+  return await res.json();
+}
+
 
 // Asociar courier
 export async function asociarCourier(id: number, token: string): Promise<void> {
@@ -32,8 +43,11 @@ export async function desasociarCourier(id: number, token: string): Promise<void
   if (!res.ok) throw new Error('Error al desasociar courier');
 }
 
-// Crear nueva relación
-export async function crearRelacionCourier(input: NuevaRelacionInput, token: string): Promise<EcommerceCourier> {
+// Crear nueva relación ecommerce-courier
+export async function crearRelacionCourier(
+  input: NuevaRelacionInput,
+  token: string
+): Promise<EcommerceCourier> {
   const res = await fetch(`${API_URL}/ecommerce-courier`, {
     method: 'POST',
     headers: {

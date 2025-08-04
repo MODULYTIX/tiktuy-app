@@ -7,12 +7,10 @@ import { AuthContext } from '@/auth/context/AuthContext';
 import { FiX } from 'react-icons/fi';
 import { BsBoxSeam } from 'react-icons/bs';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
-import {
-  fetchEcommerceCourier,
-  type EcommerceCourier,
-} from '@/services/ecommerce/ecommerceCourier.api';
+import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import { fetchZonasByCourierPublic } from '@/services/courier/zonaTarifaria.api';
+import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
 
 interface CrearPedidoModalProps {
   isOpen: boolean;
@@ -32,7 +30,7 @@ export default function CrearPedidoModal({
   const { token, user } = useContext(AuthContext);
   const modalRef = useRef<HTMLDivElement>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [couriers, setCouriers] = useState<EcommerceCourier[]>([]);
+  const [couriers, setCouriers] = useState<CourierAsociado[]>([]);
   const [zonas, setZonas] = useState<{ distrito: string }[]>([]);
   const [stockDisponible, setStockDisponible] = useState<number | null>(null);
 
@@ -61,14 +59,10 @@ export default function CrearPedidoModal({
 
   useEffect(() => {
     if (!isOpen || !token) return;
+
     fetchProductos(token).then(setProductos).catch(console.error);
 
-    fetchEcommerceCourier(token)
-      .then((res) => {
-        const afiliados = res.filter((rel) => rel.estado === 'Asociado');
-        setCouriers(afiliados);
-      })
-      .catch(console.error);
+    fetchCouriersAsociados(token).then(setCouriers).catch(console.error);
   }, [isOpen, token]);
 
   useEffect(() => {
@@ -96,7 +90,7 @@ export default function CrearPedidoModal({
           const data = await fetchPedidoById(pedidoId, token);
           const detalle = data.detalles?.[0] || {};
           setForm({
-            courier_id: String(data.courier || ''),
+            courier_id: String(data.courier_id || ''),
             nombre_cliente: data.nombre_cliente || '',
             numero_cliente: data.numero_cliente || '',
             celular_cliente: data.celular_cliente || '',
@@ -228,9 +222,14 @@ export default function CrearPedidoModal({
               onChange={handleChange}
               value={form.courier_id}>
               <option value="">Seleccionar courier</option>
-              {couriers.map((rel) => (
-                <option key={rel.courier.id} value={rel.courier.id}>
-                  {rel.courier.nombre_comercial}
+              {couriers.length === 0 && (
+                <option disabled value="">
+                  No hay couriers asociados
+                </option>
+              )}
+              {couriers.map((courier) => (
+                <option key={courier.id} value={courier.id}>
+                  {courier.nombre_comercial} 
                 </option>
               ))}
             </select>

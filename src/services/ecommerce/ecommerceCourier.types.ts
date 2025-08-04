@@ -1,3 +1,4 @@
+// Relación completa ecommerce-courier (usado para /ecommerce-courier)
 export interface EcommerceCourier {
   id: number;
   uuid: string;
@@ -35,17 +36,20 @@ export interface EcommerceCourier {
   };
 }
 
+// Input para crear nueva relación ecommerce-courier
 export type NuevaRelacionInput = {
   courier_id: number;
 };
 
+// Couriers asociados con estado (usado para select o filtro)
 export interface CourierAsociado {
-  id: number; // Este es el courier_id
-  id_relacion: number | null; // ID de la relación si existe
+  id: number;
+  nombre_comercial: string;
+  telefono: string;
   departamento: string;
   ciudad: string;
   direccion: string;
-  nombre_comercial: string;
-  telefono: string;
-  estado_asociacion: 'activo' | 'inactivo' | 'No Asociado';
+  nombre_usuario: string;
+  estado_asociacion: string;
+  id_relacion: number;
 }

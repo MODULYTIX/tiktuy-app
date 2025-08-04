@@ -1,5 +1,3 @@
-// auth/constants/roles.ts
-
 // Roles principales del sistema (no incluye trabajadores)
 export const validRoles = ['admin', 'ecommerce', 'courier', 'motorizado'] as const;
 

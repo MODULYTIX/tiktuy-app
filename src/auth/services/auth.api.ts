@@ -59,7 +59,7 @@ export type RegisterTrabajadorData = {
   nombres: string;
   apellidos: string;
   correo: string;
-  contrasena: string; // ✅ corregido
+  contrasena: string; 
   estado: string;
   DNI_CI: string;
   rol_perfil_id: number;
