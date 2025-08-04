@@ -2,6 +2,7 @@ import type { Almacenamiento, MovimientoAlmacen, MovimientoPayload } from './alm
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/almacenamiento`;
 
+// Obtener todos los almacenes
 export async function fetchAlmacenes(token: string): Promise<Almacenamiento[]> {
   const res = await fetch(BASE_URL, {
     headers: {
@@ -13,6 +14,7 @@ export async function fetchAlmacenes(token: string): Promise<Almacenamiento[]> {
   return res.json();
 }
 
+// Obtener un almacén por UUID
 export async function fetchAlmacenByUuid(uuid: string, token: string): Promise<Almacenamiento> {
   const res = await fetch(`${BASE_URL}/${uuid}`, {
     headers: {
@@ -24,6 +26,7 @@ export async function fetchAlmacenByUuid(uuid: string, token: string): Promise<A
   return res.json();
 }
 
+// Crear un nuevo almacén
 export async function createAlmacenamiento(
   data: Partial<Almacenamiento>,
   token: string
@@ -41,6 +44,7 @@ export async function createAlmacenamiento(
   return res.json();
 }
 
+// Actualizar un almacén existente
 export async function updateAlmacenamiento(
   uuid: string,
   data: Partial<Almacenamiento>,
@@ -59,6 +63,7 @@ export async function updateAlmacenamiento(
   return res.json();
 }
 
+// Eliminar un almacén por UUID
 export async function deleteAlmacenamiento(uuid: string, token: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/${uuid}`, {
     method: 'DELETE',
@@ -70,7 +75,11 @@ export async function deleteAlmacenamiento(uuid: string, token: string): Promise
   if (!res.ok) throw new Error('Error al eliminar almacén');
 }
 
-export async function registrarMovimiento(data: MovimientoPayload, token: string): Promise<MovimientoAlmacen> {
+// Registrar movimiento de productos entre almacenes
+export async function registrarMovimiento(
+  data: MovimientoPayload,
+  token: string
+): Promise<MovimientoAlmacen> {
   const res = await fetch(`${BASE_URL}/movimiento`, {
     method: 'POST',
     headers: {
@@ -84,6 +93,7 @@ export async function registrarMovimiento(data: MovimientoPayload, token: string
   return res.json();
 }
 
+// Obtener lista de movimientos registrados
 export async function fetchMovimientos(token: string): Promise<MovimientoAlmacen[]> {
   const res = await fetch(`${BASE_URL}/movimientos`, {
     headers: {

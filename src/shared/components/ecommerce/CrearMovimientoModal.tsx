@@ -36,11 +36,23 @@ export default function CrearMovimientoModal({
     fetchProductos(token).then(setProductos).catch(console.error);
   }, [open, token]);
 
+  // Autoasignar almacén origen basado en el primer producto seleccionado
+  useEffect(() => {
+    if (selectedProducts.length > 0 && productos.length > 0) {
+      const productoBase = productos.find(
+        (p) => p.uuid === selectedProducts[0]
+      );
+      if (productoBase?.almacenamiento_id) {
+        setAlmacenOrigen(productoBase.almacenamiento_id.toString());
+      }
+    }
+  }, [selectedProducts, productos]);
+
   const handleCantidadChange = (
     productoId: string,
     value: number,
     stock: number
-  ) => {
+ ) => {
     setCantidades((prev) => ({
       ...prev,
       [productoId]: Math.min(Math.max(0, value), stock),
@@ -52,7 +64,7 @@ export default function CrearMovimientoModal({
       alert('Selecciona almacenes válidos.');
       return;
     }
-  
+
     const productosMov = selectedProducts
       .filter((uuid) => cantidades[uuid] > 0)
       .map((uuid) => {
@@ -67,12 +79,12 @@ export default function CrearMovimientoModal({
         };
       })
       .filter((p): p is { producto_id: number; cantidad: number } => p !== null);
-  
+
     if (productosMov.length === 0) {
       alert('Debes ingresar al menos una cantidad válida.');
       return;
     }
-  
+
     setLoading(true);
     try {
       await registrarMovimiento(
@@ -84,7 +96,7 @@ export default function CrearMovimientoModal({
         },
         token!
       );
-  
+
       // limpiar formulario
       setCantidades({});
       setDescripcion('');
@@ -98,7 +110,6 @@ export default function CrearMovimientoModal({
       setLoading(false);
     }
   };
-  
 
   if (!open) return null;
 

@@ -4,9 +4,11 @@ import type { Producto } from '@/services/ecommerce/producto/producto.types';
 
 interface Props {
   productos: Producto[];
+  onVer: (producto: Producto) => void;
+  onEditar: (producto: Producto) => void;
 }
 
-export default function StockTable({ productos }: Props) {
+export default function StockTable({ productos, onVer, onEditar }: Props) {
   const headers = [
     '',
     'Código',
@@ -18,16 +20,25 @@ export default function StockTable({ productos }: Props) {
     'Acciones',
   ];
 
-  const renderEstadoStock = (stock: number, minimo: number) => {
+  const renderEstadoStock = (stock?: number, minimo?: number) => {
+    const isInvalid = stock === undefined || minimo === undefined;
+    if (isInvalid) {
+      return (
+        <span className="text-xs text-red-500">
+          Datos no disponibles
+        </span>
+      );
+    }
+
     const bajo = stock < minimo;
     const bg = bajo
       ? 'bg-yellow-100 text-yellow-700'
       : 'bg-green-100 text-green-700';
     const texto = bajo ? 'Stock bajo' : 'Stock normal';
+
     return (
       <>
-        <span
-          className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}>
+        <span className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}>
           📦 {stock}
         </span>
         <div className="text-xs text-gray-500">{texto}</div>
@@ -66,7 +77,11 @@ export default function StockTable({ productos }: Props) {
                 <div className="font-semibold">{prod.nombre_producto}</div>
                 <div className="text-gray-500 text-xs">{prod.descripcion}</div>
               </td>
-              <td className="p-3">{prod.almacenamiento.nombre_almacen}</td>
+              <td className="p-3">
+                {prod.almacenamiento?.nombre_almacen || (
+                  <span className="text-gray-400 italic">No asignado</span>
+                )}
+              </td>
               <td className="p-3">
                 {renderEstadoStock(prod.stock, prod.stock_minimo)}
               </td>
@@ -75,14 +90,14 @@ export default function StockTable({ productos }: Props) {
               </td>
               <td className="p-3">
                 <span className="text-white text-xs px-2 py-1 rounded bg-black">
-                  {prod.estado?.nombre}
+                  {prod.estado?.nombre || 'Desconocido'}
                 </span>
               </td>
               <td className="p-3 flex gap-3 mt-3">
-                <button>
+                <button onClick={() => onVer(prod)} title="Ver producto">
                   <FaEye className="text-blue-600" size={16} />
                 </button>
-                <button>
+                <button onClick={() => onEditar(prod)} title="Editar producto">
                   <FaEdit className="text-yellow-600" size={16} />
                 </button>
               </td>

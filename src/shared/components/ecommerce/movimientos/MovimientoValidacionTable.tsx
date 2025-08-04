@@ -16,8 +16,10 @@ export default function MovimientoValidacionTable() {
       .catch(console.error);
   }, [token]);
 
-  const renderEstado = (estado?: string) => {
-    switch (estado) {
+  const renderEstado = (estado?: { nombre?: string }) => {
+    const nombre = estado?.nombre?.toLowerCase();
+
+    switch (nombre) {
       case 'activo':
         return (
           <span className="text-white bg-primaryDark p-1 rounded-sm text-xs font-medium">
@@ -39,12 +41,17 @@ export default function MovimientoValidacionTable() {
     }
   };
 
+  const handleVerClick = (mov: MovimientoAlmacen) => {
+    // Aquí puedes abrir un modal con los detalles del movimiento
+    console.log('Ver movimiento:', mov);
+  };
+
   return (
     <div className="bg-white rounded shadow-sm overflow-hidden mt-4">
       <table className="w-full text-sm">
         <thead className="bg-gray-100 text-left">
           <tr>
-            {['Código', 'Desde', 'Hacia', 'Descripción', 'Fec. Generación', 'Estado', 'Acciones'].map((h) => (
+            {['Código', 'Desde', 'Hacia', 'Descripción', 'Fec. Movimiento', 'Estado', 'Acciones'].map((h) => (
               <th key={h} className="p-3">{h}</th>
             ))}
           </tr>
@@ -53,13 +60,20 @@ export default function MovimientoValidacionTable() {
           {movimientos.map((m) => (
             <tr key={m.uuid} className="border-t">
               <td className="p-3">{m.uuid.slice(0, 8).toUpperCase()}</td>
-              <td className="p-3">{m.almacen_origen.nombre_almacen}</td>
-              <td className="p-3">{m.almacen_destino.nombre_almacen}</td>
-              <td className="p-3">{m.descripcion}</td>
-              <td className="p-3">{new Date(m.fecha_movimiento).toLocaleDateString()}</td>
-              <td className="p-3 text-center">{renderEstado('activo')}</td>
+              <td className="p-3">{m.almacen_origen?.nombre_almacen || '-'}</td>
+              <td className="p-3">{m.almacen_destino?.nombre_almacen || '-'}</td>
+              <td className="p-3">{m.descripcion || '-'}</td>
+              <td className="p-3">
+                {m.fecha_movimiento
+                  ? new Date(m.fecha_movimiento).toLocaleDateString()
+                  : '-'}
+              </td>
+              <td className="p-3 text-center">{renderEstado(m.estado)}</td>
               <td className="p-3 flex gap-2">
-                <FaEye className="text-blue-600 cursor-pointer" />
+                <FaEye
+                  className="text-blue-600 cursor-pointer"
+                  onClick={() => handleVerClick(m)}
+                />
               </td>
             </tr>
           ))}

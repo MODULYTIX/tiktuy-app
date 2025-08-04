@@ -71,7 +71,7 @@ export default function MovimientoRegistroTable({ onSelectProducts }: Props) {
               <td className="p-3 text-right">S/ {Number(prod.precio).toFixed(2)}</td>
               <td className="p-3">
                 <span className="text-xs px-2 py-1 rounded bg-black text-white">
-                  {prod.estado}
+                  {prod.estado?.nombre || 'Desconocido'}
                 </span>
               </td>
               <td className="p-3">

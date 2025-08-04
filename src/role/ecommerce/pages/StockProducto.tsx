@@ -13,6 +13,17 @@ export default function StockPage() {
   const [openModal, setOpenModal] = useState(false);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [filters, setFilters] = useState<any>({});
+  const [productoSeleccionado, setProductoSeleccionado] =
+    useState<Producto | null>(null);
+  const [modoSeleccionado, setModoModal] = useState<'crear' | 'editar' | 'ver'>(
+    'crear'
+  );
+
+  const handleClose = () => {
+    setOpenModal(false);
+    setProductoSeleccionado(null);
+    setModoModal('crear');
+  };
 
   const handleDescargarPlantilla = () => {
     console.log('Descargar plantilla');
@@ -33,9 +44,28 @@ export default function StockPage() {
   };
 
   const handleProductoCreado = (producto: Producto) => {
-    console.log('Producto creado:', producto);
+    console.log('Producto creado o editado:', producto);
     setOpenModal(false);
+    setProductoSeleccionado(null);
     cargarProductos();
+  };
+
+  const handleAbrirModalNuevo = () => {
+    setModoModal('crear');
+    setProductoSeleccionado(null);
+    setOpenModal(true);
+  };
+
+  const handleVerProducto = (producto: Producto) => {
+    setModoModal('ver');
+    setProductoSeleccionado(producto);
+    setOpenModal(true);
+  };
+
+  const handleEditarProducto = (producto: Producto) => {
+    setModoModal('editar');
+    setProductoSeleccionado(producto);
+    setOpenModal(true);
   };
 
   useEffect(() => {
@@ -59,21 +89,28 @@ export default function StockPage() {
           />
 
           <button
-            onClick={() => setOpenModal(true)}
+            onClick={handleAbrirModalNuevo}
             className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition">
-            <TbCubePlus size={18}  />
+            <TbCubePlus size={18} />
             <span>Nuevo Producto</span>
           </button>
         </div>
       </div>
 
       <StockFilters onFilterChange={setFilters} />
-      <StockTable productos={productos} />
+
+      <StockTable
+        productos={productos}
+        onVer={handleVerProducto}
+        onEditar={handleEditarProducto}
+      />
 
       <ProductoFormModal
         open={openModal}
-        onClose={() => setOpenModal(false)}
+        onClose={handleClose}
         onCreated={handleProductoCreado}
+        initialData={productoSeleccionado}
+        modo={modoSeleccionado}
       />
     </section>
   );

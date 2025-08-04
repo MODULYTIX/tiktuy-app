@@ -14,16 +14,15 @@ interface Props {
   onClose: () => void;
   onCreated: (producto: Producto) => void;
   initialData?: Producto | null;
+  modo: 'crear' | 'editar' | 'ver';
 }
 
-// Generador de código con fecha y hora (10 dígitos) + aleatorio (5 dígitos)
+// Generador de código único basado en hora, mes abreviado, año y letra aleatoria
 function generarCodigoConFecha(): string {
   const now = new Date();
-
-  const hora = String(now.getHours()).padStart(2, '0'); // 23
-  const minutos = String(now.getMinutes()).padStart(2, '0'); // 21
-  const year = String(now.getFullYear()).slice(2); // 25
-
+  const hora = String(now.getHours()).padStart(2, '0');
+  const minutos = String(now.getMinutes()).padStart(2, '0');
+  const year = String(now.getFullYear()).slice(2);
   const meses = [
     'ENE',
     'FEB',
@@ -38,11 +37,9 @@ function generarCodigoConFecha(): string {
     'NOV',
     'DIC',
   ];
-  const mesAbrev = meses[now.getMonth()]; // JUL
-
+  const mesAbrev = meses[now.getMonth()];
   const charset = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789';
   const aleatorio = charset[Math.floor(Math.random() * charset.length)];
-
   return `${hora}${mesAbrev}${year}${aleatorio}${minutos}`;
 }
 
@@ -51,8 +48,10 @@ export default function ProductoFormModal({
   onClose,
   onCreated,
   initialData,
+  modo,
 }: Props) {
   const { token } = useAuth();
+  const esModoVer = modo === 'ver';
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
@@ -109,6 +108,7 @@ export default function ProductoFormModal({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
     const data = {
       ...form,
       categoria_id: Number(form.categoria_id),
@@ -133,18 +133,23 @@ export default function ProductoFormModal({
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/40" onClick={onClose} />
-
       <div className="w-full max-w-md bg-white shadow-lg h-full p-6 overflow-y-auto transition-transform duration-300">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <HiOutlineViewGridAdd />
           <span>
-            {initialData ? 'EDITAR PRODUCTO' : 'REGISTRAR NUEVO PRODUCTO'}
+            {modo === 'editar'
+              ? 'EDITAR PRODUCTO'
+              : modo === 'ver'
+              ? 'DETALLE DEL PRODUCTO'
+              : 'REGISTRAR NUEVO PRODUCTO'}
           </span>
         </h2>
         <p className="text-sm text-gray-500 mt-1">
-          {initialData
-            ? 'Modifica la información del producto existente en tu inventario.'
-            : 'Registra un nuevo producto en tu inventario especificando su información básica, ubicación en almacén y condiciones de stock.'}
+          {modo === 'editar'
+            ? 'Modifica la información del producto existente.'
+            : modo === 'ver'
+            ? 'Consulta todos los datos registrados de este producto.'
+            : 'Registra un nuevo producto en tu inventario especificando su información básica.'}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -156,7 +161,7 @@ export default function ProductoFormModal({
               onChange={handleChange}
               placeholder="Auto-generado"
               required
-              readOnly={!initialData}
+              readOnly
             />
             <Input
               name="nombre_producto"
@@ -165,6 +170,7 @@ export default function ProductoFormModal({
               onChange={handleChange}
               placeholder="Ej. Zapatos de Cuero"
               required
+              readOnly={esModoVer}
             />
           </div>
 
@@ -174,6 +180,7 @@ export default function ProductoFormModal({
             value={form.descripcion}
             onChange={handleChange}
             placeholder="Ej. Zapato de vestir, tipo Oxford"
+            readOnly={esModoVer}
           />
 
           <Select<Categoria, 'nombre'>
@@ -184,6 +191,7 @@ export default function ProductoFormModal({
             options={categorias}
             optionLabel="nombre"
             required
+            disabled={esModoVer}
           />
 
           <Select<Almacenamiento, 'nombre_almacen'>
@@ -194,6 +202,7 @@ export default function ProductoFormModal({
             options={almacenes}
             optionLabel="nombre_almacen"
             required
+            disabled={esModoVer}
           />
 
           <div className="grid grid-cols-2 gap-3">
@@ -206,6 +215,7 @@ export default function ProductoFormModal({
               onChange={handleChange}
               placeholder="Ej. 50.20"
               required
+              readOnly={esModoVer}
             />
             <Input
               name="stock"
@@ -215,6 +225,7 @@ export default function ProductoFormModal({
               onChange={handleChange}
               placeholder="Ej. 50"
               required
+              readOnly={esModoVer}
             />
           </div>
 
@@ -227,6 +238,7 @@ export default function ProductoFormModal({
               onChange={handleChange}
               placeholder="Ej. 10"
               required
+              readOnly={esModoVer}
             />
             <Input
               name="peso"
@@ -237,29 +249,33 @@ export default function ProductoFormModal({
               onChange={handleChange}
               placeholder="Ej. 450 gr."
               required
+              readOnly={esModoVer}
             />
           </div>
 
-          <div className="flex justify-end gap-2 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="border px-4 py-2 text-sm rounded hover:bg-gray-50">
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="bg-black text-white px-4 py-2 text-sm rounded hover:opacity-90">
-              {initialData ? 'Guardar cambios' : 'Crear nuevo'}
-            </button>
-          </div>
+          {!esModoVer && (
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                onClick={onClose}
+                className="border px-4 py-2 text-sm rounded hover:bg-gray-50">
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="bg-black text-white px-4 py-2 text-sm rounded hover:opacity-90">
+                {initialData ? 'Guardar cambios' : 'Crear nuevo'}
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>
   );
 }
 
-// Input reusable
+// Componentes reutilizables
+
 function Input({
   label,
   ...rest
@@ -277,7 +293,6 @@ function Input({
   );
 }
 
-// Textarea reusable
 function Textarea({
   label,
   ...rest
@@ -295,7 +310,6 @@ function Textarea({
   );
 }
 
-// Select reusable
 function Select<T extends { id: number }, K extends keyof T>({
   label,
   options,

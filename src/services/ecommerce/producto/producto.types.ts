@@ -13,11 +13,16 @@ export interface Producto {
   stock: number;
   stock_minimo: number;
   peso: number;
-  estado: string;
+  estado_id: number;
   fecha_registro: string;
   created_at: string;
   updated_at: string;
 
   categoria: Categoria;
   almacenamiento: Almacenamiento;
+
+  estado: {
+    id: number;
+    nombre: string;
+  };
 }
