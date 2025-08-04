@@ -1,46 +1,6 @@
+import type { EcommerceCourier, NuevaRelacionInput } from './ecommerceCourier.types';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-export interface EcommerceCourier {
-  id: number;
-  uuid: string;
-  ecommerce_id: number;
-  courier_id: number;
-  fecha_asociacion: string;
-  estado: 'Asociado' | 'No Asociado';
-  ecommerce: {
-    id: number;
-    uuid: string;
-    usuario_id: number;
-    nombre_comercial: string;
-    ruc: string;
-    ciudad: string;
-    direccion: string;
-    rubro: string;
-    estado: string;
-    created_at: string;
-    updated_at: string;
-  };
-  courier: {
-    id: number;
-    uuid: string;
-    usuario_id: number;
-    nombre_comercial: string;
-    ruc: string;
-    representante: string;
-    departamento: string;
-    ciudad: string;
-    direccion: string;
-    telefono: string;
-    estado: string;
-    created_at: string;
-    updated_at: string;
-  };
-}
-
-
-export type NuevaRelacionInput = {
-  courier_id: number;
-};
 
 // Obtener asociaciones ecommerce-courier
 export async function fetchEcommerceCourier(token: string): Promise<EcommerceCourier[]> {
@@ -49,7 +9,6 @@ export async function fetchEcommerceCourier(token: string): Promise<EcommerceCou
   });
 
   if (!res.ok) throw new Error('Error al obtener relaciones ecommerce-courier');
-
   return await res.json();
 }
 

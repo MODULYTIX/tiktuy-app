@@ -1,19 +1,37 @@
+export interface ProductoInfo {
+  id: number;
+  nombre_producto: string;
+  stock: number;
+}
+
 export interface PedidoDetalle {
   id: number;
   producto_id: number;
   cantidad: number;
   precio_unitario: number;
-  producto: {
-    id: number;
-    nombre_producto: string;
-    stock: number;
-  };
+  producto: ProductoInfo;
+}
+
+export interface UsuarioSimple {
+  id: number;
+  nombres: string;
+  apellidos: string;
+}
+
+export interface Empresa {
+  id: number;
+  nombre_comercial: string;
+}
+
+export interface MotorizadoInfo {
+  id: number;
+  usuario: UsuarioSimple;
 }
 
 export interface Pedido {
   id: number;
   codigo_pedido: string;
-  estado_pedido: string;
+  estado_pedido: string; 
   nombre_cliente: string;
   numero_cliente: string;
   celular_cliente: string;
@@ -21,27 +39,12 @@ export interface Pedido {
   referencia_direccion?: string;
   distrito: string;
   monto_recaudar: number;
-  fecha_entrega_programada: string;
+  fecha_entrega_programada: string | null;
   fecha_creacion: string;
 
-  ecommerce: {
-    id: number;
-    nombre_comercial: string;
-  };
-
-  courier: {
-    id: number;
-    nombre_comercial: string;
-  };
-
-  motorizado?: {
-    id: number;
-    usuario: {
-      id: number;
-      nombres: string;
-      apellidos: string;
-    };
-  };
+  ecommerce: Empresa;
+  courier: Empresa;
+  motorizado?: MotorizadoInfo;
 
   detalles: PedidoDetalle[];
 }

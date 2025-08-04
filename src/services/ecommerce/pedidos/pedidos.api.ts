@@ -38,27 +38,9 @@ export async function crearPedido(data: Partial<Pedido>, token: string): Promise
   return res.json();
 }
 
-export async function asignarMotorizado(
-  id: number,
-  motorizado_id: number,
-  token: string
-): Promise<Pedido> {
-  const res = await fetch(`${API_URL}/pedido/${id}/asignar`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ motorizado_id }),
-  });
-
-  if (!res.ok) throw new Error('Error al asignar motorizado');
-  return res.json();
-}
-
 export async function validarPedido(id: number, token: string): Promise<Pedido> {
   const res = await fetch(`${API_URL}/pedido/${id}/validar`, {
-    method: 'POST',
+    method: 'PUT', // ✅ actualizado: ahora es método PUT según tu backend
     headers: {
       Authorization: `Bearer ${token}`,
     },

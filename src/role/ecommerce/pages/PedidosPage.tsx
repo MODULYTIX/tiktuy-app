@@ -20,17 +20,24 @@ export default function PedidosPage() {
   const [pedidoId, setPedidoId] = useState<number | null>(null);
   const { token } = useContext(AuthContext);
 
+  const [filtros, setFiltros] = useState({
+    courier: '',
+    producto: '',
+    fechaInicio: '',
+    fechaFin: '',
+  });
+
   useEffect(() => {
     localStorage.setItem('ventas_vista', vista);
   }, [vista]);
 
   const handleNuevoPedido = () => {
-    setPedidoId(null); // Modo creación
+    setPedidoId(null);
     setModalAbierto(true);
   };
 
   const handleEditarPedido = (id: number) => {
-    setPedidoId(id); // Modo edición
+    setPedidoId(id);
     setModalAbierto(true);
   };
 
@@ -40,19 +47,23 @@ export default function PedidosPage() {
   };
 
   const refetchPedidos = () => {
-    // Aquí va la lógica para recargar la tabla si la manejas por estado o SWR/query
     handleCerrarModal();
   };
 
-  const handleLimpiarFiltros = () => console.log('Limpiar filtros ejecutado');
+  const handleLimpiarFiltros = () => {
+    setFiltros({
+      courier: '',
+      producto: '',
+      fechaInicio: '',
+      fechaFin: '',
+    });
+  };
 
   return (
     <section className="mt-8 space-y-6">
       <div className="flex justify-between items-center mb-2">
         <div>
-          <h1 className="text-3xl font-bold text-primary mb-1">
-            Panel de Pedidos
-          </h1>
+          <h1 className="text-3xl font-bold text-primary mb-1">Panel de Pedidos</h1>
           <p className="text-gray-500">
             Administra y visualiza el estado de tus pedidos en cada etapa del proceso.
           </p>
@@ -100,9 +111,7 @@ export default function PedidosPage() {
 
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-lg font-semibold text-primaryDark">
-            Pedidos Generados
-          </h2>
+          <h2 className="text-lg font-semibold text-primaryDark">Pedidos Generados</h2>
           <p className="text-sm text-gray-600">
             Consulta los pedidos registrados recientemente.
           </p>
@@ -119,23 +128,39 @@ export default function PedidosPage() {
       <div className="bg-white p-4 rounded shadow-sm flex flex-wrap gap-4 items-end">
         <div className="flex-1 min-w-[200px]">
           <label className="text-sm font-medium text-gray-600">Courier</label>
-          <select className="w-full border rounded px-3 py-2 text-sm">
+          <select
+            className="w-full border rounded px-3 py-2 text-sm"
+            value={filtros.courier}
+            onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value }))}>
             <option value="">Seleccionar courier</option>
           </select>
         </div>
         <div className="flex-1 min-w-[200px]">
           <label className="text-sm font-medium text-gray-600">Producto</label>
-          <select className="w-full border rounded px-3 py-2 text-sm">
+          <select
+            className="w-full border rounded px-3 py-2 text-sm"
+            value={filtros.producto}
+            onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value }))}>
             <option value="">Seleccionar producto</option>
           </select>
         </div>
         <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-600">Fecha Inicio</label>
-          <input type="date" className="border rounded px-3 py-2 text-sm" />
+          <input
+            type="date"
+            className="border rounded px-3 py-2 text-sm"
+            value={filtros.fechaInicio}
+            onChange={(e) => setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))}
+          />
         </div>
         <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-600">Fecha Fin</label>
-          <input type="date" className="border rounded px-3 py-2 text-sm" />
+          <input
+            type="date"
+            className="border rounded px-3 py-2 text-sm"
+            value={filtros.fechaFin}
+            onChange={(e) => setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))}
+          />
         </div>
         <button
           onClick={handleLimpiarFiltros}

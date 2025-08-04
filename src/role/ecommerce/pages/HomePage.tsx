@@ -5,13 +5,13 @@ import {
   asociarCourier,
   desasociarCourier,
   crearRelacionCourier,
-  type EcommerceCourier,
 } from '@/services/ecommerce/ecommerceCourier.api';
-import { FaEye, FaCheck, FaTimes, FaPlus } from 'react-icons/fa';
+import { FaEye, FaCheck, FaTimes } from 'react-icons/fa';
+import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
 
 export default function EcommerceHomePage() {
   const { token } = useAuth();
-  const [data, setData] = useState<EcommerceCourier[]>([]);
+  const [data, setData] = useState<CourierAsociado[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtros, setFiltros] = useState({
     ciudad: '',
@@ -20,6 +20,7 @@ export default function EcommerceHomePage() {
   });
 
   const loadData = async () => {
+    if (!token) return;
     try {
       const res = await fetchEcommerceCourier(token);
       setData(res);
@@ -32,7 +33,7 @@ export default function EcommerceHomePage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [token]);
 
   const handleChangeFiltro = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setFiltros({ ...filtros, [e.target.name]: e.target.value });
@@ -42,48 +43,47 @@ export default function EcommerceHomePage() {
     setFiltros({ ciudad: '', courier: '', estado: '' });
   };
 
-  const handleAsociar = async (id: number) => {
-    await asociarCourier(id, token);
-    loadData();
-  };
-
-  const handleDesasociar = async (id: number) => {
-    await desasociarCourier(id, token);
-    loadData();
-  };
-
-  const handleCrearRelacion = async () => {
-    const input = prompt('Ingrese el ID del courier que desea asociar');
-    const courier_id = Number(input);
-    if (!courier_id) return alert('ID inválido');
-
+  const handleAsociar = async (entry: CourierAsociado) => {
+    if (!token) return;
     try {
-      await crearRelacionCourier({ courier_id }, token);
-      alert('Courier asociado correctamente');
+      if (!entry.id_relacion) {
+        await crearRelacionCourier({ courier_id: entry.id }, token);
+      } else {
+        await asociarCourier(entry.id_relacion, token);
+      }
       loadData();
     } catch (err: any) {
-      alert(err.message || 'Error al crear relación');
+      alert(err.message || 'Error al asociar courier');
     }
   };
 
-  const verDetalle = (entry: EcommerceCourier) => {
+  const handleDesasociar = async (entry: CourierAsociado) => {
+    if (!token) return;
+    try {
+      if (entry.id_relacion) {
+        await desasociarCourier(entry.id_relacion, token);
+        loadData();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al desasociar courier');
+    }
+  };
+
+  const verDetalle = (entry: CourierAsociado) => {
     alert(JSON.stringify(entry, null, 2));
   };
 
   const dataFiltrada = data.filter((entry) => {
     return (
-      (!filtros.ciudad || entry.courier.ciudad === filtros.ciudad) &&
-      (!filtros.courier || entry.courier.nombre_comercial === filtros.courier) &&
-      (!filtros.estado || entry.estado === filtros.estado)
+      (!filtros.ciudad || entry.ciudad === filtros.ciudad) &&
+      (!filtros.courier || entry.nombre_comercial === filtros.courier) &&
+      (!filtros.estado || entry.estado_asociacion === filtros.estado)
     );
   });
-  
 
-  const ciudades = [...new Set(data.map((d) => d.courier.ciudad))];
-  const couriersUnicos = [
-    ...new Map(data.map((d) => [d.courier.id, d.courier])).values()
-  ];
-  const estados = ['Asociado', 'No Asociado'];
+  const ciudades = [...new Set(data.map((d) => d.ciudad))];
+  const couriersUnicos = [...new Set(data.map((d) => d.nombre_comercial))];
+  const estados = ['activo', 'inactivo', 'No Asociado'];
 
   return (
     <div className="mt-8">
@@ -92,28 +92,17 @@ export default function EcommerceHomePage() {
         Monitoreo de Asociación con couriers por ciudades
       </p>
 
-      {/* Botón para crear relación */}
-      <div className="mb-4">
-        <button
-          onClick={handleCrearRelacion}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-        >
-          <FaPlus /> Asociar nuevo courier
-        </button>
-      </div>
-
       {/* Filtros */}
       <div className="bg-white p-4 rounded shadow flex flex-wrap gap-4 items-end mb-6">
-        {/* Filtro ciudad */}
         <div className="flex flex-col text-sm">
-          <label className="text-gray-700 font-medium mb-1 text-center">Almacén</label>
+          <label className="text-gray-700 font-medium mb-1 text-center">Ciudad</label>
           <select
             name="ciudad"
             value={filtros.ciudad}
             onChange={handleChangeFiltro}
-            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 "
+            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm"
           >
-            <option value="">Seleccionar almacén</option>
+            <option value="">Todas</option>
             {ciudades.map((ciudad) => (
               <option key={ciudad} value={ciudad}>
                 {ciudad}
@@ -122,34 +111,32 @@ export default function EcommerceHomePage() {
           </select>
         </div>
 
-        {/* Filtro courier */}
         <div className="flex flex-col text-sm">
-          <label className="text-gray-700 font-medium mb-1 text-center">Categorías</label>
+          <label className="text-gray-700 font-medium mb-1 text-center">Courier</label>
           <select
             name="courier"
             value={filtros.courier}
             onChange={handleChangeFiltro}
-            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 "
+            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm"
           >
-            <option value="">Seleccionar categoría</option>
+            <option value="">Todos</option>
             {couriersUnicos.map((courier) => (
-              <option key={courier.id} value={courier.nombre_comercial}>
-                {courier.nombre_comercial}
+              <option key={courier} value={courier}>
+                {courier}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Filtro estado */}
         <div className="flex flex-col text-sm">
           <label className="text-gray-700 font-medium mb-1 text-center">Estado</label>
           <select
             name="estado"
             value={filtros.estado}
             onChange={handleChangeFiltro}
-            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 "
+            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm"
           >
-            <option value="">Seleccionar estado</option>
+            <option value="">Todos</option>
             {estados.map((estado) => (
               <option key={estado} value={estado}>
                 {estado}
@@ -160,7 +147,7 @@ export default function EcommerceHomePage() {
 
         <button
           onClick={limpiarFiltros}
-          className="ml-auto text-sm text-gray-600 border rounded px-4 py-2 hover:bg-gray-50 hover:ring-1 hover:ring-gray-300 flex items-center gap-2 transition"
+          className="ml-auto text-sm text-gray-600 border rounded px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition"
         >
           <FaTimes className="text-gray-500" />
           Limpiar Filtros
@@ -193,20 +180,20 @@ export default function EcommerceHomePage() {
             <tbody className="text-gray-700">
               {dataFiltrada.map((entry) => (
                 <tr key={entry.id} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-2">{entry.courier.departamento}</td>
-                  <td className="px-4 py-2">{entry.courier.departamento}</td>
-                  <td className="px-4 py-2">{entry.courier.direccion}</td>
-                  <td className="px-4 py-2">{entry.courier.nombre_comercial}</td>
+                  <td className="px-4 py-2">{entry.departamento}</td>
+                  <td className="px-4 py-2">{entry.ciudad}</td>
+                  <td className="px-4 py-2">{entry.direccion}</td>
+                  <td className="px-4 py-2">{entry.nombre_comercial}</td>
                   <td className="px-4 py-2">{entry.telefono}</td>
                   <td className="px-4 py-2">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        entry.estado === 'Asociado'
+                        entry.estado_asociacion === 'activo'
                           ? 'bg-black text-white'
                           : 'bg-gray-200 text-gray-800'
                       }`}
                     >
-                      {entry.estado}
+                      {entry.estado_asociacion}
                     </span>
                   </td>
                   <td className="px-4 py-2 flex items-center gap-3">
@@ -214,15 +201,17 @@ export default function EcommerceHomePage() {
                       onClick={() => verDetalle(entry)}
                       className="text-blue-600 hover:text-blue-800 cursor-pointer"
                     />
-                    {entry.estado === 'Asociado' ? (
+                    {entry.estado_asociacion === 'activo' ? (
                       <FaTimes
-                        onClick={() => handleDesasociar(entry.id)}
+                        onClick={() => handleDesasociar(entry)}
                         className="text-red-500 hover:text-red-700 cursor-pointer"
+                        title="Desasociar"
                       />
                     ) : (
                       <FaCheck
-                        onClick={() => handleAsociar(entry.id)}
-                        className="text-green-500 hover:text-green-700 cursor-pointer"
+                        onClick={() => handleAsociar(entry)}
+                        className="text-green-500 hover:text-green-700 rotate-180 cursor-pointer"
+                        title="Asociar"
                       />
                     )}
                   </td>
