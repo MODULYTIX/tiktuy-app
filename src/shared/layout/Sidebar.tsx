@@ -19,7 +19,7 @@ import { HiOutlineClipboardList } from 'react-icons/hi';
 
 import LOGOTIKTUY from '@/assets/logos/logo-tiktuy-sidebar.webp';
 import PanelRightOpenIcon from '@/assets/icons/PanelRightOpen';
-import { FaGroupArrowsRotate } from 'react-icons/fa6';
+import { FaGroupArrowsRotate, FaMapLocationDot } from 'react-icons/fa6';
 
 interface Props {
   isOpen: boolean;
@@ -47,24 +47,9 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     ecommerce: [
       { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
       { to: '/almacen', label: 'Almacén', icon: <FaBoxes />, modulo: 'stock' },
-      {
-        to: '/stock',
-        label: 'Stock de productos',
-        icon: <MdOutlineProductionQuantityLimits />,
-        modulo: 'stock',
-      },
-      {
-        to: '/movimientos',
-        label: 'Movimientos',
-        icon: <FaGroupArrowsRotate />,
-        modulo: 'movimiento',
-      },
-      {
-        to: '/pedidos',
-        label: 'Gestion de Pedidos',
-        icon: <FaCashRegister />,
-        modulo: 'pedidos',
-      },
+      { to: '/stock', label: 'Stock de productos', icon: <MdOutlineProductionQuantityLimits />, modulo: 'stock' },
+      { to: '/movimientos', label: 'Movimientos', icon: <FaGroupArrowsRotate />, modulo: 'movimiento' },
+      { to: '/pedidos', label: 'Gestion de Pedidos', icon: <FaCashRegister />, modulo: 'pedidos' },
       { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
       { to: '/perfiles', label: 'Perfiles', icon: <FaUsersCog /> },
       { to: '/reportes', label: 'Reportes', icon: <RiFileChartLine /> },
@@ -72,23 +57,14 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     ],
     courier: [
       { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
-      {
-        to: '/logistica',
-        label: 'Pedidos / Logística',
-        icon: <FaTruck />,
-        modulo: 'pedidos',
-      },
-      { to: '/almacen', label: 'Stock / Almacén', icon: <FaBoxes />, modulo: 'stock' },
-      {
-        to: '/zonas',
-        label: 'Zonas / Tarifas',
-        icon: <HiOutlineClipboardList />,
-        modulo: 'zonas',
-      },
-      { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
+      { to: '/almacen', label: 'Almacén', icon: <FaBoxes />, modulo: 'pedidos'},
+      { to: '/stock', label: 'Stock de Productos', icon: <MdOutlineProductionQuantityLimits />, modulo: 'stock' },
+      { to: '/movimientos', label: 'Movimientos', icon: <FaGroupArrowsRotate /> },
+      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <FaCashRegister /> },
+      { to: '/zonas', label: 'Zonas / Tarifas', icon: <FaMapLocationDot /> },
+      { to: '/cuadresaldo', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
       { to: '/perfiles', label: 'Perfiles', icon: <FaUsersCog /> },
       { to: '/reportes', label: 'Reportes', icon: <RiFileChartLine /> },
-      { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
     ],
     motorizado: [
       { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
@@ -101,7 +77,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
 
   const basePath = user?.rol?.nombre ? `/${user.rol.nombre}` : '';
   let links = user?.rol?.nombre ? linksByRole[user.rol.nombre as keyof typeof linksByRole] : [];
-  
+
 
   // 🔒 Si es trabajador, filtramos los módulos asignados
   const perfilTrabajador = user?.perfil_trabajadores?.[0];
@@ -110,12 +86,12 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     const modulosAsignados = perfilTrabajador.modulo_asignado
       .split(',')
       .map((m) => m.trim());
-  
+
     links = links.filter((link) =>
       link.modulo ? modulosAsignados.includes(link.modulo) : false
     );
   }
-  
+
 
   // Rutas completas
   links = links.map((link) => ({
@@ -123,7 +99,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     to: `${basePath}${link.to}`,
   }));
 
-  
+
   return (
     <aside
       className={`h-screen bg-white text-primary flex flex-col justify-between shadow-md
@@ -157,15 +133,13 @@ export default function Sidebar({ isOpen, toggle }: Props) {
               to={to}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300 text-sm font-medium
-            hover:bg-[#f0f3ff] hover:text-primary ${
-              isActive ? 'bg-[#EEf4FF] text-primary' : 'text-primary'
-            }`
+            hover:bg-[#f0f3ff] hover:text-primary ${isActive ? 'bg-[#EEf4FF] text-primary' : 'text-primary'
+                }`
               }>
               <span className="text-lg">{icon}</span>
               <span
-                className={`transition-all duration-300 ease-in-out origin-left ${
-                  isOpen ? 'opacity-100 ml-1' : 'opacity-0 w-0 overflow-hidden'
-                }`}>
+                className={`transition-all duration-300 ease-in-out origin-left ${isOpen ? 'opacity-100 ml-1' : 'opacity-0 w-0 overflow-hidden'
+                  }`}>
                 {label}
               </span>
             </NavLink>
@@ -175,9 +149,8 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         {/* Footer */}
         <div className="px-4 py-4">
           <p
-            className={`text-xs text-gray-400 mb-2 transition-opacity duration-300 ${
-              isOpen ? 'opacity-100' : 'opacity-0'
-            }`}>
+            className={`text-xs text-gray-400 mb-2 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'
+              }`}>
             Versión 1.0
           </p>
           <button
@@ -185,9 +158,8 @@ export default function Sidebar({ isOpen, toggle }: Props) {
             className="w-full flex items-center gap-2 text-sm text-red-600 hover:text-red-700 transition font-medium">
             <FaSignOutAlt />
             <span
-              className={`transition-all duration-300 ease-in-out origin-left ${
-                isOpen ? 'opacity-100 ml-1' : 'opacity-0 w-0 overflow-hidden'
-              }`}>
+              className={`transition-all duration-300 ease-in-out origin-left ${isOpen ? 'opacity-100 ml-1' : 'opacity-0 w-0 overflow-hidden'
+                }`}>
               Cerrar sesión
             </span>
           </button>
