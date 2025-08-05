@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(newToken);
 
     try {
-      const userData = await fetchMe(newToken); // ✅ siempre trae desde /me
+      const userData = await fetchMe(newToken); 
       setUser(userData);
     } catch (error) {
       logout();

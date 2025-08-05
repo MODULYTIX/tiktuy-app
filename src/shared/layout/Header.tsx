@@ -1,8 +1,7 @@
 import { useAuth } from '@/auth/context/useAuth';
-import { FaCog, FaUser } from 'react-icons/fa';
+import { FaUser } from 'react-icons/fa';
 import { Icon } from '@iconify/react';
 import { roleConfigs } from '@/shared/constants/roleConfigs';
-import NotificationBellIcon from '../context/notificacionesBell/NotificationBellIcon';
 
 export default function Header() {
   const { user } = useAuth();

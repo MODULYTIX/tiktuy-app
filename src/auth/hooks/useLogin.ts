@@ -19,9 +19,34 @@ export function useLogin() {
       const response = await loginRequest(credentials);
       await loginWithToken(response.token, response.user);
 
-      // Espera un ciclo de render para asegurar que el contexto se actualice
+      const rolNombre = response.user.rol?.nombre;
+
+      // Redirige según el rol
       setTimeout(() => {
-        navigate(roleDefaultPaths[response.user.rol], { replace: true });
+        if (
+          rolNombre === 'admin' ||
+          rolNombre === 'ecommerce' ||
+          rolNombre === 'courier' ||
+          rolNombre === 'motorizado'
+        ) {
+          navigate(roleDefaultPaths[rolNombre], { replace: true });
+        } else if (rolNombre === 'trabajador') {
+          const modulos = response.user.trabajador?.modulo_asignado?.split(',') || [];
+
+          const moduloPaths: Record<string, string> = {
+            'Stock de productos': '/stock',
+            'Movimientos': '/movimiento',
+            'Gestion de pedidos': '/pedidos',
+            'Producto': '/producto', // si usas esta ruta
+            // puedes agregar más según tus módulos
+          };
+
+          const primerModulo = modulos[0]?.trim();
+          const path = moduloPaths[primerModulo] || '/unauthorized';
+          navigate(path, { replace: true });
+        } else {
+          navigate('/unauthorized');
+        }
       }, 0);
     } catch (err: unknown) {
       if (err instanceof Error) {

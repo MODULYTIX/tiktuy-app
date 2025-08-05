@@ -1,18 +1,17 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/context/useAuth';
-import { roleDefaultPaths, validRoles } from '@/auth/constants/roles';
+import { roleDefaultPaths } from '@/auth/constants/roles';
 import type { JSX } from 'react';
-import type { Role } from '@/auth/constants/roles';
 import { useEffect, useState } from 'react';
 
 // Mapeo de módulos asignados a rutas reales
 const moduloRutaMap: Record<string, string> = {
-  stock: 'ecommerce/stock',
-  producto: 'ecommerce/stock',
-  movimiento: 'ecommerce/movimientos',
-  pedidos: 'ecommerce/pedidos',
-  zonas: 'courier/zonas',
-  entregas: 'motorizado/entregas',
+  stock: '/stock',
+  producto: '/producto',
+  movimiento: '/movimiento',
+  pedidos: '/pedidos',
+  zonas: '/courier/zonas',
+  entregas: '/motorizado/entregas',
 };
 
 type Props = {
@@ -27,24 +26,32 @@ export default function AuthGuard({ children }: Props) {
   useEffect(() => {
     if (user && !redirected) {
       const role = user.rol?.nombre;
-
-      if (role && validRoles.includes(role)) {
-        navigate(roleDefaultPaths[role as Role], { replace: true });
+  
+      if (
+        role === 'admin' ||
+        role === 'ecommerce' ||
+        role === 'courier' ||
+        role === 'motorizado'
+      ) {
+        navigate(roleDefaultPaths[role], { replace: true });
         setRedirected(true);
         return;
       }
-
-      const moduloAsignado = user.trabajador?.modulo_asignado;
-      if (moduloAsignado) {
-        const rutaModulo = moduloRutaMap[moduloAsignado];
+  
+      if (role === 'trabajador') {
+        const modulos = user.trabajador?.modulo_asignado?.split(',') || [];
+        const primerModulo = modulos[0]?.trim();
+  
+        const rutaModulo = moduloRutaMap[primerModulo || ''];
         if (rutaModulo) {
-          navigate(`/${rutaModulo}`, { replace: true });
+          navigate(rutaModulo, { replace: true });
           setRedirected(true);
           return;
         }
       }
     }
   }, [user, redirected, navigate]);
+  
 
   if (loading) return <div className="p-4">Cargando sesión...</div>;
 

@@ -1,5 +1,5 @@
 // --- Tipos de rol y módulos ---
-export type Role = 'admin' | 'ecommerce' | 'courier' | 'motorizado';
+export type Role = 'admin' | 'ecommerce' | 'courier' | 'motorizado' | 'trabajador';
 export type ModuloAsignado = 'stock' | 'producto' | 'movimiento' | 'pedidos';
 
 export type Rol = {

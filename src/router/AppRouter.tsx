@@ -76,9 +76,33 @@ export default function AppRouter() {
         ))}
       </Route>
 
-      {/* Trabajador (base común) */}
+      {/* Módulos para Trabajadores */}
       <Route
-        path="/stock"
+        path="/trabajador"
+        element={
+          <PrivateRoute allowedRoles={['trabajador']}>
+            <PrivateLayout />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/producto"
+        element={
+          <PrivateRoute allowModulo>
+            <PrivateLayout />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/movimiento"
+        element={
+          <PrivateRoute allowModulo>
+            <PrivateLayout />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/pedidos"
         element={
           <PrivateRoute allowModulo>
             <PrivateLayout />
