@@ -1,5 +1,6 @@
 import { useAuth } from '@/auth/context/useAuth';
 import { FaCog, FaUser } from 'react-icons/fa';
+import { Icon } from '@iconify/react';
 import { roleConfigs } from '@/shared/constants/roleConfigs';
 import NotificationBellIcon from '../context/notificacionesBell/NotificationBellIcon';
 
@@ -13,12 +14,12 @@ export default function Header() {
       <div className="flex items-center gap-6 text-primary justify-center content-center">
         <div>
           {/* 🔔 Icono con notificaciones */}
-          <NotificationBellIcon />
+          <Icon icon="famicons:notifications-outline" width="24" height="24" />
         </div>
 
         {/* ⚙ Icono de Configuración */}
         <button type="button" className="hover:text-blue-600 transition">
-          <FaCog size={18} />
+          <Icon icon="solar:settings-broken" width="24" height="24" />
         </button>
 
         <div className="h-5 w-px bg-gray-300" />

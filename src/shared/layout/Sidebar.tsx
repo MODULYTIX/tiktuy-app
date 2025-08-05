@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { Icon } from '@iconify/react';  
 import { useAuth } from '@/auth/context/useAuth';
 import {
   FaBars,
@@ -45,33 +46,31 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
     ],
     ecommerce: [
-      { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
-      { to: '/almacen', label: 'Almacén', icon: <FaBoxes />, modulo: 'stock' },
-      { to: '/stock', label: 'Stock de productos', icon: <MdOutlineProductionQuantityLimits />, modulo: 'stock' },
-      { to: '/movimientos', label: 'Movimientos', icon: <FaGroupArrowsRotate />, modulo: 'movimiento' },
-      { to: '/pedidos', label: 'Gestion de Pedidos', icon: <FaCashRegister />, modulo: 'pedidos' },
-      { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
-      { to: '/perfiles', label: 'Perfiles', icon: <FaUsersCog /> },
-      { to: '/reportes', label: 'Reportes', icon: <RiFileChartLine /> },
-      { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
+      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
+      { to: '/almacen', label: 'Almacén', icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />, modulo: 'stock' },
+      { to: '/stock', label: 'Stock de productos', icon: <Icon icon="vaadin:stock" width="24" height="24" />, modulo: 'stock' },
+      { to: '/movimientos', label: 'Movimientos', icon: <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />, modulo: 'movimiento' },
+      { to: '/pedidos', label: 'Gestion de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />, modulo: 'pedidos' },
+      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
+      { to: '/perfiles', label: 'Perfiles', icon: <Icon icon="hugeicons:access" width="24" height="24" /> },
+      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
     ],
     courier: [
-      { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
-      { to: '/almacen', label: 'Almacén', icon: <FaBoxes />, modulo: 'pedidos'},
-      { to: '/stock', label: 'Stock de Productos', icon: <MdOutlineProductionQuantityLimits />, modulo: 'stock' },
-      { to: '/movimientos', label: 'Movimientos', icon: <FaGroupArrowsRotate /> },
-      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <FaCashRegister /> },
-      { to: '/zonas', label: 'Zonas / Tarifas', icon: <FaMapLocationDot /> },
-      { to: '/cuadresaldo', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
-      { to: '/perfiles', label: 'Perfiles', icon: <FaUsersCog /> },
-      { to: '/reportes', label: 'Reportes', icon: <RiFileChartLine /> },
+      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
+      { to: '/almacen', label: 'Almacén', icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />, modulo: 'pedidos'},
+      { to: '/stock', label: 'Stock de Productos', icon: <Icon icon="vaadin:stock" width="24" height="24" />, modulo: 'stock' },
+      { to: '/movimientos', label: 'Movimientos', icon: <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" /> },
+      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" /> },
+      { to: '/zonas', label: 'Zonas / Tarifas', icon: <Icon icon="solar:point-on-map-broken" width="24" height="24" /> },
+      { to: '/cuadresaldo', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
+      { to: '/perfiles', label: 'Perfiles', icon: <Icon icon="hugeicons:access" width="24" height="24" /> },
+      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
     ],
     motorizado: [
-      { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
-      { to: '/entregas', label: 'Entregas', icon: <FaMotorcycle />, modulo: 'entregas' },
-      { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
-      { to: '/reportes', label: 'Reporte', icon: <RiFileChartLine /> },
-      { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
+      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
+      { to: '/pedidos', label: 'Entregas', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />, modulo: 'entregas' },
+      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
+      { to: '/reportes', label: 'Reporte', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
     ],
   } as const;
 
@@ -118,9 +117,9 @@ export default function Sidebar({ isOpen, toggle }: Props) {
           )}
           <button onClick={toggle} className="text-primary">
             {isOpen ? (
-              <PanelRightOpenIcon className="text-primary" />
+              <Icon icon="octicon:sidebar-expand-24" width="25" height="25" />
             ) : (
-              <FaBars size={20} />
+              <Icon icon="octicon:sidebar-collapse-24" width="25" height="25" />
             )}
           </button>
         </div>
