@@ -1,57 +1,128 @@
 import type {
-  CrearPerfilTrabajadorInput,
-  EditarPerfilTrabajadorInput,
-  PerfilTrabajador,
+  ActualizarPerfilTrabajadorDTO,
+  CrearPerfilTrabajadorDTO,
+  PerfilDisponible,
+  PerfilTrabajadorResponse,
 } from './perfilesTrabajador.types';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-function getHeaders(): HeadersInit {
-  const token = localStorage.getItem('token') || '';
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-}
-
-export async function fetchPerfilesTrabajador(): Promise<PerfilTrabajador[]> {
-  const res = await fetch(`${API_URL}/trabajador`, { headers: getHeaders() });
-  if (!res.ok) throw new Error('Error al obtener trabajadores');
-  return res.json();
-}
-
+// --- Crear perfil trabajador (POST /perfil-trabajador) ---
 export async function crearPerfilTrabajador(
-  data: CrearPerfilTrabajadorInput
-): Promise<{
-  usuario: PerfilTrabajador['usuario'];
-  perfilTrabajador: PerfilTrabajador;
-}> {
-  const res = await fetch(`${API_URL}/trabajador`, {
+  token: string,
+  data: CrearPerfilTrabajadorDTO
+): Promise<PerfilTrabajadorResponse> {
+  const res = await fetch(`${API_URL}/perfil-trabajador`, {
     method: 'POST',
-    headers: getHeaders(),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Error al crear trabajador');
-  return res.json();
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error?.message || 'Error al crear perfil trabajador');
+  }
+
+  return await res.json();
 }
 
-export async function editarPerfilTrabajador(
+// --- Obtener todos los trabajadores registrados (GET /perfil-trabajador/all) ---
+export async function fetchPerfilesRegistrados(
+  token: string
+): Promise<PerfilTrabajadorResponse[]> {
+  const res = await fetch(`${API_URL}/perfil-trabajador/all`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error('Error al obtener los perfiles registrados');
+  }
+
+  return await res.json();
+}
+
+// --- Obtener perfiles disponibles (GET /perfil-trabajador) ---
+export async function fetchPerfilesDisponibles(
+  token: string
+): Promise<PerfilDisponible[]> {
+  const res = await fetch(`${API_URL}/perfil-trabajador`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error('Error al obtener los perfiles disponibles');
+  }
+
+  return await res.json();
+}
+
+// --- Actualizar perfil trabajador (PUT /perfil-trabajador/:id) ---
+export async function actualizarPerfilTrabajador(
+  token: string,
   id: number,
-  data: EditarPerfilTrabajadorInput
-): Promise<PerfilTrabajador> {
-  const res = await fetch(`${API_URL}/trabajador/${id}`, {
+  data: ActualizarPerfilTrabajadorDTO
+): Promise<PerfilTrabajadorResponse> {
+  const res = await fetch(`${API_URL}/perfil-trabajador/${id}`, {
     method: 'PUT',
-    headers: getHeaders(),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Error al actualizar trabajador');
-  return res.json();
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error?.message || 'Error al actualizar perfil trabajador');
+  }
+
+  return await res.json();
 }
 
-export async function eliminarPerfilTrabajador(id: number): Promise<void> {
-  const res = await fetch(`${API_URL}/trabajador/${id}`, {
+// --- Eliminar perfil trabajador (DELETE /perfil-trabajador/:id) ---
+export async function eliminarPerfilTrabajador(
+  token: string,
+  id: number
+): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/perfil-trabajador/${id}`, {
     method: 'DELETE',
-    headers: getHeaders(),
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
-  if (!res.ok) throw new Error('Error al eliminar trabajador');
+
+  if (!res.ok) {
+    throw new Error('Error al eliminar perfil trabajador');
+  }
+
+  return await res.json();
+}
+
+// --- Registrar trabajador completo (usuario + perfil) ---
+export async function registrarTrabajador(
+  token: string,
+  data: CrearPerfilTrabajadorDTO
+): Promise<PerfilTrabajadorResponse> {
+  const res = await fetch(`${API_URL}/perfil-trabajador/register-trabajador`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error?.message || 'Error al registrar trabajador');
+  }
+
+  return await res.json();
 }

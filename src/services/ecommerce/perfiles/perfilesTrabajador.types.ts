@@ -1,52 +1,58 @@
-export interface PerfilTrabajador {
-  id: number;
-  usuario_id: number;
-  rol_perfil_id: number;
-  ecommerce_id?: number | null;
-  courier_id?: number | null;
-  estado: string;
-  codigo_trabajador: string;
-  fecha_creacion: string;
-
-  usuario: {
-    nombres: string;
-    apellidos: string;
-    DNI_CI: string;
+// Datos para crear un nuevo trabajador + su perfil asignado
+export interface CrearPerfilTrabajadorDTO {
+    nombre: string;
+    apellido: string;
     correo: string;
-    telefono: string;
-  };
-
-  perfil: {
-    nombre_rol: string;
-    modulo_asignado: string;
-  };
-}
-
-export interface CrearPerfilTrabajadorInput {
-  usuario_id: number;
-  rol_perfil_id: number;
-  estado?: string;
-  codigo_trabajador?: string;
-  ecommerce_id?: number | null;
-  courier_id?: number | null;
-  modulo?: string; 
-}
-
-export interface EditarPerfilTrabajadorInput {
-  estado?: string;
-  rol_perfil_id?: number;
-  codigo_trabajador?: string;
-}
-
-export interface CrearTrabajadorPayload {
-  nombres: string;
-  apellidos: string;
-  DNI_CI: string;
-  correo: string;
-  telefono: string;
-  contraseña: string;
-  rol_perfil_id: number;
-  codigo_trabajador?: string;
-  estado?: string;
-}
-
+    telefono?: string;
+    DNI_CI: string;
+    password: string;
+    perfil_id: number;
+    modulo_asignado: string; 
+  }
+  
+  // Datos para actualizar un perfil de trabajador existente
+  export interface ActualizarPerfilTrabajadorDTO {
+    nombre?: string;
+    apellido?: string;
+    telefono?: string;
+    perfil_id?: number;
+    estado_id?: number;
+    modulo_asignado?: string; 
+  }
+  
+  // Respuesta al consultar un perfil de trabajador (GET /perfil-trabajador)
+  export interface PerfilTrabajadorResponse {
+    id: number;
+    usuario_id: number;
+    ecommerce_id?: number | null;
+    courier_id?: number | null;
+    perfil_id: number;
+    codigo_trabajador: string;
+    estado_id: number;
+    fecha_creacion: string;
+    modulo_asignado: string; 
+    usuario: {
+      id: number;
+      nombre: string;
+      apellido: string;
+      correo: string;
+      telefono?: string;
+      DNI_CI: string;
+      rol_id: number;
+    };
+    perfil: {
+      id: number;
+      nombre: string;
+      descripcion: string;
+      modulos: string; 
+    };
+  }
+  
+  // Perfiles disponibles para asignar a un trabajador
+  export interface PerfilDisponible {
+    id: number;
+    nombre: string;
+    descripcion: string;
+    modulos: string;
+  }
+  

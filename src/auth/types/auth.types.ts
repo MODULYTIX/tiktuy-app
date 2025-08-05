@@ -14,6 +14,7 @@ export type Perfil = {
 export type PerfilTrabajador = {
   id: number;
   codigo_trabajador?: string;
+  fecha_creacion?: Date;
   modulo_asignado: ModuloAsignado;
   rol_perfil_id: number;
   perfil?: Perfil;

@@ -1,8 +1,7 @@
 import { IoClose } from 'react-icons/io5';
 import { useEffect, useRef, useState } from 'react';
 import { GrUserAdmin } from 'react-icons/gr';
-import { registerTrabajadorRequest } from '@/auth/services/auth.api';
-
+import { registrarTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
 
 interface Props {
   isOpen: boolean;
@@ -81,20 +80,16 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
     setError('');
     try {
       const token = localStorage.getItem('token') || '';
-      await registerTrabajadorRequest(
-        {
-          nombres: form.nombre,
-          apellidos: form.apellido,
-          correo: form.correo,
-          contraseña: form.password,
-          DNI_CI: form.dni,
-          estado: 'activo',
-          rol_perfil_id: Number(form.rol_perfil_id),
-          modulo: modulos[0],
-          codigo_trabajador: '', // opcional
-        },
-        token
-      );
+      await registrarTrabajador(token, {
+        nombres: form.nombre,
+        apellidos: form.apellido,
+        correo: form.correo,
+        contrasena: form.password,
+        telefono: form.telefono,
+        DNI_CI: form.dni,
+        perfil_id: Number(form.rol_perfil_id),
+        modulo_asignado: modulos[0], // o .join(',') si decides permitir múltiples
+      });
 
       onCreated?.();
       onClose();
@@ -134,7 +129,7 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
             <label className="block text-sm font-medium mb-1">Nombre</label>
             <input
               name="nombre"
-              placeholder="Ejem. Alvaro"
+              placeholder="Nombre"
               className="w-full border rounded-lg px-4 py-2"
               value={form.nombre}
               onChange={handleChange}
@@ -145,7 +140,7 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
             <label className="block text-sm font-medium mb-1">Apellido</label>
             <input
               name="apellido"
-              placeholder="Ejem. Maguiña"
+              placeholder="Apellido"
               className="w-full border rounded-lg px-4 py-2"
               value={form.apellido}
               onChange={handleChange}
@@ -156,7 +151,7 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
             <label className="block text-sm font-medium mb-1">DNI / CI</label>
             <input
               name="dni"
-              placeholder="Ejem. 48324487"
+              placeholder="DNI / CI"
               className="w-full border rounded-lg px-4 py-2"
               value={form.dni}
               onChange={handleChange}
@@ -181,7 +176,7 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
             <label className="block text-sm font-medium mb-1">Correo</label>
             <input
               name="correo"
-              placeholder="Ejem. correo@gmail.com"
+              placeholder="correo@gmail.com"
               className="w-full border rounded-lg px-4 py-2"
               value={form.correo}
               onChange={handleChange}
@@ -258,6 +253,10 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
               ))}
             </div>
           </div>
+
+          {error && (
+            <div className="col-span-2 text-sm text-red-500 mt-2">{error}</div>
+          )}
 
           <div className="col-span-2 flex justify-end gap-3 mt-4">
             <button

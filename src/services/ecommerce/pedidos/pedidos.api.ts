@@ -25,6 +25,8 @@ export async function fetchPedidoById(id: number, token: string): Promise<Pedido
 }
 
 export async function crearPedido(data: Partial<Pedido>, token: string): Promise<Pedido> {
+  console.log('🚀 Enviando payload a /pedido:', data); // <-- Log del payload
+
   const res = await fetch(`${API_URL}/pedido`, {
     method: 'POST',
     headers: {
@@ -34,18 +36,12 @@ export async function crearPedido(data: Partial<Pedido>, token: string): Promise
     body: JSON.stringify(data),
   });
 
-  if (!res.ok) throw new Error('Error al crear pedido');
-  return res.json();
-}
+  if (!res.ok) {
+    // 🔍 Capturar error devuelto por el backend
+    const error = await res.json().catch(() => ({ message: 'Sin cuerpo de error' }));
+    console.error('❌ Error al crear pedido - respuesta del backend:', error); // <-- Log del error del backend
+    throw new Error('Error al crear pedido');
+  }
 
-export async function validarPedido(id: number, token: string): Promise<Pedido> {
-  const res = await fetch(`${API_URL}/pedido/${id}/validar`, {
-    method: 'PUT', // ✅ actualizado: ahora es método PUT según tu backend
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!res.ok) throw new Error('Error al validar pedido');
   return res.json();
 }

@@ -104,7 +104,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
   
 
   // 🔒 Si es trabajador, filtramos los módulos asignados
-  const perfilTrabajador = user?.perfil_trabajadores?.[0];
+  const perfilTrabajador = user?.trabajador?.perfil
 
   if (perfilTrabajador?.modulo_asignado) {
     const modulosAsignados = perfilTrabajador.modulo_asignado

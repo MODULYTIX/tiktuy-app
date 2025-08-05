@@ -55,30 +55,6 @@ export type LoginResponse = {
   user: User;
 };
 
-export type RegisterTrabajadorData = {
-  nombres: string;
-  apellidos: string;
-  correo: string;
-  contrasena: string; 
-  estado: string;
-  DNI_CI: string;
-  rol_perfil_id: number;
-  modulo: ModuloAsignado;
-  codigo_trabajador?: string;
-};
-
-export type RegisterTrabajadorResponse = {
-  usuario: User;
-  perfilTrabajador: {
-    id: number;
-    estado: string;
-    codigo_trabajador: string;
-    modulo_asignado: ModuloAsignado;
-    rol_perfil_id: number;
-    perfil?: Perfil;
-    usuario: User;
-  };
-};
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -120,7 +96,7 @@ export async function registerRequest(
       correo: userData.email,
       contrasena: userData.password,
       rol_id: userData.rol_id,
-      estado_id: userData.estado, // solo si el backend espera estado_id
+      estado_id: userData.estado, 
       DNI_CI: userData.DNI_CI,
     }),
   });
@@ -143,28 +119,6 @@ export async function fetchMe(token: string): Promise<User> {
 
   if (!res.ok) {
     throw new Error('Sesión inválida');
-  }
-
-  return await res.json();
-}
-
-// --- Registro de trabajador ---
-export async function registerTrabajadorRequest(
-  data: RegisterTrabajadorData,
-  token: string
-): Promise<RegisterTrabajadorResponse> {
-  const res = await fetch(`${API_URL}/auth/register-trabajador`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) {
-    const { error } = await res.json().catch(() => ({}));
-    throw new Error(error || 'Error al registrar trabajador');
   }
 
   return await res.json();

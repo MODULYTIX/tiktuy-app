@@ -1,15 +1,12 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import {
-  crearPedido,
-  fetchPedidoById,
-} from '@/services/ecommerce/pedidos/pedidos.api';
+import { crearPedido,  fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
 import { AuthContext } from '@/auth/context/AuthContext';
 import { FiX } from 'react-icons/fi';
 import { BsBoxSeam } from 'react-icons/bs';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
-import { fetchZonasByCourierPublic } from '@/services/courier/zonaTarifaria.api';
+import { fetchZonasByCourierPrivado } from '@/services/courier/zonaTarifaria.api';
 import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
 
 interface CrearPedidoModalProps {
@@ -57,25 +54,26 @@ export default function CrearPedidoModal({
     }
   };
 
+  // Fetch productos y couriers al abrir modal
   useEffect(() => {
     if (!isOpen || !token) return;
-
     fetchProductos(token).then(setProductos).catch(console.error);
-
     fetchCouriersAsociados(token).then(setCouriers).catch(console.error);
   }, [isOpen, token]);
 
+  // Click fuera del modal
   useEffect(() => {
     if (isOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
+  // Zonas tarifarias por courier seleccionado (públicas)
   useEffect(() => {
     if (form.courier_id && token) {
-      fetchZonasByCourierPublic(Number(form.courier_id), token)
+      fetchZonasByCourierPrivado(Number(form.courier_id), token)
         .then(setZonas)
         .catch((err) => {
-          console.error('Error al obtener zonas:', err);
+          console.error('Error al obtener zonas tarifarias privadas:', err);
           setZonas([]);
         });
     } else {
@@ -83,6 +81,7 @@ export default function CrearPedidoModal({
     }
   }, [form.courier_id, token]);
 
+  // Cargar datos del pedido si se edita o visualiza
   useEffect(() => {
     const loadPedido = async () => {
       if (pedidoId && token) {
@@ -112,6 +111,7 @@ export default function CrearPedidoModal({
     if (modo !== 'crear') loadPedido();
   }, [pedidoId, token, modo]);
 
+  // Actualizar precio unitario y stock al seleccionar producto
   useEffect(() => {
     const selected = productos.find((p) => p.id === Number(form.producto_id));
     if (selected) {
@@ -125,6 +125,7 @@ export default function CrearPedidoModal({
     }
   }, [form.producto_id, productos]);
 
+  // Calcular monto automáticamente
   useEffect(() => {
     const cantidad = Number(form.cantidad);
     const precio = Number(form.precio_unitario);
@@ -229,7 +230,7 @@ export default function CrearPedidoModal({
               )}
               {couriers.map((courier) => (
                 <option key={courier.id} value={courier.id}>
-                  {courier.nombre_comercial} 
+                  {courier.nombre_comercial}
                 </option>
               ))}
             </select>
