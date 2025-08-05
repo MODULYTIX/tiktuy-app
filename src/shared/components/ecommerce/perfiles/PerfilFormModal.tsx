@@ -1,7 +1,7 @@
 import { IoClose } from 'react-icons/io5';
 import { useEffect, useRef, useState } from 'react';
 import { GrUserAdmin } from 'react-icons/gr';
-import { registrarTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
+import { registerTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
 
 interface Props {
   isOpen: boolean;
@@ -80,16 +80,19 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
     setError('');
     try {
       const token = localStorage.getItem('token') || '';
-      await registrarTrabajador(token, {
-        nombres: form.nombre,
-        apellidos: form.apellido,
-        correo: form.correo,
-        contrasena: form.password,
-        telefono: form.telefono,
-        DNI_CI: form.dni,
-        perfil_id: Number(form.rol_perfil_id),
-        modulo_asignado: modulos[0], // o .join(',') si decides permitir múltiples
-      });
+      await registerTrabajador(
+        {
+          nombres: form.nombre,
+          apellidos: form.apellido,
+          correo: form.correo,
+          contrasena: form.password,
+          telefono: form.telefono,
+          DNI_CI: form.dni,
+          rol_perfil_id: Number(form.rol_perfil_id),
+          modulos,
+        },
+        token
+      );
 
       onCreated?.();
       onClose();
@@ -104,7 +107,9 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
   if (!isOpen) return null;
 
   const modulosDisponibles = rolModuloMap[form.rol_perfil_id] || [];
-  const modulosFiltrados = modulosDisponibles.filter((m) => !modulos.includes(m));
+  const modulosFiltrados = modulosDisponibles.filter(
+    (m) => !modulos.includes(m)
+  );
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex justify-end">

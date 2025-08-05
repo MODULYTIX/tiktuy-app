@@ -3,16 +3,16 @@ import { FaRegEdit } from 'react-icons/fa';
 import Paginator from '../../Paginator';
 import { Skeleton } from '../../ui/Skeleton';
 import { useAuth } from '@/auth/context';
-import { fetchPerfilesRegistrados } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
-import type { PerfilTrabajadorResponse } from '@/services/ecommerce/perfiles/perfilesTrabajador.types';
+import { fetchPerfilTrabajadores } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
+import type { PerfilTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.types';
 
 type Props = {
-  onEdit?: (perfil: PerfilTrabajadorResponse) => void;
+  onEdit?: (perfil: PerfilTrabajador) => void;
 };
 
 export default function PerfilesTable({ onEdit }: Props) {
   const { token } = useAuth();
-  const [data, setData] = useState<PerfilTrabajadorResponse[]>([]);
+  const [data, setData] = useState<PerfilTrabajador[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -21,7 +21,7 @@ export default function PerfilesTable({ onEdit }: Props) {
       if (!token) return;
       setLoading(true);
       try {
-        const res = await fetchPerfilesRegistrados(token);
+        const res = await fetchPerfilTrabajadores(token);
         setData(res); // En el futuro puedes paginar aquí
       } catch (error) {
         console.error('Error al cargar perfiles de trabajadores', error);

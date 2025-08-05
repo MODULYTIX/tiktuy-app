@@ -1,11 +1,11 @@
 import type { RouteObject } from 'react-router-dom';
 import MotorizadoHomePage from './pages/HomePage';
-import EntregasPage from './pages/EntregasPage';
+import PedidosPage from './pages/PedidosPage';
 import ReportesPage from './pages/ReportesPage';
 
 
 export const motorizadoRoutes: RouteObject[] = [
-  { path: '', element: <MotorizadoHomePage /> },
-  { path: 'entregas', element: <EntregasPage /> },
+  { path: 'panel', element: <MotorizadoHomePage /> },
+  { path: 'pedidos', element: <PedidosPage /> },
   { path: 'reportes', element: <ReportesPage /> },
 ];

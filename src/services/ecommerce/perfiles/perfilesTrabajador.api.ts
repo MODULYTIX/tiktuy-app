@@ -1,115 +1,23 @@
-import type {
-  ActualizarPerfilTrabajadorDTO,
-  CrearPerfilTrabajadorDTO,
-  PerfilDisponible,
-  PerfilTrabajadorResponse,
-} from './perfilesTrabajador.types';
+import type { EditarTrabajadorPayload, PerfilTrabajador, RegistrarTrabajadorPayload } from './perfilesTrabajador.types'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
-// --- Crear perfil trabajador (POST /perfil-trabajador) ---
-export async function crearPerfilTrabajador(
-  token: string,
-  data: CrearPerfilTrabajadorDTO
-): Promise<PerfilTrabajadorResponse> {
-  const res = await fetch(`${API_URL}/perfil-trabajador`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error?.message || 'Error al crear perfil trabajador');
-  }
-
-  return await res.json();
-}
-
-// --- Obtener todos los trabajadores registrados (GET /perfil-trabajador/all) ---
-export async function fetchPerfilesRegistrados(
-  token: string
-): Promise<PerfilTrabajadorResponse[]> {
-  const res = await fetch(`${API_URL}/perfil-trabajador/all`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error('Error al obtener los perfiles registrados');
-  }
-
-  return await res.json();
-}
-
-// --- Obtener perfiles disponibles (GET /perfil-trabajador) ---
-export async function fetchPerfilesDisponibles(
-  token: string
-): Promise<PerfilDisponible[]> {
+// Obtener todos los trabajadores
+export const fetchPerfilTrabajadores = async (token: string): Promise<PerfilTrabajador[]> => {
   const res = await fetch(`${API_URL}/perfil-trabajador`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-  });
-
-  if (!res.ok) {
-    throw new Error('Error al obtener los perfiles disponibles');
-  }
-
-  return await res.json();
+  })
+  if (!res.ok) throw new Error('Error al obtener trabajadores')
+  return await res.json()
 }
 
-// --- Actualizar perfil trabajador (PUT /perfil-trabajador/:id) ---
-export async function actualizarPerfilTrabajador(
-  token: string,
-  id: number,
-  data: ActualizarPerfilTrabajadorDTO
-): Promise<PerfilTrabajadorResponse> {
-  const res = await fetch(`${API_URL}/perfil-trabajador/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error?.message || 'Error al actualizar perfil trabajador');
-  }
-
-  return await res.json();
-}
-
-// --- Eliminar perfil trabajador (DELETE /perfil-trabajador/:id) ---
-export async function eliminarPerfilTrabajador(
-  token: string,
-  id: number
-): Promise<{ message: string }> {
-  const res = await fetch(`${API_URL}/perfil-trabajador/${id}`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error('Error al eliminar perfil trabajador');
-  }
-
-  return await res.json();
-}
-
-// --- Registrar trabajador completo (usuario + perfil) ---
-export async function registrarTrabajador(
-  token: string,
-  data: CrearPerfilTrabajadorDTO
-): Promise<PerfilTrabajadorResponse> {
+// Registrar un nuevo trabajador
+export const registerTrabajador = async (
+  data: RegistrarTrabajadorPayload,
+  token: string
+): Promise<PerfilTrabajador> => {
   const res = await fetch(`${API_URL}/perfil-trabajador/register-trabajador`, {
     method: 'POST',
     headers: {
@@ -118,11 +26,36 @@ export async function registrarTrabajador(
     },
     body: JSON.stringify(data),
   });
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error?.message || 'Error al registrar trabajador');
-  }
-
+  if (!res.ok) throw new Error('Error al registrar trabajador');
   return await res.json();
+};
+
+
+// Editar trabajador existente
+export const editarTrabajador = async (
+  id: number,
+  data: EditarTrabajadorPayload,
+  token: string
+): Promise<PerfilTrabajador> => {
+  const res = await fetch(`${API_URL}/perfil-trabajador/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('Error al editar trabajador')
+  return await res.json()
+}
+
+// Eliminar (desactivar) trabajador
+export const eliminarTrabajador = async (id: number, token: string): Promise<void> => {
+  const res = await fetch(`${API_URL}/perfil-trabajador/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  if (!res.ok) throw new Error('Error al eliminar trabajador')
 }
