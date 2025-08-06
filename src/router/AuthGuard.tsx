@@ -39,7 +39,7 @@ export default function AuthGuard({ children }: Props) {
       }
   
       if (role === 'trabajador') {
-        const modulos = user.trabajador?.modulo_asignado?.split(',') || [];
+        const modulos = user.perfil_trabajador?.modulo_asignado?.split(',') || [];
         const primerModulo = modulos[0]?.trim();
   
         const rutaModulo = moduloRutaMap[primerModulo || ''];

@@ -31,7 +31,7 @@ export default function LoginPage() {
     }
 
     // Redirección para trabajadores con módulo asignado
-    const moduloAsignado = user.trabajador?.perfil?.modulo_asignado;
+    const moduloAsignado = user.perfil_trabajador?.modulo_asignado;
     if (
       moduloAsignado &&
       moduloAsignadoValues.includes(moduloAsignado as ModuloAsignado) &&

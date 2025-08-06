@@ -72,7 +72,6 @@ export default function AlmacenPage() {
       <p className="text-gray-600 mb-4">
         Visualice su almacén y sus movimientos.
       </p>
-
       <div className="overflow-x-auto rounded shadow border border-gray-200 border-b-[#1A253D] border-b-4">
         <table className="min-w-full text-sm text-left bg-white">
           <thead className="bg-gray-100 text-gray-700 font-semibold">

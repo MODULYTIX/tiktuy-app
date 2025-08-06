@@ -6,6 +6,7 @@ export interface PerfilTrabajador {
   DNI_CI: string
   correo: string
   perfil: string
+  telefono: string
   rol_perfil: string
   modulo_asignado: string[]
 }

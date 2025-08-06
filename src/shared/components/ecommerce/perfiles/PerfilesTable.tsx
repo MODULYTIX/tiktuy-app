@@ -77,12 +77,12 @@ export default function PerfilesTable({ onEdit }: Props) {
                       ? new Date(item.fecha_creacion).toLocaleDateString()
                       : '-'}
                   </td>
-                  <td className="px-4 py-3">{item.usuario?.nombre || '-'}</td>
-                  <td className="px-4 py-3">{item.usuario?.apellido || '-'}</td>
-                  <td className="px-4 py-3">{item.usuario?.DNI_CI || '-'}</td>
-                  <td className="px-4 py-3">{item.usuario?.correo || '-'}</td>
-                  <td className="px-4 py-3">{item.usuario?.telefono || '-'}</td>
-                  <td className="px-4 py-3">{item.perfil?.nombre || '-'}</td>
+                  <td className="px-4 py-3">{item.perfil || '-'}</td>
+                  <td className="px-4 py-3">{item.apellidos || '-'}</td>
+                  <td className="px-4 py-3">{item.DNI_CI || '-'}</td>
+                  <td className="px-4 py-3">{item.correo || '-'}</td>
+                  <td className="px-4 py-3">{item.telefono || '-'}</td>
+                  <td className="px-4 py-3">{item.perfil|| '-'}</td>
                   <td className="px-4 py-3">{item.modulo_asignado || '-'}</td>
                   <td className="px-4 py-3">
                     <FaRegEdit

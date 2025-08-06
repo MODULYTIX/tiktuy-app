@@ -76,39 +76,18 @@ export default function AppRouter() {
         ))}
       </Route>
 
-      {/* Módulos para Trabajadores */}
+      {/* Trabajador - Mismos módulos que ecommerce */}
       <Route
         path="/trabajador"
         element={
           <PrivateRoute allowedRoles={['trabajador']}>
             <PrivateLayout />
           </PrivateRoute>
-        }
-      />
-      <Route
-        path="/producto"
-        element={
-          <PrivateRoute allowModulo>
-            <PrivateLayout />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/movimiento"
-        element={
-          <PrivateRoute allowModulo>
-            <PrivateLayout />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/pedidos"
-        element={
-          <PrivateRoute allowModulo>
-            <PrivateLayout />
-          </PrivateRoute>
-        }
-      />
+        }>
+        {ecommerceRoutes.map((route, i) => (
+          <Route key={i} path={route.path} element={route.element} />
+        ))}
+      </Route>
 
       {/* Fallbacks */}
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
