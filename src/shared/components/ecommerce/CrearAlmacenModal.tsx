@@ -163,7 +163,7 @@ export default function CrearAlmacenModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex justify-end">
+    <div className="fixed inset-0 bg-backgroundModal z-50 flex justify-end">
       <div className="bg-white p-6 rounded-l-md w-full max-w-md h-full overflow-auto shadow-lg">
         <div className="flex items-center gap-2 mb-3">
           <PiGarageLight size={20} className="text-primaryDark" />
