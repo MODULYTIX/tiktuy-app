@@ -5,6 +5,8 @@
   /* Colors */
   --color-primary: #1E3A8A;
   --color-primaryDark: #1A253D;
+  
+  --color-backgroundModal: rgba(0, 0, 0, 0.5) ;
 
   /* Fonts */
   
