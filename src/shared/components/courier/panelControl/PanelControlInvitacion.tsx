@@ -14,7 +14,7 @@ export default function PanelControlInvitacion({ onClose, activeTab }: InvitarMo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 bg-opacity-30">
       <div className="bg-white rounded-lg p-6 w-[480px]">
         <h2 className="text-xl font-bold text-center text-[#1A237E] mb-2">
           <Icon icon="mdi:share-outline" className="inline mr-2" />
