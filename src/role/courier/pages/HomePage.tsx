@@ -28,21 +28,19 @@ export default function CourierHomePage() {
         </div>
         <div className="flex gap-2">
           <button
-            className={`flex items-center gap-2 px-6 py-2 rounded border transition ${
-              activeTab === 'ecommerce'
+            className={`flex items-center gap-2 px-6 py-2 rounded border transition ${activeTab === 'ecommerce'
                 ? 'bg-[#1A237E] text-white'
                 : 'bg-white text-[#1A237E] border-[#1A237E]'
-            }`}
+              }`}
             onClick={() => setActiveTab('ecommerce')}>
             <Icon icon="lucide:layout-dashboard" />
             Ecommerce
           </button>
           <button
-            className={`flex items-center gap-2 px-6 py-2 rounded border transition ${
-              activeTab === 'motorizado'
+            className={`flex items-center gap-2 px-6 py-2 rounded border transition ${activeTab === 'motorizado'
                 ? 'bg-[#1A237E] text-white'
                 : 'bg-white text-[#1A237E] border-[#1A237E]'
-            }`}
+              }`}
             onClick={() => setActiveTab('motorizado')}>
             <Icon icon="lucide:truck" />
             Motorizado
@@ -97,6 +95,7 @@ export default function CourierHomePage() {
 
       {/* Drawer de registro */}
       {isDrawerOpen && (
+
         <div className="fixed inset-0 bg-black/50 bg-opacity-30 z-50 flex justify-end" >
           <div className="w-[450px] bg-white p-6 overflow-y-auto">
             <h2 className="text-lg font-semibold mb-4">
