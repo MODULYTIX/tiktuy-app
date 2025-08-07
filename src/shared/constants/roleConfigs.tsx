@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { Icon } from '@iconify/react';
-import { FaUserShield, FaStore, FaTruck, FaMotorcycle } from 'react-icons/fa';
+import { FaUserShield, FaMotorcycle } from 'react-icons/fa';
 
 export const roleConfigs: Record<
   string,

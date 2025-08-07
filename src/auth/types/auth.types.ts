@@ -25,10 +25,10 @@ export interface User {
   nombres: string;
   apellidos: string;
   correo: string;
-  rol: {
+  rol?: {
     id: number;
     nombre: string;
-    descripcion: string;
+    descripcion?: string;
   };
   perfil_trabajador?: {
     id: number;

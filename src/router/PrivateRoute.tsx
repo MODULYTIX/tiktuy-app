@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/auth/context/useAuth';
 import type { JSX } from 'react';
 import type { Role } from '@/auth/constants/roles';
+import LoadingBouncing from '@/shared/animations/LoadingBouncing';
 
 type Props = {
   children: JSX.Element;
@@ -9,13 +10,15 @@ type Props = {
   allowModulo?: boolean;
 };
 
-export default function PrivateRoute({ children, allowedRoles, allowModulo }: Props) {
+export default function PrivateRoute({
+  children,
+  allowedRoles,
+  allowModulo,
+}: Props) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) {
-    return <div className="flex justify-center items-center align-middle">Cargando sesión...</div>;
-  }
+  if (loading) return <LoadingBouncing />;
 
   if (!user) {
     return <Navigate to="/" state={{ from: location }} replace />;
@@ -23,42 +26,24 @@ export default function PrivateRoute({ children, allowedRoles, allowModulo }: Pr
 
   const userRole = user.rol?.nombre;
 
-  // Validar acceso por rol si se especifica
   if (allowedRoles && (!userRole || !allowedRoles.includes(userRole as Role))) {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Validar acceso por módulo si se especifica (para trabajadores)
+  // Validación por módulo solo para trabajadores
   if (allowModulo) {
-    if (userRole !== 'trabajador') {
-      return <Navigate to="/unauthorized" replace />;
-    }
+    if (userRole !== 'trabajador') return <Navigate to="/unauthorized" replace />;
 
     const moduloAsignado = user.perfil_trabajador?.modulo_asignado;
 
-    if (!moduloAsignado) {
-      console.log('❌ Módulo asignado no disponible:', user);
-      return <div className="p-4">Cargando módulos asignados...</div>;
-    }
+    if (!moduloAsignado) return <LoadingBouncing />;
 
-    const currentPath = location.pathname.split('/')[1]; // ej: 'stock', 'movimiento'
+    const currentPath = location.pathname.split('/')[1];
 
-    const moduloPaths: Record<string, string[]> = {
-      stock: ['Stock de productos'],
-      movimiento: ['Movimientos'],
-      pedidos: ['Gestion de pedidos'],
-      producto: ['Producto'],
-      // Agrega más si es necesario
-    };
-
-    const modulosPermitidos = moduloPaths[currentPath] || [];
-
-    const tieneAcceso = modulosPermitidos.some((m) =>
-      moduloAsignado.includes(m)
-    );
+    // Aquí usamos directamente las claves internas
+    const tieneAcceso = moduloAsignado.includes(currentPath);
 
     if (!tieneAcceso) {
-      console.warn(`🔒 Acceso denegado al módulo: ${currentPath}`);
       return <Navigate to="/unauthorized" replace />;
     }
   }

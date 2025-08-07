@@ -39,185 +39,54 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
       { to: '/ventas', label: 'Ventas', icon: <FaCashRegister /> },
       { to: '/almacen', label: 'Stock / Almacén', icon: <FaBoxes /> },
-      {
-        to: '/saldos',
-        label: 'Cuadre de Saldos',
-        icon: <RiMoneyDollarCircleLine />,
-      },
+      { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
       { to: '/perfiles', label: 'Perfiles', icon: <FaUsersCog /> },
       { to: '/reportes', label: 'Reportes', icon: <RiFileChartLine /> },
       { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
     ],
     ecommerce: [
-      {
-        to: '/panel',
-        label: 'Panel de Control',
-        icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
-      },
-      {
-        to: '/almacen',
-        label: 'Almacén',
-        icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />,
-        modulo: 'stock',
-      },
-      {
-        to: '/stock',
-        label: 'Stock de productos',
-        icon: <Icon icon="vaadin:stock" width="24" height="24" />,
-        modulo: 'stock',
-      },
-      {
-        to: '/movimientos',
-        label: 'Movimientos',
-        icon: (
-          <Icon
-            icon="icon-park-outline:cycle-movement"
-            width="24"
-            height="24"
-          />
-        ),
-        modulo: 'movimiento',
-      },
-      {
-        to: '/pedidos',
-        label: 'Gestion de Pedidos',
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
-        modulo: 'pedidos',
-      },
-      {
-        to: '/saldos',
-        label: 'Cuadre de Saldos',
-        icon: <Icon icon="prime:wallet" width="24" height="24" />,
-      },
-      {
-        to: '/perfiles',
-        label: 'Perfiles',
-        icon: <Icon icon="hugeicons:access" width="24" height="24" />,
-      },
-      {
-        to: '/reportes',
-        label: 'Reportes',
-        icon: <Icon icon="carbon:report-data" width="24" height="24" />,
-      },
+      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
+      { to: '/almacen', label: 'Almacén', icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />, modulo: 'stock' },
+      { to: '/stock', label: 'Stock de productos', icon: <Icon icon="vaadin:stock" width="24" height="24" />, modulo: 'stock' },
+      { to: '/movimientos', label: 'Movimientos', icon: <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />, modulo: 'movimiento' },
+      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />, modulo: 'pedidos' },
+      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
+      { to: '/perfiles', label: 'Perfiles', icon: <Icon icon="hugeicons:access" width="24" height="24" /> },
+      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
     ],
     courier: [
-      {
-        to: '/panel',
-        label: 'Panel de Control',
-        icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
-      },
-      {
-        to: '/almacen',
-        label: 'Almacén',
-        icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />,
-        modulo: 'pedidos',
-      },
-      {
-        to: '/stock',
-        label: 'Stock de Productos',
-        icon: <Icon icon="vaadin:stock" width="24" height="24" />,
-        modulo: 'stock',
-      },
-      {
-        to: '/movimientos',
-        label: 'Movimientos',
-        icon: (
-          <Icon
-            icon="icon-park-outline:cycle-movement"
-            width="24"
-            height="24"
-          />
-        ),
-      },
-      {
-        to: '/pedidos',
-        label: 'Gestión de Pedidos',
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
-      },
-      {
-        to: '/zonas',
-        label: 'Zonas / Tarifas',
-        icon: <Icon icon="solar:point-on-map-broken" width="24" height="24" />,
-      },
-      {
-        to: '/cuadresaldo',
-        label: 'Cuadre de Saldos',
-        icon: <Icon icon="prime:wallet" width="24" height="24" />,
-      },
-      {
-        to: '/perfiles',
-        label: 'Perfiles',
-        icon: <Icon icon="hugeicons:access" width="24" height="24" />,
-      },
-      {
-        to: '/reportes',
-        label: 'Reportes',
-        icon: <Icon icon="carbon:report-data" width="24" height="24" />,
-      },
+      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
+      { to: '/almacen', label: 'Almacén', icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />, modulo: 'pedidos' },
+      { to: '/stock', label: 'Stock de Productos', icon: <Icon icon="vaadin:stock" width="24" height="24" />, modulo: 'stock' },
+      { to: '/movimientos', label: 'Movimientos', icon: <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" /> },
+      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" /> },
+      { to: '/zonas', label: 'Zonas / Tarifas', icon: <Icon icon="solar:point-on-map-broken" width="24" height="24" /> },
+      { to: '/cuadresaldo', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
+      { to: '/perfiles', label: 'Perfiles', icon: <Icon icon="hugeicons:access" width="24" height="24" /> },
+      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
     ],
     motorizado: [
-      {
-        to: '/panel',
-        label: 'Panel de Control',
-        icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
-      },
-      {
-        to: '/pedidos',
-        label: 'Entregas',
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
-        modulo: 'entregas',
-      },
-      {
-        to: '/saldos',
-        label: 'Cuadre de Saldos',
-        icon: <Icon icon="prime:wallet" width="24" height="24" />,
-      },
-      {
-        to: '/reportes',
-        label: 'Reporte',
-        icon: <Icon icon="carbon:report-data" width="24" height="24" />,
-      },
+      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
+      { to: '/pedidos', label: 'Entregas', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />, modulo: 'entregas' },
+      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
+      { to: '/reportes', label: 'Reporte', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
     ],
-  } as const;
+  };
 
   const basePath = user?.rol?.nombre ? `/${user.rol.nombre}` : '';
-  let links: (typeof linksByRole)[keyof typeof linksByRole] = [];
+  let links: typeof linksByRole[keyof typeof linksByRole] = [];
 
   if (user?.rol?.nombre === 'trabajador') {
-    // links base para trabajador
+    // Links base para trabajador
     links = [
-      {
-        to: '/stock',
-        label: 'Stock de productos',
-        icon: <Icon icon="vaadin:stock" width="24" height="24" />,
-        modulo: 'Stock de productos',
-      },
-      {
-        to: '/movimiento',
-        label: 'Movimientos',
-        icon: (
-          <Icon
-            icon="icon-park-outline:cycle-movement"
-            width="24"
-            height="24"
-          />
-        ),
-        modulo: 'Movimientos',
-      },
-      {
-        to: '/pedidos',
-        label: 'Gestión de Pedidos',
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
-        modulo: 'Gestion de pedidos',
-      },
+      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
+      { to: '/almacen', label: 'Almacén', icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />, modulo: 'stock' },
+      { to: '/stock', label: 'Stock de productos', icon: <Icon icon="vaadin:stock" width="24" height="24" />, modulo: 'stock' },
+      { to: '/movimientos', label: 'Movimientos', icon: <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />, modulo: 'movimiento' },
+      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />, modulo: 'pedidos' },
+      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" />, modulo: 'saldos' },
+      { to: '/perfiles', label: 'Perfiles', icon: <Icon icon="hugeicons:access" width="24" height="24" />, modulo: 'perfiles' },
+      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="24" height="24" />, modulo: 'reportes' },
     ];
 
     const modulosAsignados = user?.perfil_trabajador?.modulo_asignado
@@ -225,9 +94,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       .map((m) => m.trim());
 
     if (modulosAsignados) {
-      links = links.filter((link) =>
-        modulosAsignados.includes(link.modulo ?? '')
-      );
+      links = links.filter((link) => modulosAsignados.includes(link.modulo ?? ''));
     } else {
       links = [];
     }
@@ -235,19 +102,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     links = linksByRole[user.rol.nombre];
   }
 
-  //  Si es trabajador, filtramos los módulos asignados
-  const perfilTrabajador = user?.perfil_trabajador;
-
-  if (perfilTrabajador?.modulo_asignado) {
-    const modulosAsignados = perfilTrabajador.modulo_asignado
-      .split(',')
-      .map((m) => m.trim());
-    links = links.filter((link) =>
-      link.modulo ? modulosAsignados.includes(link.modulo) : false
-    );
-  }
-
-  // Rutas completas
+  // Aplica basePath a todos los enlaces
   links = links.map((link) => ({
     ...link,
     to: `${basePath}${link.to}`,
