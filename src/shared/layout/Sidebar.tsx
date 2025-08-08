@@ -36,7 +36,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     }>
   > = {
     admin: [
-      { to: '/panel', label: 'Panel de Control', icon: <MdDashboard /> },
+      { to: '/', label: 'Panel de Control', icon: <MdDashboard /> },
       { to: '/ventas', label: 'Ventas', icon: <FaCashRegister /> },
       { to: '/almacen', label: 'Stock / Almacén', icon: <FaBoxes /> },
       { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
@@ -45,7 +45,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
     ],
     ecommerce: [
-      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
+      { to: '/', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
       { to: '/almacen', label: 'Almacén', icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />, modulo: 'stock' },
       { to: '/stock', label: 'Stock de productos', icon: <Icon icon="vaadin:stock" width="24" height="24" />, modulo: 'stock' },
       { to: '/movimientos', label: 'Movimientos', icon: <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />, modulo: 'movimiento' },
@@ -55,7 +55,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
     ],
     courier: [
-      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
+      { to: '/', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
       { to: '/almacen', label: 'Almacén', icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />, modulo: 'pedidos' },
       { to: '/stock', label: 'Stock de Productos', icon: <Icon icon="vaadin:stock" width="24" height="24" />, modulo: 'stock' },
       { to: '/movimientos', label: 'Movimientos', icon: <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" /> },
@@ -66,7 +66,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
     ],
     motorizado: [
-      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
+      { to: '/', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
       { to: '/pedidos', label: 'Entregas', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />, modulo: 'entregas' },
       { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
       { to: '/reportes', label: 'Reporte', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
