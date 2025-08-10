@@ -98,11 +98,6 @@ export default function CourierHomePage() {
 
         <div className="fixed inset-0 bg-black/50 bg-opacity-30 z-50 flex justify-end" >
           <div className="w-[450px] bg-white p-6 overflow-y-auto">
-            <h2 className="text-lg font-semibold mb-4">
-              Registrar Nuevo{' '}
-              {activeTab === 'ecommerce' ? 'Ecommerce' : 'Repartidor'}
-            </h2>
-
             {activeTab === 'ecommerce' ? (
               <PanelControlRegistroEcommerce
                 onClose={() => setIsDrawerOpen(false)}
