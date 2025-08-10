@@ -210,7 +210,8 @@ export default function EcommerceHomePage() {
                     ) : (
                       <FaCheck
                         onClick={() => handleAsociar(entry)}
-                        className="text-green-500 hover:text-green-700 rotate-0 cursor-pointer"
+
+                        className="text-green-500 hover:text-green-700 cursor-pointer"
                         title="Asociar"
                       />
                     )}

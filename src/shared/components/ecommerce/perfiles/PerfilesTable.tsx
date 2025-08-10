@@ -16,13 +16,21 @@ export default function PerfilesTable({ onEdit }: Props) {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const itemsPerPage = 6;
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+
+  const indexOfLast = currentPage * itemsPerPage;
+  const indexOfFirst = indexOfLast - itemsPerPage;
+  const currentData = data.slice(indexOfFirst, indexOfLast);
+
   useEffect(() => {
     const loadPerfiles = async () => {
       if (!token) return;
       setLoading(true);
       try {
         const res = await fetchPerfilTrabajadores(token);
-        setData(res); // En el futuro puedes paginar aquí
+        setData(res || []);
+        setCurrentPage(1); // Reinicia a la primera página al cargar datos nuevos
       } catch (error) {
         console.error('Error al cargar perfiles de trabajadores', error);
       } finally {
@@ -31,7 +39,7 @@ export default function PerfilesTable({ onEdit }: Props) {
     };
 
     loadPerfiles();
-  }, [currentPage, token]);
+  }, [token]);
 
   return (
     <div className="mt-6">
@@ -52,7 +60,7 @@ export default function PerfilesTable({ onEdit }: Props) {
           </thead>
           <tbody>
             {loading ? (
-              Array.from({ length: 5 }).map((_, idx) => (
+              Array.from({ length: itemsPerPage }).map((_, idx) => (
                 <tr key={idx} className="border-t">
                   {Array(9)
                     .fill(null)
@@ -70,40 +78,75 @@ export default function PerfilesTable({ onEdit }: Props) {
                 </td>
               </tr>
             ) : (
-              data.map((item) => (
-                <tr key={item.id} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    {item.fecha_creacion
-                      ? new Date(item.fecha_creacion).toLocaleDateString()
-                      : '-'}
-                  </td>
-                  <td className="px-4 py-3">{item.perfil || '-'}</td>
-                  <td className="px-4 py-3">{item.apellidos || '-'}</td>
-                  <td className="px-4 py-3">{item.DNI_CI || '-'}</td>
-                  <td className="px-4 py-3">{item.correo || '-'}</td>
-                  <td className="px-4 py-3">{item.telefono || '-'}</td>
-                  <td className="px-4 py-3">{item.perfil|| '-'}</td>
-                  <td className="px-4 py-3">{item.modulo_asignado || '-'}</td>
-                  <td className="px-4 py-3">
-                    <FaRegEdit
-                      className="text-yellow-600 cursor-pointer"
-                      onClick={() => onEdit?.(item)}
-                    />
-                  </td>
-                </tr>
-              ))
+              currentData.map((item) => {
+                const modulos = (item.modulo_asignado || [])
+                  .map((m: string) => m.trim())
+                  .filter(Boolean);
+
+                return (
+                  <tr key={item.id} className="border-t hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      {item.fecha_creacion
+                        ? new Date(item.fecha_creacion).toLocaleDateString()
+                        : '-'}
+                    </td>
+                    <td className="px-4 py-3">{item.nombres || '-'}</td>
+                    <td className="px-4 py-3">{item.apellidos || '-'}</td>
+                    <td className="px-4 py-3">{item.DNI_CI || '-'}</td>
+                    <td className="px-4 py-3">{item.correo || '-'}</td>
+                    <td className="px-4 py-3">{item.telefono || '-'}</td>
+                    <td className="px-4 py-3">{item.perfil || '-'}</td>
+
+                    <td className="px-4 py-3">
+                      {modulos.length > 0 ? (
+                        <div className="relative group cursor-pointer">
+                          <span className="capitalize">{modulos[0]}</span>
+                          <div
+                            className="
+          absolute left-0 top-full mt-1 hidden group-hover:block
+          bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-10
+          max-w-xs whitespace-normal break-words
+        ">
+                            {modulos
+                              .map(
+                                (mod: string) =>
+                                  mod.charAt(0).toUpperCase() + mod.slice(1)
+                              )
+                              .join('\n')}
+                          </div>
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <FaRegEdit
+                        className="text-yellow-600 cursor-pointer"
+                        onClick={() => onEdit?.(item)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="mt-4">
-        <Paginator
-          currentPage={currentPage}
-          totalPages={1}
-          onPageChange={setCurrentPage}
-        />
-      </div>
+      {totalPages > 1 && (
+        <div className="mt-4">
+          <Paginator
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) => {
+              if (page >= 1 && page <= totalPages) {
+                setCurrentPage(page);
+              }
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

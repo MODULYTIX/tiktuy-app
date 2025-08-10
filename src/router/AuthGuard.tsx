@@ -3,6 +3,7 @@ import { useAuth } from '@/auth/context/useAuth';
 import { roleDefaultPaths } from '@/auth/constants/roles';
 import type { JSX } from 'react';
 import { useEffect, useState } from 'react';
+import LoadingBouncing from '@/shared/animations/LoadingBouncing';
 
 // Mapeo de módulos asignados a rutas reales
 const moduloRutaMap: Record<string, string> = {
@@ -53,7 +54,7 @@ export default function AuthGuard({ children }: Props) {
   }, [user, redirected, navigate]);
   
 
-  if (loading) return <div className="p-4">Cargando sesión...</div>;
+  if (loading) return <div className=""> <LoadingBouncing /> </div>;
 
   if (redirected) return null;
 

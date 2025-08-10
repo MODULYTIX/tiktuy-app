@@ -10,9 +10,29 @@ interface Props {
 }
 
 const rolModuloMap: Record<string, string[]> = {
-  '2': ['Stock de productos', 'Movimientos'],
-  '3': ['Gestion de pedidos'],
-  '4': ['Stock de productos', 'Movimientos', 'Gestion de pedidos'],
+  '1': ['stock', 'movimiento'],
+  '2': ['pedido'],
+  '3': [
+    'panel',
+    'almacen',
+    'stock',
+    'movimiento',
+    'pedidos',
+    'saldos',
+    'perfiles',
+    'reportes',
+  ],
+};
+
+const moduloLabelMap: Record<string, string> = {
+  panel: 'Panel de Control',
+  almacen: 'Almacén',
+  stock: 'Stock de Productos',
+  movimiento: 'Movimientos',
+  pedidos: 'Pedidos',
+  saldos: 'Saldos',
+  perfiles: 'Perfiles',
+  reportes: 'Reportes',
 };
 
 export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
@@ -197,9 +217,9 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
               onChange={handleChange}
               required>
               <option value="">Seleccionar rol</option>
-              <option value="2">Almacenero</option>
-              <option value="3">Vendedor</option>
-              <option value="4">Ecommerce asistente</option>
+              <option value="1">Almacenero</option>
+              <option value="2">Vendedor</option>
+              <option value="3">Ecommerce asistente</option>
             </select>
           </div>
           <div>
@@ -238,19 +258,19 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
               <option value="">Seleccionar módulo</option>
               {modulosFiltrados.map((mod) => (
                 <option key={mod} value={mod}>
-                  {mod}
+                  {moduloLabelMap[mod] || mod}
                 </option>
               ))}
             </select>
             <div className="mt-2 flex flex-wrap gap-2">
               {modulos.map((mod) => (
                 <div
-                  key={mod}
+                  key={moduloLabelMap[mod] || mod}
                   className="bg-gray-100 text-sm text-gray-700 px-3 py-1 rounded-full flex items-center gap-2">
-                  {mod}
+                  {moduloLabelMap[mod] || mod}
                   <button
                     type="button"
-                    onClick={() => handleRemoveModulo(mod)}
+                    onClick={() => handleRemoveModulo(moduloLabelMap[mod] || mod)}
                     className="text-red-500 hover:text-red-700">
                     &times;
                   </button>

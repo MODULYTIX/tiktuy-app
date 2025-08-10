@@ -11,7 +11,7 @@ import PedidosPage from './pages/PedidosPage';
 import AlmacenPage from './pages/AlmacenPage';
 
 export const courierRoutes: RouteObject[] = [
-  { path: 'panel', element: <CourierHomePage /> },
+  { path: '', element: <CourierHomePage /> },
   { path: 'almacen', element: <AlmacenPage /> },
   { path: 'stock', element: <StockPage /> },
   { path: 'movimientos', element: <MovimientosPage /> },
