@@ -1,19 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+
 @import "tailwindcss";
 
 @theme {
 
   /* Colors */
   --color-primary: #1E3A8A;
-  --color-primaryDark: #1A253D;
+  --color-primaryLight: #0044FF;
+  --color-primaryDark: #111827;
   
   --color-backgroundModal: rgba(0, 0, 0, 0.5) ;
+  
+  /* Color gray */
+  --color-gray90: #111827;
+  --color-gray70: #374151;
+  --color-gray60: #4B5563;
+  --color-gray40: #9CA3AF;
+  --color-gray30: #D1D5DB;
+  --color-gray20: #E5E7EB;
+  --color-gray10: #F3F4F6;
+
+  --shadow-default: 0 0 4px 0 rgba(0, 0, 0, 0.3);
 
   /* Fonts */
   
 }
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Roboto', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -22,4 +37,11 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  select {
+    /* Tailwind */
+    @apply w-full py-2 px-3 pr-10 border rounded border-gray40 text-sm text-gray40 appearance-none;
+  }
 }
