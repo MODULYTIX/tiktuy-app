@@ -11,6 +11,12 @@ import CrearPedidoModal from '@/shared/components/ecommerce/pedidos/CrearPedidoM
 import { AuthContext } from '@/auth/context/AuthContext';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Select } from '@/shared/components/Select';
+import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
+import ImportExcelFlow from '@/shared/components/ecommerce/excel/ImportExcelFlow';
+import { fetchProductosFiltrados } from '@/services/ecommerce/producto/producto.api';
+import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
+import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
+import type { Producto } from '@/services/ecommerce/producto/producto.types';
 
 type Vista = 'generado' | 'asignado' | 'completado';
 
@@ -28,7 +34,6 @@ export default function PedidosPage() {
     fechaInicio: '',
     fechaFin: '',
   });
-
 
   useEffect(() => {
     localStorage.setItem('ventas_vista', vista);
@@ -62,23 +67,82 @@ export default function PedidosPage() {
     });
   };
 
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [filters, setFilters] = useState<any>({});
+  const [productoSeleccionado, setProductoSeleccionado] =
+    useState<Producto | null>(null);
+
+  const [couriers, setCouriers] = useState<{ id: number; nombre: string }[]>(
+    []
+  );
+
+  const handleDescargarPlantilla = () => {
+    console.log('Descargar plantilla');
+  };
+
+  useEffect(() => {
+    if (!token) return;
+    let cancel = false;
+
+    async function load() {
+      try {
+        const lista: CourierAsociado[] = await fetchCouriersAsociados(token);
+        if (cancel) return;
+
+        // mapea a { id, nombre } que espera el ImportExcelFlow/Modal
+        setCouriers(
+          (lista || []).map((c) => ({
+            id: c.id,
+            nombre: c.nombre_comercial,
+          }))
+        );
+      } catch (err) {
+        console.error('Error al obtener couriers asociados:', err);
+        if (!cancel) setCouriers([]);
+      }
+    }
+
+    load();
+    return () => {
+      cancel = true;
+    };
+  }, [token]);
+
+  const cargarProductos = async (filtros = filters) => {
+    if (!token) return;
+    try {
+      const data = await fetchProductosFiltrados(filtros, token);
+      setProductos(data);
+    } catch (err) {
+      console.error('Error cargando productos:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (token) cargarProductos();
+  }, [filters, token]);
+
   return (
     <section className="mt-8 flex flex-col gap-[1.25rem]">
       <div className="flex justify-between items-end pb-5 border-b border-gray30">
-        <div className='flex flex-col gap-1'>
-          <h1 className="text-[1.75rem] font-bold text-primary">Panel de Pedidos</h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-[1.75rem] font-bold text-primary">
+            Panel de Pedidos
+          </h1>
           <p className="text-gray60">
-            Administra y visualiza el estado de tus pedidos en cada etapa del proceso.
+            Administra y visualiza el estado de tus pedidos en cada etapa del
+            proceso.
           </p>
         </div>
 
         <div className="flex gap-3 items-center">
           <button
             onClick={() => setVista('generado')}
-            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${vista === 'generado'
-              ? 'bg-primaryDark text-white'
-              : 'bg-gray20 text-primaryDark hover:shadow-default'
-              }`}>
+            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${
+              vista === 'generado'
+                ? 'bg-primaryDark text-white'
+                : 'bg-gray20 text-primaryDark hover:shadow-default'
+            }`}>
             <RiAiGenerate size={18} />
             Generado
           </button>
@@ -87,10 +151,11 @@ export default function PedidosPage() {
 
           <button
             onClick={() => setVista('asignado')}
-            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${vista === 'asignado'
-              ? 'bg-primaryDark text-white'
-              : 'bg-gray20 text-primaryDark hover:shadow-default'
-              }`}>
+            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${
+              vista === 'asignado'
+                ? 'bg-primaryDark text-white'
+                : 'bg-gray20 text-primaryDark hover:shadow-default'
+            }`}>
             <MdOutlineAssignment size={18} />
             Asignado
           </button>
@@ -99,10 +164,11 @@ export default function PedidosPage() {
 
           <button
             onClick={() => setVista('completado')}
-            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${vista === 'completado'
-              ? 'bg-primaryDark text-white'
-              : 'bg-gray20 text-primaryDark hover:shadow-default'
-              }`}>
+            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${
+              vista === 'completado'
+                ? 'bg-primaryDark text-white'
+                : 'bg-gray20 text-primaryDark hover:shadow-default'
+            }`}>
             <LuClipboardCheck size={18} />
             Completado
           </button>
@@ -110,25 +176,44 @@ export default function PedidosPage() {
       </div>
 
       <div className="flex justify-between items-end">
-        <div className='space-y-1'>
-          <h2 className="text-lg font-bold  text-primaryDark">Pedidos Generados</h2>
+        <div className="space-y-1">
+          <h2 className="text-lg font-bold  text-primaryDark">
+            Pedidos Generados
+          </h2>
           <p className="text-sm text-black font-regular">
             Consulta los pedidos registrados recientemente.
           </p>
         </div>
-
-        <button
-          onClick={handleNuevoPedido}
-          className="bg-primaryLight text-white px-[0.75rem] py-[0.5625rem] rounded flex items-center gap-2 hover:bg-blue-700">
-          <FiPlus className="w-4 h-4" />
-          Nuevo Pedido
-        </button>
+        <div className='flex gap-2'>
+          <div>
+            <ImportExcelFlow token={token!} onImported={cargarProductos}>
+              {(openPicker) => (
+                <AnimatedExcelMenu
+                  onTemplateClick={handleDescargarPlantilla}
+                  onImportClick={openPicker}
+                />
+              )}
+            </ImportExcelFlow>
+          </div>
+          <div>
+            <div>
+              <button
+                onClick={handleNuevoPedido}
+                className="bg-primaryLight text-white px-[0.75rem] py-[0.5625rem] rounded flex items-center gap-2 hover:bg-blue-700">
+                <FiPlus className="w-4 h-4" />
+                Nuevo Pedido
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
         {/* Courier */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black text-center block">Courier</label>
+          <label className="text-sm font-medium text-black text-center block">
+            Courier
+          </label>
           <div className="relative w-full">
             <Select
               value={filtros.producto}
@@ -136,9 +221,9 @@ export default function PedidosPage() {
                 setFiltros((prev) => ({ ...prev, producto: e.target.value }))
               }
               options={[
-                { value: "1", label: "Courier 1" },
-                { value: "2", label: "Courier 2" },
-                { value: "3", label: "Courier 3" },
+                { value: '1', label: 'Courier 1' },
+                { value: '2', label: 'Courier 2' },
+                { value: '3', label: 'Courier 3' },
               ]}
               placeholder="Seleccionar courier"
             />
@@ -147,7 +232,9 @@ export default function PedidosPage() {
 
         {/* Producto */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black text-center block">Producto</label>
+          <label className="text-sm font-medium text-black text-center block">
+            Producto
+          </label>
           <div className="relative w-full">
             <Select
               value={filtros.producto}
@@ -155,9 +242,9 @@ export default function PedidosPage() {
                 setFiltros((prev) => ({ ...prev, producto: e.target.value }))
               }
               options={[
-                { value: "p1", label: "Producto 1" },
-                { value: "p2", label: "Producto 2" },
-                { value: "p3", label: "Producto 3" },
+                { value: 'p1', label: 'Producto 1' },
+                { value: 'p2', label: 'Producto 2' },
+                { value: 'p3', label: 'Producto 3' },
               ]}
               placeholder="Seleccionar producto"
             />
@@ -166,7 +253,9 @@ export default function PedidosPage() {
 
         {/* Fecha Inicio */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black text-center block">Fecha Inicio</label>
+          <label className="text-sm font-medium text-black text-center block">
+            Fecha Inicio
+          </label>
           <input
             type="date"
             className="border border-gray40 rounded px-3 py-2 text-sm w-full text-gray60"
@@ -179,7 +268,9 @@ export default function PedidosPage() {
 
         {/* Fecha Fin */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black text-center block">Fecha Fin</label>
+          <label className="text-sm font-medium text-black text-center block">
+            Fecha Fin
+          </label>
           <input
             type="date"
             className="border border-gray40 rounded px-3 py-2 text-sm w-full text-gray60"
@@ -193,12 +284,20 @@ export default function PedidosPage() {
         <button
           onClick={handleLimpiarFiltros}
           className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100">
-          <Icon icon="mynaui:delete" width="24" height="24" color='gray60' className='' />
+          <Icon
+            icon="mynaui:delete"
+            width="24"
+            height="24"
+            color="gray60"
+            className=""
+          />
           Limpiar Filtros
-        </button> 
+        </button>
       </div>
 
-      {vista === 'generado' && <PedidosGenerado onEditar={handleEditarPedido} />}
+      {vista === 'generado' && (
+        <PedidosGenerado onEditar={handleEditarPedido} />
+      )}
       {vista === 'asignado' && <PedidosAsignado />}
       {vista === 'completado' && <PedidosCompletado />}
 

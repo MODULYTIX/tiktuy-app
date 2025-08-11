@@ -7,6 +7,9 @@ import { TbCubePlus } from 'react-icons/tb';
 import { useAuth } from '@/auth/context';
 import { fetchProductosFiltrados } from '@/services/ecommerce/producto/producto.api';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
+import ImportExcelFlow from '@/shared/components/ecommerce/excel/ImportExcelFlow';
+import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
+import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
 
 export default function StockPage() {
   const { token } = useAuth();
@@ -17,6 +20,9 @@ export default function StockPage() {
     useState<Producto | null>(null);
   const [modoSeleccionado, setModoModal] = useState<'crear' | 'editar' | 'ver'>(
     'crear'
+  );
+  const [couriers, setCouriers] = useState<{ id: number; nombre: string }[]>(
+    []
   );
 
   const handleClose = () => {
@@ -29,9 +35,33 @@ export default function StockPage() {
     console.log('Descargar plantilla');
   };
 
-  const handleImportarArchivo = () => {
-    console.log('Importar archivo');
-  };
+  useEffect(() => {
+    if (!token) return;
+    let cancel = false;
+
+    async function load() {
+      try {
+        const lista: CourierAsociado[] = await fetchCouriersAsociados(token);
+        if (cancel) return;
+
+        // mapea a { id, nombre } que espera el ImportExcelFlow/Modal
+        setCouriers(
+          (lista || []).map((c) => ({
+            id: c.id,
+            nombre: c.nombre_comercial,
+          }))
+        );
+      } catch (err) {
+        console.error('Error al obtener couriers asociados:', err);
+        if (!cancel) setCouriers([]);
+      }
+    }
+
+    load();
+    return () => {
+      cancel = true;
+    };
+  }, [token]);
 
   const cargarProductos = async (filtros = filters) => {
     if (!token) return;
@@ -83,10 +113,14 @@ export default function StockPage() {
         </div>
 
         <div className="flex gap-2 items-center">
-          <AnimatedExcelMenu
-            onTemplateClick={handleDescargarPlantilla}
-            onImportClick={handleImportarArchivo}
-          />
+          <ImportExcelFlow token={token!} onImported={cargarProductos}>
+            {(openPicker) => (
+              <AnimatedExcelMenu
+                onTemplateClick={handleDescargarPlantilla}
+                onImportClick={openPicker}
+              />
+            )}
+          </ImportExcelFlow>
 
           <button
             onClick={handleAbrirModalNuevo}

@@ -5,6 +5,10 @@ import type { JSX } from 'react';
 export const RoleGuard = ({ children, role }: { children: JSX.Element; role: string }) => {
   const { user } = useAuth();
 
-  if (!user || user.role !== role) return <Navigate to="/unauthorized" replace />;
+  // Si user.rol.nombre no coincide con el role esperado → redirige
+  if (!user || user.rol?.nombre !== role) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
   return children;
 };
