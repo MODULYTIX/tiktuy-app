@@ -12,16 +12,17 @@ import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.type
 // DTO local para creación/edición (lo que realmente envía el frontend al backend)
 type CreatePedidoDto = {
   codigo_pedido?: string;
-  ecommerce_id: number;
-  courier_id: number;
+  // ecommerce_id YA NO ES NECESARIO ENVIARLO (lo resuelve el backend con el token)
+  ecommerce_id?: number;
+  courier_id?: number;               // opcional: si viene, el backend pone estado "Asignado"
   nombre_cliente: string;
   numero_cliente?: string;
   celular_cliente: string;
   direccion_envio: string;
   referencia_direccion?: string;
   distrito: string;
-  monto_recaudar: number;           // número (el backend lo maneja como Decimal/number)
-  fecha_entrega_programada: string; // ISO string
+  monto_recaudar: number;            // número (el backend lo maneja como Decimal/number)
+  fecha_entrega_programada: string;  // ISO string
   detalles: Array<{
     producto_id: number;
     cantidad: number;
@@ -108,7 +109,7 @@ export default function CrearPedidoModal({
           const data: any = await fetchPedidoById(pedidoId, token);
           const detalle = data.detalles?.[0] || {};
           setForm({
-            courier_id: String(data.courier?.id ?? ''), // fix: usar id si courier es objeto
+            courier_id: String(data.courier?.id ?? ''), // usar id si courier es objeto
             nombre_cliente: data.nombre_cliente ?? '',
             numero_cliente: data.numero_cliente ?? '',
             celular_cliente: data.celular_cliente ?? '',
@@ -162,32 +163,27 @@ export default function CrearPedidoModal({
   const handleSubmit = async () => {
     if (!token || !user) return;
 
-    // Validaciones mínimas
-    const ecommerceId = Number(user?.ecommerce?.id);
-    const courierId = Number(form.courier_id);
+    // Validaciones mínimas (YA NO comprobamos ecommerce_id aquí)
+    const courierId = Number(form.courier_id);       // opcional
     const productoId = Number(form.producto_id);
     const cantidad = Number(form.cantidad);
     const precioUnitario = Number(form.precio_unitario);
     const montoRecaudar = Number(form.monto_recaudar);
 
-    if (!ecommerceId) {
-      console.error('Falta ecommerce_id en el usuario actual');
-      return;
-    }
-    if (!courierId || !productoId || !cantidad || !precioUnitario) {
-      console.error('Faltan datos obligatorios del pedido');
+    if (!productoId || !cantidad || !precioUnitario) {
+      console.error('Faltan datos obligatorios del pedido (producto/cantidad/precio)');
       return;
     }
 
-    // Normalizar fecha a ISO (solo fecha sin hora -> se asume 00:00 local)
+    // Normalizar fecha a ISO (solo fecha sin hora -> 00:00 local)
     const fechaISO = form.fecha_entrega_programada
       ? new Date(form.fecha_entrega_programada + 'T00:00:00').toISOString()
       : new Date().toISOString();
 
     const payload: CreatePedidoDto = {
       codigo_pedido: `PED-${Date.now()}`,
-      ecommerce_id: ecommerceId,
-      courier_id: courierId,
+      // ecommerce_id: LO RESUELVE EL BACK CON EL TOKEN
+      courier_id: Number.isNaN(courierId) ? undefined : courierId,
       nombre_cliente: form.nombre_cliente.trim(),
       numero_cliente: form.numero_cliente.trim(),
       celular_cliente: form.celular_cliente.trim(),
@@ -206,7 +202,6 @@ export default function CrearPedidoModal({
     };
 
     try {
-      // 👇 El api tipa como Partial<Pedido>; casteamos nuestro DTO para que compile TS
       await crearPedido(payload as unknown as Partial<any>, token);
       onPedidoCreado();
       onClose();

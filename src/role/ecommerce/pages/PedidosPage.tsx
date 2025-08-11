@@ -11,29 +11,41 @@ import CrearPedidoModal from '@/shared/components/ecommerce/pedidos/CrearPedidoM
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Select } from '@/shared/components/Select';
 import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
-import ImportExcelFlow from '@/shared/components/ecommerce/excel/ImportExcelFlow';
+
 import { useAuth } from '@/auth/context';
+import ImportExcelPedidosFlow from '@/shared/components/ecommerce/excel/pedido/ImportExcelPedidosFlow';
 
 type Vista = 'generado' | 'asignado' | 'completado';
+
+type Filtros = {
+  courier: string;
+  producto: string;
+  fechaInicio: string; // 'YYYY-MM-DD'
+  fechaFin: string; // 'YYYY-MM-DD'
+};
 
 export default function PedidosPage() {
   const { token } = useAuth();
 
   const [vista, setVista] = useState<Vista>(
-    () => (localStorage.getItem('ventas_vista') as Vista) || 'generado'
+    () => (localStorage.getItem('pedidos_vista') as Vista) || 'generado'
   );
   const [modalAbierto, setModalAbierto] = useState(false);
   const [pedidoId, setPedidoId] = useState<number | null>(null);
 
-  const [filtros, setFiltros] = useState({
+  const [filtros, setFiltros] = useState<Filtros>({
     courier: '',
     producto: '',
     fechaInicio: '',
     fechaFin: '',
   });
 
+  // Para refrescar tablas tras importar/crear/editar
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleImported = () => setRefreshKey((k) => k + 1);
+
   useEffect(() => {
-    localStorage.setItem('ventas_vista', vista);
+    localStorage.setItem('pedidos_vista', vista);
   }, [vista]);
 
   const handleNuevoPedido = () => {
@@ -41,16 +53,14 @@ export default function PedidosPage() {
     setModalAbierto(true);
   };
 
-
-
   const handleCerrarModal = () => {
     setModalAbierto(false);
     setPedidoId(null);
   };
 
   const refetchPedidos = () => {
-    // Aquí podrías disparar un refetch en los hijos mediante context/event bus si lo necesitas.
     handleCerrarModal();
+    setRefreshKey((k) => k + 1);
   };
 
   const handleLimpiarFiltros = () => {
@@ -60,22 +70,36 @@ export default function PedidosPage() {
       fechaInicio: '',
       fechaFin: '',
     });
+    setRefreshKey((k) => k + 1);
   };
 
   const handleDescargarPlantilla = () => {
-    console.log('Descargar plantilla');
+    // Variante archivo estático público
+    const a = document.createElement('a');
+    a.href = '../../../assets/template/template_ventas.xlsx';
+    a.download = 'plantilla-ventas.xlsx';
+    a.click();
+
+    // Variante API protegida (si la implementas):
+    // fetch(`${import.meta.env.VITE_API_URL}/import/excel/v1/pedidos/plantilla`, {
+    //   headers: { Authorization: `Bearer ${token}` }
+    // })
+    //   .then(r => r.blob())
+    //   .then(blob => {
+    //     const url = URL.createObjectURL(blob);
+    //     const a = document.createElement('a');
+    //     a.href = url; a.download = 'plantilla-ventas.xlsx'; a.click();
+    //     URL.revokeObjectURL(url);
+    //   });
   };
 
   return (
     <section className="mt-8 flex flex-col gap-[1.25rem]">
       <div className="flex justify-between items-end pb-5 border-b border-gray30">
         <div className="flex flex-col gap-1">
-          <h1 className="text-[1.75rem] font-bold text-primary">
-            Panel de Pedidos
-          </h1>
+          <h1 className="text-[1.75rem] font-bold text-primary">Panel de Pedidos</h1>
           <p className="text-gray60">
-            Administra y visualiza el estado de tus pedidos en cada etapa del
-            proceso.
+            Administra y visualiza el estado de tus pedidos en cada etapa del proceso.
           </p>
         </div>
 
@@ -86,8 +110,7 @@ export default function PedidosPage() {
               vista === 'generado'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}
-          >
+            }`}>
             <RiAiGenerate size={18} />
             Generado
           </button>
@@ -100,8 +123,7 @@ export default function PedidosPage() {
               vista === 'asignado'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}
-          >
+            }`}>
             <MdOutlineAssignment size={18} />
             Asignado
           </button>
@@ -114,8 +136,7 @@ export default function PedidosPage() {
               vista === 'completado'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}
-          >
+            }`}>
             <LuClipboardCheck size={18} />
             Completado
           </button>
@@ -124,52 +145,48 @@ export default function PedidosPage() {
 
       <div className="flex justify-between items-end">
         <div className="space-y-1">
-          <h2 className="text-lg font-bold  text-primaryDark">
-            Pedidos Generados
+          <h2 className="text-lg font-bold text-primaryDark">
+            {vista === 'generado'
+              ? 'Pedidos Generados'
+              : vista === 'asignado'
+              ? 'Pedidos Asignados'
+              : 'Pedidos Completados'}
           </h2>
-          <p className="text-sm text-black font-regular">
-            Consulta los pedidos registrados recientemente.
-          </p>
+          <p className="text-sm text-black font-regular">Consulta y gestiona tus pedidos.</p>
         </div>
+
         <div className="flex gap-2">
-          <div>
-            <ImportExcelFlow token={token ?? ''} onImported={() => {}}>
-              {(openPicker) => (
-                <AnimatedExcelMenu
-                  onTemplateClick={handleDescargarPlantilla}
-                  onImportClick={openPicker}
-                />
-              )}
-            </ImportExcelFlow>
-          </div>
-          <div>
-            <button
-              onClick={handleNuevoPedido}
-              className="bg-primaryLight text-white px-[0.75rem] py-[0.5625rem] rounded flex items-center gap-2 hover:bg-blue-700"
-            >
-              <FiPlus className="w-4 h-4" />
-              Nuevo Pedido
-            </button>
-          </div>
+          <ImportExcelPedidosFlow token={token ?? ''} onImported={handleImported}>
+            {(openPicker) => (
+              <AnimatedExcelMenu
+                onTemplateClick={handleDescargarPlantilla}
+                onImportClick={openPicker}
+              />
+            )}
+          </ImportExcelPedidosFlow>
+
+          <button
+            onClick={handleNuevoPedido}
+            className="bg-primaryLight text-white px-[0.75rem] py-[0.5625rem] rounded flex items-center gap-2 hover:bg-blue-700">
+            <FiPlus className="w-4 h-4" />
+            Nuevo Pedido
+          </button>
         </div>
       </div>
 
+      {/* Filtros (mock: conéctalos a tu API cuando quieras) */}
       <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
         {/* Courier */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black text-center block">
-            Courier
-          </label>
+          <label className="text-sm font-medium text-black block">Courier</label>
           <div className="relative w-full">
             <Select
               value={filtros.courier}
-              onChange={(e) =>
-                setFiltros((prev) => ({ ...prev, courier: e.target.value }))
-              }
+              onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value }))}
               options={[
+                { value: '', label: 'Todos' },
                 { value: '1', label: 'Courier 1' },
                 { value: '2', label: 'Courier 2' },
-                { value: '3', label: 'Courier 3' },
               ]}
               placeholder="Seleccionar courier"
             />
@@ -178,19 +195,15 @@ export default function PedidosPage() {
 
         {/* Producto */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black text-center block">
-            Producto
-          </label>
+          <label className="text-sm font-medium text-black block">Producto</label>
           <div className="relative w-full">
             <Select
               value={filtros.producto}
-              onChange={(e) =>
-                setFiltros((prev) => ({ ...prev, producto: e.target.value }))
-              }
+              onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value }))}
               options={[
+                { value: '', label: 'Todos' },
                 { value: 'p1', label: 'Producto 1' },
                 { value: 'p2', label: 'Producto 2' },
-                { value: 'p3', label: 'Producto 3' },
               ]}
               placeholder="Seleccionar producto"
             />
@@ -199,46 +212,38 @@ export default function PedidosPage() {
 
         {/* Fecha Inicio */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black text-center block">
-            Fecha Inicio
-          </label>
+          <label className="text-sm font-medium text-black block">Fecha Inicio</label>
           <input
             type="date"
             className="border border-gray40 rounded px-3 py-2 text-sm w-full text-gray60"
             value={filtros.fechaInicio}
-            onChange={(e) =>
-              setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))
-            }
+            onChange={(e) => setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))}
           />
         </div>
 
         {/* Fecha Fin */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black text-center block">
-            Fecha Fin
-          </label>
+          <label className="text-sm font-medium text-black block">Fecha Fin</label>
           <input
             type="date"
             className="border border-gray40 rounded px-3 py-2 text-sm w-full text-gray60"
             value={filtros.fechaFin}
-            onChange={(e) =>
-              setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))
-            }
+            onChange={(e) => setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))}
           />
         </div>
 
         <button
           onClick={handleLimpiarFiltros}
-          className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100"
-        >
+          className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100">
           <Icon icon="mynaui:delete" width="24" height="24" color="gray60" />
           Limpiar Filtros
         </button>
       </div>
 
-      {vista === 'generado' && <PedidosGenerado />}
-      {vista === 'asignado' && <PedidosAsignado />}
-      {vista === 'completado' && <PedidosCompletado />}
+      {/* Vistas: key para remonte tras import */}
+      {vista === 'generado' && <PedidosGenerado key={`gen-${refreshKey}`} />}
+      {vista === 'asignado' && <PedidosAsignado key={`asi-${refreshKey}`} />}
+      {vista === 'completado' && <PedidosCompletado key={`comp-${refreshKey}`} />}
 
       {modalAbierto && (
         <CrearPedidoModal
