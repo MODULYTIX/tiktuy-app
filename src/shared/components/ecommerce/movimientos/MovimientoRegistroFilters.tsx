@@ -54,7 +54,7 @@ export default function MovimientoRegistroFilters({
   }, [token]);
 
   useEffect(() => {
-    if (onFilterChange) onFilterChange(filters);
+    onFilterChange?.(filters);
   }, [filters, onFilterChange]);
 
   const handleChange = (
@@ -62,30 +62,24 @@ export default function MovimientoRegistroFilters({
   ) => {
     const target = e.target;
 
-    // Checkbox (boolean filters)
+    // ✅ Type narrowing para poder usar .checked sin error TS
     if (target instanceof HTMLInputElement && target.type === 'checkbox') {
       const name = target.name as BooleanFilterKey;
-      const isChecked = target.checked;
       setFilters((prev) => ({
         ...prev,
-        [name]: isChecked,
+        [name]: target.checked,
       }));
-      return;
+    } else {
+      const name = target.name as Exclude<keyof Filters, BooleanFilterKey>;
+      setFilters((prev) => ({
+        ...prev,
+        [name]: target.value,
+      }));
     }
-
-    // Selects e inputs de texto (string filters)
-    const name = (target as HTMLInputElement | HTMLSelectElement)
-      .name as Exclude<keyof Filters, BooleanFilterKey>;
-    const value = (target as HTMLInputElement | HTMLSelectElement).value;
-
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
   };
 
   const handleReset = () => {
-    setFilters({
+    const reset: Filters = {
       almacenamiento_id: '',
       categoria_id: '',
       estado: '',
@@ -93,7 +87,9 @@ export default function MovimientoRegistroFilters({
       precio_bajo: false,
       precio_alto: false,
       search: '',
-    });
+    };
+    setFilters(reset);
+    onFilterChange?.(reset);
   };
 
   return (
