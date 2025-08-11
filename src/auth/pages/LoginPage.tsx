@@ -11,6 +11,13 @@ import {
   type ModuloAsignado,
 } from '@/auth/constants/roles';
 
+// Type guards
+const isRole = (r: unknown): r is Role =>
+  typeof r === 'string' && (validRoles as readonly string[]).includes(r);
+
+const isModuloAsignado = (m: unknown): m is ModuloAsignado =>
+  typeof m === 'string' && (moduloAsignadoValues as readonly string[]).includes(m);
+
 export default function LoginPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -20,23 +27,19 @@ export default function LoginPage() {
 
     const currentPath = window.location.pathname;
 
-    // Redirección para roles principales
-    const role = user.rol?.nombre;
-    if (role && validRoles.includes(role)) {
-      const targetPath = roleDefaultPaths[role as Role];
+    // Rol principal
+    const role = user.rol?.nombre; // viene del backend como string
+    if (isRole(role)) {
+      const targetPath = roleDefaultPaths[role]; // role ahora es Role
       if (currentPath !== targetPath) {
         navigate(targetPath, { replace: true });
       }
       return;
     }
 
-    // Redirección para trabajadores con módulo asignado
+    // Trabajador con módulo asignado
     const moduloAsignado = user.perfil_trabajador?.modulo_asignado;
-    if (
-      moduloAsignado &&
-      moduloAsignadoValues.includes(moduloAsignado as ModuloAsignado) &&
-      currentPath !== `/${moduloAsignado}`
-    ) {
+    if (isModuloAsignado(moduloAsignado) && currentPath !== `/${moduloAsignado}`) {
       navigate(`/${moduloAsignado}`, { replace: true });
     }
   }, [user, navigate]);

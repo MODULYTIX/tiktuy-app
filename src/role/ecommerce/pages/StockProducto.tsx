@@ -7,6 +7,7 @@ import { TbCubePlus } from 'react-icons/tb';
 import { useAuth } from '@/auth/context';
 import { fetchProductosFiltrados } from '@/services/ecommerce/producto/producto.api';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
+import ImportExcelFlow from '@/shared/components/ecommerce/excel/ImportExcelFlow';
 
 export default function StockPage() {
   const { token } = useAuth();
@@ -29,14 +30,11 @@ export default function StockPage() {
     console.log('Descargar plantilla');
   };
 
-  const handleImportarArchivo = () => {
-    console.log('Importar archivo');
-  };
-
   const cargarProductos = async (filtros = filters) => {
     if (!token) return;
     try {
-      const data = await fetchProductosFiltrados(filtros, token);
+      const t = token as string; // narrowing explícito para TypeScript
+      const data = await fetchProductosFiltrados(filtros, t);
       setProductos(data);
     } catch (err) {
       console.error('Error cargando productos:', err);
@@ -70,6 +68,7 @@ export default function StockPage() {
 
   useEffect(() => {
     if (token) cargarProductos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, token]);
 
   return (
@@ -83,14 +82,19 @@ export default function StockPage() {
         </div>
 
         <div className="flex gap-2 items-center">
-          <AnimatedExcelMenu
-            onTemplateClick={handleDescargarPlantilla}
-            onImportClick={handleImportarArchivo}
-          />
+          <ImportExcelFlow token={token ?? ''} onImported={cargarProductos}>
+            {(openPicker) => (
+              <AnimatedExcelMenu
+                onTemplateClick={handleDescargarPlantilla}
+                onImportClick={openPicker}
+              />
+            )}
+          </ImportExcelFlow>
 
           <button
             onClick={handleAbrirModalNuevo}
-            className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition">
+            className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition"
+          >
             <TbCubePlus size={18} />
             <span>Nuevo Producto</span>
           </button>

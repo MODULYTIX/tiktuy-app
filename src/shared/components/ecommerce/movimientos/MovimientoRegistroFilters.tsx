@@ -17,12 +17,14 @@ interface Filters {
   search: string;
 }
 
+type BooleanFilterKey = 'stock_bajo' | 'precio_bajo' | 'precio_alto';
+
 interface Props {
   onFilterChange?: (filters: Filters) => void;
   onNuevoMovimientoClick?: () => void;
 }
 
-const booleanFilters = [
+const booleanFilters: { name: BooleanFilterKey; label: string }[] = [
   { name: 'stock_bajo', label: 'Stock bajo' },
   { name: 'precio_bajo', label: 'Precios bajos' },
   { name: 'precio_alto', label: 'Precios altos' },
@@ -52,21 +54,32 @@ export default function MovimientoRegistroFilters({
   }, [token]);
 
   useEffect(() => {
-    if (onFilterChange) onFilterChange(filters);
+    onFilterChange?.(filters);
   }, [filters, onFilterChange]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value, type, checked } = e.target;
-    setFilters((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    const target = e.target;
+
+    // ✅ Type narrowing para poder usar .checked sin error TS
+    if (target instanceof HTMLInputElement && target.type === 'checkbox') {
+      const name = target.name as BooleanFilterKey;
+      setFilters((prev) => ({
+        ...prev,
+        [name]: target.checked,
+      }));
+    } else {
+      const name = target.name as Exclude<keyof Filters, BooleanFilterKey>;
+      setFilters((prev) => ({
+        ...prev,
+        [name]: target.value,
+      }));
+    }
   };
 
   const handleReset = () => {
-    setFilters({
+    const reset: Filters = {
       almacenamiento_id: '',
       categoria_id: '',
       estado: '',
@@ -74,7 +87,9 @@ export default function MovimientoRegistroFilters({
       precio_bajo: false,
       precio_alto: false,
       search: '',
-    });
+    };
+    setFilters(reset);
+    onFilterChange?.(reset);
   };
 
   return (
@@ -137,7 +152,7 @@ export default function MovimientoRegistroFilters({
                 <input
                   type="checkbox"
                   name={name}
-                  checked={filters[name as keyof Filters] as boolean}
+                  checked={filters[name]}
                   onChange={handleChange}
                 />
                 <span className="text-xs">{label}</span>

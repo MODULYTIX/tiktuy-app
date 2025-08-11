@@ -9,6 +9,33 @@ import {
 import { FaEye, FaCheck, FaTimes } from 'react-icons/fa';
 import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
 
+/**
+ * Normaliza cualquier forma devuelta por la API al shape de CourierAsociado.
+ * Ajusta los mapeos según tu backend real si cambia algún nombre de campo.
+ */
+function normalizeToCourierAsociado(arr: any[]): CourierAsociado[] {
+  return (arr ?? []).map((r: any) => {
+    const nested = r?.courier ?? {};
+    const estado =
+      r?.estado_asociacion ??
+      (typeof r?.activo === 'boolean' ? (r.activo ? 'activo' : 'inactivo') : undefined) ??
+      'No Asociado';
+
+    return {
+      id: r?.id ?? nested?.id ?? 0,
+      nombre_comercial:
+        r?.nombre_comercial ?? nested?.nombre_comercial ?? nested?.nombre ?? '',
+      telefono: r?.telefono ?? nested?.telefono ?? '',
+      ciudad: r?.ciudad ?? nested?.ciudad ?? '',
+      departamento: r?.departamento ?? nested?.departamento ?? '',
+      direccion: r?.direccion ?? nested?.direccion ?? '',
+      estado_asociacion: estado,
+      // si la API devuelve el id de la relación con otro nombre, añádelo aquí:
+      id_relacion: r?.id_relacion ?? r?.relacion_id ?? r?.ecommerce_courier_id ?? null,
+    } as CourierAsociado;
+  });
+}
+
 export default function EcommerceHomePage() {
   const { token } = useAuth();
   const [data, setData] = useState<CourierAsociado[]>([]);
@@ -23,7 +50,8 @@ export default function EcommerceHomePage() {
     if (!token) return;
     try {
       const res = await fetchEcommerceCourier(token);
-      setData(res);
+      const normalized = normalizeToCourierAsociado(res);
+      setData(normalized); // ✅ ahora coincide con CourierAsociado[]
     } catch (e) {
       console.error(e);
     } finally {
@@ -33,6 +61,7 @@ export default function EcommerceHomePage() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const handleChangeFiltro = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -51,7 +80,7 @@ export default function EcommerceHomePage() {
       } else {
         await asociarCourier(entry.id_relacion, token);
       }
-      loadData();
+      await loadData();
     } catch (err: any) {
       alert(err.message || 'Error al asociar courier');
     }
@@ -62,7 +91,7 @@ export default function EcommerceHomePage() {
     try {
       if (entry.id_relacion) {
         await desasociarCourier(entry.id_relacion, token);
-        loadData();
+        await loadData();
       }
     } catch (err: any) {
       alert(err.message || 'Error al desasociar courier');
@@ -81,8 +110,10 @@ export default function EcommerceHomePage() {
     );
   });
 
-  const ciudades = [...new Set(data.map((d) => d.ciudad))];
-  const couriersUnicos = [...new Set(data.map((d) => d.nombre_comercial))];
+  const ciudades = [...new Set(data.map((d) => d.ciudad).filter(Boolean))];
+  const couriersUnicos = [
+    ...new Set(data.map((d) => d.nombre_comercial).filter(Boolean)),
+  ];
   const estados = ['activo', 'inactivo', 'No Asociado'];
 
   return (
@@ -210,7 +241,6 @@ export default function EcommerceHomePage() {
                     ) : (
                       <FaCheck
                         onClick={() => handleAsociar(entry)}
-
                         className="text-green-500 hover:text-green-700 cursor-pointer"
                         title="Asociar"
                       />

@@ -17,30 +17,48 @@ interface Props {
   modo: 'crear' | 'editar' | 'ver';
 }
 
+type CreateProductoDto = {
+  categoria_id: number;
+  almacenamiento_id: number;
+  precio: number;
+  stock: number;
+  stock_minimo: number;
+  peso: number;
+  codigo_identificacion: string;
+  nombre_producto: string;
+  descripcion: string;
+  estado: string;
+  fecha_registro: string; // ISO
+};
+
+type EstadoOption = { id: string; nombre: string };
+const ESTADO_OPCIONES: EstadoOption[] = [
+  { id: 'activo', nombre: 'Activo' },
+  { id: 'inactivo', nombre: 'Inactivo' },
+  { id: 'descontinuado', nombre: 'Descontinuado' },
+];
+
 // Generador de código único basado en hora, mes abreviado, año y letra aleatoria
 function generarCodigoConFecha(): string {
   const now = new Date();
   const hora = String(now.getHours()).padStart(2, '0');
   const minutos = String(now.getMinutes()).padStart(2, '0');
   const year = String(now.getFullYear()).slice(2);
-  const meses = [
-    'ENE',
-    'FEB',
-    'MAR',
-    'ABR',
-    'MAY',
-    'JUN',
-    'JUL',
-    'AGO',
-    'SEP',
-    'OCT',
-    'NOV',
-    'DIC',
-  ];
+  const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
   const mesAbrev = meses[now.getMonth()];
   const charset = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789';
   const aleatorio = charset[Math.floor(Math.random() * charset.length)];
   return `${hora}${mesAbrev}${year}${aleatorio}${minutos}`;
+}
+
+// Normaliza initialData.estado (puede venir como string o como objeto { id, nombre })
+function normalizarEstado(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    const v = value as { id?: number | string; nombre?: string };
+    return v.nombre ?? (v.id != null ? String(v.id) : 'activo');
+  }
+  return 'activo';
 }
 
 export default function ProductoFormModal({
@@ -60,13 +78,13 @@ export default function ProductoFormModal({
     codigo_identificacion: '',
     nombre_producto: '',
     descripcion: '',
-    categoria_id: '',
-    almacenamiento_id: '',
+    categoria_id: '',       // string en el formulario (id)
+    almacenamiento_id: '',  // string en el formulario (id)
     precio: '',
     stock: '',
     stock_minimo: '',
     peso: '',
-    estado: 'activo',
+    estado: 'activo',       // siempre string
     fecha_registro: new Date().toISOString(),
   });
 
@@ -75,15 +93,16 @@ export default function ProductoFormModal({
       setForm({
         codigo_identificacion: initialData.codigo_identificacion,
         nombre_producto: initialData.nombre_producto,
-        descripcion: initialData.descripcion ?? '',
-        categoria_id: String(initialData.categoria_id),
-        almacenamiento_id: String(initialData.almacenamiento_id),
-        precio: String(initialData.precio),
-        stock: String(initialData.stock),
-        stock_minimo: String(initialData.stock_minimo),
-        peso: String(initialData.peso),
-        estado: initialData.estado,
-        fecha_registro: initialData.fecha_registro,
+        descripcion: (initialData as any).descripcion ?? '',
+        categoria_id: String((initialData as any).categoria_id),
+        almacenamiento_id: String((initialData as any).almacenamiento_id),
+        precio: String((initialData as any).precio),
+        stock: String((initialData as any).stock),
+        stock_minimo: String((initialData as any).stock_minimo),
+        peso: String((initialData as any).peso),
+        // 🔧 Fix clave: asegurar string aunque venga objeto
+        estado: normalizarEstado((initialData as any).estado),
+        fecha_registro: (initialData as any).fecha_registro,
       });
     } else {
       setForm((prev) => ({
@@ -108,19 +127,25 @@ export default function ProductoFormModal({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!token) return;
 
-    const data = {
-      ...form,
+    const payload: CreateProductoDto = {
       categoria_id: Number(form.categoria_id),
       almacenamiento_id: Number(form.almacenamiento_id),
       precio: parseFloat(form.precio),
       stock: parseInt(form.stock),
       stock_minimo: parseInt(form.stock_minimo),
       peso: parseFloat(form.peso),
+      codigo_identificacion: form.codigo_identificacion.trim(),
+      nombre_producto: form.nombre_producto.trim(),
+      descripcion: form.descripcion.trim(),
+      estado: form.estado, // string ya normalizado
+      fecha_registro: new Date(form.fecha_registro).toISOString(),
     };
 
     try {
-      const producto = await crearProducto(data, token!);
+      // El API espera Partial<Producto>; casteamos el DTO de creación
+      const producto = await crearProducto(payload as unknown as Partial<Producto>, token);
       onCreated(producto);
       onClose();
     } catch (error) {
@@ -183,18 +208,20 @@ export default function ProductoFormModal({
             readOnly={esModoVer}
           />
 
-          <Select<Categoria, 'nombre'>
+          {/* Categoría (nativo) */}
+          <SelectNative<Categoria, 'descripcion'>
             name="categoria_id"
             label="Categoría"
             value={form.categoria_id}
             onChange={handleChange}
             options={categorias}
-            optionLabel="nombre"
+            optionLabel="descripcion"
             required
             disabled={esModoVer}
           />
 
-          <Select<Almacenamiento, 'nombre_almacen'>
+          {/* Almacén (nativo) */}
+          <SelectNative<Almacenamiento, 'nombre_almacen'>
             name="almacenamiento_id"
             label="Almacén"
             value={form.almacenamiento_id}
@@ -203,6 +230,17 @@ export default function ProductoFormModal({
             optionLabel="nombre_almacen"
             required
             disabled={esModoVer}
+          />
+
+          {/* Estado (usa opciones {id, nombre} pero guarda SOLO string) */}
+          <EstadoSelect
+            label="Estado"
+            value={form.estado}
+            options={ESTADO_OPCIONES}
+            disabled={esModoVer}
+            onChange={(estadoId) =>
+              setForm((p) => ({ ...p, estado: estadoId })) // siempre string
+            }
           />
 
           <div className="grid grid-cols-2 gap-3">
@@ -258,12 +296,14 @@ export default function ProductoFormModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="border px-4 py-2 text-sm rounded hover:bg-gray-50">
+                className="border px-4 py-2 text-sm rounded hover:bg-gray-50"
+              >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="bg-black text-white px-4 py-2 text-sm rounded hover:opacity-90">
+                className="bg-black text-white px-4 py-2 text-sm rounded hover:opacity-90"
+              >
                 {initialData ? 'Guardar cambios' : 'Crear nuevo'}
               </button>
             </div>
@@ -274,7 +314,7 @@ export default function ProductoFormModal({
   );
 }
 
-// Componentes reutilizables
+/* ------------ Reusables ------------- */
 
 function Input({
   label,
@@ -310,7 +350,11 @@ function Textarea({
   );
 }
 
-function Select<T extends { id: number }, K extends keyof T>({
+/** Select nativo que mapea opciones por id (value string) y muestra un label de la entidad */
+function SelectNative<
+  T extends { id: number },
+  K extends keyof T & string
+>({
   label,
   options,
   optionLabel,
@@ -322,16 +366,52 @@ function Select<T extends { id: number }, K extends keyof T>({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">
+      <label className="block textxs font-medium text-gray-500 mb-1">
         {label}
       </label>
       <select
         {...rest}
-        className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary">
+        className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+      >
         <option value="">Seleccionar</option>
         {options.map((opt) => (
-          <option key={opt.id} value={opt.id}>
-            {String(opt[optionLabel])}
+          <option key={opt.id} value={String(opt.id)}>
+            {String(opt[optionLabel] ?? '')}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** Select para estado: recibe objetos {id, nombre} pero SOLO devuelve string (id) */
+function EstadoSelect({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  options: { id: string; nombre: string }[];
+  disabled?: boolean;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-500 mb-1">
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)} // -> string
+        disabled={disabled}
+        className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+      >
+        {options.map((op) => (
+          <option key={op.id} value={op.id}>
+            {op.nombre}
           </option>
         ))}
       </select>

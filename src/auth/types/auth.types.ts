@@ -30,6 +30,19 @@ export interface User {
     nombre: string;
     descripcion?: string;
   };
+
+  /** Relación directa si el usuario es tipo ecommerce */
+  ecommerce?: {
+    id: number;
+    nombre_comercial?: string;
+  } | null;
+
+  /** Relación directa si el usuario es tipo courier */
+  courier?: {
+    id: number;
+    nombre_comercial?: string;
+  } | null;
+
   perfil_trabajador?: {
     id: number;
     usuario_id: number;
@@ -52,7 +65,6 @@ export interface User {
     };
   };
 }
-
 
 // Login
 export type LoginCredentials = {

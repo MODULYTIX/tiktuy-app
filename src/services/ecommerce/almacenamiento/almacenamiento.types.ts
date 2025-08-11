@@ -29,6 +29,10 @@ export interface MovimientoAlmacen {
   uuid: string;
   descripcion: string;
   fecha_movimiento: string; 
+  estado: {
+    id: number;
+    nombre: string;
+  };
   almacen_origen: {
     id: number;
     nombre_almacen: string;

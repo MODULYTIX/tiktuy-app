@@ -44,12 +44,25 @@ export default function StockFilters({ onFilterChange }: Props) {
     if (onFilterChange) onFilterChange(filters);
   }, [filters, onFilterChange]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFilters((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const target = e.target;
+    const { name, value } = target;
+
+    // Si es un checkbox
+    if (target instanceof HTMLInputElement && target.type === 'checkbox') {
+      setFilters((prev) => ({
+        ...prev,
+        [name]: target.checked,
+      }));
+    } else {
+      // Si es un select o un input normal
+      setFilters((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleReset = () => {
@@ -69,27 +82,46 @@ export default function StockFilters({ onFilterChange }: Props) {
     <div className="bg-white p-4 rounded shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
       <div>
         <label className="block mb-1 font-medium">Almacén</label>
-        <select name="almacenamiento_id" value={filters.almacenamiento_id} onChange={handleChange} className="w-full border rounded px-3 py-2">
+        <select
+          name="almacenamiento_id"
+          value={filters.almacenamiento_id}
+          onChange={handleChange}
+          className="w-full border rounded px-3 py-2"
+        >
           <option value="">Seleccionar almacén</option>
           {almacenes.map((a) => (
-            <option key={a.id} value={a.id}>{a.nombre_almacen}</option>
+            <option key={a.id} value={a.id}>
+              {a.nombre_almacen}
+            </option>
           ))}
         </select>
       </div>
 
       <div>
         <label className="block mb-1 font-medium">Categoría</label>
-        <select name="categoria_id" value={filters.categoria_id} onChange={handleChange} className="w-full border rounded px-3 py-2">
+        <select
+          name="categoria_id"
+          value={filters.categoria_id}
+          onChange={handleChange}
+          className="w-full border rounded px-3 py-2"
+        >
           <option value="">Seleccionar categoría</option>
           {categorias.map((c) => (
-            <option key={c.id} value={c.id}>{c.descripcion}</option>
+            <option key={c.id} value={c.id}>
+              {c.descripcion}
+            </option>
           ))}
         </select>
       </div>
 
       <div>
         <label className="block mb-1 font-medium">Estado</label>
-        <select name="estado" value={filters.estado} onChange={handleChange} className="w-full border rounded px-3 py-2">
+        <select
+          name="estado"
+          value={filters.estado}
+          onChange={handleChange}
+          className="w-full border rounded px-3 py-2"
+        >
           <option value="">Seleccionar estado</option>
           <option value="activo">Activo</option>
           <option value="inactivo">Inactivo</option>
@@ -98,15 +130,30 @@ export default function StockFilters({ onFilterChange }: Props) {
 
       <div className="flex items-end gap-2 flex-wrap">
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="stock_bajo" checked={filters.stock_bajo} onChange={handleChange} />
+          <input
+            type="checkbox"
+            name="stock_bajo"
+            checked={filters.stock_bajo}
+            onChange={handleChange}
+          />
           <span className="text-xs">Stock bajo</span>
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="precio_bajo" checked={filters.precio_bajo} onChange={handleChange} />
+          <input
+            type="checkbox"
+            name="precio_bajo"
+            checked={filters.precio_bajo}
+            onChange={handleChange}
+          />
           <span className="text-xs">Precios bajos</span>
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="precio_alto" checked={filters.precio_alto} onChange={handleChange} />
+          <input
+            type="checkbox"
+            name="precio_alto"
+            checked={filters.precio_alto}
+            onChange={handleChange}
+          />
           <span className="text-xs">Precios altos</span>
         </label>
       </div>
@@ -120,7 +167,11 @@ export default function StockFilters({ onFilterChange }: Props) {
           placeholder="Buscar productos por nombre, descripción ó código."
           className="w-full border rounded px-3 py-2"
         />
-        <button type="button" onClick={handleReset} className="border px-3 py-2 rounded hover:bg-gray-100 text-sm w-32">
+        <button
+          type="button"
+          onClick={handleReset}
+          className="border px-3 py-2 rounded hover:bg-gray-100 text-sm w-32"
+        >
           Limpiar Filtros
         </button>
       </div>

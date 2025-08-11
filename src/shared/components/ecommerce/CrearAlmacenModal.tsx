@@ -70,9 +70,9 @@ export default function CrearAlmacenModal({
         const [dep, , dist] = u.nombre.split('/');
         return dep === almacen.departamento && dist === almacen.ciudad;
       });
-
-      const [, provincia, distrito] = match?.nombre.split('/') ?? [];
-
+  
+      const [, provincia] = match?.nombre.split('/') ?? [];
+  
       setForm({
         nombre_almacen: almacen.nombre_almacen || '',
         departamento: almacen.departamento || '',
@@ -82,6 +82,7 @@ export default function CrearAlmacenModal({
       });
     }
   }, [modo, almacen, ubigeos]);
+  
 
   // Carga provincias según departamento
   useEffect(() => {

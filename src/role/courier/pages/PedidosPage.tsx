@@ -1,13 +1,15 @@
-import { useContext, useEffect, useState } from 'react';
+
+// src/pages/courier/PedidosPage.tsx
+import { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
-import { AuthContext } from '@/auth/context/AuthContext';
 import TablePedidoCourier from '@/shared/components/courier/pedido/TablePedidoCourier';
-import AsignarRepartidor from '@/shared/components/courier/pedido/asignarRepartidor';
+import { useAuth } from '@/auth/context';
+import AsignarRepartidor from '@/shared/components/courier/pedido/AsignarRepartidor';
 
 type Vista = 'asignados' | 'pendientes' | 'terminados';
 
 export default function PedidosPage() {
-  const { token } = useContext(AuthContext);
+  const { token } = useAuth();
 
   // pestaña activa
   const [vista, setVista] = useState<Vista>(() => {
