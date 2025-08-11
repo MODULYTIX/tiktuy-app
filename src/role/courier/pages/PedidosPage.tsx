@@ -1,35 +1,54 @@
-// src/pages/courier/PedidosPage.tsx
 import { useContext, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
-import TablePedidoCourier from '@/shared/components/courier/pedido/TablePedidoCourier';
 import { AuthContext } from '@/auth/context/AuthContext';
+import TablePedidoCourier from '@/shared/components/courier/pedido/TablePedidoCourier';
+import AsignarRepartidor from '@/shared/components/courier/pedido/asignarRepartidor';
 
 type Vista = 'asignados' | 'pendientes' | 'terminados';
 
 export default function PedidosPage() {
   const { token } = useContext(AuthContext);
 
+  // pestaña activa
   const [vista, setVista] = useState<Vista>(() => {
     const saved = localStorage.getItem('courier_vista_pedidos') as Vista | null;
     return saved ?? 'asignados';
   });
 
+  // forzar recarga de la tabla después de asignar
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // modal asignación
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
   useEffect(() => {
     localStorage.setItem('courier_vista_pedidos', vista);
   }, [vista]);
 
-  // (Opcional) handlers para futuros modales
   const handleVerDetalle = (id: number) => {
-    console.log('ver detalle pedido', id);
+    // aquí podrías abrir un modal de detalle
+    console.log('Ver detalle pedido', id);
   };
 
-  const handleAsignar = (ids: number[]) => {
-    console.log('asignar repartidor para pedidos', ids);
-    // aquí abres tu modal de asignación
+  // recibe los IDs seleccionados desde la tabla y abre el modal
+  const handleAbrirAsignar = (ids: number[]) => {
+    setSelectedIds(ids);
+    setModalOpen(true);
+  };
+
+  const handleCerrarModal = () => {
+    setModalOpen(false);
+    setSelectedIds([]);
+  };
+
+  const handleAssigned = () => {
+    // refresca la tabla tras asignar
+    setReloadKey((k) => k + 1);
   };
 
   return (
-    <section className="mt-8">
+    <section className="mt-8 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -39,7 +58,7 @@ export default function PedidosPage() {
           </p>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs: Asignados / Pendientes / Terminados */}
         <div className="flex gap-2 items-center">
           <button
             onClick={() => setVista('asignados')}
@@ -78,20 +97,30 @@ export default function PedidosPage() {
             }`}
           >
             <Icon icon="mdi:clipboard-check-outline" width={20} height={20} />
-            <span>Terminado</span>
+            <span>Terminados</span>
           </button>
         </div>
       </div>
 
-      {/* Tabla */}
-      <div className="my-8">
+      {/* Tabla (se vuelve a montar cuando cambia reloadKey) */}
+      <div className="my-2">
         <TablePedidoCourier
+          key={reloadKey}
           view={vista}
           token={token ?? ''}
           onVerDetalle={handleVerDetalle}
-          onAsignar={handleAsignar}
+          onAsignar={handleAbrirAsignar}
         />
       </div>
+
+      {/* Modal Asignar Repartidor */}
+      <AsignarRepartidor
+        open={modalOpen}
+        onClose={handleCerrarModal}
+        token={token ?? ''}
+        selectedIds={selectedIds}
+        onAssigned={handleAssigned}
+      />
     </section>
   );
 }

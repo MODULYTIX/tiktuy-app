@@ -8,10 +8,10 @@ export interface ListPedidosHoyQuery {
 export interface ListByEstadoQuery {
   page?: number;
   perPage?: number;
-  // filtros opcionales (si los usas más adelante)
+  // filtros opcionales
   desde?: string | Date;
   hasta?: string | Date;
-  sortBy?: 'programada' | 'real' | 'creacion';
+  sortBy?: 'programada' | 'real' | 'creacion'; // campo a ordenar
   order?: 'asc' | 'desc';
 }
 
@@ -23,47 +23,76 @@ export interface Paginated<T> {
   totalPages: number;
 }
 
-export interface PedidoItemResumen {
+/* ----- Items de producto del pedido ----- */
+export interface PedidoProductoItem {
   producto_id: number;
   nombre: string;
+  descripcion: string | null;
   cantidad: number;
+  precio_unitario: string; // viene como string desde el backend
+  subtotal: string;        // cantidad * precio_unitario, string formateable
 }
 
+/* ----- Resumen mínimo para listados ----- */
 export interface PedidoListItem {
   id: number;
   codigo_pedido: string;
+
   estado_id: number;
   estado_nombre: string;
 
   fecha_entrega_programada: string | null;
   fecha_entrega_real: string | null;
 
-  // 👇 ESTE ES EL CAMPO QUE FALTA EN TU TYPE
-  direccion_envio: string | null; // si prefieres estricto, cámbialo a: string
+  /** Copia plana opcional; el componente puede usar también cliente.direccion */
+  direccion_envio?: string;
 
-  ecommerce: { id: number; nombre_comercial: string };
-  motorizado?: { id: number; nombres?: string; apellidos?: string } | null;
+  ecommerce: {
+    id: number;
+    nombre_comercial: string;
+  };
 
-  cliente: { nombre: string; celular: string; distrito: string };
+  motorizado?: {
+    id: number;
+    nombres?: string;
+    apellidos?: string;
+  } | null;
+
+  cliente: {
+    nombre: string;
+    celular: string;
+    distrito: string;
+    direccion?: string;          // <- usado por la UI
+    referencia?: string | null;  // <- opcional
+  };
+
   monto_recaudar: string;
 
-  metodo_pago?: { id: number; nombre: string; requiere_evidencia: boolean } | null;
+  metodo_pago?: {
+    id: number;
+    nombre: string;
+    requiere_evidencia: boolean;
+  } | null;
+
   pago_evidencia_url?: string | null;
   observacion_estado?: string | null;
 
-  // usados por la tabla
-  items?: PedidoItemResumen[];
+  // productos (cuando el backend los incluye)
+  items?: PedidoProductoItem[];
   items_total_cantidad?: number;
+  items_total_monto?: string;
 
-  // para vista Reprogramados
+  // para vista Reprogramados (última reprogramación)
   reprogramacion_ultima?: {
     fecha_anterior: string;
     fecha_nueva: string;
-    motivo?: string | null;
+    motivo: string | null;
+    creado_en: string;
+    creado_por_id: number;
   } | null;
 }
 
-/* Asignación/Reasignación (si las usas en el front) */
+/* ----- Asignación en lote ----- */
 export interface AssignPedidosPayload {
   motorizado_id: number;
   pedidos: number[];
@@ -74,6 +103,7 @@ export interface AssignPedidosResponse {
   skipped: Array<{ id: number; reason: string }>;
 }
 
+/* ----- Reasignación individual ----- */
 export interface ReassignPedidoPayload {
   pedido_id: number;
   motorizado_id: number;

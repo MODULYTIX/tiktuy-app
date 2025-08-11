@@ -9,9 +9,10 @@ import type {
   ListPedidosHoyQuery,
   ListByEstadoQuery,
 } from '@/services/courier/pedidos/pedidos.types';
+
 import {
-  fetchPedidosHoy,
-  fetchPedidosReprogramados,
+  fetchPedidosAsignadosHoy,
+  fetchPedidosPendientes,
   fetchPedidosEntregados,
 } from '@/services/courier/pedidos/pedidos.api';
 
@@ -21,10 +22,10 @@ interface Props {
   view: View;
   token: string;
   onVerDetalle?: (pedidoId: number) => void;
-  onAsignar?: (ids: number[]) => void; // botón "Asignar Repartidor"
+  onAsignar?: (ids: number[]) => void; // callback del botón "Asignar Repartidor"
 }
 
-/* ---- formateos ---- */
+/* ---- utilidades de formato ---- */
 const PEN = new Intl.NumberFormat('es-PE', {
   style: 'currency',
   currency: 'PEN',
@@ -33,24 +34,24 @@ const PEN = new Intl.NumberFormat('es-PE', {
 const two = (n: number) => String(n).padStart(2, '0');
 
 export default function TablePedidoCourier({ view, token, onVerDetalle, onAsignar }: Props) {
-  /* server-side paginación */
+  /* paginación (server-side) */
   const [page, setPage] = useState(1);
   const [perPage] = useState(20);
 
-  /* filtros de la barra superior (client-side) */
+  /* filtros (client-side, visuales) */
   const [filtroDistrito, setFiltroDistrito] = useState('');
   const [filtroCantidad, setFiltroCantidad] = useState('');
   const [searchProducto, setSearchProducto] = useState('');
 
-  /* datos */
+  /* data */
   const [data, setData] = useState<Paginated<PedidoListItem> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
 
-  /* selección */
+  /* selección (solo vista "asignados") */
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // reset cuando cambie la vista
+  // reset cuando cambia la vista
   useEffect(() => {
     setPage(1);
     setSelectedIds([]);
@@ -66,8 +67,10 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
     [page, perPage]
   );
 
-  // fetch según etapa
+  // fetch según vista
   useEffect(() => {
+    const ac = new AbortController();
+
     async function load() {
       if (!token) {
         setError('No hay token');
@@ -79,46 +82,50 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
       try {
         let resp: Paginated<PedidoListItem>;
         if (view === 'asignados') {
-          // por ahora usamos /hoy; cuando tengas /asignados, cámbialo aquí
-          resp = await fetchPedidosHoy(token, qHoy);
+          resp = await fetchPedidosAsignadosHoy(token, qHoy, { signal: ac.signal });
         } else if (view === 'pendientes') {
-          // ideal: endpoint /pendientes (pendiente, recepcionará hoy, no responde, reprogramado, anuló)
-          // por ahora usamos reprogramados para no romper el flujo
-          resp = await fetchPedidosReprogramados(token, qEstado);
+          // agrupado: Pendiente, Recepcionará entrega hoy, No responde / número equivocado,
+          // Reprogramado, No hizo el pedido / anuló
+          resp = await fetchPedidosPendientes(token, qEstado, { signal: ac.signal });
         } else {
-          // terminados -> entregados (si luego quieres incluir rechazados, crea /terminados y cámbialo)
-          resp = await fetchPedidosEntregados(token, qEstado);
+          // terminados: Entregados (si quieres incluir rechazados, crea endpoint /terminados o /rechazados)
+          resp = await fetchPedidosEntregados(token, qEstado, { signal: ac.signal });
         }
         setData(resp);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Error al cargar pedidos');
+        if ((e as Error).name !== 'AbortError') {
+          setError(e instanceof Error ? e.message : 'Error al cargar pedidos');
+        }
       } finally {
         setLoading(false);
       }
     }
 
     load();
+    return () => ac.abort();
   }, [token, view, qHoy, qEstado]);
 
   const itemsBase = data?.items ?? [];
 
-  // distritos únicos para el select
+  // distritos únicos para el filtro
   const distritos = useMemo(
-    () => Array.from(new Set(itemsBase.map((x) => x.cliente.distrito).filter(Boolean))).sort(),
+    () => Array.from(new Set(itemsBase.map((x) => x.cliente?.distrito).filter(Boolean))).sort(),
     [itemsBase]
   );
 
-  // filtros de la maqueta (en cliente)
+  // filtros visuales (client-side) sobre el page cargado
   const itemsFiltrados = useMemo(() => {
     let arr = [...itemsBase];
 
     if (filtroDistrito) {
-      arr = arr.filter((x) => x.cliente.distrito === filtroDistrito);
+      arr = arr.filter((x) => x.cliente?.distrito === filtroDistrito);
     }
 
     if (filtroCantidad) {
       const cant = Number(filtroCantidad);
-      arr = arr.filter((x) => (x.items_total_cantidad ?? 0) === cant);
+      const cantidadDeItems = (x: PedidoListItem) =>
+        x.items_total_cantidad ?? (x.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
+      arr = arr.filter((x) => cantidadDeItems(x) === cant);
     }
 
     if (searchProducto.trim()) {
@@ -129,23 +136,29 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
     return arr;
   }, [itemsBase, filtroDistrito, filtroCantidad, searchProducto]);
 
-  // selección
+  // selección de items visibles en la página actual
   const pageIds = itemsFiltrados.map((p) => p.id);
   const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+
   const toggleSelectAll = () => {
+    if (view !== 'asignados') return;
     if (allSelected) {
       setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
     } else {
       setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
     }
   };
+
   const toggleSelectOne = (id: number) => {
+    if (view !== 'asignados') return;
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
+  const totalPages = data?.totalPages ?? 1;
+
   return (
     <div className="w-full bg-white rounded-lg shadow overflow-hidden">
-      {/* Título + botón Asignar */}
+      {/* Header interno + botón Asignar */}
       <div className="flex items-center justify-between px-4 pt-4">
         <div>
           <h2 className="text-lg font-semibold text-primaryDark">
@@ -154,9 +167,9 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
             {view === 'terminados' && 'Pedidos Terminados'}
           </h2>
           <p className="text-sm text-gray-600">
-            {view === 'asignados' && 'Los pedidos serán asignados a un repartidor.'}
-            {view === 'pendientes' && 'Pedidos en gestión de contacto/entrega.'}
-            {view === 'terminados' && 'Pedidos completados o finalizados.'}
+            {view === 'asignados' && 'Selecciona y asigna pedidos a un repartidor.'}
+            {view === 'pendientes' && 'Pedidos en gestión con el cliente (contacto, reprogramación, etc.).'}
+            {view === 'terminados' && 'Pedidos completados (mostrar método de pago y evidencia si corresponde).'}
           </p>
         </div>
 
@@ -166,12 +179,11 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
           disabled={!selectedIds.length || loading || view !== 'asignados'}
           title={view !== 'asignados' ? 'Solo disponible en Asignados' : 'Asignar Repartidor'}
         >
-          <span className="material-icons-outlined text-sm">credit_card</span>
           Asignar Repartidor
         </button>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros visuales */}
       <div className="px-4 py-3">
         <div className="bg-white border rounded p-3 flex flex-wrap gap-3 items-end">
           <div className="min-w-[200px]">
@@ -208,17 +220,12 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
 
           <div className="flex-1 min-w-[240px]">
             <label className="block text-xs text-gray-600 mb-1">Buscar productos por nombre</label>
-            <div className="relative">
-              <input
-                className="w-full border rounded px-3 py-2 text-sm pr-8"
-                placeholder="Buscar productos por nombre..."
-                value={searchProducto}
-                onChange={(e) => setSearchProducto(e.target.value)}
-              />
-              <span className="material-icons-outlined absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-base">
-                search
-              </span>
-            </div>
+            <input
+              className="w-full border rounded px-3 py-2 text-sm"
+              placeholder="Buscar productos por nombre..."
+              value={searchProducto}
+              onChange={(e) => setSearchProducto(e.target.value)}
+            />
           </div>
 
           <button
@@ -229,7 +236,6 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
               setSearchProducto('');
             }}
           >
-            <span className="material-icons-outlined text-sm">restart_alt</span>
             Limpiar Filtros
           </button>
         </div>
@@ -249,10 +255,10 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
             Anterior
           </button>
           <span className="text-sm">
-            Página <b>{page}</b> de <b>{data?.totalPages ?? 1}</b>
+            Página <b>{page}</b> de <b>{totalPages}</b>
           </span>
           <button
-            disabled={(data?.totalPages ?? 1) <= page || loading}
+            disabled={page >= totalPages || loading}
             onClick={() => setPage((p) => p + 1)}
             className="px-3 py-1 border rounded disabled:opacity-50"
           >
@@ -272,7 +278,7 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
             <thead className="bg-gray-100 text-gray-700 text-xs uppercase">
               <tr>
                 <th className="px-4 py-3">
-                  <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} />
+                  <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} disabled={view !== 'asignados'} />
                 </th>
                 <th className="px-4 py-3">Fec. Entrega</th>
                 <th className="px-4 py-3">Ecommerce</th>
@@ -290,9 +296,9 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
                     ? p.fecha_entrega_real ?? p.fecha_entrega_programada
                     : p.fecha_entrega_programada;
 
-                const cant =
-                  p.items_total_cantidad ??
-                  (p.items?.reduce((sum, it) => sum + it.cantidad, 0) ?? 0);
+                const cantidad = p.items_total_cantidad ?? (p.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
+                const direccion = p.cliente?.direccion ?? ''; // viene del mapeo del service
+                const montoNumber = Number(p.monto_recaudar || 0);
 
                 return (
                   <tr key={p.id} className="border-b hover:bg-gray-50">
@@ -301,6 +307,7 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
                         type="checkbox"
                         checked={selectedIds.includes(p.id)}
                         onChange={() => toggleSelectOne(p.id)}
+                        disabled={view !== 'asignados'}
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -308,16 +315,11 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
                     </td>
                     <td className="px-4 py-3">{p.ecommerce?.nombre_comercial ?? '—'}</td>
                     <td className="px-4 py-3">{p.cliente?.nombre ?? '—'}</td>
-                    <td
-                      className="px-4 py-3 truncate max-w-[260px]"
-                      title={p.direccion_envio ?? ''}
-                    >
-                      {p.direccion_envio ?? '—'}
+                    <td className="px-4 py-3 truncate max-w-[260px]" title={direccion}>
+                      {direccion || '—'}
                     </td>
-                    <td className="px-4 py-3">{two(cant)}</td>
-                    <td className="px-4 py-3">
-                      {PEN.format(Number(p.monto_recaudar || 0))}
-                    </td>
+                    <td className="px-4 py-3">{two(cantidad)}</td>
+                    <td className="px-4 py-3">{PEN.format(montoNumber)}</td>
                     <td className="px-4 py-3">
                       <button
                         className="text-blue-500 hover:text-blue-700"
@@ -341,13 +343,14 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
             </tbody>
           </table>
 
-          {data && data.totalPages > 1 && (
+          {/* Paginación inferior (opcional con tu componente) */}
+          {totalPages > 1 && (
             <div className="border-t p-4">
               <Paginator
                 currentPage={page}
-                totalPages={data.totalPages}
+                totalPages={totalPages}
                 onPageChange={(next) => {
-                  if (!loading && next >= 1 && next <= (data.totalPages ?? 1)) setPage(next);
+                  if (!loading && next >= 1 && next <= totalPages) setPage(next);
                 }}
               />
             </div>

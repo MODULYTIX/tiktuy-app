@@ -14,9 +14,8 @@ const API_URL = import.meta.env.VITE_API_URL;
 const BASE_URL = `${API_URL}/courier-pedidos`;
 
 /* --------------------------
-   Helpers
+   Helpers (sin any)
 ---------------------------*/
-
 const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
@@ -54,14 +53,13 @@ async function handle<T>(res: Response, fallbackMsg: string): Promise<T> {
   if (res.status === 204) {
     return null as unknown as T;
   }
-
   if (!res.ok) {
     let message = fallbackMsg;
     try {
       const body: unknown = await res.json();
       if (hasMessage(body)) message = body.message;
     } catch {
-      // ignorar parse error
+      /* ignore parse error */
     }
     throw new Error(message);
   }
@@ -69,9 +67,10 @@ async function handle<T>(res: Response, fallbackMsg: string): Promise<T> {
 }
 
 /* --------------------------
-   GET: Pedidos HOY
+   GET: ASIGNADOS (solo estado Asignado)
+   Endpoint esperado: GET /courier-pedidos/hoy
 ---------------------------*/
-export async function fetchPedidosHoy(
+export async function fetchPedidosAsignadosHoy(
   token: string,
   query: ListPedidosHoyQuery = {},
   opts?: { signal?: AbortSignal }
@@ -80,41 +79,28 @@ export async function fetchPedidosHoy(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos de hoy');
+  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos asignados de hoy');
 }
 
 /* --------------------------
-   GET: Reprogramados
+   GET: PENDIENTES (agregado de estados)
+   Endpoint esperado: GET /courier-pedidos/pendientes
 ---------------------------*/
-export async function fetchPedidosReprogramados(
+export async function fetchPedidosPendientes(
   token: string,
   query: ListByEstadoQuery = {},
   opts?: { signal?: AbortSignal }
 ): Promise<Paginated<PedidoListItem>> {
-  const res = await fetch(`${BASE_URL}/reprogramados${toQueryEstado(query)}`, {
+  const res = await fetch(`${BASE_URL}/pendientes${toQueryEstado(query)}`, {
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos reprogramados');
+  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos pendientes');
 }
 
 /* --------------------------
-   GET: Rechazados
----------------------------*/
-export async function fetchPedidosRechazados(
-  token: string,
-  query: ListByEstadoQuery = {},
-  opts?: { signal?: AbortSignal }
-): Promise<Paginated<PedidoListItem>> {
-  const res = await fetch(`${BASE_URL}/rechazados${toQueryEstado(query)}`, {
-    headers: authHeaders(token),
-    signal: opts?.signal,
-  });
-  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos rechazados');
-}
-
-/* --------------------------
-   GET: Entregados
+   GET: TERMINADOS (Entregados)
+   Endpoint esperado: GET /courier-pedidos/entregados
 ---------------------------*/
 export async function fetchPedidosEntregados(
   token: string,
@@ -136,8 +122,6 @@ export async function assignPedidos(
   payload: AssignPedidosPayload,
   opts?: { signal?: AbortSignal }
 ): Promise<AssignPedidosResponse> {
-  console.log('🚀 Enviando payload a /courier-pedidos/asignar:', payload);
-
   const res = await fetch(`${BASE_URL}/asignar`, {
     method: 'POST',
     headers: {
@@ -148,6 +132,7 @@ export async function assignPedidos(
     signal: opts?.signal,
   });
 
+  // Log de error si el backend devolvió mensaje
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({ message: 'Sin cuerpo de error' }));
     console.error('❌ Error al asignar pedidos - backend:', errBody);
@@ -163,8 +148,6 @@ export async function reassignPedido(
   payload: ReassignPedidoPayload,
   opts?: { signal?: AbortSignal }
 ): Promise<ReassignPedidoResponse> {
-  console.log('🚀 Enviando payload a /courier-pedidos/reasignar:', payload);
-
   const res = await fetch(`${BASE_URL}/reasignar`, {
     method: 'POST',
     headers: {
