@@ -117,9 +117,22 @@ export default function ImportPreviewModal({
     if (firstMatch) setCourierId(firstMatch.id);
   }, [courierId, groups, byCourierName, localCouriers.length]);
 
-  // Distritos por courier
+  // ===== Distritos por courier (FIX TS2345) =====
   useEffect(() => {
     let cancel = false;
+
+    // Garantiza string[] desde cualquier respuesta
+    const toDistritoList = (arr: unknown): string[] => {
+      const list = Array.isArray(arr) ? arr : [];
+      return Array.from(
+        new Set(
+          list
+            .map((z: any) => (typeof z?.distrito === 'string' ? z.distrito : ''))
+            .filter((d): d is string => d.length > 0)
+        )
+      );
+    };
+
     async function load() {
       if (!courierId) {
         setDistritos([]);
@@ -128,18 +141,17 @@ export default function ImportPreviewModal({
       try {
         const zonasPub = await fetchZonasByCourierPublic(Number(courierId));
         if (cancel) return;
-        const uniqPub = Array.from(
-          new Set((zonasPub || []).map((z: any) => z?.distrito).filter(Boolean))
-        );
+
+        const uniqPub: string[] = toDistritoList(zonasPub);
         if (uniqPub.length) {
           setDistritos(uniqPub);
           return;
         }
+
         const zonasPriv = await fetchZonasByCourierPrivado(Number(courierId), token);
         if (cancel) return;
-        const uniqPriv = Array.from(
-          new Set((zonasPriv || []).map((z: any) => z?.distrito).filter(Boolean))
-        );
+
+        const uniqPriv: string[] = toDistritoList(zonasPriv);
         setDistritos(uniqPriv);
       } catch (e) {
         console.error('No se pudo cargar distritos del courier', e);
@@ -280,7 +292,7 @@ export default function ImportPreviewModal({
   if (!open) return null;
 
   return (
-    <CenteredModal title="Validación de datos" onClose={onClose} widthClass="max-w-[1400px]">
+    <CenteredModal title="Validación de datos" onClose={onClose} widthClass="max-w=[1400px]">
       {/* Barra superior */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <select
@@ -657,7 +669,6 @@ export default function ImportPreviewModal({
                       <select
                         key={ii}
                         value={
-                          // si tenemos producto_id, úsalo; sino, intenta mapear por nombre (solo para mostrar)
                           (it as any).producto_id ??
                           (productos.find((p) => p.nombre === (it.producto || ''))?.id ?? '')
                         }
@@ -686,9 +697,9 @@ export default function ImportPreviewModal({
                         className="w-full border rounded px-2 py-1"
                       >
                         <option value="">Seleccionar producto...</option>
-                        {productos.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.nombre}
+                        {productoOptions.map((p) => (
+                          <option key={p.value} value={p.value}>
+                            {p.label}
                           </option>
                         ))}
                       </select>

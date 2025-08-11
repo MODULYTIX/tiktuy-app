@@ -17,12 +17,14 @@ interface Filters {
   search: string;
 }
 
+type BooleanFilterKey = 'stock_bajo' | 'precio_bajo' | 'precio_alto';
+
 interface Props {
   onFilterChange?: (filters: Filters) => void;
   onNuevoMovimientoClick?: () => void;
 }
 
-const booleanFilters = [
+const booleanFilters: { name: BooleanFilterKey; label: string }[] = [
   { name: 'stock_bajo', label: 'Stock bajo' },
   { name: 'precio_bajo', label: 'Precios bajos' },
   { name: 'precio_alto', label: 'Precios altos' },
@@ -58,10 +60,27 @@ export default function MovimientoRegistroFilters({
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value, type, checked } = e.target;
+    const target = e.target;
+
+    // Checkbox (boolean filters)
+    if (target instanceof HTMLInputElement && target.type === 'checkbox') {
+      const name = target.name as BooleanFilterKey;
+      const isChecked = target.checked;
+      setFilters((prev) => ({
+        ...prev,
+        [name]: isChecked,
+      }));
+      return;
+    }
+
+    // Selects e inputs de texto (string filters)
+    const name = (target as HTMLInputElement | HTMLSelectElement)
+      .name as Exclude<keyof Filters, BooleanFilterKey>;
+    const value = (target as HTMLInputElement | HTMLSelectElement).value;
+
     setFilters((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     }));
   };
 
@@ -137,7 +156,7 @@ export default function MovimientoRegistroFilters({
                 <input
                   type="checkbox"
                   name={name}
-                  checked={filters[name as keyof Filters] as boolean}
+                  checked={filters[name]}
                   onChange={handleChange}
                 />
                 <span className="text-xs">{label}</span>
