@@ -188,7 +188,7 @@ export default function ImportPreviewPedidosModal({
 
   // Opciones para Autocomplete/select
   const courierOptions: Option[] = localCouriers.map((c) => ({
-    value: c.id,
+    value: String(c.id), // asegurar string
     label: c.nombre,
   }));
   const distritoOptions: Option[] = distritos.map((d) => ({ value: d, label: d }));
@@ -305,7 +305,7 @@ export default function ImportPreviewPedidosModal({
   if (!open) return null;
 
   return (
-    <CenteredModal title="Validación de datos (Pedidos)" onClose={onClose} widthClass="max-w=[1400px]">
+    <CenteredModal title="Validación de datos (Pedidos)" onClose={onClose} widthClass="max-w-[1400px]">
       {/* Barra superior */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <select
@@ -552,7 +552,7 @@ export default function ImportPreviewPedidosModal({
       </div>
 
       {/* ===== Tabla ===== */}
-      <div className="border-x border-b rounded-b overflow-auto max-h=[55vh]">
+      <div className="border-x border-b rounded-b overflow-auto max-h-[55vh]">
         <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
           <colgroup>
             <col className="w-9" />
@@ -608,16 +608,21 @@ export default function ImportPreviewPedidosModal({
                   </td>
 
                   <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    {/* Autocomplete con opciones, pero permite texto libre */}
-                    <Autocomplete
-                      value={g.distrito}
-                      onChange={(v) => patchGroup(gi, { distrito: v })}
-                      options={distritoOptions}
-                      placeholder="Distrito"
-                      invalid={isInvalidDistrito(g.distrito)}
+                    {/* Contenedor con title condicional para evitar usar prop inexistente en Autocomplete */}
+                    <div
                       className={`w-full ${distritoClass}`}
                       title={isNewDistrito ? 'Distrito no registrado (se creará al importar)' : undefined}
-                    />
+                    >
+                      {/* Autocomplete con opciones, pero permite texto libre */}
+                      <Autocomplete
+                        value={g.distrito || ''} // asegurar string
+                        onChange={(v: string) => patchGroup(gi, { distrito: v })}
+                        options={distritoOptions}
+                        placeholder="Distrito"
+                        invalid={isInvalidDistrito(g.distrito)}
+                        className="w-full"
+                      />
+                    </div>
                   </td>
 
                   <td className="border-b border-gray-100 px-2 py-1 align-top">
@@ -646,8 +651,8 @@ export default function ImportPreviewPedidosModal({
 
                   <td className="border-b border-gray-100 px-2 py-1 align-top">
                     <Autocomplete
-                      value={g.courier}
-                      onChange={(v) => patchGroup(gi, { courier: v })}
+                      value={g.courier || ''} // asegurar string
+                      onChange={(v: string) => patchGroup(gi, { courier: v })}
                       options={courierOptions}
                       placeholder="Courier"
                       invalid={isInvalidCourier(g.courier)}
@@ -705,7 +710,7 @@ export default function ImportPreviewPedidosModal({
                       value={toLocalInput(g.fecha_entrega)}
                       onChange={(e) => {
                         const iso = toISOFromLocal(e.target.value);
-                        patchGroup(gi, { fecha_entrega: iso || null });
+                        patchGroup(gi, { fecha_entrega: iso || undefined });
                       }}
                       className="w-full border rounded px-2 py-1"
                     />
