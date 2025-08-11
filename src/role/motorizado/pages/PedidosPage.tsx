@@ -5,13 +5,20 @@ import { Icon } from '@iconify/react';
 import { AuthContext } from '@/auth/context/AuthContext';
 import TablePedidoRepartidor from '@/shared/components/repartidor/TablePedidoRepartidor';
 
-type Vista = 'asignados' | 'pendientes' | 'terminados';
+import type { RepartidorVista, PedidoListItem } from '@/services/repartidor/pedidos/pedidos.types';
+
+type VistaUI = 'asignados' | 'pendientes' | 'terminados';
+
+// Mapeo para el componente (TablePedidoRepartidor usa 'hoy' en lugar de 'asignados')
+const toRepartidorVista = (v: VistaUI): RepartidorVista => (v === 'asignados' ? 'hoy' : v);
 
 export default function PedidosPage() {
-  const { token } = useContext(AuthContext);
+  // Evitamos desestructurar porque el contexto puede ser undefined
+  const auth = useContext(AuthContext);
+  const token = auth?.token ?? '';
 
-  const [vista, setVista] = useState<Vista>(() => {
-    const saved = localStorage.getItem('repartidor_vista_pedidos') as Vista | null;
+  const [vista, setVista] = useState<VistaUI>(() => {
+    const saved = localStorage.getItem('repartidor_vista_pedidos') as VistaUI | null;
     return saved ?? 'asignados';
   });
 
@@ -24,8 +31,9 @@ export default function PedidosPage() {
     console.log('[Repartidor] Ver detalle pedido', id);
   };
 
-  const handleCambiarEstado = (id: number) => {
-    console.log('[Repartidor] Cambiar estado pedido', id);
+  // La tabla espera (pedido: PedidoListItem) => void
+  const handleCambiarEstado = (pedido: PedidoListItem) => {
+    console.log('[Repartidor] Cambiar estado pedido', pedido.id);
   };
 
   return (
@@ -86,8 +94,8 @@ export default function PedidosPage() {
       {/* Tabla */}
       <div className="my-8">
         <TablePedidoRepartidor
-          view={vista}
-          token={token ?? ''}
+          view={toRepartidorVista(vista)}
+          token={token}
           onVerDetalle={handleVerDetalle}
           onCambiarEstado={handleCambiarEstado}
         />

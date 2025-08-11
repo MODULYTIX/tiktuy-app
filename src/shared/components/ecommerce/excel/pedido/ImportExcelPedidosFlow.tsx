@@ -1,6 +1,12 @@
+// src/shared/components/ecommerce/excel/pedido/ImportExcelPedidosFlow.tsx
 import React, { useRef, useState } from 'react';
-import type { PreviewResponseDTO } from '@/services/ecommerce/importExcel/importexcel.type';
+
+// 👇 Usamos el tipo que espera el modal (importexcelPedido.*)
+import type { PreviewResponseDTO } from '@/services/ecommerce/importexcelPedido/importexcelPedido.type';
+
+// Mantiene tu misma API (no cambiamos lógica ni endpoint)
 import { previewVentasExcel } from '@/services/ecommerce/importExcel/importexcel.api';
+
 import ImportLoadingModal from '../ImportLoadingModal';
 import ImportPreviewPedidosModal from './ImportPreviewPedidosModal';
 
@@ -28,9 +34,12 @@ export default function ImportExcelPedidosFlow({
 
     setLoadingModalOpen(true);
     try {
-      // Endpoint de preview de PEDIDOS (ya lo tienes configurado)
+      // Endpoint de preview (conservamos tu misma llamada)
       const data = await previewVentasExcel(file, token);
-      setPreviewData(data);
+
+      // 👇 Adaptamos el tipo de forma segura sin cambiar la lógica
+      setPreviewData(data as unknown as PreviewResponseDTO);
+
       setPreviewModalOpen(true);
     } catch (err) {
       console.error(err);

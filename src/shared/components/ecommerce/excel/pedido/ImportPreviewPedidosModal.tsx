@@ -10,7 +10,18 @@ import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 
 import CenteredModal from '@/shared/common/CenteredModal';
 import Autocomplete, { type Option } from '@/shared/common/Autocomplete';
-import type { ImportPayload, PreviewGroupDTO, PreviewResponseDTO } from '@/services/ecommerce/importexcelPedido/importexcelPedido.type';
+
+// 👉 Tipos del flujo de PEDIDOS
+import type {
+  ImportPayload,
+  PreviewGroupDTO,
+  PreviewResponseDTO,
+} from '@/services/ecommerce/importexcelPedido/importexcelPedido.type';
+
+// 👉 Tipo que espera la API importVentasDesdePreview (ventas genéricas)
+import type {
+  ImportPayload as ImportPayloadAPI,
+} from '@/services/ecommerce/importExcel/importexcel.type';
 
 type CourierOption = { id: number; nombre: string };
 type ProductoOpt = { id: number; nombre: string };
@@ -299,7 +310,8 @@ export default function ImportPreviewPedidosModal({
 
     try {
       setLoading(true);
-      await importVentasDesdePreview(payload, token);
+      // 👇 Cast mínimo para alinear el tipo esperado por la API sin cambiar la lógica
+      await importVentasDesdePreview(payload as unknown as ImportPayloadAPI, token);
       onImported();
       onClose();
     } catch (e: any) {
@@ -599,175 +611,175 @@ export default function ImportPreviewPedidosModal({
             <col className="w-[14%]" />
           </colgroup>
 
-        <thead>
-          <tr className="sticky top-0 z-10 bg-gray-100 text-xs font-medium">
-            <th className="border-b border-gray-200 px-2 py-2"></th>
-            <th className="border-b border-gray-200 px-2 py-2 text-left">Nombre</th>
-            <th className="border-b border-gray-200 px-2 py-2 text-left">Distrito</th>
-            <th className="border-b border-gray-200 px-2 py-2 text-left">Celular</th>
-            <th className="border-b border-gray-200 px-2 py-2 text-left">Dirección</th>
-            <th className="border-b border-gray-200 px-2 py-2 text-left">Referencia</th>
-            <th className="border-b border-gray-200 px-2 py-2 text-left">Courier</th>
-            <th className="border-b border-gray-200 px-2 py-2 text-left">Producto</th>
-            <th className="border-b border-gray-200 px-2 py-2 text-right">Cantidad</th>
-            <th className="border-b border-gray-200 px-2 py-2 text-right">Monto</th>
-            <th className="border-b border-gray-200 px-2 py-2 text-left">Fec. Entrega</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {groups.map((g, gi) => (
-            <tr key={gi} className="odd:bg-white even:bg-gray-50">
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <input
-                  type="checkbox"
-                  checked={!!selected[gi]}
-                  onChange={() => toggleRow(gi)}
-                />
-              </td>
-
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <input
-                  value={g.nombre}
-                  onChange={(e) => patchGroup(gi, { nombre: e.target.value })}
-                  className="w-full border rounded px-2 py-1"
-                />
-              </td>
-
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <Autocomplete
-                  value={g.distrito}
-                  onChange={(v) => patchGroup(gi, { distrito: v })}
-                  options={distritoOptions}
-                  placeholder="Distrito"
-                  invalid={isInvalidDistrito(g.distrito)}
-                  className="w-full"
-                />
-              </td>
-
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <input
-                  value={g.telefono}
-                  onChange={(e) => patchGroup(gi, { telefono: e.target.value })}
-                  className="w-full border rounded px-2 py-1"
-                />
-              </td>
-
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <input
-                  value={g.direccion}
-                  onChange={(e) => patchGroup(gi, { direccion: e.target.value })}
-                  className="w-full border rounded px-2 py-1"
-                />
-              </td>
-
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <input
-                  value={g.referencia || ''}
-                  onChange={(e) => patchGroup(gi, { referencia: e.target.value })}
-                  className="w-full border rounded px-2 py-1"
-                />
-              </td>
-
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <Autocomplete
-                  value={g.courier}
-                  onChange={(v) => patchGroup(gi, { courier: v })}
-                  options={courierOptions}
-                  placeholder="Courier"
-                  invalid={isInvalidCourier(g.courier)}
-                  className="w-full"
-                />
-              </td>
-
-              {/* Producto + Cantidad */}
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <div className="space-y-1">
-                  {g.items.map((it, ii) => (
-                    <select
-                      key={ii}
-                      value={
-                        (it as any).producto_id ??
-                        (productos.find((p) => p.nombre === (it.producto || ''))?.id ?? '')
-                      }
-                      onChange={(e) => {
-                        const id = Number(e.target.value);
-                        const prod = productos.find((p) => p.id === id);
-                        setGroups((prev) =>
-                          prev.map((gg, idx) =>
-                            idx !== gi
-                              ? gg
-                              : {
-                                  ...gg,
-                                  items: gg.items.map((x, idx2) =>
-                                    idx2 === ii
-                                      ? {
-                                          ...x,
-                                          producto: prod?.nombre || '',
-                                          producto_id: prod?.id,
-                                        }
-                                      : x
-                                  ),
-                                }
-                          )
-                        );
-                      }}
-                      className="w-full border rounded px-2 py-1"
-                    >
-                      <option value="">Seleccionar producto...</option>
-                      {productoOptions.map((p) => (
-                        <option key={p.value} value={p.value}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
-                  ))}
-                </div>
-              </td>
-
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <div className="space-y-1">
-                  {g.items.map((it, ii) => (
-                    <input
-                      key={ii}
-                      type="number"
-                      min={0}
-                      value={it.cantidad ?? 0}
-                      onChange={(e) => handleCantidad(gi, ii, Number(e.target.value))}
-                      className={`w-full border rounded px-2 py-1 text-right ${
-                        isInvalidCantidad(it.cantidad) ? 'border-red-500 bg-red-50' : ''
-                      }`}
-                    />
-                  ))}
-                </div>
-              </td>
-
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <input
-                  type="number"
-                  step="0.01"
-                  value={g.monto_total ?? 0}
-                  onChange={(e) => patchGroup(gi, { monto_total: Number(e.target.value) })}
-                  className={`w-full border rounded px-2 py-1 text-right ${
-                    (g.monto_total ?? 0) < 0 ? 'border-red-500 bg-red-50' : ''
-                  }`}
-                />
-              </td>
-
-              <td className="border-b border-gray-100 px-2 py-1 align-top">
-                <input
-                  type="datetime-local"
-                  value={toLocalInput(g.fecha_entrega)}
-                  onChange={(e) => {
-                    const iso = toISOFromLocal(e.target.value);
-                    patchGroup(gi, { fecha_entrega: iso || null });
-                  }}
-                  className="w-full border rounded px-2 py-1"
-                />
-              </td>
+          <thead>
+            <tr className="sticky top-0 z-10 bg-gray-100 text-xs font-medium">
+              <th className="border-b border-gray-200 px-2 py-2"></th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">Nombre</th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">Distrito</th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">Celular</th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">Dirección</th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">Referencia</th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">Courier</th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">Producto</th>
+              <th className="border-b border-gray-200 px-2 py-2 text-right">Cantidad</th>
+              <th className="border-b border-gray-200 px-2 py-2 text-right">Monto</th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">Fec. Entrega</th>
             </tr>
-          ))}
-        </tbody>
+          </thead>
+
+          <tbody>
+            {groups.map((g, gi) => (
+              <tr key={gi} className="odd:bg-white even:bg-gray-50">
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    type="checkbox"
+                    checked={!!selected[gi]}
+                    onChange={() => toggleRow(gi)}
+                  />
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    value={g.nombre}
+                    onChange={(e) => patchGroup(gi, { nombre: e.target.value })}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <Autocomplete
+                    value={g.distrito}
+                    onChange={(v) => patchGroup(gi, { distrito: v })}
+                    options={distritoOptions}
+                    placeholder="Distrito"
+                    invalid={isInvalidDistrito(g.distrito)}
+                    className="w-full"
+                  />
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    value={g.telefono}
+                    onChange={(e) => patchGroup(gi, { telefono: e.target.value })}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    value={g.direccion}
+                    onChange={(e) => patchGroup(gi, { direccion: e.target.value })}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    value={g.referencia || ''}
+                    onChange={(e) => patchGroup(gi, { referencia: e.target.value })}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <Autocomplete
+                    value={g.courier}
+                    onChange={(v) => patchGroup(gi, { courier: v })}
+                    options={courierOptions}
+                    placeholder="Courier"
+                    invalid={isInvalidCourier(g.courier)}
+                    className="w-full"
+                  />
+                </td>
+
+                {/* Producto + Cantidad */}
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <div className="space-y-1">
+                    {g.items.map((it, ii) => (
+                      <select
+                        key={ii}
+                        value={
+                          (it as any).producto_id ??
+                          (productos.find((p) => p.nombre === (it.producto || ''))?.id ?? '')
+                        }
+                        onChange={(e) => {
+                          const id = Number(e.target.value);
+                          const prod = productos.find((p) => p.id === id);
+                          setGroups((prev) =>
+                            prev.map((gg, idx) =>
+                              idx !== gi
+                                ? gg
+                                : {
+                                    ...gg,
+                                    items: gg.items.map((x, idx2) =>
+                                      idx2 === ii
+                                        ? {
+                                            ...x,
+                                            producto: prod?.nombre || '',
+                                            producto_id: prod?.id,
+                                          }
+                                        : x
+                                    ),
+                                  }
+                            )
+                          );
+                        }}
+                        className="w-full border rounded px-2 py-1"
+                      >
+                        <option value="">Seleccionar producto...</option>
+                        {productoOptions.map((p) => (
+                          <option key={p.value} value={p.value}>
+                            {p.label}
+                          </option>
+                        ))}
+                      </select>
+                    ))}
+                  </div>
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <div className="space-y-1">
+                    {g.items.map((it, ii) => (
+                      <input
+                        key={ii}
+                        type="number"
+                        min={0}
+                        value={it.cantidad ?? 0}
+                        onChange={(e) => handleCantidad(gi, ii, Number(e.target.value))}
+                        className={`w-full border rounded px-2 py-1 text-right ${
+                          isInvalidCantidad(it.cantidad) ? 'border-red-500 bg-red-50' : ''
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={g.monto_total ?? 0}
+                    onChange={(e) => patchGroup(gi, { monto_total: Number(e.target.value) })}
+                    className={`w-full border rounded px-2 py-1 text-right ${
+                      (g.monto_total ?? 0) < 0 ? 'border-red-500 bg-red-50' : ''
+                    }`}
+                  />
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    type="datetime-local"
+                    value={toLocalInput(g.fecha_entrega)}
+                    onChange={(e) => {
+                      const iso = toISOFromLocal(e.target.value);
+                      patchGroup(gi, { fecha_entrega: iso || null });
+                    }}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
 
