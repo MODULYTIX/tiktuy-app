@@ -1,9 +1,7 @@
-import PrivateLayout from '@/shared/layout/PrivateLayout';
-
 export default function ReportesPage() {
   return (
-    <PrivateLayout>
+    <section>
       <h1>Reportes</h1>
-    </PrivateLayout>
-  )
+    </section>
+  );
 }

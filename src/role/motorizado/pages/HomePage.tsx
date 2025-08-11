@@ -6,7 +6,7 @@ export default function MotorizadoHomePage() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-4 text-black">Bienvenido Motorizado</h1>
-      <p className="text-gray-700">Sesión iniciada como: {user?.email}</p>
+      <p className="text-gray-700">Sesión iniciada como: {user?.correo}</p>
 
       <div className="mt-6">
         <p className="text-lg text-black">Aquí irá el panel de Motorizado.</p>
