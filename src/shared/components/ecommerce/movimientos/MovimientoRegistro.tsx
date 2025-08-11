@@ -15,7 +15,7 @@ type Filters = {
 };
 
 export default function MovimientoRegistro() {
-  // no usamos el valor aquí, solo el setter
+  // Solo usamos el setter para guardar los filtros (evita unused vars)
   const [, setFilters] = useState<Filters>({
     almacenamiento_id: '',
     categoria_id: '',
@@ -27,27 +27,26 @@ export default function MovimientoRegistro() {
   });
 
   const [showModal, setShowModal] = useState(false);
-
-  // no usamos el valor aquí, solo el setter
+  // Solo el setter; el valor no se usa aquí
   const [, setProductosSeleccionados] = useState<any[]>([]);
 
   return (
     <div className="mt-4">
       <MovimientoRegistroFilters
-        onFilterChange={(f) => setFilters(f)}                 {/* <- fix de tipo */}
+        onFilterChange={(f) => setFilters(f)}
         onNuevoMovimientoClick={() => setShowModal(true)}
       />
 
       <MovimientoRegistroTable
-        onSelectProducts={(items) => setProductosSeleccionados(items)}  {/* <- fix de tipo */}
-        // Si tu tabla acepta filtros, puedes pasarlos desde el estado si decides usarlos:
+        onSelectProducts={(items) => setProductosSeleccionados(items)}
+        // Si tu tabla acepta filtros, puedes pasarlos así:
         // filters={currentFilters}
       />
 
       <CrearMovimientoModal
         open={showModal}
         onClose={() => setShowModal(false)}
-        // productosSeleccionados={currentProductosSeleccionados} // si tu modal lo requiere
+        // productosSeleccionados={currentProductosSeleccionados}
       />
     </div>
   );
