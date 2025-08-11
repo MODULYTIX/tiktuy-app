@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { fetchMe } from '@/auth/services/auth.api';
 import { AuthContext } from './AuthContext';
 import type { User } from '@/auth/types/auth.types';
+import LoadingBouncing from '@/shared/animations/LoadingBouncing';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -35,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(newToken);
 
     try {
-      const userData = await fetchMe(newToken); 
+      const userData = await fetchMe(newToken);
       setUser(userData);
     } catch (error) {
       logout();
@@ -49,7 +50,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(null);
   };
 
-  if (loading) return <div>Cargando sesión...</div>;
+  if (loading)
+    return (
+      <div>
+        <LoadingBouncing />
+      </div>
+    );
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, logout }}>
