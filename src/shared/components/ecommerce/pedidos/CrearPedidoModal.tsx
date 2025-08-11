@@ -1,6 +1,6 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { crearPedido, fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
-import { AuthContext } from '@/auth/context/AuthContext';
+import { useAuth } from '@/auth/context/AuthContext';
 import { FiX } from 'react-icons/fi';
 import { BsBoxSeam } from 'react-icons/bs';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
@@ -44,12 +44,11 @@ export default function CrearPedidoModal({
   pedidoId,
   modo = 'crear',
 }: CrearPedidoModalProps) {
-  const { token, user } = useContext(AuthContext);
+  const { token, user } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [couriers, setCouriers] = useState<CourierAsociado[]>([]);
   const [zonas, setZonas] = useState<{ distrito: string }[]>([]);
-  const [stockDisponible, setStockDisponible] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     courier_id: '',
@@ -106,10 +105,10 @@ export default function CrearPedidoModal({
     const loadPedido = async () => {
       if (pedidoId && token) {
         try {
-          const data = await fetchPedidoById(pedidoId, token);
+          const data: any = await fetchPedidoById(pedidoId, token);
           const detalle = data.detalles?.[0] || {};
           setForm({
-            courier_id: String(data.courier ?? ''),
+            courier_id: String(data.courier?.id ?? ''), // fix: usar id si courier es objeto
             nombre_cliente: data.nombre_cliente ?? '',
             numero_cliente: data.numero_cliente ?? '',
             celular_cliente: data.celular_cliente ?? '',
@@ -117,10 +116,9 @@ export default function CrearPedidoModal({
             referencia_direccion: data.referencia_direccion ?? '',
             distrito: data.distrito ?? '',
             monto_recaudar: String(data.monto_recaudar ?? ''),
-            fecha_entrega_programada:
-              (data.fecha_entrega_programada
-                ? new Date(data.fecha_entrega_programada).toISOString().slice(0, 10)
-                : ''),
+            fecha_entrega_programada: data.fecha_entrega_programada
+              ? new Date(data.fecha_entrega_programada).toISOString().slice(0, 10)
+              : '',
             producto_id: String(detalle.producto_id ?? ''),
             cantidad: String(detalle.cantidad ?? ''),
             precio_unitario: String(detalle.precio_unitario ?? ''),
@@ -133,7 +131,7 @@ export default function CrearPedidoModal({
     if (modo !== 'crear') loadPedido();
   }, [pedidoId, token, modo]);
 
-  // Actualizar precio unitario y stock al seleccionar producto
+  // Actualizar precio unitario al seleccionar producto
   useEffect(() => {
     const selected = productos.find((p) => p.id === Number(form.producto_id));
     if (selected) {
@@ -141,9 +139,6 @@ export default function CrearPedidoModal({
         ...prev,
         precio_unitario: String(selected.precio ?? ''),
       }));
-      setStockDisponible(selected.stock);
-    } else {
-      setStockDisponible(null);
     }
   }, [form.producto_id, productos]);
 
