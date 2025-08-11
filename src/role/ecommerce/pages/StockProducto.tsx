@@ -8,8 +8,6 @@ import { useAuth } from '@/auth/context';
 import { fetchProductosFiltrados } from '@/services/ecommerce/producto/producto.api';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import ImportExcelFlow from '@/shared/components/ecommerce/excel/ImportExcelFlow';
-import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
-import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
 
 export default function StockPage() {
   const { token } = useAuth();
@@ -20,9 +18,6 @@ export default function StockPage() {
     useState<Producto | null>(null);
   const [modoSeleccionado, setModoModal] = useState<'crear' | 'editar' | 'ver'>(
     'crear'
-  );
-  const [couriers, setCouriers] = useState<{ id: number; nombre: string }[]>(
-    []
   );
 
   const handleClose = () => {
@@ -35,38 +30,11 @@ export default function StockPage() {
     console.log('Descargar plantilla');
   };
 
-  useEffect(() => {
-    if (!token) return;
-    let cancel = false;
-
-    async function load() {
-      try {
-        const lista: CourierAsociado[] = await fetchCouriersAsociados(token);
-        if (cancel) return;
-
-        // mapea a { id, nombre } que espera el ImportExcelFlow/Modal
-        setCouriers(
-          (lista || []).map((c) => ({
-            id: c.id,
-            nombre: c.nombre_comercial,
-          }))
-        );
-      } catch (err) {
-        console.error('Error al obtener couriers asociados:', err);
-        if (!cancel) setCouriers([]);
-      }
-    }
-
-    load();
-    return () => {
-      cancel = true;
-    };
-  }, [token]);
-
   const cargarProductos = async (filtros = filters) => {
     if (!token) return;
     try {
-      const data = await fetchProductosFiltrados(filtros, token);
+      const t = token as string; // narrowing explícito para TypeScript
+      const data = await fetchProductosFiltrados(filtros, t);
       setProductos(data);
     } catch (err) {
       console.error('Error cargando productos:', err);
@@ -100,6 +68,7 @@ export default function StockPage() {
 
   useEffect(() => {
     if (token) cargarProductos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, token]);
 
   return (
@@ -113,7 +82,7 @@ export default function StockPage() {
         </div>
 
         <div className="flex gap-2 items-center">
-          <ImportExcelFlow token={token!} onImported={cargarProductos}>
+          <ImportExcelFlow token={token ?? ''} onImported={cargarProductos}>
             {(openPicker) => (
               <AnimatedExcelMenu
                 onTemplateClick={handleDescargarPlantilla}
@@ -124,7 +93,8 @@ export default function StockPage() {
 
           <button
             onClick={handleAbrirModalNuevo}
-            className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition">
+            className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition"
+          >
             <TbCubePlus size={18} />
             <span>Nuevo Producto</span>
           </button>

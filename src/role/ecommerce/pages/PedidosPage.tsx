@@ -1,32 +1,29 @@
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState } from 'react';
 import { LuClipboardCheck } from 'react-icons/lu';
 import { MdOutlineAssignment } from 'react-icons/md';
 import { RiAiGenerate } from 'react-icons/ri';
-import { FiPlus, FiXCircle } from 'react-icons/fi';
+import { FiPlus } from 'react-icons/fi';
 
 import PedidosGenerado from '@/shared/components/ecommerce/pedidos/PedidosGenerado';
 import PedidosAsignado from '@/shared/components/ecommerce/pedidos/PedidosAsignado';
 import PedidosCompletado from '@/shared/components/ecommerce/pedidos/PedidosCompletado';
 import CrearPedidoModal from '@/shared/components/ecommerce/pedidos/CrearPedidoModal';
-import { AuthContext } from '@/auth/context/AuthContext';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Select } from '@/shared/components/Select';
 import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
 import ImportExcelFlow from '@/shared/components/ecommerce/excel/ImportExcelFlow';
-import { fetchProductosFiltrados } from '@/services/ecommerce/producto/producto.api';
-import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
-import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
-import type { Producto } from '@/services/ecommerce/producto/producto.types';
+import { useAuth } from '@/auth/context';
 
 type Vista = 'generado' | 'asignado' | 'completado';
 
 export default function PedidosPage() {
+  const { token } = useAuth();
+
   const [vista, setVista] = useState<Vista>(
     () => (localStorage.getItem('ventas_vista') as Vista) || 'generado'
   );
   const [modalAbierto, setModalAbierto] = useState(false);
   const [pedidoId, setPedidoId] = useState<number | null>(null);
-  const { token } = useContext(AuthContext);
 
   const [filtros, setFiltros] = useState({
     courier: '',
@@ -44,10 +41,7 @@ export default function PedidosPage() {
     setModalAbierto(true);
   };
 
-  const handleEditarPedido = (id: number) => {
-    setPedidoId(id);
-    setModalAbierto(true);
-  };
+
 
   const handleCerrarModal = () => {
     setModalAbierto(false);
@@ -55,6 +49,7 @@ export default function PedidosPage() {
   };
 
   const refetchPedidos = () => {
+    // Aquí podrías disparar un refetch en los hijos mediante context/event bus si lo necesitas.
     handleCerrarModal();
   };
 
@@ -67,60 +62,9 @@ export default function PedidosPage() {
     });
   };
 
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [filters, setFilters] = useState<any>({});
-  const [productoSeleccionado, setProductoSeleccionado] =
-    useState<Producto | null>(null);
-
-  const [couriers, setCouriers] = useState<{ id: number; nombre: string }[]>(
-    []
-  );
-
   const handleDescargarPlantilla = () => {
     console.log('Descargar plantilla');
   };
-
-  useEffect(() => {
-    if (!token) return;
-    let cancel = false;
-
-    async function load() {
-      try {
-        const lista: CourierAsociado[] = await fetchCouriersAsociados(token);
-        if (cancel) return;
-
-        // mapea a { id, nombre } que espera el ImportExcelFlow/Modal
-        setCouriers(
-          (lista || []).map((c) => ({
-            id: c.id,
-            nombre: c.nombre_comercial,
-          }))
-        );
-      } catch (err) {
-        console.error('Error al obtener couriers asociados:', err);
-        if (!cancel) setCouriers([]);
-      }
-    }
-
-    load();
-    return () => {
-      cancel = true;
-    };
-  }, [token]);
-
-  const cargarProductos = async (filtros = filters) => {
-    if (!token) return;
-    try {
-      const data = await fetchProductosFiltrados(filtros, token);
-      setProductos(data);
-    } catch (err) {
-      console.error('Error cargando productos:', err);
-    }
-  };
-
-  useEffect(() => {
-    if (token) cargarProductos();
-  }, [filters, token]);
 
   return (
     <section className="mt-8 flex flex-col gap-[1.25rem]">
@@ -142,7 +86,8 @@ export default function PedidosPage() {
               vista === 'generado'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}>
+            }`}
+          >
             <RiAiGenerate size={18} />
             Generado
           </button>
@@ -155,7 +100,8 @@ export default function PedidosPage() {
               vista === 'asignado'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}>
+            }`}
+          >
             <MdOutlineAssignment size={18} />
             Asignado
           </button>
@@ -168,7 +114,8 @@ export default function PedidosPage() {
               vista === 'completado'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}>
+            }`}
+          >
             <LuClipboardCheck size={18} />
             Completado
           </button>
@@ -184,9 +131,9 @@ export default function PedidosPage() {
             Consulta los pedidos registrados recientemente.
           </p>
         </div>
-        <div className='flex gap-2'>
+        <div className="flex gap-2">
           <div>
-            <ImportExcelFlow token={token!} onImported={cargarProductos}>
+            <ImportExcelFlow token={token ?? ''} onImported={() => {}}>
               {(openPicker) => (
                 <AnimatedExcelMenu
                   onTemplateClick={handleDescargarPlantilla}
@@ -196,14 +143,13 @@ export default function PedidosPage() {
             </ImportExcelFlow>
           </div>
           <div>
-            <div>
-              <button
-                onClick={handleNuevoPedido}
-                className="bg-primaryLight text-white px-[0.75rem] py-[0.5625rem] rounded flex items-center gap-2 hover:bg-blue-700">
-                <FiPlus className="w-4 h-4" />
-                Nuevo Pedido
-              </button>
-            </div>
+            <button
+              onClick={handleNuevoPedido}
+              className="bg-primaryLight text-white px-[0.75rem] py-[0.5625rem] rounded flex items-center gap-2 hover:bg-blue-700"
+            >
+              <FiPlus className="w-4 h-4" />
+              Nuevo Pedido
+            </button>
           </div>
         </div>
       </div>
@@ -216,9 +162,9 @@ export default function PedidosPage() {
           </label>
           <div className="relative w-full">
             <Select
-              value={filtros.producto}
+              value={filtros.courier}
               onChange={(e) =>
-                setFiltros((prev) => ({ ...prev, producto: e.target.value }))
+                setFiltros((prev) => ({ ...prev, courier: e.target.value }))
               }
               options={[
                 { value: '1', label: 'Courier 1' },
@@ -283,32 +229,24 @@ export default function PedidosPage() {
 
         <button
           onClick={handleLimpiarFiltros}
-          className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100">
-          <Icon
-            icon="mynaui:delete"
-            width="24"
-            height="24"
-            color="gray60"
-            className=""
-          />
+          className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100"
+        >
+          <Icon icon="mynaui:delete" width="24" height="24" color="gray60" />
           Limpiar Filtros
         </button>
       </div>
 
-      {vista === 'generado' && (
-        <PedidosGenerado onEditar={handleEditarPedido} />
-      )}
+      {vista === 'generado' && <PedidosGenerado />}
       {vista === 'asignado' && <PedidosAsignado />}
       {vista === 'completado' && <PedidosCompletado />}
 
-      {modalAbierto && token && (
+      {modalAbierto && (
         <CrearPedidoModal
           isOpen={modalAbierto}
           onClose={handleCerrarModal}
           onPedidoCreado={refetchPedidos}
-          pedidoId={pedidoId}
+          pedidoId={pedidoId ?? undefined}
           modo={pedidoId ? 'editar' : 'crear'}
-          token={token}
         />
       )}
     </section>
