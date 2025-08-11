@@ -1,13 +1,13 @@
 // src/pages/courier/PedidosPage.tsx
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import TablePedidoCourier from '@/shared/components/courier/pedido/TablePedidoCourier';
-import { AuthContext } from '@/auth/context/AuthContext';
+import { useAuth } from '@/auth/context';
 
 type Vista = 'asignados' | 'pendientes' | 'terminados';
 
 export default function PedidosPage() {
-  const { token } = useContext(AuthContext);
+  const { token } = useAuth();
 
   const [vista, setVista] = useState<Vista>(() => {
     const saved = localStorage.getItem('courier_vista_pedidos') as Vista | null;

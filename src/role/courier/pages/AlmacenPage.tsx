@@ -1,9 +1,17 @@
-import type { Almacen } from '@/shared/components/courier/almacen/AlmacenCourierTable';
 import { Icon } from '@iconify/react';
 
+export type Almacen = {
+  id: number;
+  nombre: string;
+  departamento: string;
+  ciudad: string;
+  direccion: string;
+  fecha?: string;
+};
+
 type Props = {
-  onVer: (almacen: Almacen) => void;
-  onEditar: (almacen: Almacen) => void;
+  onVer?: (almacen: Almacen) => void;
+  onEditar?: (almacen: Almacen) => void;
 };
 
 const almacenesMock: Almacen[] = [
@@ -14,6 +22,9 @@ const almacenesMock: Almacen[] = [
 ];
 
 export default function AlmacenCourierTable({ onVer, onEditar }: Props) {
+  const handleVer = onVer ?? (() => {});
+  const handleEditar = onEditar ?? (() => {});
+
   return (
     <div className="bg-white rounded-xl shadow-md overflow-x-auto">
       <table className="min-w-full text-sm text-gray-800">
@@ -44,7 +55,7 @@ export default function AlmacenCourierTable({ onVer, onEditar }: Props) {
                     type="button"
                     className="text-blue-600 hover:text-blue-800 transition-colors"
                     title="Ver"
-                    onClick={() => onVer(almacen)}
+                    onClick={() => handleVer(almacen)}
                   >
                     <Icon icon="uil:eye" width="20" height="20" />
                   </button>
@@ -52,7 +63,7 @@ export default function AlmacenCourierTable({ onVer, onEditar }: Props) {
                     type="button"
                     className="text-amber-600 hover:text-amber-800 transition-colors"
                     title="Editar"
-                    onClick={() => onEditar(almacen)}
+                    onClick={() => handleEditar(almacen)}
                   >
                     <Icon icon="uil:edit" width="20" height="20" />
                   </button>
