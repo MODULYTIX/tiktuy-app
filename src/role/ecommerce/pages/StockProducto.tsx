@@ -90,11 +90,9 @@ export default function StockPage() {
               />
             )}
           </ImportExcelFlow>
-
           <button
             onClick={handleAbrirModalNuevo}
-            className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition"
-          >
+            className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition">
             <TbCubePlus size={18} />
             <span>Nuevo Producto</span>
           </button>
