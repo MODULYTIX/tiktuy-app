@@ -261,7 +261,6 @@ export default function ImportPreviewPedidosModal({
                   ? {
                       ...it,
                       producto: val,
-                      // @ts-expect-error: campo opcional que podemos eliminar
                       producto_id: undefined,
                     }
                   : it
