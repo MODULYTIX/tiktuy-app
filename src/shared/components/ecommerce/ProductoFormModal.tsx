@@ -51,6 +51,16 @@ function generarCodigoConFecha(): string {
   return `${hora}${mesAbrev}${year}${aleatorio}${minutos}`;
 }
 
+// Normaliza initialData.estado (puede venir como string o como objeto { id, nombre })
+function normalizarEstado(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    const v = value as { id?: number | string; nombre?: string };
+    return v.nombre ?? (v.id != null ? String(v.id) : 'activo');
+  }
+  return 'activo';
+}
+
 export default function ProductoFormModal({
   open,
   onClose,
@@ -74,7 +84,7 @@ export default function ProductoFormModal({
     stock: '',
     stock_minimo: '',
     peso: '',
-    estado: 'activo',       // <-- siempre string
+    estado: 'activo',       // siempre string
     fecha_registro: new Date().toISOString(),
   });
 
@@ -83,15 +93,16 @@ export default function ProductoFormModal({
       setForm({
         codigo_identificacion: initialData.codigo_identificacion,
         nombre_producto: initialData.nombre_producto,
-        descripcion: initialData.descripcion ?? '',
-        categoria_id: String(initialData.categoria_id),
-        almacenamiento_id: String(initialData.almacenamiento_id),
-        precio: String(initialData.precio),
-        stock: String(initialData.stock),
-        stock_minimo: String(initialData.stock_minimo),
-        peso: String(initialData.peso),
-        estado: initialData.estado ?? 'activo',
-        fecha_registro: initialData.fecha_registro,
+        descripcion: (initialData as any).descripcion ?? '',
+        categoria_id: String((initialData as any).categoria_id),
+        almacenamiento_id: String((initialData as any).almacenamiento_id),
+        precio: String((initialData as any).precio),
+        stock: String((initialData as any).stock),
+        stock_minimo: String((initialData as any).stock_minimo),
+        peso: String((initialData as any).peso),
+        // 🔧 Fix clave: asegurar string aunque venga objeto
+        estado: normalizarEstado((initialData as any).estado),
+        fecha_registro: (initialData as any).fecha_registro,
       });
     } else {
       setForm((prev) => ({
@@ -128,7 +139,7 @@ export default function ProductoFormModal({
       codigo_identificacion: form.codigo_identificacion.trim(),
       nombre_producto: form.nombre_producto.trim(),
       descripcion: form.descripcion.trim(),
-      estado: form.estado, // <-- string
+      estado: form.estado, // string ya normalizado
       fecha_registro: new Date(form.fecha_registro).toISOString(),
     };
 
@@ -228,7 +239,7 @@ export default function ProductoFormModal({
             options={ESTADO_OPCIONES}
             disabled={esModoVer}
             onChange={(estadoId) =>
-              setForm((p) => ({ ...p, estado: estadoId })) // <-- siempre string
+              setForm((p) => ({ ...p, estado: estadoId })) // siempre string
             }
           />
 
@@ -355,7 +366,7 @@ function SelectNative<
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">
+      <label className="block textxs font-medium text-gray-500 mb-1">
         {label}
       </label>
       <select
