@@ -10,6 +10,7 @@ import { courierRoutes } from '@/role/courier/routes';
 import { motorizadoRoutes } from '@/role/motorizado/routes';
 
 import PrivateLayout from '@/shared/layout/PrivateLayout';
+import RegistroInvitacionPage from '@/role/courier/pages/RegistroInvitacionPage';
 
 export default function AppRouter() {
   return (
@@ -23,6 +24,7 @@ export default function AppRouter() {
           </AuthGuard>
         }
       />
+      <Route path="/registro-invitacion" element={<RegistroInvitacionPage />} />
 
       {/* Admin */}
       <Route

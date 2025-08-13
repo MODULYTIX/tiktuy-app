@@ -9,6 +9,8 @@ import ConfiguracionPage from './pages/ConfiguracionPage';
 import ZonasPage from './pages/ZonasPage';
 import PedidosPage from './pages/PedidosPage';
 import AlmacenPage from './pages/AlmacenPage';
+import RegistroInvitacionPage from './pages/RegistroInvitacionPage';  // Asegúrate de que esta página esté bien configurada
+
 
 export const courierRoutes: RouteObject[] = [
   { path: '', element: <CourierHomePage /> },
@@ -21,4 +23,5 @@ export const courierRoutes: RouteObject[] = [
   { path: 'perfiles', element: <PerfilesPage /> },
   { path: 'reportes', element: <ReportesPage /> },
   { path: 'configuracion', element: <ConfiguracionPage /> },
+  { path: 'registro-invitacion', element: <RegistroInvitacionPage /> },
 ];

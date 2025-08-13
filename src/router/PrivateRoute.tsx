@@ -20,6 +20,11 @@ export default function PrivateRoute({
 
   if (loading) return <LoadingBouncing />;
 
+  // Agregar verificación para permitir /registro-invitacion sin autenticación
+  if (location.pathname === '/registro-invitacion') {
+    return children;
+  }
+
   if (!user) {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
