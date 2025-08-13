@@ -31,7 +31,7 @@ export interface MotorizadoInfo {
 export interface Pedido {
   id: number;
   codigo_pedido: string;
-  estado_pedido: string; 
+  estado_pedido: string; // p.ej. 'Generado' | 'Asignado' | 'Entregado'
   nombre_cliente: string;
   numero_cliente: string;
   celular_cliente: string;

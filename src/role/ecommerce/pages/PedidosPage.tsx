@@ -52,10 +52,18 @@ export default function PedidosPage() {
     setPedidoId(null);
     setModalAbierto(true);
   };
+  const handleEditar = (id: number) => {
+    setPedidoId(id);
+    setModalAbierto(true);
+  };
 
   const handleCerrarModal = () => {
     setModalAbierto(false);
     setPedidoId(null);
+  };
+  const handleVer = (id: number) => {
+    setPedidoId(id);
+    setModalAbierto(true);
   };
 
   const refetchPedidos = () => {
@@ -97,9 +105,12 @@ export default function PedidosPage() {
     <section className="mt-8 flex flex-col gap-[1.25rem]">
       <div className="flex justify-between items-end pb-5 border-b border-gray30">
         <div className="flex flex-col gap-1">
-          <h1 className="text-[1.75rem] font-bold text-primary">Panel de Pedidos</h1>
+          <h1 className="text-[1.75rem] font-bold text-primary">
+            Panel de Pedidos
+          </h1>
           <p className="text-gray60">
-            Administra y visualiza el estado de tus pedidos en cada etapa del proceso.
+            Administra y visualiza el estado de tus pedidos en cada etapa del
+            proceso.
           </p>
         </div>
 
@@ -152,11 +163,15 @@ export default function PedidosPage() {
               ? 'Pedidos Asignados'
               : 'Pedidos Completados'}
           </h2>
-          <p className="text-sm text-black font-regular">Consulta y gestiona tus pedidos.</p>
+          <p className="text-sm text-black font-regular">
+            Consulta y gestiona tus pedidos.
+          </p>
         </div>
 
         <div className="flex gap-2">
-          <ImportExcelPedidosFlow token={token ?? ''} onImported={handleImported}>
+          <ImportExcelPedidosFlow
+            token={token ?? ''}
+            onImported={handleImported}>
             {(openPicker) => (
               <AnimatedExcelMenu
                 onTemplateClick={handleDescargarPlantilla}
@@ -178,11 +193,15 @@ export default function PedidosPage() {
       <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
         {/* Courier */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Courier</label>
+          <label className="text-sm font-medium text-black block">
+            Courier
+          </label>
           <div className="relative w-full">
             <Select
               value={filtros.courier}
-              onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value }))}
+              onChange={(e) =>
+                setFiltros((prev) => ({ ...prev, courier: e.target.value }))
+              }
               options={[
                 { value: '', label: 'Todos' },
                 { value: '1', label: 'Courier 1' },
@@ -195,11 +214,15 @@ export default function PedidosPage() {
 
         {/* Producto */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Producto</label>
+          <label className="text-sm font-medium text-black block">
+            Producto
+          </label>
           <div className="relative w-full">
             <Select
               value={filtros.producto}
-              onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value }))}
+              onChange={(e) =>
+                setFiltros((prev) => ({ ...prev, producto: e.target.value }))
+              }
               options={[
                 { value: '', label: 'Todos' },
                 { value: 'p1', label: 'Producto 1' },
@@ -212,23 +235,31 @@ export default function PedidosPage() {
 
         {/* Fecha Inicio */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Fecha Inicio</label>
+          <label className="text-sm font-medium text-black block">
+            Fecha Inicio
+          </label>
           <input
             type="date"
             className="border border-gray40 rounded px-3 py-2 text-sm w-full text-gray60"
             value={filtros.fechaInicio}
-            onChange={(e) => setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))}
+            onChange={(e) =>
+              setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))
+            }
           />
         </div>
 
         {/* Fecha Fin */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Fecha Fin</label>
+          <label className="text-sm font-medium text-black block">
+            Fecha Fin
+          </label>
           <input
             type="date"
             className="border border-gray40 rounded px-3 py-2 text-sm w-full text-gray60"
             value={filtros.fechaFin}
-            onChange={(e) => setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))}
+            onChange={(e) =>
+              setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))
+            }
           />
         </div>
 
@@ -242,8 +273,13 @@ export default function PedidosPage() {
 
       {/* Vistas: key para remonte tras import */}
       {vista === 'generado' && <PedidosGenerado key={`gen-${refreshKey}`} />}
-      {vista === 'asignado' && <PedidosAsignado key={`asi-${refreshKey}`} />}
-      {vista === 'completado' && <PedidosCompletado key={`comp-${refreshKey}`} />}
+      {vista === 'asignado' && (
+        <PedidosAsignado key={`asi-${refreshKey}`} onEditar={handleEditar} />
+      )}
+
+      {vista === 'completado' && (
+        <PedidosCompletado key={`comp-${refreshKey}`} onVer={handleVer} />
+      )}
 
       {modalAbierto && (
         <CrearPedidoModal
