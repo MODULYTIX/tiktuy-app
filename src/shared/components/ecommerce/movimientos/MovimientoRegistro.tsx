@@ -1,22 +1,15 @@
-// components/MovimientoRegistro.tsx
 import { useState } from 'react';
-import MovimientoRegistroFilters from './MovimientoRegistroFilters';
+import MovimientoRegistroFilters, { type Filters } from './MovimientoRegistroFilters';
 import MovimientoRegistroTable from './MovimientoRegistroTable';
 import CrearMovimientoModal from '../CrearMovimientoModal';
-
-type Filters = {
-  almacenamiento_id: string;
-  categoria_id: string;
-  estado: string;
-  stock_bajo: boolean;
-  precio_bajo: boolean;
-  precio_alto: boolean;
-  search: string;
-};
+import type { Producto } from '@/services/ecommerce/producto/producto.types';
+import { useNotification } from '@/shared/context/notificaciones/useNotification';
 
 export default function MovimientoRegistro() {
-  // Solo usamos el setter para guardar los filtros (evita unused vars)
-  const [, setFilters] = useState<Filters>({
+  const { notify } = useNotification();
+
+  // Filtros conectados a la tabla
+  const [filters, setFilters] = useState<Filters>({
     almacenamiento_id: '',
     categoria_id: '',
     estado: '',
@@ -27,26 +20,62 @@ export default function MovimientoRegistro() {
   });
 
   const [showModal, setShowModal] = useState(false);
-  // Solo el setter; el valor no se usa aquí
-  const [, setProductosSeleccionados] = useState<any[]>([]);
+  const [modalMode, setModalMode] = useState<'crear' | 'ver'>('crear');
+  const [selectedProductsUuids, setSelectedProductsUuids] = useState<string[]>([]);
+  const [productosSeleccionados, setProductosSeleccionados] = useState<Producto[]>([]);
+
+  const handleNuevoMovimientoClick = () => {
+    if (productosSeleccionados.length === 0) {
+      notify('Selecciona al menos un producto para continuar.', 'error');
+      return;
+    }
+
+    // Validar que todos los productos sean del mismo almacén
+    const almacenes = Array.from(
+      new Set(
+        productosSeleccionados.map((p) =>
+          p.almacenamiento_id != null ? String(p.almacenamiento_id) : ''
+        )
+      )
+    ).filter(Boolean);
+
+    if (almacenes.length > 1) {
+      notify(
+        'No puedes seleccionar productos de diferentes almacenes para un mismo movimiento.',
+        'error'
+      );
+      return;
+    }
+
+    setModalMode('crear');
+    setSelectedProductsUuids(productosSeleccionados.map((p) => p.uuid));
+    setShowModal(true);
+  };
+
+  const handleViewProduct = (uuid: string) => {
+    setModalMode('ver');
+    setSelectedProductsUuids([uuid]);
+    setShowModal(true);
+  };
 
   return (
     <div className="mt-4">
       <MovimientoRegistroFilters
-        onFilterChange={(f) => setFilters(f)}
-        onNuevoMovimientoClick={() => setShowModal(true)}
+        onFilterChange={setFilters}
+        onNuevoMovimientoClick={handleNuevoMovimientoClick}
       />
 
       <MovimientoRegistroTable
-        onSelectProducts={(items) => setProductosSeleccionados(items)}
-        // Si tu tabla acepta filtros, puedes pasarlos así:
-        // filters={currentFilters}
+        filters={filters}
+        onSelectProducts={setProductosSeleccionados}
+        onViewProduct={handleViewProduct}
       />
 
       <CrearMovimientoModal
         open={showModal}
         onClose={() => setShowModal(false)}
-        // productosSeleccionados={currentProductosSeleccionados}
+        selectedProducts={selectedProductsUuids}
+        modo={modalMode}
       />
     </div>
   );

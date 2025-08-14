@@ -7,7 +7,7 @@ import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacen
 import { FiSearch } from 'react-icons/fi';
 import { LiaPlusSquareSolid } from 'react-icons/lia';
 
-interface Filters {
+export interface Filters {
   almacenamiento_id: string;
   categoria_id: string;
   estado: string;
@@ -57,14 +57,23 @@ export default function MovimientoRegistroFilters({
     onFilterChange?.(filters);
   }, [filters, onFilterChange]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const target = e.target;
 
     // ✅ Type narrowing para poder usar .checked sin error TS
     if (target instanceof HTMLInputElement && target.type === 'checkbox') {
       const name = target.name as BooleanFilterKey;
+
+      // Opcional: hacerlos realmente exclusivos en UI
+      if (name === 'precio_bajo' && target.checked) {
+        setFilters((prev) => ({ ...prev, precio_bajo: true, precio_alto: false }));
+        return;
+      }
+      if (name === 'precio_alto' && target.checked) {
+        setFilters((prev) => ({ ...prev, precio_bajo: false, precio_alto: true }));
+        return;
+      }
+
       setFilters((prev) => ({
         ...prev,
         [name]: target.checked,
@@ -146,7 +155,7 @@ export default function MovimientoRegistroFilters({
 
         <div>
           <label className="block mb-1 font-medium">Filtros exclusivos</label>
-          <div className="flex flex-wrap gap-1 mt-3">
+          <div className="flex flex-wrap gap-3 mt-3">
             {booleanFilters.map(({ name, label }) => (
               <label key={name} className="flex items-center gap-2">
                 <input
