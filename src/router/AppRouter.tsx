@@ -11,6 +11,7 @@ import { motorizadoRoutes } from '@/role/motorizado/routes';
 
 import PrivateLayout from '@/shared/layout/PrivateLayout';
 import RegistroInvitacionPage from '@/role/courier/pages/RegistroInvitacionPage';
+import CrearPasswordEcommercePage from "@/role/courier/pages/CrearPasswordEcommercePage";
 
 export default function AppRouter() {
   return (
@@ -25,6 +26,7 @@ export default function AppRouter() {
         }
       />
       <Route path="/registro-invitacion" element={<RegistroInvitacionPage />} />
+      <Route path="/crear-password" element={<CrearPasswordEcommercePage />} />
 
       {/* Admin */}
       <Route

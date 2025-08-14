@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { registrarDesdeInvitacion } from "@/services/courier/panel_control/panel_control.api";
 import type { RegistroInvitacionPayload } from "@/services/courier/panel_control/panel_control.types";
 import StepDatosPersonales from "@/shared/components/courier/registroInvitacion/StepDatosPersonales";
@@ -8,9 +8,12 @@ import StepSeguridad from "@/shared/components/courier/registroInvitacion/StepSe
 
 type Step = 1 | 2 | 3;
 
+const HOME_PATH = "/"; // ← si tu “inicio” es otro, cámbialo aquí (por ej. "/")
+
 export default function RegistroInvitacionPage() {
   const [searchparams] = useSearchParams();
   const token = searchparams.get("token") || "";
+  const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
@@ -29,7 +32,7 @@ export default function RegistroInvitacionPage() {
     direccion: "",
     rubro: "",
     contrasena: "",
-    confirmar_contrasena: "",  // Asegúrate de incluirlo en el estado
+    confirmar_contrasena: "", // lo llenaremos al enviar con confirmPassword
   });
 
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -82,10 +85,23 @@ export default function RegistroInvitacionPage() {
 
     try {
       setLoading(true);
-      const payload: RegistroInvitacionPayload = { token, ...form, confirmar_contrasena: confirmPassword };
+      // nos aseguramos que confirmar_contrasena vaya sincronizado con confirmPassword
+      const payload: RegistroInvitacionPayload = {
+        token,
+        ...form,
+        confirmar_contrasena: confirmPassword,
+      };
       const res = await registrarDesdeInvitacion(payload);
+
       if (res.ok) {
-        setSuccessMsg(res.data.mensaje);
+        const msg = res.data.mensaje || "¡Ecommerce registrado correctamente!";
+        setSuccessMsg(`${msg} Redirigiendo al inicio...`);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+
+        // ⬅️ redirección al inicio después de un pequeño delay para que se vea el mensaje
+        setTimeout(() => {
+          navigate(HOME_PATH, { replace: true });
+        }, 1500);
       } else {
         setErrorMsg(res.error || "No se pudo completar el registro.");
       }

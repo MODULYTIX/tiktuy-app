@@ -20,8 +20,9 @@ export default function PrivateRoute({
 
   if (loading) return <LoadingBouncing />;
 
-  // Agregar verificación para permitir /registro-invitacion sin autenticación
-  if (location.pathname === '/registro-invitacion') {
+  // 👇 Rutas públicas que SÍ pueden renderizarse aunque no haya sesión
+  const PUBLIC_WITHIN_PRIVATE = ['/registro-invitacion', '/crear-password'];
+  if (PUBLIC_WITHIN_PRIVATE.some(p => location.pathname.startsWith(p))) {
     return children;
   }
 
