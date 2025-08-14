@@ -35,8 +35,8 @@ export function ModalAsociarseCourier({
 
   if (!open) return null;
 
-  const asociado = entry.estado_asociacion === 'activo';
-  const isView = mode === 'view';
+  // Estado unificado a "Activo" | "No Asociado"
+  const asociado = entry.estado_asociacion === 'Activo';
   const isAssociate = mode === 'associate';
   const isDesassociate = mode === 'desassociate';
 
@@ -45,9 +45,13 @@ export function ModalAsociarseCourier({
     setSubmitting(true);
     setErrMsg('');
     try {
-      if (!entry.id_relacion) {
+      if (entry.id_relacion == null) {
+        // Si no existe relación previa, primero la creamos
         await crearRelacionCourier({ courier_id: entry.id }, token);
+        // Si el backend NO asocia automáticamente al crear,
+        // el onAssociated() recargará y luego se podría llamar a asociarCourier con el nuevo id.
       } else {
+        // Si ya hay relación creada, solo activamos la asociación
         await asociarCourier(entry.id_relacion, token);
       }
       onAssociated();
@@ -59,7 +63,7 @@ export function ModalAsociarseCourier({
   };
 
   const handleDesasociar = async () => {
-    if (!token || !entry.id_relacion) return;
+    if (!token || entry.id_relacion == null) return;
     setSubmitting(true);
     setErrMsg('');
     try {
@@ -82,7 +86,10 @@ export function ModalAsociarseCourier({
       <div className="w-[420px] max-w-[92vw] bg-white rounded-2xl shadow-xl p-6 animate-[slide-in-right_0.25s_ease]">
         {/* Header */}
         <div className="flex flex-col items-center gap-3">
-          <div className="w-20 h-20 rounded-full bg-yellow-400 grid place-items-center text-white text-xl font-extrabold" aria-hidden>
+          <div
+            className="w-20 h-20 rounded-full bg-yellow-400 grid place-items-center text-white text-xl font-extrabold"
+            aria-hidden
+          >
             {entry.nombre_comercial?.[0]?.toUpperCase() ?? 'C'}
           </div>
           <h2 id="modal-title" className="text-xl font-extrabold tracking-wide text-gray-900">
@@ -90,13 +97,19 @@ export function ModalAsociarseCourier({
           </h2>
 
           <div className="text-sm text-gray-700 space-y-1">
-            <div><span className="font-semibold">Ciudad:</span> {entry.ciudad || '-'}</div>
-            <div><span className="font-semibold">Teléfono:</span> {entry.telefono || '-'}</div>
+            <div>
+              <span className="font-semibold">Ciudad:</span> {entry.ciudad || '-'}
+            </div>
+            <div>
+              <span className="font-semibold">Teléfono:</span> {entry.telefono || '-'}
+            </div>
             <div className="flex items-center gap-2">
               <span className="font-semibold">Estado actual:</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                asociado ? 'bg-black text-white' : 'bg-gray-200 text-gray-800'
-              }`}>
+              <span
+                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  asociado ? 'bg-black text-white' : 'bg-gray-200 text-gray-800'
+                }`}
+              >
                 {entry.estado_asociacion || 'No Asociado'}
               </span>
             </div>
@@ -128,7 +141,8 @@ export function ModalAsociarseCourier({
 
         {isDesassociate && (
           <div className="mt-4 text-sm text-gray-700">
-            ¿Seguro que deseas <span className="font-semibold text-red-600">desasociarte</span> de este courier?
+            ¿Seguro que deseas{' '}
+            <span className="font-semibold text-red-600">desasociarte</span> de este courier?
           </div>
         )}
 
@@ -168,7 +182,7 @@ export function ModalAsociarseCourier({
           {isDesassociate && (
             <button
               onClick={handleDesasociar}
-              disabled={submitting || !entry.id_relacion}
+              disabled={submitting || entry.id_relacion == null}
               className="px-4 py-2 rounded-lg text-white text-sm bg-red-600 hover:bg-red-700 disabled:opacity-70 inline-flex items-center gap-2"
               type="button"
             >

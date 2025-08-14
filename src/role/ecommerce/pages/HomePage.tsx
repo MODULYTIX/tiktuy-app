@@ -1,9 +1,17 @@
 import { useAuth } from '@/auth/context/useAuth';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {  fetchEcommerceCourier,  crearRelacionCourier,  asociarCourier,  desasociarCourier} from '@/services/ecommerce/ecommerceCourier.api';
+import {
+  fetchEcommerceCourier,
+  crearRelacionCourier,
+  asociarCourier,
+  desasociarCourier,
+} from '@/services/ecommerce/ecommerceCourier.api';
 import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
 import { Icon } from '@iconify/react';
-import { ModalAsociarseCourier, type ModalMode } from '@/shared/components/ecommerce/asociarse/ModalAsociarseCourier';
+import {
+  ModalAsociarseCourier,
+  type ModalMode,
+} from '@/shared/components/ecommerce/asociarse/ModalAsociarseCourier';
 import { Skeleton } from '@/shared/components/ui/Skeleton';
 
 /** Respuesta cruda flexible del backend (sin `any`) */
@@ -14,7 +22,7 @@ type ApiCourierRaw = {
   ciudad?: string;
   departamento?: string;
   direccion?: string;
-  estado_asociacion?: string;
+  estado_asociacion?: string; // puede venir "activo"/"inactivo" u otros
   activo?: boolean;
   id_relacion?: number | null;
   relacion_id?: number | null;
@@ -30,15 +38,28 @@ type ApiCourierRaw = {
   };
 };
 
-/** Normaliza al shape `CourierAsociado` con tipos seguros */
-function normalizeToCourierAsociado(arr: ReadonlyArray<unknown>): CourierAsociado[] {
+function normalizeToCourierAsociado(
+  arr: ReadonlyArray<unknown>
+): CourierAsociado[] {
   return (arr ?? []).map((item): CourierAsociado => {
     const r = (item ?? {}) as ApiCourierRaw;
     const nested = r.courier ?? {};
-    const estado =
-      r.estado_asociacion ??
-      (typeof r.activo === 'boolean' ? (r.activo ? 'activo' : 'inactivo') : undefined) ??
-      'No Asociado';
+
+    // Unificar estado a "Activo" | "No Asociado"
+    const estado: 'Activo' | 'No Asociado' = (() => {
+      if (typeof r.estado_asociacion === 'string') {
+        const s = r.estado_asociacion.toLowerCase();
+        if (s.includes('activo')) return 'Activo';
+        if (s.includes('no asociado') || s.includes('inactivo'))
+          return 'No Asociado';
+      }
+      if (typeof r.activo === 'boolean')
+        return r.activo ? 'Activo' : 'No Asociado';
+      return 'No Asociado';
+    })();
+
+    const id_relacion =
+      r.id_relacion ?? r.relacion_id ?? r.ecommerce_courier_id ?? null;
 
     return {
       id: r.id ?? nested.id ?? 0,
@@ -48,8 +69,9 @@ function normalizeToCourierAsociado(arr: ReadonlyArray<unknown>): CourierAsociad
       ciudad: r.ciudad ?? nested.ciudad ?? '',
       departamento: r.departamento ?? nested.departamento ?? '',
       direccion: r.direccion ?? nested.direccion ?? '',
+      nombre_usuario: '', // si no lo tienes en la API, déjalo vacío por ahora
       estado_asociacion: estado,
-      id_relacion: r.id_relacion ?? r.relacion_id ?? r.ecommerce_courier_id ?? null,
+      id_relacion, // ahora puede ser number | null sin error
     };
   });
 }
@@ -78,7 +100,11 @@ export default function EcommerceHomePage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const [filtros, setFiltros] = useState({ ciudad: '', courier: '', estado: '' });
+  const [filtros, setFiltros] = useState({
+    ciudad: '',
+    courier: '',
+    estado: '',
+  });
 
   // Modal
   const [openModal, setOpenModal] = useState(false);
@@ -106,7 +132,8 @@ export default function EcommerceHomePage() {
   const handleChangeFiltro = (e: React.ChangeEvent<HTMLSelectElement>) =>
     setFiltros((p) => ({ ...p, [e.target.name]: e.target.value }));
 
-  const limpiarFiltros = () => setFiltros({ ciudad: '', courier: '', estado: '' });
+  const limpiarFiltros = () =>
+    setFiltros({ ciudad: '', courier: '', estado: '' });
 
   /** Abrir modal en modos específicos */
   // const openView = (entry: CourierAsociado) => {
@@ -141,67 +168,90 @@ export default function EcommerceHomePage() {
         (e) =>
           (!filtros.ciudad || e.ciudad === filtros.ciudad) &&
           (!filtros.courier || e.nombre_comercial === filtros.courier) &&
-          (!filtros.estado || e.estado_asociacion === filtros.estado),
+          (!filtros.estado || e.estado_asociacion === filtros.estado)
       ),
-    [data, filtros],
+    [data, filtros]
   );
 
   const ciudades = useMemo(
     () => [...new Set(data.map((d) => d.ciudad).filter(Boolean))],
-    [data],
+    [data]
   );
   const couriersUnicos = useMemo(
     () => [...new Set(data.map((d) => d.nombre_comercial).filter(Boolean))],
-    [data],
+    [data]
   );
   const estados = useMemo(() => ['Activo', 'No Asociado'], []);
 
   return (
     <div className="mt-8">
       <h1 className="text-3xl font-bold mb-1">Panel de Control</h1>
-      <p className="mb-4 text-gray-600">Monitoreo de Asociación con couriers por ciudades</p>
+      <p className="mb-4 text-gray-600">
+        Monitoreo de Asociación con couriers por ciudades
+      </p>
 
       {/* Filtros */}
       <section className="bg-white p-4 rounded shadow flex flex-wrap gap-4 items-end mb-6">
         <div className="flex flex-col text-sm">
-          <label htmlFor="f-ciudad" className="text-gray-700 font-medium mb-1 text-center">Ciudad</label>
+          <label
+            htmlFor="f-ciudad"
+            className="text-gray-700 font-medium mb-1 text-center">
+            Ciudad
+          </label>
           <select
             id="f-ciudad"
             name="ciudad"
             value={filtros.ciudad}
             onChange={handleChangeFiltro}
-            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm"
-          >
+            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm">
             <option value="">Todas</option>
-            {ciudades.map((c) => <option key={c} value={c}>{c}</option>)}
+            {ciudades.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
         </div>
 
         <div className="flex flex-col text-sm">
-          <label htmlFor="f-courier" className="text-gray-700 font-medium mb-1 text-center">Courier</label>
+          <label
+            htmlFor="f-courier"
+            className="text-gray-700 font-medium mb-1 text-center">
+            Courier
+          </label>
           <select
             id="f-courier"
             name="courier"
             value={filtros.courier}
             onChange={handleChangeFiltro}
-            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm"
-          >
+            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm">
             <option value="">Todos</option>
-            {couriersUnicos.map((c) => <option key={c} value={c}>{c}</option>)}
+            {couriersUnicos.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
         </div>
 
         <div className="flex flex-col text-sm">
-          <label htmlFor="f-estado" className="text-gray-700 font-medium mb-1 text-center">Estado</label>
+          <label
+            htmlFor="f-estado"
+            className="text-gray-700 font-medium mb-1 text-center">
+            Estado
+          </label>
           <select
             id="f-estado"
             name="estado"
             value={filtros.estado}
             onChange={handleChangeFiltro}
-            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm"
-          >
+            className="border rounded px-3 py-2 min-w-82 text-sm shadow-sm">
             <option value="">Todos</option>
-            {estados.map((e) => <option key={e} value={e}>{e}</option>)}
+            {estados.map((e) => (
+              <option key={e} value={e}>
+                {e}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -209,8 +259,7 @@ export default function EcommerceHomePage() {
           onClick={limpiarFiltros}
           className="ml-auto text-sm text-gray-700 border rounded px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition"
           type="button"
-          aria-label="Limpiar filtros"
-        >
+          aria-label="Limpiar filtros">
           <Icon icon="mdi:close" />
           Limpiar Filtros
         </button>
@@ -228,8 +277,18 @@ export default function EcommerceHomePage() {
           <table className="w-full bg-white rounded shadow-sm text-sm">
             <thead className="bg-gray-100 text-gray-700 font-medium">
               <tr>
-                {['Departamento','Ciudad','Dirección','Courier','Teléfono','Estado','Acciones'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left whitespace-nowrap">{h}</th>
+                {[
+                  'Departamento',
+                  'Ciudad',
+                  'Dirección',
+                  'Courier',
+                  'Teléfono',
+                  'Estado',
+                  'Acciones',
+                ].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left whitespace-nowrap">
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -239,18 +298,23 @@ export default function EcommerceHomePage() {
                 <TableSkeletonRows rows={6} />
               ) : dataFiltrada.length > 0 ? (
                 dataFiltrada.map((entry) => {
-                  const asociado = entry.estado_asociacion === 'activo';
+                  const asociado = entry.estado_asociacion === 'Activo';
                   return (
-                    <tr key={`${entry.id}-${entry.id_relacion ?? 'na'}`} className="border-t hover:bg-gray-50">
+                    <tr
+                      key={`${entry.id}-${entry.id_relacion ?? 'na'}`}
+                      className="border-t hover:bg-gray-50">
                       <td className="px-4 py-2">{entry.departamento}</td>
                       <td className="px-4 py-2">{entry.ciudad}</td>
                       <td className="px-4 py-2">{entry.direccion}</td>
                       <td className="px-4 py-2">{entry.nombre_comercial}</td>
                       <td className="px-4 py-2">{entry.telefono}</td>
                       <td className="px-4 py-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          asociado ? 'bg-black text-white' : 'bg-gray-200 text-gray-800'
-                        }`}>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            asociado
+                              ? 'bg-black text-white'
+                              : 'bg-gray-200 text-gray-800'
+                          }`}>
                           {entry.estado_asociacion}
                         </span>
                       </td>
@@ -265,9 +329,11 @@ export default function EcommerceHomePage() {
                           className="p-1 hover:bg-gray-100 rounded"
                           type="button"
                           title="Ver detalle"
-                          aria-label="Ver detalle"
-                        >
-                          <Icon icon="mdi:eye-outline" className="text-blue-700" />
+                          aria-label="Ver detalle">
+                          <Icon
+                            icon="mdi:eye-outline"
+                            className="text-blue-700"
+                          />
                         </button>
 
                         {/* Si NO está asociado -> check abre modal de asociar */}
@@ -281,9 +347,11 @@ export default function EcommerceHomePage() {
                             className="p-1 hover:bg-gray-100 rounded"
                             type="button"
                             title="Asociar"
-                            aria-label="Asociar"
-                          >
-                            <Icon icon="mdi:check-circle-outline" className="text-green-600" />
+                            aria-label="Asociar">
+                            <Icon
+                              icon="mdi:check-circle-outline"
+                              className="text-green-600"
+                            />
                           </button>
                         )}
 
@@ -298,9 +366,11 @@ export default function EcommerceHomePage() {
                             className="p-1 hover:bg-gray-100 rounded"
                             type="button"
                             title="Desasociar"
-                            aria-label="Desasociar"
-                          >
-                            <Icon icon="mdi:lock-alert-outline" className="text-red-600" />
+                            aria-label="Desasociar">
+                            <Icon
+                              icon="mdi:lock-alert-outline"
+                              className="text-red-600"
+                            />
                           </button>
                         )}
                       </td>

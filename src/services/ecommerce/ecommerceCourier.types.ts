@@ -42,6 +42,7 @@ export type NuevaRelacionInput = {
 };
 
 // Couriers asociados con estado (usado para select o filtro)
+// Couriers asociados con estado (usado para select o filtro)
 export interface CourierAsociado {
   id: number;
   nombre_comercial: string;
@@ -50,6 +51,7 @@ export interface CourierAsociado {
   ciudad: string;
   direccion: string;
   nombre_usuario: string;
-  estado_asociacion: string;
-  id_relacion: number;
+  estado_asociacion: string; // o: 'Activo' | 'No Asociado'
+  id_relacion: number | null; // ← permitir null
 }
+
