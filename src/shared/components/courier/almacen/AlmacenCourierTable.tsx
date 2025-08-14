@@ -1,115 +1,107 @@
-import { useState } from 'react';
-import { Icon } from '@iconify/react';
-import AlmacenFormModal from './AlmacenCourierFormModal';
+// shared/components/courier/almacen/AlmacenCourierTable.tsx
+import { Icon } from "@iconify/react";
+import type { AlmacenamientoCourier } from "@/services/courier/almacen/almacenCourier.type";
 
-// Tipado centralizado
-export interface Almacen {
-  id?: number;           // <- opcional para soportar 'registrar'
-  nombre: string;
-  departamento: string;
-  ciudad: string;
-  direccion: string;
-  fecha?: string;        // opcional si lo trae el backend
-}
-
-// Datos mock (reemplazar por fetch en producción)
-const almacenesMock: Almacen[] = [
-  { id: 1, nombre: 'Almacén Central', departamento: 'Arequipa', ciudad: 'Camaná', direccion: 'Mariscal Cáceres', fecha: '12/01/2025' },
-  { id: 2, nombre: 'Almacén Central', departamento: 'Lima', ciudad: 'Lima', direccion: 'Av. Miraflores', fecha: '22/07/2025' },
-  { id: 3, nombre: 'Almacén Central', departamento: 'Cajamarca', ciudad: 'Cajamarca', direccion: 'Calle Rosario', fecha: '01/01/2025' },
-  { id: 4, nombre: 'Almacén Central', departamento: 'Moquegua', ciudad: 'Mariscal Nieto', direccion: 'Av. Everest', fecha: '23/02/2025' },
-];
-
-const AlmacenCourierTable: React.FC = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modo, setModo] = useState<'ver' | 'editar'>('ver');
-  const [almacenSeleccionado, setAlmacenSeleccionado] = useState<Almacen | null>(null);
-
-  const handleOpenModal = (m: 'ver' | 'editar', almacen: Almacen) => {
-    setModo(m);
-    setAlmacenSeleccionado(almacen);
-    setModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setAlmacenSeleccionado(null);
-  };
-
-  const handleSave = (almacen: Almacen) => {
-    // TODO: PUT al backend
-    console.log('Guardar cambios:', almacen);
-    setModalOpen(false);
-  };
-
-  return (
-    <>
-      <div className="bg-white rounded-xl shadow-md overflow-x-auto">
-        <table className="min-w-full text-sm text-gray-800">
-          <thead className="bg-gray-100 text-xs uppercase text-gray-600 font-semibold">
-            <tr>
-              <th className="px-5 py-4 text-left">Nom. Almacén</th>
-              <th className="px-5 py-4 text-left">Departamento</th>
-              <th className="px-5 py-4 text-left">Ciudad</th>
-              <th className="px-5 py-4 text-left">Dirección</th>
-              <th className="px-5 py-4 text-left">F. Creación</th>
-              <th className="px-5 py-4 text-center">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {almacenesMock.map((almacen, index) => (
-              <tr
-                key={almacen.id}
-                className={`border-b last:border-none ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors`}
-              >
-                <td className="px-5 py-4">{almacen.nombre}</td>
-                <td className="px-5 py-4">{almacen.departamento}</td>
-                <td className="px-5 py-4">{almacen.ciudad}</td>
-                <td className="px-5 py-4">{almacen.direccion}</td>
-                <td className="px-5 py-4">{almacen.fecha}</td>
-                <td className="px-5 py-4 text-center">
-                  <div className="flex justify-center gap-4">
-                    <button
-                      type="button"
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
-                      title="Ver"
-                      onClick={() => handleOpenModal('ver', almacen)}
-                    >
-                      <Icon icon="uil:eye" width="20" height="20" />
-                    </button>
-                    <button
-                      type="button"
-                      className="text-amber-600 hover:text-amber-800 transition-colors"
-                      title="Editar"
-                      onClick={() => handleOpenModal('editar', almacen)}
-                    >
-                      <Icon icon="uil:edit" width="20" height="20" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {almacenesMock.length === 0 && (
-              <tr>
-                <td className="px-5 py-8 text-center text-gray-500" colSpan={6}>
-                  No hay almacenes.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Modal de ver / editar */}
-      <AlmacenFormModal
-        isOpen={modalOpen}
-        onClose={handleCloseModal}
-        modo={modo}
-        almacen={almacenSeleccionado}
-        onSave={handleSave}
-      />
-    </>
-  );
+type Props = {
+  items: AlmacenamientoCourier[];
+  loading: boolean;
+  error?: string;
+  onView: (row: AlmacenamientoCourier) => void;
+  onEdit: (row: AlmacenamientoCourier) => void;
 };
 
-export default AlmacenCourierTable;
+const formatDate = (iso?: string) => {
+  if (!iso) return "-";
+  try {
+    return new Date(iso).toLocaleDateString("es-PE");
+  } catch {
+    return iso;
+  }
+};
+
+export default function AlmacenCourierTable({
+  items,
+  loading,
+  error,
+  onView,
+  onEdit,
+}: Props) {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-md p-6 text-gray-600">
+        Cargando almacenes...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl shadow-md p-6 text-red-600">
+        {error}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-md overflow-x-auto">
+      <table className="min-w-full text-sm text-gray-800">
+        <thead className="bg-gray-100 text-xs uppercase text-gray-600 font-semibold">
+          <tr>
+            <th className="px-5 py-4 text-left">Nom. Almacén</th>
+            <th className="px-5 py-4 text-left">Departamento</th>
+            <th className="px-5 py-4 text-left">Ciudad</th>
+            <th className="px-5 py-4 text-left">Dirección</th>
+            <th className="px-5 py-4 text-left">F. Creación</th>
+            <th className="px-5 py-4 text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((almacen, index) => (
+            <tr
+              key={almacen.uuid}
+              className={`border-b last:border-none ${
+                index % 2 === 0 ? "bg-white" : "bg-gray-50"
+              } hover:bg-gray-100 transition-colors`}
+            >
+              <td className="px-5 py-4">{almacen.nombre_almacen}</td>
+              <td className="px-5 py-4">{almacen.departamento}</td>
+              <td className="px-5 py-4">{almacen.ciudad}</td>
+              <td className="px-5 py-4">{almacen.direccion}</td>
+              <td className="px-5 py-4">
+                {formatDate(almacen.fecha_registro)}
+              </td>
+              <td className="px-5 py-4 text-center">
+                <div className="flex justify-center gap-4">
+                  <button
+                    type="button"
+                    className="text-blue-600 hover:text-blue-800 transition-colors"
+                    title="Ver"
+                    onClick={() => onView(almacen)}
+                  >
+                    <Icon icon="uil:eye" width="20" height="20" />
+                  </button>
+                  <button
+                    type="button"
+                    className="text-amber-600 hover:text-amber-800 transition-colors"
+                    title="Editar"
+                    onClick={() => onEdit(almacen)}
+                  >
+                    <Icon icon="uil:edit" width="20" height="20" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+
+          {items.length === 0 && (
+            <tr>
+              <td className="px-5 py-8 text-center text-gray-500" colSpan={6}>
+                No hay almacenes.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}

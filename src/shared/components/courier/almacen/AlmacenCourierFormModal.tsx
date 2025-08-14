@@ -1,21 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Icon } from '@iconify/react';
+// shared/components/courier/almacen/AlmacenCourierFormModal.tsx
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Icon } from "@iconify/react";
 
-interface Almacen {
-  id?: number;
-  nombre: string;
+type FormData = {
+  uuid?: string;
+  nombre_almacen: string;
   departamento: string;
   ciudad: string;
   direccion: string;
-  fecha?: string;
-}
+  fecha_registro?: string;
+};
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  modo: 'ver' | 'editar' | 'registrar';
-  almacen: Almacen | null;
-  onSave?: (almacen: Almacen) => void; // opcional por si el padre solo muestra (ver)
+  modo: "ver" | "editar" | "registrar";
+  almacen: FormData | null;
+  onSubmit: (payload: Omit<FormData, "uuid" | "fecha_registro">) => Promise<void> | void;
 }
 
 export default function AlmacenFormModal({
@@ -23,26 +24,26 @@ export default function AlmacenFormModal({
   onClose,
   modo,
   almacen,
-  onSave,
+  onSubmit,
 }: Props) {
-  const [formData, setFormData] = useState<Almacen>({
-    nombre: '',
-    departamento: '',
-    ciudad: '',
-    direccion: '',
+  const [formData, setFormData] = useState<FormData>({
+    nombre_almacen: "",
+    departamento: "",
+    ciudad: "",
+    direccion: "",
   });
 
-  const isViewMode = modo === 'ver';
-  const isEditMode = modo === 'editar';
-  const isCreateMode = modo === 'registrar';
+  const isViewMode = modo === "ver";
+  const isEditMode = modo === "editar";
+  const isCreateMode = modo === "registrar";
 
-  // Opciones demo (reemplazar por ubigeo dinámico cuando conectes API)
-  const departamentos = useMemo(() => ['Lima', 'Arequipa', 'Cusco'], []);
+  // Opciones demo (puedes reemplazar por tu API de ubigeo real)
+  const departamentos = useMemo(() => ["Lima", "Arequipa", "Cusco"], []);
   const ciudadesPorDepartamento = useMemo<Record<string, string[]>>(
     () => ({
-      Lima: ['Lima', 'Miraflores', 'San Isidro'],
-      Arequipa: ['Arequipa', 'Camaná', 'Cayma'],
-      Cusco: ['Cusco', 'San Sebastián', 'San Jerónimo'],
+      Lima: ["Lima", "Miraflores", "San Isidro"],
+      Arequipa: ["Arequipa", "Camaná", "Cayma"],
+      Cusco: ["Cusco", "San Sebastián", "San Jerónimo"],
     }),
     []
   );
@@ -52,19 +53,19 @@ export default function AlmacenFormModal({
     if (!isOpen) return;
     if (almacen && (isViewMode || isEditMode)) {
       setFormData({
-        id: almacen.id,
-        nombre: almacen.nombre ?? '',
-        departamento: almacen.departamento ?? '',
-        ciudad: almacen.ciudad ?? '',
-        direccion: almacen.direccion ?? '',
-        fecha: almacen.fecha,
+        uuid: almacen.uuid,
+        nombre_almacen: almacen.nombre_almacen ?? "",
+        departamento: almacen.departamento ?? "",
+        ciudad: almacen.ciudad ?? "",
+        direccion: almacen.direccion ?? "",
+        fecha_registro: almacen.fecha_registro,
       });
     } else if (isCreateMode) {
       setFormData({
-        nombre: '',
-        departamento: '',
-        ciudad: '',
-        direccion: '',
+        nombre_almacen: "",
+        departamento: "",
+        ciudad: "",
+        direccion: "",
       });
     }
   }, [isOpen, almacen, isViewMode, isEditMode, isCreateMode]);
@@ -73,10 +74,10 @@ export default function AlmacenFormModal({
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -85,18 +86,15 @@ export default function AlmacenFormModal({
     if (e.target === overlayRef.current) onClose();
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
-    // Si cambia el departamento, resetea ciudad si ya no pertenece
-    if (name === 'departamento') {
+    if (name === "departamento") {
       const ciudades = ciudadesPorDepartamento[value] ?? [];
       setFormData((prev) => ({
         ...prev,
         departamento: value,
-        ciudad: ciudades.includes(prev.ciudad) ? prev.ciudad : '',
+        ciudad: ciudades.includes(prev.ciudad) ? prev.ciudad : "",
       }));
       return;
     }
@@ -107,18 +105,22 @@ export default function AlmacenFormModal({
     }));
   };
 
-  const handleSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
+  const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
-    if (isViewMode) return; // no guarda en modo 'ver'
+    if (isViewMode) return;
 
-    // Validación mínima
-    if (!formData.nombre || !formData.departamento || !formData.ciudad || !formData.direccion) {
-      // podrías reemplazar por tu sistema de toasts
-      console.warn('Complete todos los campos obligatorios');
+    if (!formData.nombre_almacen || !formData.departamento || !formData.ciudad || !formData.direccion) {
+      console.warn("Complete todos los campos obligatorios");
       return;
     }
 
-    onSave?.(formData);
+    await onSubmit({
+      nombre_almacen: formData.nombre_almacen,
+      departamento: formData.departamento,
+      ciudad: formData.ciudad,
+      direccion: formData.direccion,
+    });
+
     onClose();
   };
 
@@ -136,7 +138,7 @@ export default function AlmacenFormModal({
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-blue-700 flex items-center gap-2">
             <Icon icon="mdi:warehouse" width={24} />
-            {isCreateMode ? 'Registrar Nuevo Almacén' : isEditMode ? 'Editar Almacén' : 'Detalle del Almacén'}
+            {isCreateMode ? "Registrar Nuevo Almacén" : isEditMode ? "Editar Almacén" : "Detalle del Almacén"}
           </h2>
           <button onClick={onClose} aria-label="Cerrar">
             <Icon icon="ic:round-close" width="24" />
@@ -145,19 +147,17 @@ export default function AlmacenFormModal({
 
         <p className="text-sm text-gray-600 mb-6">
           {isViewMode
-            ? 'Visualiza la información del almacén.'
-            : 'Complete la información para registrar o editar un almacén.'}
+            ? "Visualiza la información del almacén."
+            : "Complete la información para registrar o editar un almacén."}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Nombre de Almacén
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Nombre de Almacén</label>
             <input
               type="text"
-              name="nombre"
-              value={formData.nombre}
+              name="nombre_almacen"
+              value={formData.nombre_almacen}
               onChange={handleChange}
               disabled={isViewMode}
               placeholder="Ejem. Almacén secundario"
@@ -167,9 +167,7 @@ export default function AlmacenFormModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Departamento
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Departamento</label>
             <select
               name="departamento"
               value={formData.departamento}
@@ -220,11 +218,12 @@ export default function AlmacenFormModal({
             />
           </div>
 
-          {/* Solo mostrar fecha si viene del backend */}
-          {formData.fecha && (
+          {formData.fecha_registro && (
             <div>
-              <span className="block text-sm font-medium text-gray-700">Fecha</span>
-              <div className="mt-1 text-sm text-gray-600">{formData.fecha}</div>
+              <span className="block text-sm font-medium text-gray-700">Fecha de creación</span>
+              <div className="mt-1 text-sm text-gray-600">
+                {new Date(formData.fecha_registro).toLocaleString("es-PE")}
+              </div>
             </div>
           )}
 
@@ -234,7 +233,7 @@ export default function AlmacenFormModal({
                 type="submit"
                 className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-md text-sm font-medium w-full"
               >
-                {isCreateMode ? 'Crear nuevo' : 'Guardar cambios'}
+                {isCreateMode ? "Crear nuevo" : "Guardar cambios"}
               </button>
             )}
             <button
