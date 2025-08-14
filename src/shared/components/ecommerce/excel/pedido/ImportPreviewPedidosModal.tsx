@@ -47,15 +47,17 @@ export default function ImportPreviewPedidosModal({
   token,
   data,
   onImported,
+  allowMultiCourier = true, // ⬅️ NUEVO: modo multi-courier
 }: {
   open: boolean;
   onClose: () => void;
   token: string;
   data: PreviewResponseDTO;
   onImported: () => void;
+  allowMultiCourier?: boolean;
 }) {
   const [groups, setGroups] = useState<PreviewGroupDTO[]>(data.preview);
-  const [courierId, setCourierId] = useState<number | ''>(''); // requerido por backend
+  const [courierId, setCourierId] = useState<number | ''>(''); // requerido solo si allowMultiCourier === false
   const [trabajadorId, setTrabajadorId] = useState<number | ''>('');
   const [estadoId, setEstadoId] = useState<number | ''>('');
   const [distritos, setDistritos] = useState<string[]>([]);
@@ -86,7 +88,7 @@ export default function ImportPreviewPedidosModal({
 
   // Normalización
   const norm = (s: string) =>
-    (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
   // ===== Couriers (asociados reales) =====
   const [localCouriers, setLocalCouriers] = useState<CourierOption[]>([]);
@@ -121,26 +123,27 @@ export default function ImportPreviewPedidosModal({
     };
   }, [token]);
 
-  // Si hay un solo courier, auto-seleccionarlo
+  // En modo courier único: si hay un solo courier, auto-seleccionarlo
   useEffect(() => {
-    if (!courierId && localCouriers.length === 1) {
+    if (!allowMultiCourier && !courierId && localCouriers.length === 1) {
       setCourierId(localCouriers[0].id);
     }
-  }, [localCouriers, courierId]);
+  }, [allowMultiCourier, localCouriers, courierId]);
 
-  // Autodetectar courier desde el texto del preview (si aún no se eligió)
+  // Autodetectar courier desde el texto del preview (solo ayuda visual si es single-courier)
   const byCourierName = useMemo(() => {
     const map = new Map<string, CourierOption>();
     localCouriers.forEach((c) => map.set(norm(c.nombre), c));
     return map;
   }, [localCouriers]);
   useEffect(() => {
+    if (allowMultiCourier) return; // en multi no se autoselecciona uno global
     if (courierId || !groups?.length || !localCouriers.length) return;
     const firstMatch = groups.map((g) => byCourierName.get(norm(g.courier))).find(Boolean);
     if (firstMatch) setCourierId(firstMatch.id);
-  }, [courierId, groups, byCourierName, localCouriers.length]);
+  }, [allowMultiCourier, courierId, groups, byCourierName, localCouriers.length]);
 
-  // ===== Distritos por courier (solo para sugerencias) =====
+  // ===== Distritos por courier (solo para sugerencias, y solo si courier único) =====
   useEffect(() => {
     let cancel = false;
 
@@ -156,7 +159,7 @@ export default function ImportPreviewPedidosModal({
     };
 
     async function load() {
-      if (!courierId) {
+      if (allowMultiCourier || !courierId) {
         setDistritos([]);
         return;
       }
@@ -184,18 +187,18 @@ export default function ImportPreviewPedidosModal({
     return () => {
       cancel = true;
     };
-  }, [courierId, token]);
+  }, [allowMultiCourier, courierId, token]);
 
   // Opciones para Autocomplete/select
   const courierOptions: Option[] = localCouriers.map((c) => ({
-    value: String(c.id), // asegurar string
+    value: String(c.id),
     label: c.nombre,
   }));
   const distritoOptions: Option[] = distritos.map((d) => ({ value: d, label: d }));
 
   // Validaciones
-  const isInvalidCourier = (s: string) => !!s && !localCouriers.some((c) => norm(c.nombre) === norm(s));
-  // 🚩 distrito libre: solo vacío es inválido
+  const isInvalidCourier = (s: string) =>
+    !!s && !localCouriers.some((c) => norm(c.nombre) === norm(s));
   const isInvalidDistrito = (s: string) => !s || s.trim().length === 0;
   const isInvalidCantidad = (n: number | null) =>
     n == null || Number.isNaN(n) || Number(n) <= 0;
@@ -210,10 +213,12 @@ export default function ImportPreviewPedidosModal({
     () => groups.filter((g) => g.valido).length,
     [groups]
   );
+
+  // En multi-courier: NO bloqueamos por courier desconocido, solo resaltamos.
+  // En single-courier: exigimos courierId numérico.
   const hasInvalid = useMemo(() => {
-    if (typeof courierId !== 'number') return true;
+    if (!allowMultiCourier && typeof courierId !== 'number') return true;
     for (const g of groups) {
-      if (isInvalidCourier(g.courier)) return true;
       if (isInvalidDistrito(g.distrito)) return true;
       if ((g.monto_total ?? 0) < 0) return true;
       for (const it of g.items) {
@@ -221,7 +226,7 @@ export default function ImportPreviewPedidosModal({
       }
     }
     return false;
-  }, [groups, courierId]);
+  }, [allowMultiCourier, groups, courierId]);
 
   // Editar cantidad por item
   const handleCantidad = (gIdx: number, iIdx: number, val: number) => {
@@ -239,7 +244,7 @@ export default function ImportPreviewPedidosModal({
     );
   };
 
-  // Editar nombre de producto por item (texto libre). Limpia producto_id para forzar auto-creación.
+  // Editar nombre de producto por item (texto libre). Limpia producto_id para forzar auto-resolución/creación controlada.
   const handleProductoNombre = (gIdx: number, iIdx: number, val: string) => {
     setGroups((prev) =>
       prev.map((g, gi) =>
@@ -270,7 +275,7 @@ export default function ImportPreviewPedidosModal({
   const confirmarImportacion = async () => {
     setError(null);
 
-    if (typeof courierId !== 'number') {
+    if (!allowMultiCourier && typeof courierId !== 'number') {
       setError('Selecciona un courier válido.');
       return;
     }
@@ -285,7 +290,8 @@ export default function ImportPreviewPedidosModal({
 
     const payload: ImportPayload = {
       groups: groupsToSend,
-      courierId, // number
+      // En single-courier enviamos courierId (override). En multi, NO lo incluimos.
+      ...(allowMultiCourier ? {} : { courierId: courierId as number }),
       trabajadorId: trabajadorId ? Number(trabajadorId) : undefined,
       estadoId: estadoId ? Number(estadoId) : undefined,
     };
@@ -308,23 +314,26 @@ export default function ImportPreviewPedidosModal({
     <CenteredModal title="Validación de datos (Pedidos)" onClose={onClose} widthClass="max-w-[1400px]">
       {/* Barra superior */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <select
-          className="border rounded px-2 py-1 text-sm"
-          value={courierId}
-          onChange={(e) => {
-            const val = e.target.value;
-            setCourierId(val ? Number(val) : '');
-          }}
-        >
-          <option value="">
-            {localCouriers.length ? 'Seleccionar Courier (requerido)' : 'Cargando couriers...'}
-          </option>
-          {localCouriers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre}
+        {/* Selector de courier global: solo si NO es multi-courier */}
+        {!allowMultiCourier && (
+          <select
+            className="border rounded px-2 py-1 text-sm"
+            value={courierId}
+            onChange={(e) => {
+              const val = e.target.value;
+              setCourierId(val ? Number(val) : '');
+            }}
+          >
+            <option value="">
+              {localCouriers.length ? 'Seleccionar Courier (requerido)' : 'Cargando couriers...'}
             </option>
-          ))}
-        </select>
+            {localCouriers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+        )}
 
         <input
           className="border rounded px-2 py-1 text-sm w-44"
@@ -341,7 +350,7 @@ export default function ImportPreviewPedidosModal({
 
         <div className="ml-auto text-sm bg-gray-50 rounded px-2 py-1">
           <b>Total:</b> {groups.length} · <b>Válidos:</b> {totalValidos} ·{' '}
-          <b>Distritos:</b> {distritos.length}
+          {!allowMultiCourier && <><b>Distritos:</b> {distritos.length}</>}
         </div>
       </div>
 
@@ -388,19 +397,21 @@ export default function ImportPreviewPedidosModal({
                 />
               </th>
 
-              {/* Distrito (texto libre con sugerencias) */}
+              {/* Distrito (texto libre con sugerencias si single-courier) */}
               <th className="px-2 py-2 border-b border-gray-200">
                 <input
-                  list="distritos-list"
+                  list={!allowMultiCourier ? 'distritos-list' : undefined}
                   className="w-full border rounded px-2 py-1"
                   placeholder={
-                    typeof courierId !== 'number'
+                    allowMultiCourier
+                      ? 'Escribe distrito'
+                      : typeof courierId !== 'number'
                       ? 'Elige courier'
                       : distritos.length
                       ? 'Escribe o elige distrito'
                       : 'Escribe distrito'
                   }
-                  disabled={!(typeof courierId === 'number')}
+                  disabled={!allowMultiCourier && !(typeof courierId === 'number')}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       const v = (e.target as HTMLInputElement).value.trim();
@@ -413,11 +424,13 @@ export default function ImportPreviewPedidosModal({
                     if (v) applyToSelected({ distrito: v });
                   }}
                 />
-                <datalist id="distritos-list">
-                  {distritos.map((d) => (
-                    <option key={d} value={d} />
-                  ))}
-                </datalist>
+                {!allowMultiCourier && (
+                  <datalist id="distritos-list">
+                    {distritos.map((d) => (
+                      <option key={d} value={d} />
+                    ))}
+                  </datalist>
+                )}
               </th>
 
               {/* Celular */}
@@ -586,9 +599,13 @@ export default function ImportPreviewPedidosModal({
 
           <tbody>
             {groups.map((g, gi) => {
+              // En single-courier usamos sugerencias; en multi solo texto libre.
               const isNewDistrito =
-                !!g.distrito && !distritos.some((d) => norm(d) === norm(g.distrito));
+                !!g.distrito && (!allowMultiCourier
+                  ? !distritos.some((d) => norm(d) === norm(g.distrito))
+                  : false);
               const distritoClass = isNewDistrito ? 'border-amber-500 bg-amber-50 text-amber-700' : '';
+
               return (
                 <tr key={gi} className="odd:bg-white even:bg-gray-50">
                   <td className="border-b border-gray-100 px-2 py-1 align-top">
@@ -608,16 +625,14 @@ export default function ImportPreviewPedidosModal({
                   </td>
 
                   <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    {/* Contenedor con title condicional para evitar usar prop inexistente en Autocomplete */}
                     <div
                       className={`w-full ${distritoClass}`}
-                      title={isNewDistrito ? 'Distrito no registrado (se creará al importar)' : undefined}
+                      title={isNewDistrito ? 'Distrito no registrado (puede no existir en zonas)' : undefined}
                     >
-                      {/* Autocomplete con opciones, pero permite texto libre */}
                       <Autocomplete
-                        value={g.distrito || ''} // asegurar string
+                        value={g.distrito || ''}
                         onChange={(v: string) => patchGroup(gi, { distrito: v })}
-                        options={distritoOptions}
+                        options={!allowMultiCourier ? distritoOptions : []}
                         placeholder="Distrito"
                         invalid={isInvalidDistrito(g.distrito)}
                         className="w-full"
@@ -651,13 +666,19 @@ export default function ImportPreviewPedidosModal({
 
                   <td className="border-b border-gray-100 px-2 py-1 align-top">
                     <Autocomplete
-                      value={g.courier || ''} // asegurar string
+                      value={g.courier || ''}
                       onChange={(v: string) => patchGroup(gi, { courier: v })}
                       options={courierOptions}
                       placeholder="Courier"
-                      invalid={isInvalidCourier(g.courier)}
+                      // 🔸 En multi no bloquea, solo resalta si no coincide con la lista
+                      invalid={!allowMultiCourier && isInvalidCourier(g.courier)}
                       className="w-full"
                     />
+                    {allowMultiCourier && isInvalidCourier(g.courier) && g.courier ? (
+                      <div className="text-[11px] text-amber-600 mt-1">
+                        Nombre de courier no coincide con asociados. Se intentará resolver por similitud.
+                      </div>
+                    ) : null}
                   </td>
 
                   {/* Producto + Cantidad */}
@@ -734,7 +755,7 @@ export default function ImportPreviewPedidosModal({
           className="px-4 py-2 text-sm rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
           title={hasInvalid ? 'Corrige los campos en rojo' : ''}
         >
-          {loading ? 'Importando…' : 'Cargar Datos'}
+          {loading ? 'Importando…' : allowMultiCourier ? 'Cargar Datos (multi-courier)' : 'Cargar Datos'}
         </button>
       </div>
 

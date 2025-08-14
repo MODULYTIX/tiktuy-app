@@ -14,10 +14,12 @@ export default function ImportExcelPedidosFlow({
   token,
   onImported = () => {},
   children,
+  allowMultiCourier = true, // <-- NUEVO: habilita flujo multi-courier
 }: {
   token: string;
   onImported?: () => void;
   children: (openPicker: () => void) => React.ReactNode;
+  allowMultiCourier?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [loadingModalOpen, setLoadingModalOpen] = useState(false);
@@ -72,6 +74,9 @@ export default function ImportExcelPedidosFlow({
           token={token}
           data={previewData}
           onImported={onImported}
+          // 👉 Si tu modal soporta multi-courier, esta flag le avisa que
+          // no fuerce un único courier seleccionado y que respete el 'courier' de cada grupo.
+          allowMultiCourier={allowMultiCourier}
         />
       )}
     </>
