@@ -13,10 +13,8 @@ export default function PedidosTableCompletado({ onVer }: PedidosTableCompletado
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Paginación
   const PAGE_SIZE = 5;
   const [page, setPage] = useState(1);
-  const totalPages = Math.max(1, Math.ceil(pedidos.length / PAGE_SIZE));
 
   useEffect(() => {
     if (!token) return;
@@ -27,48 +25,84 @@ export default function PedidosTableCompletado({ onVer }: PedidosTableCompletado
       .finally(() => setLoading(false));
   }, [token]);
 
+  const totalPages = Math.max(1, Math.ceil(pedidos.length / PAGE_SIZE));
+
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [totalPages, page]);
 
-  const visiblePedidos = useMemo(
-    () => pedidos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [pedidos, page]
-  );
+  const visiblePedidos = useMemo(() => {
+    return pedidos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  }, [pedidos, page]);
 
   const pagerItems = useMemo(() => {
-    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    return [1, 2, 3, '…', totalPages] as const;
-  }, [totalPages]);
+    const maxButtons = 5;
+    const pages: (number | string)[] = [];
+
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, page - 2);
+      let end = Math.min(totalPages, page + 2);
+
+      if (page <= 3) {
+        start = 1;
+        end = maxButtons;
+      } else if (page >= totalPages - 2) {
+        start = totalPages - (maxButtons - 1);
+        end = totalPages;
+      }
+
+      for (let i = start; i <= end; i++) pages.push(i);
+
+      if (start > 1) {
+        pages.unshift('...');
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  }, [totalPages, page]);
+
+  const goToPage = (p: number) => {
+    if (p < 1 || p > totalPages || p === page) return;
+    setPage(p);
+  };
+
+  const emptyRowsCount = PAGE_SIZE - visiblePedidos.length;
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full table-fixed text-[12px] bg-white border border-gray30 rounded-md shadow-[var(--shadow-default)]">
+      <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30">
         <colgroup>
-          <col className="w-[8%]" />   {/* Fec. Entrega */}
-          <col className="w-[16%]" />  {/* Courier */}
-          <col className="w-[16%]" />  {/* Cliente */}
-          <col className="w-[16%]" />  {/* Producto */}
-          <col className="w-[8%]" />   {/* Cantidad */}
-          <col className="w-[8%]" />   {/* Monto */}
-          <col className="w-[8%]" />   {/* Acciones */}
+          <col className="w-[8%]" />
+          <col className="w-[16%]" />
+          <col className="w-[16%]" />
+          <col className="w-[16%]" />
+          <col className="w-[8%]" />
+          <col className="w-[8%]" />
+          <col className="w-[8%]" />
         </colgroup>
 
         <thead className="bg-[#E5E7EB]">
           <tr className="text-gray70 font-roboto font-medium">
-            <th className="px-2 py-3 text-center first:rounded-tl-md">Fec. Entrega</th>
-            <th className="px-4 py-3 text-left">Courier</th>
-            <th className="px-4 py-3 text-left">Cliente</th>
-            <th className="px-4 py-3 text-left">Producto</th>
-            <th className="px-4 py-3 text-center">Cantidad</th>
-            <th className="px-4 py-3 text-center">Monto</th>
-            <th className="px-4 py-3 text-center last:rounded-tr-md">Acciones</th>
+            <th className="px-2 py-3 text-gray70 text-center">Fec. Entrega</th>
+            <th className="px-4 py-3 text-gray70 text-left">Courier</th>
+            <th className="px-4 py-3 text-gray70 text-left">Cliente</th>
+            <th className="px-4 py-3 text-gray70 text-left">Producto</th>
+            <th className="px-4 py-3 text-gray70 text-center">Cantidad</th>
+            <th className="px-4 py-3 text-gray70 text-center">Monto</th>
+            <th className="px-4 py-3 text-gray70 text-center">Acciones</th>
           </tr>
         </thead>
 
         <tbody className="divide-y divide-gray20">
           {loading ? (
-            Array.from({ length: 3 }).map((_, idx) => (
+            Array.from({ length: PAGE_SIZE }).map((_, idx) => (
               <tr key={idx} className="[&>td]:px-4 [&>td]:py-3 animate-pulse">
                 {Array.from({ length: 7 }).map((_, i) => (
                   <td key={i}>
@@ -84,60 +118,78 @@ export default function PedidosTableCompletado({ onVer }: PedidosTableCompletado
               </td>
             </tr>
           ) : (
-            visiblePedidos.map((pedido) => (
-              <tr key={pedido.id} className="hover:bg-gray10 transition-colors">
-                <td className="px-2 py-3 text-gray70 text-center">
-                  {new Date(pedido.fecha_creacion).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-3 text-gray70 text-left">
-                  {pedido.courier?.nombre_comercial}
-                </td>
-                <td className="px-4 py-3 text-gray70 text-left">
-                  {pedido.nombre_cliente}
-                </td>
-                <td className="px-4 py-3 text-gray70 text-left">
-                  {pedido.detalles?.[0]?.producto?.nombre_producto ?? '-'}
-                </td>
-                <td className="px-4 py-3 text-gray70 text-center">
-                  {pedido.detalles?.[0]?.cantidad?.toString().padStart(2, '0')}
-                </td>
-                <td className="px-4 py-3 text-gray70 text-center">
-                  S/.{' '}
-                  {pedido.detalles
-                    ?.reduce((acc, d) => acc + d.cantidad * d.precio_unitario, 0)
-                    .toFixed(2)}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-center">
-                    <button
-                      onClick={() => onVer(pedido.id)}
-                      className="text-primaryLight hover:text-primaryDark"
-                      title="Ver Pedido"
-                    >
-                      <FiEye className="inline-block w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
+            <>
+              {visiblePedidos.map((pedido) => (
+                <tr key={pedido.id} className="hover:bg-gray10 transition-colors">
+                  <td className="px-2 py-3 text-gray70 font-[400] text-center">
+                    {new Date(pedido.fecha_creacion).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-gray70 font-[400] text-left">
+                    {pedido.courier?.nombre_comercial}
+                  </td>
+                  <td className="px-4 py-3 text-gray70 font-[400] text-left">
+                    {pedido.nombre_cliente}
+                  </td>
+                  <td className="px-4 py-3 text-gray70 font-[400] text-left">
+                    {pedido.detalles?.[0]?.producto?.nombre_producto ?? '-'}
+                  </td>
+                  <td className="px-4 py-3 text-gray70 font-[400] text-center">
+                    {pedido.detalles?.[0]?.cantidad?.toString().padStart(2, '0')}
+                  </td>
+                  <td className="px-4 py-3 text-gray70 font-[400] text-center">
+                    S/.{' '}
+                    {pedido.detalles
+                      ?.reduce((acc, d) => acc + d.cantidad * d.precio_unitario, 0)
+                      .toFixed(2)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center">
+                      <button
+                        onClick={() => onVer(pedido.id)}
+                        className="text-primaryLight hover:text-primaryDark"
+                        title="Ver Pedido"
+                      >
+                        <FiEye className="inline-block w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {emptyRowsCount > 0 &&
+                Array.from({ length: emptyRowsCount }).map((_, idx) => (
+                  <tr key={`empty-${idx}`} className="hover:bg-transparent">
+                    {Array.from({ length: 7 }).map((_, i) => (
+                      <td key={i} className="px-4 py-3">&nbsp;</td>
+                    ))}
+                  </tr>
+                ))}
+            </>
           )}
         </tbody>
       </table>
 
-      {/* Paginador */}
-      <div className="flex items-center justify-end gap-4 border-b-[4px] border-gray90 py-3 pr-2">
+      <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3">
+        <button
+          onClick={() => goToPage(page - 1)}
+          disabled={page === 1}
+          className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+        >
+          &lt;
+        </button>
+
         {pagerItems.map((p, i) =>
-          p === '…' ? (
-            <span key={`dots-${i}`} className="text-gray70">…</span>
+          typeof p === 'string' ? (
+            <span key={`dots-${i}`} className="px-2 text-gray70">{p}</span>
           ) : (
             <button
               key={p}
-              onClick={() => setPage(p as number)}
+              onClick={() => goToPage(p)}
               aria-current={page === p ? 'page' : undefined}
               className={[
                 'w-8 h-8 flex items-center justify-center rounded',
                 page === p
-                  ? 'bg-[#F97316] text-white'
+                  ? 'bg-gray90 text-white'
                   : 'bg-gray10 text-gray70 hover:bg-gray20'
               ].join(' ')}
             >
@@ -145,6 +197,14 @@ export default function PedidosTableCompletado({ onVer }: PedidosTableCompletado
             </button>
           )
         )}
+
+        <button
+          onClick={() => goToPage(page + 1)}
+          disabled={page === totalPages}
+          className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+        >
+          &gt;
+        </button>
       </div>
     </div>
   );

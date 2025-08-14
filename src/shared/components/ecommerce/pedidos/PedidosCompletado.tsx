@@ -6,10 +6,7 @@ interface PedidosCompletadoProps {
 
 export default function PedidosCompletado({ onVer }: PedidosCompletadoProps) {
   return (
-    <div className="mt-6 bg-white rounded shadow p-4">
-      <h2 className="text-lg font-semibold text-primaryDark">Pedidos Completados</h2>
-      <p className="text-sm text-gray-600">Pedidos en su estado final.</p>
-
+    <div className="bg-white rounded-md overflow-hidden shadow-default">
       <PedidosTableCompletado onVer={onVer} />
     </div>
   );

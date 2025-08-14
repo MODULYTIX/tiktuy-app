@@ -25,7 +25,7 @@ export default function AnimatedExcelMenu({
   }, []);
 
   return (
-    <div className="relative flex items-center" ref={ref}>
+    <div className="relative flex items-center " ref={ref}>
       {/* Botones deslizantes */}
       <div
         className={`flex items-center gap-2 transition-all duration-300 ${

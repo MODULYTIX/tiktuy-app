@@ -20,8 +20,8 @@ type Vista = 'generado' | 'asignado' | 'completado';
 type Filtros = {
   courier: string;
   producto: string;
-  fechaInicio: string; // 'YYYY-MM-DD'
-  fechaFin: string; // 'YYYY-MM-DD'
+  fechaInicio: string;
+  fechaFin: string;
 };
 
 export default function PedidosPage() {
@@ -40,7 +40,7 @@ export default function PedidosPage() {
     fechaFin: '',
   });
 
-  // Para refrescar tablas tras importar/crear/editar
+  
   const [refreshKey, setRefreshKey] = useState(0);
   const handleImported = () => setRefreshKey((k) => k + 1);
 
@@ -82,46 +82,39 @@ export default function PedidosPage() {
   };
 
   const handleDescargarPlantilla = () => {
-    // Variante archivo estático público
+
     const a = document.createElement('a');
     a.href = '../../../assets/template/template_ventas.xlsx';
     a.download = 'plantilla-ventas.xlsx';
     a.click();
-
-    // Variante API protegida (si la implementas):
-    // fetch(`${import.meta.env.VITE_API_URL}/import/excel/v1/pedidos/plantilla`, {
-    //   headers: { Authorization: `Bearer ${token}` }
-    // })
-    //   .then(r => r.blob())
-    //   .then(blob => {
-    //     const url = URL.createObjectURL(blob);
-    //     const a = document.createElement('a');
-    //     a.href = url; a.download = 'plantilla-ventas.xlsx'; a.click();
-    //     URL.revokeObjectURL(url);
-    //   });
   };
+
+  const descripcionVista = {
+    generado: 'Consulta los pedidos registrados recientemente.',
+    asignado: 'Los pedidos ya fueron asignados a un repartidor.',
+    completado: 'Pedidos en su estado final.',
+  } as const;
 
   return (
     <section className="mt-8 flex flex-col gap-[1.25rem]">
+      {/* Tabs */}
       <div className="flex justify-between items-end pb-5 border-b border-gray30">
         <div className="flex flex-col gap-1">
           <h1 className="text-[1.75rem] font-bold text-primary">
             Panel de Pedidos
           </h1>
           <p className="text-gray60">
-            Administra y visualiza el estado de tus pedidos en cada etapa del
-            proceso.
+            Administra y visualiza el estado de tus pedidos en cada etapa del proceso.
           </p>
         </div>
 
         <div className="flex gap-3 items-center">
           <button
             onClick={() => setVista('generado')}
-            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${
-              vista === 'generado'
+            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${vista === 'generado'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}>
+              }`}>
             <RiAiGenerate size={18} />
             Generado
           </button>
@@ -130,11 +123,10 @@ export default function PedidosPage() {
 
           <button
             onClick={() => setVista('asignado')}
-            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${
-              vista === 'asignado'
+            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${vista === 'asignado'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}>
+              }`}>
             <MdOutlineAssignment size={18} />
             Asignado
           </button>
@@ -143,53 +135,56 @@ export default function PedidosPage() {
 
           <button
             onClick={() => setVista('completado')}
-            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${
-              vista === 'completado'
+            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${vista === 'completado'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}>
+              }`}>
             <LuClipboardCheck size={18} />
             Completado
           </button>
         </div>
       </div>
 
+      {/* Título y descripción */}
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <h2 className="text-lg font-bold text-primaryDark">
             {vista === 'generado'
               ? 'Pedidos Generados'
               : vista === 'asignado'
-              ? 'Pedidos Asignados'
-              : 'Pedidos Completados'}
+                ? 'Pedidos Asignados'
+                : 'Pedidos Completados'}
           </h2>
           <p className="text-sm text-black font-regular">
-            Consulta y gestiona tus pedidos.
+            {descripcionVista[vista]}
           </p>
         </div>
 
-        <div className="flex gap-2">
-          <ImportExcelPedidosFlow
-            token={token ?? ''}
-            onImported={handleImported}>
-            {(openPicker) => (
-              <AnimatedExcelMenu
-                onTemplateClick={handleDescargarPlantilla}
-                onImportClick={openPicker}
-              />
-            )}
-          </ImportExcelPedidosFlow>
+        {/* Botones solo en generado */}
+        {vista === 'generado' && (
+          <div className="flex gap-2">
+            <ImportExcelPedidosFlow
+              token={token ?? ''}
+              onImported={handleImported}>
+              {(openPicker) => (
+                <AnimatedExcelMenu
+                  onTemplateClick={handleDescargarPlantilla}
+                  onImportClick={openPicker}
+                />
+              )}
+            </ImportExcelPedidosFlow>
 
-          <button
-            onClick={handleNuevoPedido}
-            className="bg-primaryLight text-white px-[0.75rem] py-[0.5625rem] rounded flex items-center gap-2 hover:bg-blue-700">
-            <FiPlus className="w-4 h-4" />
-            Nuevo Pedido
-          </button>
-        </div>
+            <button
+              onClick={handleNuevoPedido}
+              className="bg-primaryLight text-white px-[0.75rem] py-[0.5625rem] rounded flex items-center gap-2 hover:bg-blue-700">
+              <FiPlus className="w-4 h-4" />
+              Nuevo Pedido
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Filtros (mock: conéctalos a tu API cuando quieras) */}
+      {/* Filtros */}
       <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
         {/* Courier */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
@@ -271,16 +266,16 @@ export default function PedidosPage() {
         </button>
       </div>
 
-      {/* Vistas: key para remonte tras import */}
+      {/* Vistas */}
       {vista === 'generado' && <PedidosGenerado key={`gen-${refreshKey}`} />}
       {vista === 'asignado' && (
         <PedidosAsignado key={`asi-${refreshKey}`} onEditar={handleEditar} />
       )}
-
       {vista === 'completado' && (
         <PedidosCompletado key={`comp-${refreshKey}`} onVer={handleVer} />
       )}
 
+      {/* Modal */}
       {modalAbierto && (
         <CrearPedidoModal
           isOpen={modalAbierto}

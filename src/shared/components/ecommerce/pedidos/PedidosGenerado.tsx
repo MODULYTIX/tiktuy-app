@@ -2,7 +2,7 @@ import PedidosTableGenerado from './table/PedidosTableGenerado';
 
 export default function PedidosGenerado() {
     return (
-      <div className="mt-6 bg-white rounded shadow-default">
+      <div className="bg-white rounded-md overflow-hidden shadow-default">
         <PedidosTableGenerado onEditar={PedidosGenerado} />
       </div>
     );
