@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaEye } from "react-icons/fa";
+import { Icon } from "@iconify/react";
 import {
   listarEcommercesAsociados,
   getAuthToken,
@@ -16,7 +17,7 @@ interface EcommerceRow {
   telefono: string;
   estado: EstadoTexto;
   fecha_asociacion: string;
-  _raw: EcommerceCourier; // por si quieres ver detalle
+  _raw: EcommerceCourier;
 }
 
 const rowsPerPage = 5;
@@ -35,13 +36,11 @@ function toRow(item: EcommerceCourier): EcommerceRow {
   const e = item.ecommerce;
   const u = e.usuario;
 
-  // Estado: si el usuario tiene contraseña vacía => pendiente; caso contrario activo
   const estado: EstadoTexto =
     typeof u.contrasena === "string" && u.contrasena.length === 0
       ? "pendiente"
       : "activo";
 
-  // Preferimos createdAt/created_at del vínculo, luego del ecommerce y por último del usuario
   const fecha =
     item.createdAt ||
     item.created_at ||
@@ -115,6 +114,50 @@ export default function PanelControlTable() {
     alert(JSON.stringify(row._raw, null, 2));
   };
 
+  const pagerItems = useMemo(() => {
+    const maxButtons = 5;
+    const pages: (number | string)[] = [];
+
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let start = Math.max(1, page - 2);
+      let end = Math.min(totalPages, page + 2);
+
+      if (page <= 3) {
+        start = 1;
+        end = maxButtons;
+      } else if (page >= totalPages - 2) {
+        start = totalPages - (maxButtons - 1);
+        end = totalPages;
+      }
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (start > 1) {
+        pages.unshift("...");
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  }, [totalPages, page]);
+
+  const goToPage = (p: number) => {
+    if (p < 1 || p > totalPages || p === page) return;
+    setPage(p);
+  };
+
+  const emptyRowsCount = rowsPerPage - currentData.length;
+
   if (loading) {
     return (
       <div className="mt-4 p-4 text-sm text-gray-600 bg-white rounded shadow-sm">
@@ -149,10 +192,10 @@ export default function PanelControlTable() {
           <tbody className="text-gray-700">
             {currentData.map((entry) => (
               <tr key={entry.id} className="border-t hover:bg-gray-50">
-                <td className="px-4 py-2">{entry.nombre_comercial}</td>
-                <td className="px-4 py-2">{entry.ruc}</td>
-                <td className="px-4 py-2">{entry.ciudad}</td>
-                <td className="px-4 py-2 flex items-center gap-2">
+                <td className="px-4 py-3">{entry.nombre_comercial}</td>
+                <td className="px-4 py-3">{entry.ruc}</td>
+                <td className="px-4 py-3">{entry.ciudad}</td>
+                <td className="px-4 py-3 flex items-center gap-2">
                   {entry.telefono}
                   {entry.telefono && entry.telefono !== "-" && (
                     <button
@@ -166,7 +209,7 @@ export default function PanelControlTable() {
                     </button>
                   )}
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-3">
                   <span
                     className={`text-xs px-2 py-1 rounded-full font-medium ${
                       entry.estado === "activo"
@@ -177,8 +220,8 @@ export default function PanelControlTable() {
                     {entry.estado}
                   </span>
                 </td>
-                <td className="px-4 py-2">{entry.fecha_asociacion}</td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-3">{entry.fecha_asociacion}</td>
+                <td className="px-4 py-3">
                   <FaEye
                     onClick={() => handleVerDetalle(entry)}
                     className="text-blue-600 hover:text-blue-800 cursor-pointer"
@@ -188,32 +231,57 @@ export default function PanelControlTable() {
               </tr>
             ))}
 
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
-                  No hay ecommerces asociados todavía.
-                </td>
-              </tr>
-            )}
+            {emptyRowsCount > 0 &&
+              Array.from({ length: emptyRowsCount }).map((_, idx) => (
+                <tr key={`empty-${idx}`} className="hover:bg-transparent">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <td key={i} className="px-4 py-3">&nbsp;</td>
+                  ))}
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
 
-      {rows.length > 0 && (
-        <div className="flex justify-end items-center gap-2 mt-4 text-sm">
-          {Array.from({ length: totalPages }).map((_, i) => (
+      <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3">
+        <button
+          onClick={() => goToPage(page - 1)}
+          disabled={page === 1}
+          className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+        >
+          &lt;
+        </button>
+
+        {pagerItems.map((p, i) =>
+          typeof p === "string" ? (
+            <span key={`dots-${i}`} className="px-2 text-gray70">
+              {p}
+            </span>
+          ) : (
             <button
-              key={i + 1}
-              className={`w-8 h-8 flex items-center justify-center border rounded ${
-                page === i + 1 ? "bg-orange-500 text-white" : "text-gray-700"
-              }`}
-              onClick={() => setPage(i + 1)}
+              key={p}
+              onClick={() => goToPage(p)}
+              aria-current={page === p ? "page" : undefined}
+              className={[
+                "w-8 h-8 flex items-center justify-center rounded",
+                page === p
+                  ? "bg-gray90 text-white"
+                  : "bg-gray10 text-gray70 hover:bg-gray20",
+              ].join(" ")}
             >
-              {i + 1}
+              {p}
             </button>
-          ))}
-        </div>
-      )}
+          )
+        )}
+
+        <button
+          onClick={() => goToPage(page + 1)}
+          disabled={page === totalPages}
+          className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+        >
+          &gt;
+        </button>
+      </div>
     </div>
   );
 }
