@@ -341,7 +341,7 @@ export default function ImportPreviewPedidosModal({
         <input
           className="border rounded px-2 py-1 text-sm w-40"
           placeholder="EstadoId (opcional)"
-          value={estadoId}f
+          value={estadoId}
           onChange={(e) => setEstadoId(Number(e.target.value) || '')}
         />
 

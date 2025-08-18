@@ -85,7 +85,7 @@ export default function EcommerceHomePage() {
   const { token } = useAuth();
   const [data, setData] = useState<CourierAsociado[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [, setErrorMsg] = useState('');
 
   const [filtros, setFiltros] = useState({
     ciudad: '',

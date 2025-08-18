@@ -30,13 +30,13 @@ export default function ImportExcelFlow({
 
   const openPicker = () => inputRef.current?.click();
 
-  const toOptions = <T extends Record<string, any>>(
+  const toOptions = <T extends Record<string, unknown>, K extends keyof T>(
     arr: T[],
-    key: keyof T
+    key: K
   ): Option[] => {
     const names = new Set<string>();
-    (arr || []).forEach((it) => {
-      const v = (it?.[key] ?? '').toString().trim();
+    (arr ?? []).forEach((it) => {
+      const v = String(it?.[key] ?? '').trim(); // ← cambio clave
       if (v) names.add(v);
     });
     return Array.from(names).map((n) => ({ value: n, label: n }));

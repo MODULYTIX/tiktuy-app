@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaEye } from "react-icons/fa";
-import { Icon } from "@iconify/react";
 import {
   listarEcommercesAsociados,
   getAuthToken,
