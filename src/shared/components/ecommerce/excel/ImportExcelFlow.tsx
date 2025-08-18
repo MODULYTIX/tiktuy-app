@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import ImportLoadingModal from './ImportLoadingModal';
 import type { PreviewProductosResponseDTO } from '@/services/ecommerce/importExcelProducto/importexcel.type';
 import { previewProductosExcel } from '@/services/ecommerce/importExcelProducto/importexcel.api';
@@ -28,58 +28,74 @@ export default function ImportExcelFlow({
   const [almacenOptions, setAlmacenOptions] = useState<Option[] | null>(null);
   const [categoriaOptions, setCategoriaOptions] = useState<Option[] | null>(null);
 
-  const openPicker = () => inputRef.current?.click();
-
-  const toOptions = <T extends Record<string, unknown>, K extends keyof T>(
-    arr: T[],
+  // Utilidad: transforma una lista de objetos en opciones únicas por una clave
+  const toOptions = <
+    T extends Record<string, unknown>,
+    K extends keyof T = keyof T
+  >(
+    arr: T[] | null | undefined,
     key: K
   ): Option[] => {
     const names = new Set<string>();
     (arr ?? []).forEach((it) => {
-      const v = String(it?.[key] ?? '').trim(); // ← cambio clave
+      const v = String(it?.[key] ?? '').trim(); // conversión segura a string
       if (v) names.add(v);
     });
     return Array.from(names).map((n) => ({ value: n, label: n }));
   };
 
-  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const openPicker = useCallback(() => {
+    inputRef.current?.click();
+  }, []);
 
-    setPreviewData(null);
-    setAlmacenOptions(null);
-    setCategoriaOptions(null);
-    setPhase('loading');
+  const onFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    try {
-      const [preview, almacenes, categorias] = await Promise.all([
-        previewProductosExcel(file, token),
-        fetchAlmacenes(token),
-        fetchCategorias(token),
-      ]);
-
-      setPreviewData(preview);
-      setAlmacenOptions(toOptions<Almacenamiento>(almacenes as any, 'nombre_almacen'));
-      setCategoriaOptions(toOptions<Categoria>(categorias as any, 'nombre'));
-
-      // cerrar loader y abrir preview
-      setPhase('idle');
-      const t = setTimeout(() => setPhase('preview'), 0);
-      return () => clearTimeout(t);
-    } catch (err) {
-      console.error('[ImportExcelFlow] Error en preview/maestros:', err);
-      alert('No se pudo generar la previsualización del Excel de productos.');
       setPreviewData(null);
-      setPhase('idle');
-    } finally {
-      if (inputRef.current) inputRef.current.value = '';
-    }
-  };
+      setAlmacenOptions(null);
+      setCategoriaOptions(null);
+      setPhase('loading');
 
-  const closePreview = () => {
+      try {
+        console.debug('[IMPORT:PRODUCTOS] Iniciando previsualización desde Excel...');
+        const [preview, almacenes, categorias] = await Promise.all([
+          previewProductosExcel(file, token),
+          fetchAlmacenes(token),
+          fetchCategorias(token),
+        ]);
+
+        // Set datos de preview
+        setPreviewData(preview);
+
+        // Set opciones precargadas (únicas y ordenadas por inserción)
+        const optsAlm = toOptions<Almacenamiento>(almacenes as Almacenamiento[], 'nombre_almacen');
+        const optsCat = toOptions<Categoria>(categorias as Categoria[], 'nombre');
+        setAlmacenOptions(optsAlm);
+        setCategoriaOptions(optsCat);
+
+        // cerrar loader y abrir preview
+        setPhase('idle');
+        const t = setTimeout(() => setPhase('preview'), 0);
+        return () => clearTimeout(t);
+      } catch (err) {
+        console.error('[IMPORT:PRODUCTOS] Error en preview/maestros:', err);
+        alert('No se pudo generar la previsualización del Excel de productos.');
+        setPreviewData(null);
+        setPhase('idle');
+      } finally {
+        // limpiar input para permitir re-subida del mismo archivo
+        if (inputRef.current) inputRef.current.value = '';
+      }
+    },
+    [token]
+  );
+
+  const closePreview = useCallback(() => {
     setPhase('idle');
     setPreviewData(null);
-  };
+  }, []);
 
   return (
     <>
@@ -106,8 +122,11 @@ export default function ImportExcelFlow({
           token={token}
           data={previewData}
           onImported={() => {
-            onImported();
-            closePreview();
+            try {
+              onImported();
+            } finally {
+              closePreview();
+            }
           }}
           preloadedAlmacenOptions={almacenOptions ?? []}
           preloadedCategoriaOptions={categoriaOptions ?? []}
