@@ -1,9 +1,15 @@
-// src/components/excel/ImportExcelFlow.tsx
 import React, { useRef, useState } from 'react';
 import ImportLoadingModal from './ImportLoadingModal';
-import ImportPreviewModal from './ImportPreviewModal';
-import type { PreviewResponseDTO } from '@/services/ecommerce/importExcel/importexcel.type';
-import { previewVentasExcel } from '@/services/ecommerce/importExcel/importexcel.api';
+import type { PreviewProductosResponseDTO } from '@/services/ecommerce/importExcelProducto/importexcel.type';
+import { previewProductosExcel } from '@/services/ecommerce/importExcelProducto/importexcel.api';
+import ImportProductosPreviewModal from './producto/ImportPreviewModal';
+import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
+import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
+import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
+import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
+import type { Option } from '@/shared/common/Autocomplete';
+
+type Phase = 'idle' | 'loading' | 'preview';
 
 export default function ImportExcelFlow({
   token,
@@ -15,42 +21,70 @@ export default function ImportExcelFlow({
   children: (openPicker: () => void) => React.ReactNode;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [loadingModalOpen, setLoadingModalOpen] = useState(false);
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const [previewData, setPreviewData] = useState<PreviewResponseDTO | null>(
-    null
-  );
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [previewData, setPreviewData] = useState<PreviewProductosResponseDTO | null>(null);
 
-  const openPicker = () => {
-    inputRef.current?.click();
+  // Opciones precargadas (evita 2º loader)
+  const [almacenOptions, setAlmacenOptions] = useState<Option[] | null>(null);
+  const [categoriaOptions, setCategoriaOptions] = useState<Option[] | null>(null);
+
+  const openPicker = () => inputRef.current?.click();
+
+  const toOptions = <T extends Record<string, any>>(
+    arr: T[],
+    key: keyof T
+  ): Option[] => {
+    const names = new Set<string>();
+    (arr || []).forEach((it) => {
+      const v = (it?.[key] ?? '').toString().trim();
+      if (v) names.add(v);
+    });
+    return Array.from(names).map((n) => ({ value: n, label: n }));
   };
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // abrir modal de carga
-    setLoadingModalOpen(true);
+    setPreviewData(null);
+    setAlmacenOptions(null);
+    setCategoriaOptions(null);
+    setPhase('loading');
+
     try {
-      const data = await previewVentasExcel(file, token);
-      setPreviewData(data);
-      setPreviewModalOpen(true);
+      const [preview, almacenes, categorias] = await Promise.all([
+        previewProductosExcel(file, token),
+        fetchAlmacenes(token),
+        fetchCategorias(token),
+      ]);
+
+      setPreviewData(preview);
+      setAlmacenOptions(toOptions<Almacenamiento>(almacenes as any, 'nombre_almacen'));
+      setCategoriaOptions(toOptions<Categoria>(categorias as any, 'nombre'));
+
+      // cerrar loader y abrir preview
+      setPhase('idle');
+      const t = setTimeout(() => setPhase('preview'), 0);
+      return () => clearTimeout(t);
     } catch (err) {
-      console.error(err);
-      alert('No se pudo generar la previsualización del Excel.');
+      console.error('[ImportExcelFlow] Error en preview/maestros:', err);
+      alert('No se pudo generar la previsualización del Excel de productos.');
+      setPreviewData(null);
+      setPhase('idle');
     } finally {
-      setLoadingModalOpen(false);
-      // limpiar el input para permitir re-selección del mismo archivo
       if (inputRef.current) inputRef.current.value = '';
     }
   };
 
+  const closePreview = () => {
+    setPhase('idle');
+    setPreviewData(null);
+  };
+
   return (
     <>
-      {/* Render prop: te paso openPicker para que lo llames en tu botón “Importar archivo” */}
       {children(openPicker)}
 
-      {/* input escondido para abrir el file picker */}
       <input
         ref={inputRef}
         type="file"
@@ -59,21 +93,24 @@ export default function ImportExcelFlow({
         onChange={onFileChange}
       />
 
-      {/* Modal de carga con 3 pelotitas */}
       <ImportLoadingModal
-        open={loadingModalOpen}
-        onClose={() => setLoadingModalOpen(false)}
+        open={phase === 'loading'}
+        onClose={() => setPhase('idle')}
         label="Validando datos del Excel…"
       />
 
-      {/* Modal de preview/validación */}
-      {previewData && (
-        <ImportPreviewModal
-          open={previewModalOpen}
-          onClose={() => setPreviewModalOpen(false)}
+      {phase === 'preview' && previewData && (
+        <ImportProductosPreviewModal
+          open
+          onClose={closePreview}
           token={token}
           data={previewData}
-          onImported={onImported}
+          onImported={() => {
+            onImported();
+            closePreview();
+          }}
+          preloadedAlmacenOptions={almacenOptions ?? []}
+          preloadedCategoriaOptions={categoriaOptions ?? []}
         />
       )}
     </>

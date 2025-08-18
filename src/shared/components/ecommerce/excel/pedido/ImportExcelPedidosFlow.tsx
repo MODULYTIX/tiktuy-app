@@ -1,14 +1,14 @@
 // src/shared/components/ecommerce/excel/pedido/ImportExcelPedidosFlow.tsx
 import React, { useRef, useState } from 'react';
 
-// ✅ Usamos el MISMO tipo que espera el Modal
-import type { PreviewResponseDTO } from '@/services/ecommerce/importExcel/importexcel.type';
+//  Usamos el MISMO tipo que espera el Modal
 
 // Mantiene tu misma API (no cambiamos lógica ni endpoint)
-import { previewVentasExcel } from '@/services/ecommerce/importExcel/importexcel.api';
 
 import ImportLoadingModal from '../ImportLoadingModal';
 import ImportPreviewPedidosModal from './ImportPreviewPedidosModal';
+import { previewVentasExcel } from '@/services/ecommerce/importexcelPedido/importexcelPedido.api';
+import type { PreviewResponseDTO } from '@/services/ecommerce/importexcelPedido/importexcelPedido.type';
 
 export default function ImportExcelPedidosFlow({
   token,
@@ -74,8 +74,6 @@ export default function ImportExcelPedidosFlow({
           token={token}
           data={previewData}
           onImported={onImported}
-          // 👉 Si tu modal soporta multi-courier, esta flag le avisa que
-          // no fuerce un único courier seleccionado y que respete el 'courier' de cada grupo.
           allowMultiCourier={allowMultiCourier}
         />
       )}
