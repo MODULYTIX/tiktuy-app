@@ -28,19 +28,21 @@ export default function ImportExcelFlow({
   const [almacenOptions, setAlmacenOptions] = useState<Option[] | null>(null);
   const [categoriaOptions, setCategoriaOptions] = useState<Option[] | null>(null);
 
-  // Utilidad: transforma una lista de objetos en opciones únicas por una clave
-  const toOptions = <
-    T extends Record<string, unknown>,
-    K extends keyof T = keyof T
-  >(
+  /**
+   * Transforma una lista de objetos en opciones únicas usando la clave `key`.
+   * - No requiere index signature en T.
+   * - Conversión segura a string.
+   */
+  const toOptions = <T, K extends keyof T = keyof T>(
     arr: T[] | null | undefined,
     key: K
   ): Option[] => {
     const names = new Set<string>();
-    (arr ?? []).forEach((it) => {
-      const v = String(it?.[key] ?? '').trim(); // conversión segura a string
+    for (const it of arr ?? []) {
+      const raw = it[key]; // acceso tipado por clave
+      const v = (raw == null ? '' : String(raw)).trim(); // conversión segura a string
       if (v) names.add(v);
-    });
+    }
     return Array.from(names).map((n) => ({ value: n, label: n }));
   };
 
@@ -69,7 +71,7 @@ export default function ImportExcelFlow({
         // Set datos de preview
         setPreviewData(preview);
 
-        // Set opciones precargadas (únicas y ordenadas por inserción)
+        // Opciones únicas precargadas
         const optsAlm = toOptions<Almacenamiento>(almacenes as Almacenamiento[], 'nombre_almacen');
         const optsCat = toOptions<Categoria>(categorias as Categoria[], 'nombre');
         setAlmacenOptions(optsAlm);
