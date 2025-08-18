@@ -1,7 +1,11 @@
 // components/shared/InvitarModal.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
-import { generarLinkInvitacion, getAuthToken } from "@/services/courier/panel_control/panel_control.api";
+import {
+  generarLinkInvitacion,
+  generarLinkInvitacionMotorizado,
+  getAuthToken,
+} from "@/services/courier/panel_control/panel_control.api";
 
 interface InvitarModalProps {
   onClose: () => void;
@@ -13,17 +17,16 @@ export default function PanelControlInvitacion({
   activeTab,
 }: InvitarModalProps) {
   const [link, setLink] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(activeTab === "ecommerce");
+  const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Cargar el link desde backend cuando la pestaña sea "ecommerce"
   useEffect(() => {
     let mounted = true;
 
     async function fetchLink() {
-      if (activeTab !== "ecommerce") return;
       setLoading(true);
       setErrorMsg(null);
+      setLink("");
 
       const token = getAuthToken();
       if (!token) {
@@ -32,13 +35,20 @@ export default function PanelControlInvitacion({
         return;
       }
 
-      const res = await generarLinkInvitacion(token);
+      const res =
+        activeTab === "ecommerce"
+          ? await generarLinkInvitacion(token)
+          : await generarLinkInvitacionMotorizado(token);
+
       if (!mounted) return;
 
       if (res.ok) {
         setLink(res.data.link);
       } else {
-        setErrorMsg(res.error || "No se pudo generar el enlace de invitación.");
+        setErrorMsg(
+          res.error ||
+            "No se pudo generar el enlace de invitación. Intenta nuevamente."
+        );
       }
       setLoading(false);
     }
@@ -49,20 +59,21 @@ export default function PanelControlInvitacion({
     };
   }, [activeTab]);
 
-  const canShare = activeTab === "ecommerce" && !loading && !errorMsg && !!link;
+  const canShare = !loading && !errorMsg && !!link;
 
-  // URLs de compartir
-  const shareText = useMemo(
-    () =>
-      encodeURIComponent(
-        "¡Únete a nuestra plataforma como Ecommerce! Completa tu registro aquí:"
-      ),
-    []
-  );
-  const encodedLink = useMemo(
-    () => encodeURIComponent(link || ""),
-    [link]
-  );
+  // Texto dinámico para compartir
+  const shareLabel =
+    activeTab === "ecommerce"
+      ? "¡Únete a nuestra plataforma como Ecommerce! Completa tu registro aquí:"
+      : "¡Únete como Motorizado! Completa tu registro aquí:";
+
+  const mailSubject =
+    activeTab === "ecommerce"
+      ? "Invitación a registrarte como Ecommerce"
+      : "Invitación a registrarte como Motorizado";
+
+  const shareText = useMemo(() => encodeURIComponent(shareLabel), [shareLabel]);
+  const encodedLink = useMemo(() => encodeURIComponent(link || ""), [link]);
 
   const whatsappHref = useMemo(
     () => (canShare ? `https://wa.me/?text=${shareText}%20${encodedLink}` : "#"),
@@ -81,17 +92,18 @@ export default function PanelControlInvitacion({
     () =>
       canShare
         ? `mailto:?subject=${encodeURIComponent(
-            "Invitación a registrarte como Ecommerce"
+            mailSubject
           )}&body=${shareText}%0A${encodedLink}`
         : "#",
-    [canShare, shareText, encodedLink]
+    [canShare, shareText, encodedLink, mailSubject]
   );
 
   const handleCopy = async () => {
+    if (!canShare) return;
     try {
       await navigator.clipboard.writeText(link);
     } catch {
-      // no-op
+      /* no-op */
     }
   };
 
@@ -112,23 +124,23 @@ export default function PanelControlInvitacion({
         <p className="text-center text-sm text-gray-600 mb-4">
           {activeTab === "ecommerce"
             ? "Invita a nuevos ecommerces a unirse a la plataforma compartiendo este enlace."
-            : "Invitación para motorizados: pendiente de implementación del endpoint."}
+            : "Invita a nuevos motorizados a unirse a la plataforma compartiendo este enlace."}
         </p>
 
         {/* Estados */}
-        {activeTab === "ecommerce" && loading && (
+        {loading && (
           <div className="mb-4 text-sm text-gray-600 text-center">
             Generando enlace de invitación…
           </div>
         )}
-        {activeTab === "ecommerce" && errorMsg && (
+        {errorMsg && (
           <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 text-center">
             {errorMsg}
           </div>
         )}
 
         {/* Acciones de compartir */}
-        <div className="flex justify-center gap-6 mb-4 text-center items-center opacity-100">
+        <div className="flex justify-center gap-6 mb-4 text-center items-center">
           <a
             href={whatsappHref}
             target="_blank"
@@ -170,9 +182,7 @@ export default function PanelControlInvitacion({
         {/* Link + copiar */}
         <div className="flex items-center justify-between bg-gray-100 px-4 py-2 rounded">
           <span className="text-sm text-gray-700 truncate">
-            {activeTab === "ecommerce"
-              ? link || (loading ? "Generando enlace…" : "—")
-              : "Pendiente de implementación para motorizado"}
+            {link || (loading ? "Generando enlace…" : "—")}
           </span>
           <button
             onClick={handleCopy}

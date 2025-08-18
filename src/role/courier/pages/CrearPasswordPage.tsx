@@ -1,8 +1,15 @@
+// src/pages/CrearPasswordPage.tsx
 import { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { completarRegistro } from "@/services/courier/panel_control/panel_control.api";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  completarRegistro,                 // ecommerce
+  completarRegistroMotorizado,       // motorizado
+} from "@/services/courier/panel_control/panel_control.api";
 
-export default function CrearPasswordEcommercePage() {
+export default function CrearPasswordPage() {
+  const { pathname } = useLocation();
+  const isMotorizado = /crear-password-(motorizado|repartidor)/.test(pathname); // /crear-password-motorizado => true
+
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
   const nav = useNavigate();
@@ -13,7 +20,6 @@ export default function CrearPasswordEcommercePage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  // Reglas mínimas (coincidir con backend: min 6 y que coincidan)
   const minLen = 6;
   const canSubmit = useMemo(
     () => password.length >= minLen && password === confirm,
@@ -36,14 +42,14 @@ export default function CrearPasswordEcommercePage() {
 
     try {
       setLoading(true);
-      const res = await completarRegistro({
-        token,
-        contrasena: password,
-        confirmar_contrasena: confirm, // <- IMPORTANTE
-      });
+      const payload = { token, contrasena: password, confirmar_contrasena: confirm };
+
+      const res = isMotorizado
+        ? await completarRegistroMotorizado(payload)
+        : await completarRegistro(payload);
+
       if (res.ok) {
         setMsg(res.data.mensaje || "¡Contraseña creada correctamente!");
-        // Redirige al inicio después de un breve delay
         setTimeout(() => nav("/", { replace: true }), 1500);
       } else {
         setErr(res.error || "No se pudo completar el proceso.");
@@ -83,11 +89,13 @@ export default function CrearPasswordEcommercePage() {
           </div>
 
           <h1 className="text-center text-xl md:text-2xl font-extrabold text-[#1A237E]">
-            CREAR CONTRASEÑA
+            {isMotorizado ? "CREAR CONTRASEÑA - REPARTIDOR" : "CREAR CONTRASEÑA"}
           </h1>
 
           <p className="mt-2 text-center text-sm text-gray-600">
-            Establece una contraseña segura para acceder a tu cuenta de Tiktuy.
+            {isMotorizado
+              ? "Establece tu contraseña para ingresar como repartidor en Tiktuy."
+              : "Establece una contraseña para acceder a tu cuenta de Ecommerce en Tiktuy."}
           </p>
 
           {err && (

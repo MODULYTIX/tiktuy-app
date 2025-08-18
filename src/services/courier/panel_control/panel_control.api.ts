@@ -3,10 +3,16 @@ import type {
   ApiResult,
   MensajeResponse,
   LinkResponse,
+  // Ecommerce
   RegistroManualPayload,
   CompletarRegistroPayload,
   RegistroInvitacionPayload,
   EcommerceCourier,
+  // Motorizado
+  RegistroManualMotorizadoPayload,
+  CompletarRegistroMotorizadoPayload,
+  RegistroInvitacionMotorizadoPayload,
+  Motorizado,
 } from "./panel_control.types";
 
 /**
@@ -22,7 +28,7 @@ function buildHeaders(token?: string): HeadersInit {
   const h: HeadersInit = {
     "Content-Type": "application/json",
   };
-  if (token) h["Authorization"] = `Bearer ${token}`;
+  if (token) (h as any)["Authorization"] = `Bearer ${token}`;
   return h;
 }
 
@@ -47,7 +53,9 @@ async function handle<T>(res: Response): Promise<ApiResult<T>> {
   return { ok: false, error: msg, status: res.status };
 }
 
-/** ---------------- Endpoints: Courier-Ecommerce ---------------- **/
+/* =========================================================
+ *                   COURIER — ECOMMERCE
+ * =======================================================*/
 
 /**
  * POST /courier-ecommerce/registro-manual
@@ -123,12 +131,87 @@ export async function listarEcommercesAsociados(
   return handle<EcommerceCourier[]>(res);
 }
 
-/** ---------------- Utilidades opcionales ---------------- **/
+/* =========================================================
+ *                  COURIER — MOTORIZADO
+ * =======================================================*/
 
 /**
- * Pequeño helper por si manejas el token en localStorage.
- * Si no lo usas, ignóralo.
+ * POST /courier-motorizado/registro-manual
+ * Requiere token del courier
  */
+export async function registrarManualMotorizado(
+  payload: RegistroManualMotorizadoPayload,
+  token: string
+): Promise<ApiResult<MensajeResponse>> {
+  const res = await fetch(`${BASE_URL}/courier-motorizado/registro-manual`, {
+    method: "POST",
+    headers: buildHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  return handle<MensajeResponse>(res);
+}
+
+/**
+ * POST /courier-motorizado/completar-registro
+ * No requiere auth (correo con token)
+ */
+export async function completarRegistroMotorizado(
+  payload: CompletarRegistroMotorizadoPayload
+): Promise<ApiResult<MensajeResponse>> {
+  const res = await fetch(`${BASE_URL}/courier-motorizado/completar-registro`, {
+    method: "POST",
+    headers: buildHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handle<MensajeResponse>(res);
+}
+
+/**
+ * POST /courier-motorizado/invitar
+ * Genera link de invitación. Requiere token del courier.
+ */
+export async function generarLinkInvitacionMotorizado(
+  token: string
+): Promise<ApiResult<LinkResponse>> {
+  const res = await fetch(`${BASE_URL}/courier-motorizado/invitar`, {
+    method: "POST",
+    headers: buildHeaders(token),
+  });
+  return handle<LinkResponse>(res);
+}
+
+/**
+ * POST /courier-motorizado/registro-invitacion
+ * Registro desde el formulario público con token
+ */
+export async function registrarDesdeInvitacionMotorizado(
+  payload: RegistroInvitacionMotorizadoPayload
+): Promise<ApiResult<MensajeResponse>> {
+  const res = await fetch(`${BASE_URL}/courier-motorizado/registro-invitacion`, {
+    method: "POST",
+    headers: buildHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handle<MensajeResponse>(res);
+}
+
+/**
+ * GET /courier-motorizado/motorizados
+ * Lista motorizados asociados al courier autenticado
+ */
+export async function listarMotorizadosAsociados(
+  token: string
+): Promise<ApiResult<Motorizado[]>> {
+  const res = await fetch(`${BASE_URL}/courier-motorizado/motorizados`, {
+    method: "GET",
+    headers: buildHeaders(token),
+  });
+  return handle<Motorizado[]>(res);
+}
+
+/* ---------------- Utilidades opcionales ---------------- */
+
+/** Helper para leer el token de auth desde localStorage (si lo usas) */
 export function getAuthToken(): string | null {
   try {
     return localStorage.getItem("token");

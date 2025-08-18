@@ -11,7 +11,7 @@ import { motorizadoRoutes } from '@/role/motorizado/routes';
 
 import PrivateLayout from '@/shared/layout/PrivateLayout';
 import RegistroInvitacionPage from '@/role/courier/pages/RegistroInvitacionPage';
-import CrearPasswordEcommercePage from "@/role/courier/pages/CrearPasswordEcommercePage";
+import CrearPasswordPage from "@/role/courier/pages/CrearPasswordPage";
 
 export default function AppRouter() {
   return (
@@ -26,7 +26,12 @@ export default function AppRouter() {
         }
       />
       <Route path="/registro-invitacion" element={<RegistroInvitacionPage />} />
-      <Route path="/crear-password" element={<CrearPasswordEcommercePage />} />
+      <Route path="/crear-password" element={<CrearPasswordPage />} />
+      <Route path="/crear-password-motorizado" element={<CrearPasswordPage />} />
+
+      {/* ✅ Alias para links que envía el backend */}
+      <Route path="/crear-password-repartidor" element={<CrearPasswordPage />} />
+      <Route path="/registro-invitacion-motorizado" element={<RegistroInvitacionPage />} />
 
       {/* Admin */}
       <Route
