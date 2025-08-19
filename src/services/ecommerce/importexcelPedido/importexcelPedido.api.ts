@@ -1,5 +1,5 @@
 // src/services/ecommerce/importExcel/importexcel.api.ts
-import type { PreviewResponseDTO, ImportPayload, ImportResultado } from './importexcel.type';
+import type { PreviewResponseDTO, ImportPayload, ImportResultado } from './importexcelPedido.type';
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 

@@ -1,6 +1,5 @@
 // src/shared/components/ecommerce/excel/ImportPreviewPedidosModal.tsx
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { importPedidosDesdePreview } from '@/services/ecommerce/importExcel/importexcel.api';
 import {
   fetchZonasByCourierPublic,
   fetchZonasByCourierPrivado,
@@ -9,13 +8,11 @@ import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.ap
 
 import CenteredModal from '@/shared/common/CenteredModal';
 import Autocomplete, { type Option } from '@/shared/common/Autocomplete';
+import type { ImportPayload, PreviewGroupDTO, PreviewResponseDTO } from '@/services/ecommerce/importexcelPedido/importexcelPedido.type';
+import { importPedidosDesdePreview } from '@/services/ecommerce/importexcelPedido/importexcelPedido.api';
 
 // Tipos del flujo de PEDIDOS (unificados)
-import type {
-  ImportPayload,
-  PreviewGroupDTO,
-  PreviewResponseDTO,
-} from '@/services/ecommerce/importExcel/importexcel.type';
+
 
 type CourierOption = { id: number; nombre: string };
 

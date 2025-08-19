@@ -75,7 +75,7 @@ export default function AlmacenPage() {
   };
 
   return (
-    <section className="mt-8">
+    <section className="mt-8 flex flex-col gap-5">
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl text-primary font-bold">Almacén</h1>

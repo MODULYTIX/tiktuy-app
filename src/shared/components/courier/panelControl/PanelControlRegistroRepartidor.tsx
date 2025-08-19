@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import {
   registrarManualMotorizado,
@@ -11,10 +11,10 @@ import type {
 import { TIPOS_VEHICULO } from "@/services/courier/panel_control/panel_control.types";
 
 interface Props {
-  onClose: () => void;
+  onClose: () => void;        // cerrar sin recargar
+  onCreated?: () => void;     // cerrar + recargar tabla (opcional)
 }
 
-// Estado local que permite 'tipo_vehiculo' vacío hasta que el usuario seleccione
 type FormState = Omit<RegistroManualMotorizadoPayload, "tipo_vehiculo"> & {
   tipo_vehiculo: TipoVehiculo | "";
 };
@@ -24,73 +24,98 @@ const initialForm: FormState = {
   apellidos: "",
   dni_ci: "",
   correo: "",
-  telefono: "", // lo sobreescribimos con +51 + phoneLocal en submit
+  telefono: "",
   licencia: "",
   placa: "",
-  tipo_vehiculo: "", // el usuario debe elegir
+  tipo_vehiculo: "",
 };
 
-export default function PanelControlRegistroRepartidor({ onClose }: Props) {
+type Errors = Partial<
+  Record<
+    | "nombres"
+    | "apellidos"
+    | "dni_ci"
+    | "correo"
+    | "telefono"
+    | "licencia"
+    | "placa"
+    | "tipo_vehiculo",
+    string
+  >
+>;
+
+export default function PanelControlRegistroRepartidor({ onClose, onCreated }: Props) {
   const [form, setForm] = useState<FormState>(initialForm);
-  const [phoneLocal, setPhoneLocal] = useState<string>(""); // sólo dígitos después del +51
+  const [phoneLocal, setPhoneLocal] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Errors>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  function handleInput<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
+  const handleInput = <K extends keyof FormState>(k: K, v: FormState[K]) =>
+    setForm((p) => ({ ...p, [k]: v }));
 
-  function handlePhoneChange(v: string) {
-    // Normaliza: sólo dígitos
-    const digits = v.replace(/\D/g, "");
-    setPhoneLocal(digits);
-  }
+  const handlePhoneChange = (v: string) =>
+    setPhoneLocal(v.replace(/\D/g, ""));
+
+  const validate = (f: FormState, phone: string): Errors => {
+    const e: Errors = {};
+    const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+
+    if (!f.nombres.trim()) e.nombres = "Requerido.";
+    if (!f.apellidos.trim()) e.apellidos = "Requerido.";
+
+    const dni = f.dni_ci.replace(/\D/g, "");
+    if (!dni) e.dni_ci = "Requerido.";
+    else if (dni.length !== 8) e.dni_ci = "Debe tener 8 dígitos.";
+
+    if (!f.correo.trim()) e.correo = "Requerido.";
+    else if (!emailRx.test(f.correo)) e.correo = "Correo inválido.";
+
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (!phoneDigits) e.telefono = "Requerido.";
+    else if (phoneDigits.length !== 9)
+      e.telefono = "El teléfono debe tener 9 dígitos.";
+
+    if (!f.licencia.trim()) e.licencia = "Requerido.";
+    if (!f.placa.trim()) e.placa = "Requerido.";
+    else if (f.placa.trim().length < 5)
+      e.placa = "La placa debe tener al menos 5 caracteres.";
+
+    if (!f.tipo_vehiculo) e.tipo_vehiculo = "Selecciona una opción.";
+    return e;
+  };
+
+  useEffect(() => {
+    if (!submitted) return;
+    setErrors(validate(form, phoneLocal));
+  }, [submitted, form, phoneLocal]);
+
+  const inputClass = (invalid?: boolean) =>
+    [
+      "h-10 px-3 rounded-md border bg-white text-gray90 text-[12px] placeholder:text-gray60",
+      "focus:outline-none focus:ring-1 focus:ring-gray90 focus:border-gray90",
+      invalid ? "border-red-400" : "border-gray30",
+    ].join(" ");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
+    setSubmitted(true);
+    setFormError(null);
+
+    const errs = validate(form, phoneLocal);
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
 
     const token = getAuthToken();
     if (!token) {
-      setErrorMsg("No se encontró el token de autenticación.");
-      return;
-    }
-
-    // compone el teléfono con +51 si hay valor
-    const telefonoCompleto =
-      phoneLocal.trim().length > 0 ? `+51 ${phoneLocal.trim()}` : "";
-
-    // Validación mínima en cliente
-    const requiredKeys: (keyof FormState)[] = [
-      "nombres",
-      "apellidos",
-      "dni_ci",
-      "correo",
-      "licencia",
-      "placa",
-    ];
-    const missingBase = requiredKeys.filter(
-      (k) => String(form[k] ?? "").trim() === ""
-    );
-    if (missingBase.length > 0) {
-      setErrorMsg("Por favor completa todos los campos obligatorios.");
-      return;
-    }
-    if (!telefonoCompleto) {
-      setErrorMsg("El teléfono es obligatorio.");
-      return;
-    }
-    if (!form.tipo_vehiculo) {
-      setErrorMsg("Debes seleccionar el tipo de vehículo.");
+      setFormError("Sesión no válida. Vuelve a iniciar sesión.");
       return;
     }
 
     const payload: RegistroManualMotorizadoPayload = {
       ...form,
-      telefono: telefonoCompleto,
-      // aquí garantizamos el tipo exacto del enum
+      telefono: `+51 ${phoneLocal.trim()}`,
       tipo_vehiculo: form.tipo_vehiculo as TipoVehiculo,
     };
 
@@ -98,174 +123,204 @@ export default function PanelControlRegistroRepartidor({ onClose }: Props) {
       setLoading(true);
       const res = await registrarManualMotorizado(payload, token);
       if (res.ok) {
-        setSuccessMsg(res.data.mensaje);
-        // reset
-        setForm(initialForm);
-        setPhoneLocal("");
-        // Si deseas cerrar automáticamente:
-        // onClose();
+        // 👇 solo aquí disparas la recarga (si el padre te pasó onCreated)
+        if (onCreated) onCreated();
+        else onClose(); // fallback: si no te pasan onCreated, solo cierra
       } else {
-        setErrorMsg(res.error || "No se pudo registrar el repartidor.");
+        setFormError(res.error || "No se pudo registrar.");
       }
     } catch {
-      setErrorMsg("Ocurrió un error inesperado.");
+      setFormError("Ocurrió un error inesperado.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div>
-      {/* Título */}
-      <div className="flex items-center gap-2 mb-2">
-        <Icon icon="mdi:store-plus" className="text-[#1A237E]" />
-        <h2 className="text-lg font-bold text-[#1A237E] uppercase">
-          Registrar Nuevo Repartidor
-        </h2>
+    // Contenedor padre con padding y separación entre bloques
+    <div className="w-full h-full max-w-[720px] flex flex-col p-5 gap-5 text-[12px]">
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-2 text-primaryDark">
+          <Icon icon="mdi:clipboard-account-outline" width={22} height={22} />
+          <h2 className="text-[20px] font-bold uppercase">
+            REGISTRAR NUEVO REPARTIDOR
+          </h2>
+        </div>
+        <p className="text-[12px] text-gray60 leading-relaxed mt-2">
+          Completa el formulario para registrar un nuevo repartidor en la
+          plataforma. Esta información permitirá habilitar su perfil logístico,
+          monitorear sus entregas y garantizar una correcta operación durante el
+          proceso de distribución.
+        </p>
       </div>
 
-      {/* Descripción */}
-      <p className="text-sm text-gray-600 mb-4">
-        Completa el formulario para registrar un nuevo repartidor en la
-        plataforma. Esta información permitirá habilitar su perfil logístico,
-        monitorear sus entregas y garantizar una correcta operación durante el
-        proceso de distribución.
-      </p>
-
-      {/* Alertas */}
-      {errorMsg && (
-        <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
-          {errorMsg}
-        </div>
-      )}
-      {successMsg && (
-        <div className="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
-          {successMsg}
-        </div>
-      )}
-
       {/* Formulario */}
-      <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Nombre</label>
-          <input
-            type="text"
-            placeholder="Ejem. Álvaro"
-            className="w-full border rounded px-3 py-2 text-sm"
-            autoComplete="given-name"
-            value={form.nombres}
-            onChange={(e) => handleInput("nombres", e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Apellido</label>
-          <input
-            type="text"
-            placeholder="Ejem. Maguiña"
-            className="w-full border rounded px-3 py-2 text-sm"
-            autoComplete="family-name"
-            value={form.apellidos}
-            onChange={(e) => handleInput("apellidos", e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">DNI / CI</label>
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="Ejem. 87654321"
-            className="w-full border rounded px-3 py-2 text-sm"
-            value={form.dni_ci}
-            onChange={(e) => handleInput("dni_ci", e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Correo</label>
-          <input
-            type="email"
-            placeholder="correo@gmail.com"
-            className="w-full border rounded px-3 py-2 text-sm"
-            autoComplete="email"
-            value={form.correo}
-            onChange={(e) => handleInput("correo", e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Teléfono</label>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-2 border rounded text-sm bg-gray-100">
-              +51
-            </span>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 flex-1">
+        {/* Bloque 1 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="flex flex-col gap-2">
+            <label className="text-gray80 font-medium">Nombre</label>
             <input
               type="text"
-              inputMode="tel"
-              placeholder="Ejem. 987654321"
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={phoneLocal}
-              onChange={(e) => handlePhoneChange(e.target.value)}
+              placeholder="Ejem. Álvaro"
+              className={inputClass(!!errors.nombres)}
+              value={form.nombres}
+              onChange={(e) => handleInput("nombres", e.target.value)}
             />
+            {errors.nombres && (
+              <span className="text-[11px] text-red-500">{errors.nombres}</span>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-gray80 font-medium">Apellido</label>
+            <input
+              type="text"
+              placeholder="Ejem. Maguiña"
+              className={inputClass(!!errors.apellidos)}
+              value={form.apellidos}
+              onChange={(e) => handleInput("apellidos", e.target.value)}
+            />
+            {errors.apellidos && (
+              <span className="text-[11px] text-red-500">
+                {errors.apellidos}
+              </span>
+            )}
           </div>
         </div>
 
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Licencia</label>
-          <input
-            type="text"
-            placeholder="Ejem. ABC123"
-            className="w-full border rounded px-3 py-2 text-sm"
-            value={form.licencia}
-            onChange={(e) => handleInput("licencia", e.target.value)}
-          />
+        {/* Bloque 2 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="flex flex-col gap-2">
+            <label className="text-gray80 font-medium">Licencia</label>
+            <input
+              type="text"
+              placeholder="Ejem. Motorista"
+              className={inputClass(!!errors.licencia)}
+              value={form.licencia}
+              onChange={(e) => handleInput("licencia", e.target.value)}
+            />
+            {errors.licencia && (
+              <span className="text-[11px] text-red-500">{errors.licencia}</span>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-gray80 font-medium">DNI</label>
+            <input
+              type="text"
+              placeholder="Ejem. 756432189"
+              className={inputClass(!!errors.dni_ci)}
+              value={form.dni_ci}
+              onChange={(e) => handleInput("dni_ci", e.target.value)}
+            />
+            {errors.dni_ci && (
+              <span className="text-[11px] text-red-500">{errors.dni_ci}</span>
+            )}
+          </div>
         </div>
 
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Placa</label>
-          <input
-            type="text"
-            placeholder="Ejem. ADV-835"
-            className="w-full border rounded px-3 py-2 text-sm"
-            value={form.placa}
-            onChange={(e) => handleInput("placa", e.target.value)}
-          />
+        {/* Bloque 3 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="flex flex-col gap-2">
+            <label className="text-gray80 font-medium">Teléfono</label>
+            <div
+              className={`flex items-center h-10 rounded-md overflow-hidden border bg-white ${
+                errors.telefono ? "border-red-400" : "border-gray30"
+              }`}
+            >
+              <span className="w-[56px] shrink-0 grid place-items-center text-gray70 text-[12px] border-r border-gray30">
+                + 51
+              </span>
+              <input
+                type="text"
+                placeholder="Ejem. 987654321"
+                className="flex-1 h-full px-3 bg-transparent text-gray90 text-[12px] focus:outline-none placeholder:text-gray60"
+                value={phoneLocal}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+              />
+            </div>
+            {errors.telefono && (
+              <span className="text-[11px] text-red-500">
+                {errors.telefono}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-gray80 font-medium">Correo</label>
+            <input
+              type="email"
+              placeholder="Ejem. correo@gmail.com"
+              className={inputClass(!!errors.correo)}
+              value={form.correo}
+              onChange={(e) => handleInput("correo", e.target.value)}
+            />
+            {errors.correo && (
+              <span className="text-[11px] text-red-500">{errors.correo}</span>
+            )}
+          </div>
         </div>
 
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">
-            Tipo de Vehículo
-          </label>
-          <select
-            className="w-full border rounded px-3 py-2 text-sm bg-white"
-            value={form.tipo_vehiculo}
-            onChange={(e) =>
-              handleInput("tipo_vehiculo", e.target.value as TipoVehiculo | "")
-            }
-          >
-            <option value="">Selecciona una opción</option>
-            {TIPOS_VEHICULO.map((tv) => (
-              <option key={tv} value={tv}>
-                {tv}
-              </option>
-            ))}
-          </select>
+        {/* Bloque 4 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="flex flex-col gap-2">
+            <label className="text-gray80 font-medium">Tipo de Vehículo</label>
+            <select
+              className={inputClass(!!errors.tipo_vehiculo)}
+              value={form.tipo_vehiculo}
+              onChange={(e) =>
+                handleInput("tipo_vehiculo", e.target.value as TipoVehiculo | "")
+              }
+            >
+              <option value="">Selecciona una opción</option>
+              {TIPOS_VEHICULO.map((tv) => (
+                <option key={tv} value={tv}>
+                  {tv}
+                </option>
+              ))}
+            </select>
+            {errors.tipo_vehiculo && (
+              <span className="text-[11px] text-red-500">
+                {errors.tipo_vehiculo}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-gray80 font-medium">Placa</label>
+            <input
+              type="text"
+              placeholder="Ejem. ADV-835"
+              className={inputClass(!!errors.placa)}
+              value={form.placa}
+              onChange={(e) => handleInput("placa", e.target.value)}
+            />
+            {errors.placa && (
+              <span className="text-[11px] text-red-500">{errors.placa}</span>
+            )}
+          </div>
         </div>
 
-        {/* Botones */}
-        <div className="md:col-span-2 mt-2 flex justify-end gap-3">
+        {/* Error backend */}
+        {formError && (
+          <div className="text-[12px] text-red-600">{formError}</div>
+        )}
+
+        {/* Botones → siempre abajo */}
+        <div className="mt-auto flex gap-5">
           <button
             type="submit"
             disabled={loading}
-            className="bg-[#1A237E] text-white px-4 py-2 rounded text-sm hover:bg-[#0d174f] transition disabled:opacity-60"
+            className="bg-gray90 text-white px-4 py-2 rounded text-[12px] hover:bg-gray70 transition disabled:opacity-60"
           >
             {loading ? "Creando..." : "Crear nuevo"}
           </button>
           <button
             type="button"
-            onClick={onClose}
-            className="border px-4 py-2 rounded text-sm hover:bg-gray-100 transition"
+            onClick={onClose} // 👈 solo cierra; NO recarga
+            className="border border-gray30 px-4 py-2 rounded text-[12px] hover:bg-gray10 transition"
           >
             Cancelar
           </button>
