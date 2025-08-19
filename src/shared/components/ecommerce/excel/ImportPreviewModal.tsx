@@ -8,7 +8,7 @@ import type {
 import {
   fetchZonasByCourierPublic,
   fetchZonasByCourierPrivado,
-} from '@/services/courier/zonaTarifaria.api';
+} from '@/services/courier/zonaTarifaria/zonaTarifaria.api';
 import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import CenteredModal from '@/shared/common/CenteredModal';

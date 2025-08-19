@@ -1,33 +1,128 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
-import Paginator from '../../Paginator';
+import Paginator from "../../Paginator";
 
-interface Zona {
-  id: number;
-  distrito: string;
-  zona: number;
-  tarifario: number;
-  pagoMotorizado: number;
-}
+import { fetchZonasByCourierPrivado } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
+import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
+import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
 
-export default function TableZonaCourier() {
+type Props = {
+  courierId: number;
+  itemsPerPage?: number;
+  onEdit?: (zona: ZonaTarifaria) => void;
+};
+
+export default function TableZonaCourier({
+  courierId,
+  itemsPerPage = 6,
+  onEdit,
+}: Props) {
+  const [zonas, setZonas] = useState<ZonaTarifaria[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
 
-  const zonas: Zona[] = [
-    { id: 1, distrito: "Characto", zona: 1, tarifario: 12.0, pagoMotorizado: 8.0 },
-    { id: 2, distrito: "Cayma", zona: 1, tarifario: 12.0, pagoMotorizado: 8.0 },
-    { id: 3, distrito: "Paucarpata", zona: 1, tarifario: 12.0, pagoMotorizado: 8.0 },
-    { id: 4, distrito: "Paucarpata", zona: 1, tarifario: 12.0, pagoMotorizado: 8.0 },
-    { id: 5, distrito: "Paucarpata", zona: 1, tarifario: 12.0, pagoMotorizado: 8.0 },
-    { id: 6, distrito: "Paucarpata", zona: 1, tarifario: 12.0, pagoMotorizado: 8.0 },
-    { id: 7, distrito: "Paucarpata", zona: 1, tarifario: 12.0, pagoMotorizado: 8.0 },
-  ];
+  useEffect(() => {
+    const controller = new AbortController();
+    let mounted = true;
 
-  const totalPages = Math.ceil(zonas.length / itemsPerPage);
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentZonas = zonas.slice(indexOfFirst, indexOfLast);
+    async function load() {
+      setLoading(true);
+      setErr(null);
+      try {
+        const token = getAuthToken();
+        if (!token) throw new Error("No se encontró el token de autenticación.");
+
+        const res = await fetchZonasByCourierPrivado(courierId, token);
+        if (!mounted) return;
+        if (!res.ok) {
+          setErr(res.error || "Error al cargar zonas tarifarias.");
+          setZonas([]);
+          return;
+        }
+        setZonas(res.data ?? []);
+        setCurrentPage(1); // reset paginación al recargar
+      } catch (e: any) {
+        if (!mounted) return;
+        // Si fue cancelado, no mostramos error
+        if (e?.name === "AbortError") return;
+        setErr(e?.message || "Error al cargar zonas tarifarias.");
+        setZonas([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
+  }, [courierId]);
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(zonas.length / itemsPerPage)),
+    [zonas.length, itemsPerPage]
+  );
+
+  const currentZonas = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return zonas.slice(start, start + itemsPerPage);
+  }, [zonas, currentPage, itemsPerPage]);
+
+  /** Convierte DecimalJSON (number | string) a number */
+  function toNumber(n: unknown): number {
+    if (typeof n === "number") return n;
+    if (typeof n === "string") {
+      const v = parseFloat(n);
+      return Number.isFinite(v) ? v : 0;
+    }
+    return 0;
+  }
+
+  function formatMoney(nLike: unknown) {
+    const n = toNumber(nLike);
+    return n.toLocaleString("es-PE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function EstadoPill({ nombre }: { nombre?: string | null }) {
+    const text = nombre ?? "—";
+    const isActivo = (nombre || "").toLowerCase() === "activo";
+    const cls = isActivo
+      ? "bg-green-100 text-green-800 border border-green-200"
+      : "bg-gray-100 text-gray-700 border border-gray-200";
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-xs ${cls}`}>{text}</span>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
+        Cargando zonas tarifarias…
+      </div>
+    );
+  }
+
+  if (err) {
+    return (
+      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-red-700">
+        {err}
+      </div>
+    );
+  }
+
+  if (zonas.length === 0) {
+    return (
+      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
+        No hay zonas tarifarias registradas.
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-white rounded-lg shadow overflow-hidden">
@@ -36,31 +131,30 @@ export default function TableZonaCourier() {
           <tr>
             <th className="px-4 py-3">Distrito</th>
             <th className="px-4 py-3">Zona</th>
-            <th className="px-4 py-3">Tarifario</th>
+            <th className="px-4 py-3">Tarifa Cliente</th>
             <th className="px-4 py-3">Pago a Motorizado</th>
+            <th className="px-4 py-3">Estado</th>
             <th className="px-4 py-3">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {currentZonas.map((zona) => (
-            <tr key={zona.id} className="border-b hover:bg-gray-50">
-              <td className="px-4 py-3">{zona.distrito}</td>
-              <td className="px-4 py-3">{zona.zona}</td>
+          {currentZonas.map((z) => (
+            <tr key={z.id} className="border-b hover:bg-gray-50">
+              <td className="px-4 py-3">{z.distrito}</td>
+              <td className="px-4 py-3">{z.zona_tarifario}</td>
+              <td className="px-4 py-3">S/ {formatMoney(z.tarifa_cliente)}</td>
+              <td className="px-4 py-3">S/ {formatMoney(z.pago_motorizado)}</td>
               <td className="px-4 py-3">
-                S/.{" "}
-                {zona.tarifario.toLocaleString("es-PE", {
-                  minimumFractionDigits: 2,
-                })}
+                <EstadoPill nombre={z.estado?.nombre} />
               </td>
               <td className="px-4 py-3">
-                S/.{" "}
-                {zona.pagoMotorizado.toLocaleString("es-PE", {
-                  minimumFractionDigits: 2,
-                })}
-              </td>
-              <td className="px-4 py-3">
-                <button className="text-orange-500 hover:text-orange-700">
+                <button
+                  className="inline-flex items-center gap-1 text-orange-500 hover:text-orange-700"
+                  onClick={() => onEdit?.(z)}
+                  title="Editar zona"
+                >
                   <FaRegEdit />
+                  <span className="sr-only">Editar</span>
                 </button>
               </td>
             </tr>
@@ -68,16 +162,13 @@ export default function TableZonaCourier() {
         </tbody>
       </table>
 
-      {/* Paginación solo si hay más de itemsPerPage */}
       {totalPages > 1 && (
         <div className="border-t p-4">
           <Paginator
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={(page) => {
-              if (page >= 1 && page <= totalPages) {
-                setCurrentPage(page);
-              }
+              if (page >= 1 && page <= totalPages) setCurrentPage(page);
             }}
           />
         </div>

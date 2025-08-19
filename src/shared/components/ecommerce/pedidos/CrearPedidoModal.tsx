@@ -6,7 +6,7 @@ import { BsBoxSeam } from 'react-icons/bs';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
-import { fetchZonasByCourierPrivado } from '@/services/courier/zonaTarifaria.api';
+import { fetchZonasByCourierPrivado } from '@/services/courier/zonaTarifaria/zonaTarifaria.api';
 import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
 
 // DTO local para creación/edición (lo que realmente envía el frontend al backend)
