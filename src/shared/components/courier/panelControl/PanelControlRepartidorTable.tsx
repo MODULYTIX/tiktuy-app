@@ -181,8 +181,7 @@ export default function PanelControlRepartidorTable() {
     setPage(p);
   };
 
-  const emptyRowsCount = PAGE_SIZE - currentData.length;
-
+  // Copiar teléfono al portapapeles
   const copyPhone = async (phone: string) => {
     try {
       await navigator.clipboard.writeText(phone);
