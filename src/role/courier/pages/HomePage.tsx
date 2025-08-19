@@ -7,99 +7,96 @@ import PanelControlRegistroEcommerce from "@/shared/components/courier/panelCont
 import PanelControlRegistroRepartidor from "@/shared/components/courier/panelControl/PanelControlRegistroRepartidor";
 
 export default function CourierHomePage() {
-  const [activeTab, setActiveTab] = useState<"ecommerce" | "motorizado">(
-    "ecommerce"
-  );
+  const [activeTab, setActiveTab] = useState<"ecommerce" | "motorizado">("ecommerce");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Clave para forzar que la tabla se remonte (y haga refetch) al cerrar el drawer.
   const [reloadKey, setReloadKey] = useState(0);
 
   const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
   const closeDrawer = useCallback(() => {
     setIsDrawerOpen(false);
-    // Forzamos refresco de tabla tras cerrar (por si se registró un nuevo ecommerce).
     setReloadKey((k) => k + 1);
   }, []);
 
   const openModal = useCallback(() => setIsModalOpen(true), []);
   const closeModal = useCallback(() => setIsModalOpen(false), []);
 
+  const sectionTitle = activeTab === "ecommerce" ? "Ecommerce" : "Repartidor";
+  const sectionSubtitle =
+    activeTab === "ecommerce"
+      ? "Asociados con nuestra empresa"
+      : "Gestiona tus repartidores";
+
   return (
-    <div className="mt-6 px-4">
+    <div className="mt-6 p-5 flex flex-col gap-y-5">
       {/* Encabezado y Tabs */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center pb-5 border-b border-gray30">
         <div>
-          <h1 className="text-3xl font-bold mb-1 text-[#1A237E]">
-            Panel de Control
-          </h1>
-          <p className="text-gray-600 text-sm">
-            Administra y visualiza el estado de tus pedidos en cada etapa del
-            proceso
-          </p>
+          <h1 className="text-3xl font-bold mb-1 text-[#1A237E]">Panel de Control</h1>
+          <p className="text-gray-600 text-sm">Monitoreo de convenio e repartidores</p>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex gap-3">
+          {/* Toggle Ecommerce */}
           <button
-            className={`flex items-center gap-2 px-6 py-2 rounded border transition ${
-              activeTab === "ecommerce"
-                ? "bg-[#1A237E] text-white"
-                : "bg-white text-[#1A237E] border-[#1A237E]"
-            }`}
             onClick={() => setActiveTab("ecommerce")}
+            className={[
+              "flex items-center gap-2 w-auto px-3 py-2.5 rounded font-bold transition",
+              activeTab === "ecommerce"
+                ? "bg-gray90 text-white hover:shadow-default"
+                : "bg-gray20 text-gray90 hover:bg-gray30 hover:shadow-default",
+            ].join(" ")}
           >
-            <Icon icon="lucide:layout-dashboard" />
+            <Icon icon="carbon:task-complete" width="20" height="20" />
             Ecommerce
           </button>
+
+          <span aria-hidden className="w-px self-stretch bg-gray30" />
+
+          {/* Toggle Motorizado */}
           <button
-            className={`flex items-center gap-2 px-6 py-2 rounded border transition ${
-              activeTab === "motorizado"
-                ? "bg-[#1A237E] text-white"
-                : "bg-white text-[#1A237E] border-[#1A237E]"
-            }`}
             onClick={() => setActiveTab("motorizado")}
+            className={[
+              "flex items-center gap-2 w-auto px-3  py-2.5 rounded font-bold transition",
+              activeTab === "motorizado"
+                ? "bg-gray90 text-white font-bold hover:shadow-default"
+                : "bg-gray20 text-gray90 hover:bg-gray30 hover:shadow-default",
+            ].join(" ")}
           >
-            <Icon icon="lucide:truck" />
+            <Icon icon="solar:bill-list-broken" width="20" height="20" />
             Motorizado
           </button>
         </div>
       </div>
 
-      {/* Encabezado de sección + botones */}
-      <div className="flex items-center justify-between mb-4">
+      {/* Encabezado de sección + acciones */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-black">
-            {activeTab === "ecommerce" ? "Ecommerce" : "Motorizado"}
-          </h2>
-          <p className="text-gray-600 text-sm">
-            {activeTab === "ecommerce"
-              ? "Asociados con nuestra empresa"
-              : "Repartidores registrados en la plataforma"}
-          </p>
+          <h2 className="text-lg font-semibold text-black">{sectionTitle}</h2>
+          <p className="text-gray-600 text-sm">{sectionSubtitle}</p>
         </div>
+
         <div className="flex gap-3">
           <button
             onClick={openModal}
-            className="flex items-center gap-2 border px-4 py-2 rounded text-sm hover:bg-gray-50"
+            className="flex items-center gap-2 border-2 font-bold border-black px-4 py-2 rounded text-sm hover:bg-gray10"
           >
             <Icon icon="mdi:share-variant-outline" />
             Invitar
           </button>
+
           <button
             onClick={openDrawer}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
           >
             <Icon icon="mdi:plus-box-outline" />
-            {activeTab === "ecommerce"
-              ? "Registrar Ecommerce"
-              : "Registrar Repartidor"}
+            {activeTab === "ecommerce" ? "Registrar Ecommerce" : "Registrar Repartidor"}
           </button>
         </div>
       </div>
 
       {/* Tabla dinámica */}
       {activeTab === "ecommerce" ? (
-        // clave para forzar refetch al cerrar drawer
         <PanelControlTable key={`ecom-${reloadKey}`} />
       ) : (
         <PanelControlRepartidor key={`moto-${reloadKey}`} />
@@ -112,14 +109,8 @@ export default function CourierHomePage() {
 
       {/* Drawer de registro */}
       {isDrawerOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 bg-opacity-30 z-50 flex justify-end"
-          onClick={closeDrawer}
-        >
-          <div
-            className="w-[450px] bg-white p-6 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 bg-black/50 bg-opacity-30 z-50 flex justify-end" onClick={closeDrawer}>
+          <div className="w-[450px] bg-white overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {activeTab === "ecommerce" ? (
               <PanelControlRegistroEcommerce onClose={closeDrawer} />
             ) : (
