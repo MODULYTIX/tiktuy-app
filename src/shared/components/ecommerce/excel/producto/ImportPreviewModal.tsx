@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import type { ImportProductosPayload, PreviewProductoDTO, PreviewProductosResponseDTO } from '@/services/ecommerce/importExcelProducto/importexcel.type';
 import type { Option } from '@/shared/common/Autocomplete';
-import { importProductosDesdePreview } from '@/services/ecommerce/importExcelProducto/importexcel.api';
 import CenteredModal from '@/shared/common/CenteredModal';
+import { importProductosDesdePreview } from '@/services/ecommerce/importExcelProducto/importexcel.api';
 
 type Props = {
   open: boolean;
