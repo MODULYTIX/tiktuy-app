@@ -9,16 +9,9 @@ import type { Filters } from '@/shared/components/ecommerce/movimientos/Movimien
 interface Props {
   filters: Filters;
   onSelectProducts: (productos: Producto[]) => void;
-  onViewProduct?: (uuid: string) => void; // opcional
+  onViewProduct?: (uuid: string) => void;
 }
 
-/**
- * Nota sobre filtrado:
- * - Se realiza en memoria para no tocar tu API actual.
- * - Si luego deseas filtrado server-side, puedes:
- *   1) Construir un querystring desde `filters` y pasarlo a tu endpoint, o
- *   2) Extender `fetchProductos(token, params)` y usarlo en `loadProductos`.
- */
 export default function MovimientoRegistroTable({ filters, onSelectProducts, onViewProduct }: Props) {
   const { token } = useAuth();
 
@@ -27,12 +20,16 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 10;
 
-  // Carga inicial
+  // Carga inicial - filtrando productos inactivos
   useEffect(() => {
     if (!token) return;
     fetchProductos(token)
       .then((rows) => {
-        setAllProductos(rows || []);
+        // Filtrar productos inactivos (stock = 0) desde el inicio
+        const productosActivos = (rows || []).filter(
+          (p) => p.estado?.nombre !== 'Inactivo' && p.stock > 0
+        );
+        setAllProductos(productosActivos);
       })
       .catch(console.error);
   }, [token]);
@@ -47,6 +44,9 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
   const filtered = useMemo(() => {
     let data = [...allProductos];
 
+    // Filtro por defecto: excluir productos inactivos
+    data = data.filter((p) => p.estado?.nombre !== 'Inactivo' && p.stock > 0);
+
     // 1) Almacén
     if (filters.almacenamiento_id) {
       data = data.filter(
@@ -56,21 +56,20 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
 
     // 2) Categoría
     if (filters.categoria_id) {
-      // según tu modelo, puede ser p.categoria_id o p.categoria?.id
       data = data.filter(
         (p: any) =>
           String(p.categoria_id || p?.categoria?.id || '') === String(filters.categoria_id)
       );
     }
 
-    // 3) Estado (por nombre)
+    // 3) Estado (por nombre) - excluimos "Inactivo" por defecto
     if (filters.estado) {
       data = data.filter(
         (p) => (p.estado?.nombre || '').toLowerCase() === filters.estado.toLowerCase()
       );
     }
 
-    // 4) Búsqueda por nombre (nombre_producto)
+    // 4) Búsqueda por nombre
     if (filters.search.trim()) {
       const needle = filters.search.trim().toLowerCase();
       data = data.filter((p) => (p.nombre_producto || '').toLowerCase().includes(needle));
@@ -78,15 +77,13 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
 
     // 5) Stock bajo
     if (filters.stock_bajo) {
-      // Si tu modelo tiene `stock_minimo`, úsalo; de lo contrario, umbral genérico = 5
       data = data.filter((p: any) => {
         const min = typeof p.stock_minimo === 'number' ? p.stock_minimo : 5;
         return Number(p.stock) <= min;
       });
     }
 
-    // 6) Precio bajo / alto (exclusivos)
-    // Si ambos están marcados, ignoramos ambos para evitar conflicto.
+    // 6) Precio bajo/alto
     if (filters.precio_bajo !== filters.precio_alto) {
       const precios = data.map((p) => Number(p.precio)).filter((n) => !Number.isNaN(n));
       if (precios.length > 0) {
@@ -106,7 +103,7 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
     return data;
   }, [allProductos, filters]);
 
-  // ------- Paginación -------
+  // Resto del componente sin cambios...
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const page = Math.min(currentPage, totalPages);
   const pageData = useMemo(() => {
@@ -168,7 +165,11 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
               <td className="p-3">{prod.stock}</td>
               <td className="p-3 text-right">S/ {Number(prod.precio).toFixed(2)}</td>
               <td className="p-3">
-                <span className="text-xs px-2 py-1 rounded bg-black text-white">
+                <span className={`text-xs px-2 py-1 rounded ${
+                  prod.estado?.nombre === 'Inactivo' 
+                    ? 'bg-gray-400 text-white' 
+                    : 'bg-black text-white'
+                }`}>
                   {prod.estado?.nombre || 'Desconocido'}
                 </span>
               </td>

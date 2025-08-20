@@ -6,9 +6,19 @@ interface Props {
   productos: Producto[];
   onVer: (producto: Producto) => void;
   onEditar: (producto: Producto) => void;
+  // Prop opcional para controlar si se filtran productos inactivos
+  filtrarInactivos?: boolean;
 }
 
-export default function StockTable({ productos, onVer, onEditar }: Props) {
+export default function StockTable({ productos, onVer, onEditar, filtrarInactivos = true }: Props) {
+  // Filtrar productos inactivos y con stock cero si la opción está activada
+  const productosFiltrados = filtrarInactivos
+    ? productos.filter(p => 
+        p.estado?.nombre !== 'Inactivo' && 
+        (p.stock !== undefined && p.stock > 0)
+      )
+    : productos;
+
   const headers = [
     '',
     'Código',
@@ -46,10 +56,10 @@ export default function StockTable({ productos, onVer, onEditar }: Props) {
     );
   };
 
-  if (!productos.length) {
+  if (!productosFiltrados.length) {
     return (
       <div className="p-6 text-center text-gray-500 bg-white rounded shadow-sm">
-        Aún no hay productos registrados.
+        No hay productos activos con stock disponible.
       </div>
     );
   }
@@ -67,7 +77,7 @@ export default function StockTable({ productos, onVer, onEditar }: Props) {
           </tr>
         </thead>
         <tbody>
-          {productos.map((prod) => (
+          {productosFiltrados.map((prod) => (
             <tr key={prod.uuid} className="border-t">
               <td className="p-3">
                 <input type="checkbox" />
@@ -85,15 +95,19 @@ export default function StockTable({ productos, onVer, onEditar }: Props) {
               <td className="p-3">
                 {renderEstadoStock(prod.stock, prod.stock_minimo)}
               </td>
-              <td className="text-right">
+              <td className="text-right p-3">
                 S/ {Number(prod.precio).toFixed(2)}
               </td>
               <td className="p-3">
-                <span className="text-white text-xs px-2 py-1 rounded bg-black">
+                <span className={`text-xs px-2 py-1 rounded ${
+                  prod.estado?.nombre === 'Inactivo' 
+                    ? 'bg-gray-400 text-white' 
+                    : 'bg-black text-white'
+                }`}>
                   {prod.estado?.nombre || 'Desconocido'}
                 </span>
               </td>
-              <td className="p-3 flex gap-3 mt-3">
+              <td className="p-3 flex gap-3">
                 <button onClick={() => onVer(prod)} title="Ver producto">
                   <FaEye className="text-blue-600" size={16} />
                 </button>

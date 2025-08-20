@@ -99,6 +99,7 @@ export interface RegistroManualPayload {
   ciudad: string;
   direccion: string;
   rubro: string;
+  usuario?: UsuarioMin;
 }
 
 export interface CompletarRegistroPayload {
