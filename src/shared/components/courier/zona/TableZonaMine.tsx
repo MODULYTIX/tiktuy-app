@@ -1,39 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
 import Paginator from "../../Paginator";
-
-import { fetchZonasByCourierPrivado } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
+import { fetchMisZonas } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
 import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
 
 type Props = {
-  courierId: number;
   itemsPerPage?: number;
   onEdit?: (zona: ZonaTarifaria) => void;
 };
 
-export default function TableZonaCourier({
-  courierId,
-  itemsPerPage = 6,
-  onEdit,
-}: Props) {
+export default function TableZonaMine({ itemsPerPage = 6, onEdit }: Props) {
   const [zonas, setZonas] = useState<ZonaTarifaria[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    const controller = new AbortController();
     let mounted = true;
-
-    async function load() {
+    (async () => {
       setLoading(true);
       setErr(null);
       try {
         const token = getAuthToken();
         if (!token) throw new Error("No se encontró el token de autenticación.");
-
-        const res = await fetchZonasByCourierPrivado(courierId, token);
+        const res = await fetchMisZonas(token);
         if (!mounted) return;
         if (!res.ok) {
           setErr(res.error || "Error al cargar zonas tarifarias.");
@@ -41,25 +32,17 @@ export default function TableZonaCourier({
           return;
         }
         setZonas(res.data ?? []);
-        setCurrentPage(1); // reset paginación al recargar
+        setCurrentPage(1);
       } catch (e: any) {
         if (!mounted) return;
-        // Si fue cancelado, no mostramos error
-        if (e?.name === "AbortError") return;
         setErr(e?.message || "Error al cargar zonas tarifarias.");
         setZonas([]);
       } finally {
         if (mounted) setLoading(false);
       }
-    }
-
-    load();
-
-    return () => {
-      mounted = false;
-      controller.abort();
-    };
-  }, [courierId]);
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(zonas.length / itemsPerPage)),
@@ -71,7 +54,6 @@ export default function TableZonaCourier({
     return zonas.slice(start, start + itemsPerPage);
   }, [zonas, currentPage, itemsPerPage]);
 
-  /** Convierte DecimalJSON (number | string) a number */
   function toNumber(n: unknown): number {
     if (typeof n === "number") return n;
     if (typeof n === "string") {
@@ -80,49 +62,22 @@ export default function TableZonaCourier({
     }
     return 0;
   }
-
   function formatMoney(nLike: unknown) {
     const n = toNumber(nLike);
-    return n.toLocaleString("es-PE", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    return n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
-
   function EstadoPill({ nombre }: { nombre?: string | null }) {
     const text = nombre ?? "—";
     const isActivo = (nombre || "").toLowerCase() === "activo";
     const cls = isActivo
       ? "bg-green-100 text-green-800 border border-green-200"
       : "bg-gray-100 text-gray-700 border border-gray-200";
-    return (
-      <span className={`px-2 py-0.5 rounded-full text-xs ${cls}`}>{text}</span>
-    );
+    return <span className={`px-2 py-0.5 rounded-full text-xs ${cls}`}>{text}</span>;
   }
 
-  if (loading) {
-    return (
-      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
-        Cargando zonas tarifarias…
-      </div>
-    );
-  }
-
-  if (err) {
-    return (
-      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-red-700">
-        {err}
-      </div>
-    );
-  }
-
-  if (zonas.length === 0) {
-    return (
-      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
-        No hay zonas tarifarias registradas.
-      </div>
-    );
-  }
+  if (loading) return <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">Cargando zonas tarifarias…</div>;
+  if (err) return <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-red-700">{err}</div>;
+  if (zonas.length === 0) return <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">No hay zonas tarifarias registradas.</div>;
 
   return (
     <div className="w-full bg-white rounded-lg shadow overflow-hidden">
@@ -144,9 +99,7 @@ export default function TableZonaCourier({
               <td className="px-4 py-3">{z.zona_tarifario}</td>
               <td className="px-4 py-3">S/ {formatMoney(z.tarifa_cliente)}</td>
               <td className="px-4 py-3">S/ {formatMoney(z.pago_motorizado)}</td>
-              <td className="px-4 py-3">
-                <EstadoPill nombre={z.estado?.nombre} />
-              </td>
+              <td className="px-4 py-3"><EstadoPill nombre={z.estado?.nombre} /></td>
               <td className="px-4 py-3">
                 <button
                   className="inline-flex items-center gap-1 text-orange-500 hover:text-orange-700"

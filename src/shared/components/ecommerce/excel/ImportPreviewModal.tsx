@@ -1,60 +1,37 @@
-// src/shared/components/ecommerce/excel/ImportPreviewPedidosModal.tsx
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { importVentasDesdePreview } from '@/services/ecommerce/importExcel/importexcel.api';
+import type {
+  ImportPayload,
+  PreviewGroupDTO,
+  PreviewResponseDTO,
+} from '@/services/ecommerce/importExcel/importexcel.type';
 import {
   fetchZonasByCourierPublic,
   fetchZonasByCourierPrivado,
 } from '@/services/courier/zonaTarifaria/zonaTarifaria.api';
 import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
-
+import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import CenteredModal from '@/shared/common/CenteredModal';
 import Autocomplete, { type Option } from '@/shared/common/Autocomplete';
-import type { ImportPayload, PreviewGroupDTO, PreviewResponseDTO } from '@/services/ecommerce/importexcelPedido/importexcelPedido.type';
-import { importPedidosDesdePreview } from '@/services/ecommerce/importexcelPedido/importexcelPedido.api';
-
-// Tipos del flujo de PEDIDOS (unificados)
-
 
 type CourierOption = { id: number; nombre: string };
+type ProductoOpt = { id: number; nombre: string };
 
-// Helpers fecha local <-> ISO (evita corrimientos)
-const toISOFromLocal = (local: string) => {
-  if (!local) return '';
-  const [date, time] = local.split('T'); // "YYYY-MM-DD", "HH:mm"
-  const [y, m, d] = date.split('-').map(Number);
-  const [hh, mm] = time.split(':').map(Number);
-  const dt = new Date(y, m - 1, d, hh, mm); // local time
-  return dt.toISOString();
-};
-
-const toLocalInput = (iso?: string | null) => {
-  if (!iso) return '';
-  const dt = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const y = dt.getFullYear();
-  const m = pad(dt.getMonth() + 1);
-  const d = pad(dt.getDate());
-  const hh = pad(dt.getHours());
-  const mm = pad(dt.getMinutes());
-  return `${y}-${m}-${d}T${hh}:${mm}`;
-};
-
-export default function ImportPreviewPedidosModal({
+export default function ImportPreviewModal({
   open,
   onClose,
   token,
   data,
   onImported,
-  allowMultiCourier = true, // ⬅️ NUEVO: modo multi-courier
 }: {
   open: boolean;
   onClose: () => void;
   token: string;
   data: PreviewResponseDTO;
   onImported: () => void;
-  allowMultiCourier?: boolean;
 }) {
   const [groups, setGroups] = useState<PreviewGroupDTO[]>(data.preview);
-  const [courierId, setCourierId] = useState<number | ''>(''); // requerido solo si allowMultiCourier === false
+  const [courierId, setCourierId] = useState<number | ''>(''); // requerido por backend
   const [trabajadorId, setTrabajadorId] = useState<number | ''>('');
   const [estadoId, setEstadoId] = useState<number | ''>('');
   const [distritos, setDistritos] = useState<string[]>([]);
@@ -85,7 +62,7 @@ export default function ImportPreviewPedidosModal({
 
   // Normalización
   const norm = (s: string) =>
-    (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+    (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
   // ===== Couriers (asociados reales) =====
   const [localCouriers, setLocalCouriers] = useState<CourierOption[]>([]);
@@ -104,6 +81,7 @@ export default function ImportPreviewPedidosModal({
           id: c.id,
           nombre: c.nombre_comercial,
         }));
+        // dedupe
         const seen = new Set<number>();
         const dedup = mapped.filter((c) =>
           seen.has(c.id) ? false : (seen.add(c.id), true)
@@ -120,30 +98,30 @@ export default function ImportPreviewPedidosModal({
     };
   }, [token]);
 
-  // En modo courier único: si hay un solo courier, auto-seleccionarlo
+  // Si hay un solo courier, auto-seleccionarlo
   useEffect(() => {
-    if (!allowMultiCourier && !courierId && localCouriers.length === 1) {
+    if (!courierId && localCouriers.length === 1) {
       setCourierId(localCouriers[0].id);
     }
-  }, [allowMultiCourier, localCouriers, courierId]);
+  }, [localCouriers, courierId]);
 
-  // Autodetectar courier desde el texto del preview (solo ayuda visual si es single-courier)
+  // Autodetectar courier desde el texto del preview (si aún no se eligió)
   const byCourierName = useMemo(() => {
     const map = new Map<string, CourierOption>();
     localCouriers.forEach((c) => map.set(norm(c.nombre), c));
     return map;
   }, [localCouriers]);
   useEffect(() => {
-    if (allowMultiCourier) return; // en multi no se autoselecciona uno global
     if (courierId || !groups?.length || !localCouriers.length) return;
     const firstMatch = groups.map((g) => byCourierName.get(norm(g.courier))).find(Boolean);
     if (firstMatch) setCourierId(firstMatch.id);
-  }, [allowMultiCourier, courierId, groups, byCourierName, localCouriers.length]);
+  }, [courierId, groups, byCourierName, localCouriers.length]);
 
-  // ===== Distritos por courier (solo para sugerencias, y solo si courier único) =====
+  // ===== Distritos por courier (FIX TS2345) =====
   useEffect(() => {
     let cancel = false;
 
+    // Garantiza string[] desde cualquier respuesta
     const toDistritoList = (arr: unknown): string[] => {
       const list = Array.isArray(arr) ? arr : [];
       return Array.from(
@@ -156,7 +134,7 @@ export default function ImportPreviewPedidosModal({
     };
 
     async function load() {
-      if (allowMultiCourier || !courierId) {
+      if (!courierId) {
         setDistritos([]);
         return;
       }
@@ -184,19 +162,52 @@ export default function ImportPreviewPedidosModal({
     return () => {
       cancel = true;
     };
-  }, [allowMultiCourier, courierId, token]);
+  }, [courierId, token]);
+
+  // ===== Productos (reales) =====
+  const [productos, setProductos] = useState<ProductoOpt[]>([]);
+  useEffect(() => {
+    let cancel = false;
+    async function load() {
+      try {
+        const res = await fetchProductos(token);
+        if (cancel) return;
+        const mapped: ProductoOpt[] = (res || []).map((p: any) => ({
+          id: p.id,
+          nombre: p.nombre_producto,
+        }));
+        setProductos(mapped);
+      } catch (e) {
+        console.error('No se pudieron cargar productos:', e);
+        if (!cancel) setProductos([]);
+      }
+    }
+    load();
+    return () => {
+      cancel = true;
+    };
+  }, [token]);
 
   // Opciones para Autocomplete/select
   const courierOptions: Option[] = localCouriers.map((c) => ({
-    value: String(c.id),
+    value: c.id,
     label: c.nombre,
   }));
   const distritoOptions: Option[] = distritos.map((d) => ({ value: d, label: d }));
+  const productoOptions: Option[] = productos.map((p) => ({
+    value: p.id,
+    label: p.nombre,
+  }));
 
-  // Validaciones
-  const isInvalidCourier = (s: string) =>
-    !!s && !localCouriers.some((c) => norm(c.nombre) === norm(s));
-  const isInvalidDistrito = (s: string) => !s || s.trim().length === 0;
+  // Validaciones (producto NO invalida visualmente)
+  const courierSet = useMemo(
+    () => new Set(localCouriers.map((c) => norm(c.nombre))),
+    [localCouriers]
+  );
+  const distritoSet = useMemo(() => new Set(distritos.map(norm)), [distritos]);
+
+  const isInvalidCourier = (s: string) => !!s && !courierSet.has(norm(s));
+  const isInvalidDistrito = (s: string) => !!s && !distritoSet.has(norm(s));
   const isInvalidCantidad = (n: number | null) =>
     n == null || Number.isNaN(n) || Number(n) <= 0;
 
@@ -210,12 +221,10 @@ export default function ImportPreviewPedidosModal({
     () => groups.filter((g) => g.valido).length,
     [groups]
   );
-
-  // En multi-courier: NO bloqueamos por courier desconocido, solo resaltamos.
-  // En single-courier: exigimos courierId numérico.
   const hasInvalid = useMemo(() => {
-    if (!allowMultiCourier && typeof courierId !== 'number') return true;
+    if (typeof courierId !== 'number') return true;
     for (const g of groups) {
+      if (isInvalidCourier(g.courier)) return true;
       if (isInvalidDistrito(g.distrito)) return true;
       if ((g.monto_total ?? 0) < 0) return true;
       for (const it of g.items) {
@@ -223,7 +232,7 @@ export default function ImportPreviewPedidosModal({
       }
     }
     return false;
-  }, [allowMultiCourier, groups, courierId]);
+  }, [groups, courierId]);
 
   // Editar cantidad por item
   const handleCantidad = (gIdx: number, iIdx: number, val: number) => {
@@ -241,28 +250,6 @@ export default function ImportPreviewPedidosModal({
     );
   };
 
-  // Editar nombre de producto por item (texto libre). Limpia producto_id para forzar auto-resolución/creación controlada.
-  const handleProductoNombre = (gIdx: number, iIdx: number, val: string) => {
-    setGroups((prev) =>
-      prev.map((g, gi) =>
-        gi !== gIdx
-          ? g
-          : {
-              ...g,
-              items: g.items.map((it, ii) =>
-                ii === iIdx
-                  ? {
-                      ...it,
-                      producto: val,
-                      producto_id: undefined,
-                    }
-                  : it
-              ),
-            }
-      )
-    );
-  };
-
   // aplicar valor a todas las filas seleccionadas
   const applyToSelected = (patch: Partial<PreviewGroupDTO>) => {
     setGroups((prev) => prev.map((g, i) => (selected[i] ? { ...g, ...patch } : g)));
@@ -272,7 +259,7 @@ export default function ImportPreviewPedidosModal({
   const confirmarImportacion = async () => {
     setError(null);
 
-    if (!allowMultiCourier && typeof courierId !== 'number') {
+    if (typeof courierId !== 'number') {
       setError('Selecciona un courier válido.');
       return;
     }
@@ -281,21 +268,18 @@ export default function ImportPreviewPedidosModal({
       return;
     }
 
-    const groupsToSend = Object.values(selected).some(Boolean)
-      ? groups.filter((_, i) => selected[i])
-      : groups;
+    const groupsToSend = someSelected ? groups.filter((_, i) => selected[i]) : groups;
 
     const payload: ImportPayload = {
       groups: groupsToSend,
-      // En single-courier enviamos courierId (override). En multi, NO lo incluimos.
-      ...(allowMultiCourier ? {} : { courierId: courierId as number }),
+      courierId, // number
       trabajadorId: trabajadorId ? Number(trabajadorId) : undefined,
       estadoId: estadoId ? Number(estadoId) : undefined,
     };
 
     try {
       setLoading(true);
-      await importPedidosDesdePreview(payload, token);
+      await importVentasDesdePreview(payload, token);
       onImported();
       onClose();
     } catch (e: any) {
@@ -308,29 +292,26 @@ export default function ImportPreviewPedidosModal({
   if (!open) return null;
 
   return (
-    <CenteredModal title="Validación de datos (Pedidos)" onClose={onClose} widthClass="max-w-[1400px]">
+    <CenteredModal title="Validación de datos" onClose={onClose} widthClass="max-w=[1400px]">
       {/* Barra superior */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        {/* Selector de courier global: solo si NO es multi-courier */}
-        {!allowMultiCourier && (
-          <select
-            className="border rounded px-2 py-1 text-sm"
-            value={courierId}
-            onChange={(e) => {
-              const val = e.target.value;
-              setCourierId(val ? Number(val) : '');
-            }}
-          >
-            <option value="">
-              {localCouriers.length ? 'Seleccionar Courier (requerido)' : 'Cargando couriers...'}
+        <select
+          className="border rounded px-2 py-1 text-sm"
+          value={courierId}
+          onChange={(e) => {
+            const val = e.target.value;
+            setCourierId(val ? Number(val) : '');
+          }}
+        >
+          <option value="">
+            {localCouriers.length ? 'Seleccionar Courier (requerido)' : 'Cargando couriers...'}
+          </option>
+          {localCouriers.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre}
             </option>
-            {localCouriers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
-        )}
+          ))}
+        </select>
 
         <input
           className="border rounded px-2 py-1 text-sm w-44"
@@ -347,7 +328,7 @@ export default function ImportPreviewPedidosModal({
 
         <div className="ml-auto text-sm bg-gray-50 rounded px-2 py-1">
           <b>Total:</b> {groups.length} · <b>Válidos:</b> {totalValidos} ·{' '}
-          {!allowMultiCourier && <><b>Distritos:</b> {distritos.length}</>}
+          <b>Distritos:</b> {distritos.length}
         </div>
       </div>
 
@@ -394,40 +375,31 @@ export default function ImportPreviewPedidosModal({
                 />
               </th>
 
-              {/* Distrito (texto libre con sugerencias si single-courier) */}
+              {/* Distrito */}
               <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  list={!allowMultiCourier ? 'distritos-list' : undefined}
+                <select
                   className="w-full border rounded px-2 py-1"
-                  placeholder={
-                    allowMultiCourier
-                      ? 'Escribe distrito'
-                      : typeof courierId !== 'number'
+                  disabled={!(typeof courierId === 'number') || !distritos.length}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (!v) return;
+                    applyToSelected({ distrito: v });
+                    e.currentTarget.selectedIndex = 0;
+                  }}
+                >
+                  <option value="">
+                    {typeof courierId !== 'number'
                       ? 'Elige courier'
                       : distritos.length
-                      ? 'Escribe o elige distrito'
-                      : 'Escribe distrito'
-                  }
-                  disabled={!allowMultiCourier && !(typeof courierId === 'number')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const v = (e.target as HTMLInputElement).value.trim();
-                      if (v) applyToSelected({ distrito: v });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                  onChange={(e) => {
-                    const v = e.target.value.trim();
-                    if (v) applyToSelected({ distrito: v });
-                  }}
-                />
-                {!allowMultiCourier && (
-                  <datalist id="distritos-list">
-                    {distritos.map((d) => (
-                      <option key={d} value={d} />
-                    ))}
-                  </datalist>
-                )}
+                      ? 'Seleccionar'
+                      : 'Sin distritos'}
+                  </option>
+                  {distritos.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
               </th>
 
               {/* Celular */}
@@ -496,9 +468,38 @@ export default function ImportPreviewPedidosModal({
                 </select>
               </th>
 
-              {/* Producto (se edita en cada fila) */}
+              {/* Producto objetivo (selector de producto EXISTENTE) */}
               <th className="px-2 py-2 border-b border-gray-200">
-                <span className="text-gray-500">Producto</span>
+                <select
+                  className="w-full border rounded px-2 py-1"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (!v) return;
+                    const p = productos.find((pp) => String(pp.id) === v);
+                    if (!p) return;
+                    setGroups((prev) =>
+                      prev.map((g, i) => {
+                        if (!selected[i]) return g;
+                        return {
+                          ...g,
+                          items: g.items.map((it) => ({
+                            ...it,
+                            producto: p.nombre,
+                            producto_id: p.id,
+                          })),
+                        };
+                      })
+                    );
+                    e.currentTarget.selectedIndex = 0;
+                  }}
+                >
+                  <option value="">Producto objetivo</option>
+                  {productos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
               </th>
 
               {/* Cantidad (multi-apply) */}
@@ -550,7 +551,9 @@ export default function ImportPreviewPedidosModal({
                   type="datetime-local"
                   className="w-full border rounded px-2 py-1"
                   onChange={(e) => {
-                    const iso = toISOFromLocal(e.target.value);
+                    const iso = e.target.value
+                      ? new Date(e.target.value).toISOString()
+                      : '';
                     if (iso) applyToSelected({ fecha_entrega: iso });
                     e.currentTarget.value = '';
                   }}
@@ -595,147 +598,163 @@ export default function ImportPreviewPedidosModal({
           </thead>
 
           <tbody>
-            {groups.map((g, gi) => {
-              // En single-courier usamos sugerencias; en multi solo texto libre.
-              const isNewDistrito =
-                !!g.distrito && (!allowMultiCourier
-                  ? !distritos.some((d) => norm(d) === norm(g.distrito))
-                  : false);
-              const distritoClass = isNewDistrito ? 'border-amber-500 bg-amber-50 text-amber-700' : '';
+            {groups.map((g, gi) => (
+              <tr key={gi} className="odd:bg-white even:bg-gray-50">
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    type="checkbox"
+                    checked={!!selected[gi]}
+                    onChange={() => toggleRow(gi)}
+                  />
+                </td>
 
-              return (
-                <tr key={gi} className="odd:bg-white even:bg-gray-50">
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <input
-                      type="checkbox"
-                      checked={!!selected[gi]}
-                      onChange={() => toggleRow(gi)}
-                    />
-                  </td>
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    value={g.nombre}
+                    onChange={(e) => patchGroup(gi, { nombre: e.target.value })}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </td>
 
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <input
-                      value={g.nombre}
-                      onChange={(e) => patchGroup(gi, { nombre: e.target.value })}
-                      className="w-full border rounded px-2 py-1"
-                    />
-                  </td>
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <Autocomplete
+                    value={g.distrito}
+                    onChange={(v) => patchGroup(gi, { distrito: v })}
+                    options={distritoOptions}
+                    placeholder="Distrito"
+                    invalid={isInvalidDistrito(g.distrito)}
+                    className="w-full"
+                  />
+                </td>
 
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <div
-                      className={`w-full ${distritoClass}`}
-                      title={isNewDistrito ? 'Distrito no registrado (puede no existir en zonas)' : undefined}
-                    >
-                      <Autocomplete
-                        value={g.distrito || ''}
-                        onChange={(v: string) => patchGroup(gi, { distrito: v })}
-                        options={!allowMultiCourier ? distritoOptions : []}
-                        placeholder="Distrito"
-                        invalid={isInvalidDistrito(g.distrito)}
-                        className="w-full"
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    value={g.telefono}
+                    onChange={(e) => patchGroup(gi, { telefono: e.target.value })}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    value={g.direccion}
+                    onChange={(e) => patchGroup(gi, { direccion: e.target.value })}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    value={g.referencia || ''}
+                    onChange={(e) => patchGroup(gi, { referencia: e.target.value })}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <Autocomplete
+                    value={g.courier}
+                    onChange={(v) => patchGroup(gi, { courier: v })}
+                    options={courierOptions}
+                    placeholder="Courier"
+                    invalid={isInvalidCourier(g.courier)}
+                    className="w-full"
+                  />
+                </td>
+
+                {/* Producto + Cantidad */}
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <div className="space-y-1">
+                    {g.items.map((it, ii) => (
+                      <select
+                        key={ii}
+                        value={
+                          (it as any).producto_id ??
+                          (productos.find((p) => p.nombre === (it.producto || ''))?.id ?? '')
+                        }
+                        onChange={(e) => {
+                          const id = Number(e.target.value);
+                          const prod = productos.find((p) => p.id === id);
+                          setGroups((prev) =>
+                            prev.map((gg, idx) =>
+                              idx !== gi
+                                ? gg
+                                : {
+                                    ...gg,
+                                    items: gg.items.map((x, idx2) =>
+                                      idx2 === ii
+                                        ? {
+                                            ...x,
+                                            producto: prod?.nombre || '',
+                                            producto_id: prod?.id,
+                                          }
+                                        : x
+                                    ),
+                                  }
+                            )
+                          );
+                        }}
+                        className="w-full border rounded px-2 py-1"
+                      >
+                        <option value="">Seleccionar producto...</option>
+                        {productoOptions.map((p) => (
+                          <option key={p.value} value={p.value}>
+                            {p.label}
+                          </option>
+                        ))}
+                      </select>
+                    ))}
+                  </div>
+                </td>
+
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <div className="space-y-1">
+                    {g.items.map((it, ii) => (
+                      <input
+                        key={ii}
+                        type="number"
+                        min={0}
+                        value={it.cantidad ?? 0}
+                        onChange={(e) => handleCantidad(gi, ii, Number(e.target.value))}
+                        className={`w-full border rounded px-2 py-1 text-right ${
+                          isInvalidCantidad(it.cantidad) ? 'border-red-500 bg-red-50' : ''
+                        }`}
                       />
-                    </div>
-                  </td>
+                    ))}
+                  </div>
+                </td>
 
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <input
-                      value={g.telefono}
-                      onChange={(e) => patchGroup(gi, { telefono: e.target.value })}
-                      className="w-full border rounded px-2 py-1"
-                    />
-                  </td>
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={g.monto_total ?? 0}
+                    onChange={(e) => patchGroup(gi, { monto_total: Number(e.target.value) })}
+                    className={`w-full border rounded px-2 py-1 text-right ${
+                      (g.monto_total ?? 0) < 0 ? 'border-red-500 bg-red-50' : ''
+                    }`}
+                  />
+                </td>
 
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <input
-                      value={g.direccion}
-                      onChange={(e) => patchGroup(gi, { direccion: e.target.value })}
-                      className="w-full border rounded px-2 py-1"
-                    />
-                  </td>
-
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <input
-                      value={g.referencia || ''}
-                      onChange={(e) => patchGroup(gi, { referencia: e.target.value })}
-                      className="w-full border rounded px-2 py-1"
-                    />
-                  </td>
-
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <Autocomplete
-                      value={g.courier || ''}
-                      onChange={(v: string) => patchGroup(gi, { courier: v })}
-                      options={courierOptions}
-                      placeholder="Courier"
-                      // 🔸 En multi no bloquea, solo resalta si no coincide con la lista
-                      invalid={!allowMultiCourier && isInvalidCourier(g.courier)}
-                      className="w-full"
-                    />
-                    {allowMultiCourier && isInvalidCourier(g.courier) && g.courier ? (
-                      <div className="text-[11px] text-amber-600 mt-1">
-                        Nombre de courier no coincide con asociados. Se intentará resolver por similitud.
-                      </div>
-                    ) : null}
-                  </td>
-
-                  {/* Producto + Cantidad */}
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <div className="space-y-1">
-                      {g.items.map((it, ii) => (
-                        <input
-                          key={ii}
-                          value={it.producto || ''}
-                          placeholder="Nombre del producto"
-                          onChange={(e) => handleProductoNombre(gi, ii, e.target.value)}
-                          className="w-full border rounded px-2 py-1"
-                        />
-                      ))}
-                    </div>
-                  </td>
-
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <div className="space-y-1">
-                      {g.items.map((it, ii) => (
-                        <input
-                          key={ii}
-                          type="number"
-                          min={0}
-                          value={it.cantidad ?? 0}
-                          onChange={(e) => handleCantidad(gi, ii, Number(e.target.value))}
-                          className={`w-full border rounded px-2 py-1 text-right ${
-                            isInvalidCantidad(it.cantidad) ? 'border-red-500 bg-red-50' : ''
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </td>
-
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={g.monto_total ?? 0}
-                      onChange={(e) => patchGroup(gi, { monto_total: Number(e.target.value) })}
-                      className={`w-full border rounded px-2 py-1 text-right ${
-                        (g.monto_total ?? 0) < 0 ? 'border-red-500 bg-red-50' : ''
-                      }`}
-                    />
-                  </td>
-
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
-                    <input
-                      type="datetime-local"
-                      value={toLocalInput(g.fecha_entrega)}
-                      onChange={(e) => {
-                        const iso = toISOFromLocal(e.target.value);
-                        patchGroup(gi, { fecha_entrega: iso || undefined });
-                      }}
-                      className="w-full border rounded px-2 py-1"
-                    />
-                  </td>
-                </tr>
-              );
-            })}
+                <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  <input
+                    type="datetime-local"
+                    value={
+                      g.fecha_entrega
+                        ? new Date(g.fecha_entrega).toISOString().slice(0, 16)
+                        : ''
+                    }
+                    onChange={(e) => {
+                      const iso = e.target.value
+                        ? new Date(e.target.value).toISOString()
+                        : '';
+                      patchGroup(gi, { fecha_entrega: iso });
+                    }}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -752,7 +771,7 @@ export default function ImportPreviewPedidosModal({
           className="px-4 py-2 text-sm rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
           title={hasInvalid ? 'Corrige los campos en rojo' : ''}
         >
-          {loading ? 'Importando…' : allowMultiCourier ? 'Cargar Datos (multi-courier)' : 'Cargar Datos'}
+          {loading ? 'Importando…' : 'Cargar Datos'}
         </button>
       </div>
 
