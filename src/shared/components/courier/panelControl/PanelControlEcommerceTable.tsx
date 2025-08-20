@@ -103,7 +103,7 @@ function DetalleEcommerceModal({
 
   const nombres = u?.nombres ?? "-";
   const apellidos = u?.apellidos ?? "-";
-  const dni = u?.dni_ci ?? u?.dni ?? "-";
+  const dni = u?.DNI ?? u?.dni ?? "-";
   const correo = u?.correo ?? u?.email ?? "-";
 
   const telefonoRaw: string = (u?.telefono ?? "").toString();
