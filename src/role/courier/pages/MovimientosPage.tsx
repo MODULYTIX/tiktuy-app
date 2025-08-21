@@ -1,7 +1,15 @@
+// src/pages/courier/MovimientosPage.tsx
+import { useState } from 'react';
 import TableMovimientoCourier from '@/shared/components/courier/movimiento/TableMovimientoCourier';
-import MovimientoFilterCourier from '@/shared/components/movimiento/MovimientoFilterCourier';
+import MovimientoFilterCourier, { type MovimientoCourierFilters } from '@/shared/components/movimiento/MovimientoFilterCourier';
 
 export default function MovimientosPage() {
+  const [filters, setFilters] = useState<MovimientoCourierFilters>({
+    estado: '',
+    fecha: '',
+    q: '',
+  });
+
   return (
     <section className="mt-8">
       <div>
@@ -11,11 +19,17 @@ export default function MovimientosPage() {
             <p className="text-gray-500">Realice y visualice sus movimientos</p>
           </div>
         </div>
+
         <div className="my-8">
-          <MovimientoFilterCourier />
+          <MovimientoFilterCourier
+            value={filters}
+            onChange={(next) => setFilters((prev) => ({ ...prev, ...next }))}
+            onClear={() => setFilters({ estado: '', fecha: '', q: '' })}
+          />
         </div>
+
         <div>
-          <TableMovimientoCourier />
+          <TableMovimientoCourier filters={filters} />
         </div>
       </div>
     </section>

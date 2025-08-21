@@ -1,3 +1,4 @@
+// src/services/ecommerce/almacenamiento/almacenamiento.types.ts
 export interface Almacenamiento {
   id: number;
   uuid: string;
@@ -6,7 +7,7 @@ export interface Almacenamiento {
   departamento: string;
   direccion: string;
   fecha_registro: string;
-  estado: {
+  estado?: {
     id: number;
     nombre: string;
   };
@@ -28,7 +29,7 @@ export interface MovimientoAlmacen {
   id: number;
   uuid: string;
   descripcion: string;
-  fecha_movimiento: string; 
+  fecha_movimiento: string;
   estado: {
     id: number;
     nombre: string;
@@ -46,7 +47,7 @@ export interface MovimientoAlmacen {
     cantidad: number;
     producto: {
       id: number;
-      nombre: string;
+      nombre_producto: string; // <- coincide con el modelo Prisma
       stock: number;
     };
   }[];
