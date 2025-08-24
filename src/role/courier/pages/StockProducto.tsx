@@ -1,41 +1,85 @@
 // shared/components/courier/pedido/SockPedidoCourierFilter.tsx
+<<<<<<< HEAD
 import type { Dispatch, SetStateAction } from 'react';
 import { FiSearch, FiX, FiChevronDown } from 'react-icons/fi';
 import { Select } from '@/shared/components/Select';
 
 
+=======
+import { FiSearch, FiX } from 'react-icons/fi';
+import { Select } from '@/shared/components/Select';
+import { useState, type Dispatch, type SetStateAction } from 'react';
+>>>>>>> 909e012f3e5d603af89cca20f0f86de5ea98d79d
 
+/** Tipos de filtros que usa la página de Stock */
 export type StockFilters = {
-  almacenId: string;      
-  categoriaId: string;   
-  estado: string;         
-  stockBajo: boolean;    
+  almacenId: string;
+  categoriaId: string;
+  estado: string;
+  stockBajo: boolean;
   precioOrden: '' | 'asc' | 'desc';
+<<<<<<< HEAD
   q: string;    
 
+=======
+  q: string;
+>>>>>>> 909e012f3e5d603af89cca20f0f86de5ea98d79d
 };
 
 type Option = { value: string; label: string };
 
 type Props = {
-  filters: StockFilters;
-  onChange: Dispatch<SetStateAction<StockFilters>>;
-  options: {
+  /** Estado completo de filtros controlado por el padre (ahora opcional) */
+  filters?: StockFilters;
+  /** setState del padre (ahora opcional) */
+  onChange?: Dispatch<SetStateAction<StockFilters>>;
+  /** Listas para selects (opcional con defaults seguros) */
+  options?: {
     almacenes: Option[];
     categorias: Option[];
     estados: Option[];
   };
+  /** Loading opcional (default false) */
   loading?: boolean;
+};
+
+/** Intenta extraer string tanto si el Select entrega event, string o {value,label} */
+function getValue(e: any): string {
+  if (typeof e === 'string') return e;
+  if (e && typeof e.value === 'string') return e.value;
+  if (e && e.target && typeof e.target.value === 'string') return e.target.value;
+  return '';
+}
+
+const DEFAULT_FILTERS: StockFilters = {
+  almacenId: '',
+  categoriaId: '',
+  estado: '',
+  stockBajo: false,
+  precioOrden: '',
+  q: '',
 };
 
 export default function StockPedidoFilterCourier({
   filters,
   onChange,
-  options,
-  loading,
+  options = { almacenes: [], categorias: [], estados: [] },
+  loading = false,
 }: Props) {
-  const set = (patch: Partial<StockFilters>) =>
-    onChange((prev) => ({ ...prev, ...patch }));
+  // estado interno si el padre no controla
+  const [internal, setInternal] = useState<StockFilters>(DEFAULT_FILTERS);
+
+  // fuente de lectura
+  const view = filters ?? internal;
+
+  // setter que escribe en el padre si existe; si no, al interno
+  const set = (patch: Partial<StockFilters>) => {
+    if (onChange) {
+      onChange((prev) => ({ ...(prev ?? DEFAULT_FILTERS), ...patch }));
+    } else {
+      setInternal((prev) => ({ ...prev, ...patch }));
+    }
+  };
 
   // input styling (igual que el otro filtro)
   const field =
@@ -52,8 +96,8 @@ export default function StockPedidoFilterCourier({
           <div className="text-center font-medium text-gray-700 mb-2">Ecommerce</div>
           <div className="relative w-full">
             <Select
-              value={filters.almacenId}
-              onChange={(e) => set({ almacenId: e.target.value })}
+              value={view.almacenId}
+              onChange={(e) => set({ almacenId: getValue(e) })}
               options={[{ value: '', label: 'Seleccionar ecommerce' }, ...options.almacenes]}
               placeholder="Seleccionar ecommerce"
               disabled={loading}
@@ -66,8 +110,8 @@ export default function StockPedidoFilterCourier({
           <div className="text-center font-medium text-gray-700 mb-2">Categorías</div>
           <div className="relative w-full">
             <Select
-              value={filters.categoriaId}
-              onChange={(e) => set({ categoriaId: e.target.value })}
+              value={view.categoriaId}
+              onChange={(e) => set({ categoriaId: getValue(e) })}
               options={[{ value: '', label: 'Seleccionar categoría' }, ...options.categorias]}
               placeholder="Seleccionar categoría"
               disabled={loading}
@@ -80,8 +124,8 @@ export default function StockPedidoFilterCourier({
           <div className="text-center font-medium text-gray-700 mb-2">Estado</div>
           <div className="relative w-full">
             <Select
-              value={filters.estado}
-              onChange={(e) => set({ estado: e.target.value })}
+              value={view.estado}
+              onChange={(e) => set({ estado: getValue(e) })}
               options={[{ value: '', label: 'Seleccionar estado' }, ...options.estados]}
               placeholder="Seleccionar estado"
               disabled={loading}
@@ -100,7 +144,7 @@ export default function StockPedidoFilterCourier({
               <input
                 type="checkbox"
                 className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
-                checked={filters.stockBajo}
+                checked={view.stockBajo}
                 onChange={(e) => set({ stockBajo: e.target.checked })}
                 disabled={loading}
               />
@@ -113,8 +157,8 @@ export default function StockPedidoFilterCourier({
                 type="radio"
                 name="precioOrden"
                 className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
-                checked={filters.precioOrden === 'asc'}
-                onChange={() => set({ precioOrden: filters.precioOrden === 'asc' ? '' : 'asc' })}
+                checked={view.precioOrden === 'asc'}
+                onChange={() => set({ precioOrden: view.precioOrden === 'asc' ? '' : 'asc' })}
                 disabled={loading}
               />
               <span>Precios bajos</span>
@@ -124,8 +168,8 @@ export default function StockPedidoFilterCourier({
                 type="radio"
                 name="precioOrden"
                 className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
-                checked={filters.precioOrden === 'desc'}
-                onChange={() => set({ precioOrden: filters.precioOrden === 'desc' ? '' : 'desc' })}
+                checked={view.precioOrden === 'desc'}
+                onChange={() => set({ precioOrden: view.precioOrden === 'desc' ? '' : 'desc' })}
                 disabled={loading}
               />
               <span>Precios Altos</span>
@@ -140,7 +184,7 @@ export default function StockPedidoFilterCourier({
             <input
               className={`${field} pl-10`}
               type="text"
-              value={filters.q}
+              value={view.q}
               onChange={(e) => set({ q: e.target.value })}
               placeholder="Buscar productos por nombre, descripción ó código."
               disabled={loading}

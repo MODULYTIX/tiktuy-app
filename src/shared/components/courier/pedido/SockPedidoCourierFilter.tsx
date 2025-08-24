@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type React from 'react'; // <- para React.ChangeEvent tipado
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { useAuth } from '@/auth/context';
@@ -21,6 +22,15 @@ interface Filters {
 interface Props {
   onFilterChange?: (filters: Filters) => void;
 }
+
+/** Acepta event, string o {value,label} y devuelve string de forma segura */
+type SelectChange = { target?: { value?: string } } | string | { value?: string; label?: string } | undefined | null;
+const pickSelectValue = (e: SelectChange): string => {
+  if (typeof e === 'string') return e;
+  if (e && typeof (e as any).value === 'string') return (e as any).value;
+  if (e && (e as any).target && typeof (e as any).target.value === 'string') return (e as any).target.value;
+  return '';
+};
 
 export default function StockFilters({ onFilterChange }: Props) {
   const { token } = useAuth();
@@ -63,14 +73,12 @@ export default function StockFilters({ onFilterChange }: Props) {
     });
   };
 
-  // input de búsqueda (igual al base)
   const field =
     'w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 ' +
     'placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors';
 
   return (
     <div className="bg-white p-5 rounded-md shadow-default border border-gray30">
-      {/* xs: 1 col · sm: 2 cols · lg: 1fr 1fr 1fr auto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm">
         {/* Ecommerce */}
         <div>
@@ -80,7 +88,7 @@ export default function StockFilters({ onFilterChange }: Props) {
               id="f-ecommerce"
               value={filters.almacenamiento_id}
               onChange={(e) =>
-                setFilters((p) => ({ ...p, almacenamiento_id: e.target.value }))
+                setFilters((p) => ({ ...p, almacenamiento_id: pickSelectValue(e as SelectChange) }))
               }
               options={[
                 { value: '', label: 'Seleccionar ecommerce' },
@@ -99,7 +107,7 @@ export default function StockFilters({ onFilterChange }: Props) {
               id="f-categoria"
               value={filters.categoria_id}
               onChange={(e) =>
-                setFilters((p) => ({ ...p, categoria_id: e.target.value }))
+                setFilters((p) => ({ ...p, categoria_id: pickSelectValue(e as SelectChange) }))
               }
               options={[
                 { value: '', label: 'Seleccionar categoría' },
@@ -117,7 +125,9 @@ export default function StockFilters({ onFilterChange }: Props) {
             <Select
               id="f-estado"
               value={filters.estado}
-              onChange={(e) => setFilters((p) => ({ ...p, estado: e.target.value }))}
+              onChange={(e) =>
+                setFilters((p) => ({ ...p, estado: pickSelectValue(e as SelectChange) }))
+              }
               options={[
                 { value: '', label: 'Seleccionar estado' },
                 { value: 'activo', label: 'Activo' },
@@ -128,11 +138,10 @@ export default function StockFilters({ onFilterChange }: Props) {
           </div>
         </div>
 
-        {/* Filtros exclusivos (estilo visible y acorde a figma) */}
+        {/* Filtros exclusivos */}
         <div className="min-w-0">
           <div className="text-center font-medium text-gray-700 mb-2">Filtros exclusivos</div>
           <div className="h-10 flex items-center justify-center lg:justify-start gap-6">
-            {/* Checkbox custom con peer para que SIEMPRE se vea el cuadrito */}
             <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap cursor-pointer select-none">
               <input
                 type="checkbox"
