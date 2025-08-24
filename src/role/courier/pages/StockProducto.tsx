@@ -169,7 +169,7 @@ export default function StockPedidoFilterCourier({
           <div className="relative flex-1 border border-gray60 rounded">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              className={`${field} pl-10`}
+              className={`${field} pl-10`} 
               type="text"
               value={view.q}
               onChange={(e) => set({ q: e.target.value })}

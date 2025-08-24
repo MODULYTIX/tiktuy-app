@@ -1,68 +1,122 @@
-type PerfilCourier = {
-    id: string;
-    fechaCreacion: string;
-    nombre: string;
-    apellido: string;
-    dni: string;
-    correo: string;
-    telefono: string;
-    rolPerfil: string;
-    modulo: string;
-  };
-  
-  interface Props {
-    perfiles: PerfilCourier[];
-  }
-  
-  export default function PerfilesCourierTable({ perfiles }: Props) {
-    return (
-      <section className="my-8">
-        <div className="overflow-x-auto rounded-lg shadow">
-          <table className="min-w-full text-sm text-left border-collapse">
-            <thead className="bg-gray-100 text-gray-700">
-              <tr>
-                <th className="px-4 py-2">F. Creación</th>
-                <th className="px-4 py-2">Nombre</th>
-                <th className="px-4 py-2">Apellido</th>
-                <th className="px-4 py-2">DNI</th>
-                <th className="px-4 py-2">Correo</th>
-                <th className="px-4 py-2">Teléfono</th>
-                <th className="px-4 py-2">Rol - Perfil</th>
-                <th className="px-4 py-2">Módulo</th>
-                <th className="px-4 py-2">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {perfiles.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="text-center py-6 text-gray-500 italic"
-                  >
-                    No hay perfiles disponibles
-                  </td>
+// src/shared/components/courier/perfiles/PerfilesCourierTable.tsx
+import { useMemo, useState } from 'react';
+import { FaRegEdit } from 'react-icons/fa';
+import { Skeleton } from '@/shared/components/ui/Skeleton';
+import Paginator from '@/shared/components/Paginator';
+import type { PerfilTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.types';
+
+type Props = {
+  data: PerfilTrabajador[];
+  loading?: boolean;
+  onReload?: () => void;
+  onEdit?: (perfil: PerfilTrabajador) => void;
+};
+
+export default function PerfilesCourierTable({ data, loading = false, onEdit }: Props) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
+  const totalPages = useMemo(() => Math.ceil((data?.length || 0) / itemsPerPage), [data]);
+  const currentData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return (data || []).slice(start, start + itemsPerPage);
+  }, [data, currentPage]);
+
+  return (
+    <div className="mt-6">
+      <div className="overflow-x-auto bg-white rounded shadow-md">
+        <table className="min-w-full text-sm text-left">
+          <thead className="bg-gray-100 text-gray-700 font-semibold">
+            <tr>
+              <th className="px-4 py-3">F. Creación</th>
+              <th className="px-4 py-3">Nombre</th>
+              <th className="px-4 py-3">Apellido</th>
+              <th className="px-4 py-3">DNI</th>
+              <th className="px-4 py-3">Correo</th>
+              <th className="px-4 py-3">Teléfono</th>
+              <th className="px-4 py-3">Rol - Perfil</th>
+              <th className="px-4 py-3">Módulo asignado</th>
+              <th className="px-4 py-3">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              Array.from({ length: itemsPerPage }).map((_, idx) => (
+                <tr key={idx} className="border-t">
+                  {Array(9)
+                    .fill(null)
+                    .map((__, i) => (
+                      <td key={i} className="px-4 py-2">
+                        <Skeleton className="h-4 w-full" />
+                      </td>
+                    ))}
                 </tr>
-              ) : (
-                perfiles.map((perfil) => (
-                  <tr key={perfil.id}>
-                    <td className="px-4 py-2">{perfil.fechaCreacion}</td>
-                    <td className="px-4 py-2">{perfil.nombre}</td>
-                    <td className="px-4 py-2">{perfil.apellido}</td>
-                    <td className="px-4 py-2">{perfil.dni}</td>
-                    <td className="px-4 py-2">{perfil.correo}</td>
-                    <td className="px-4 py-2">{perfil.telefono}</td>
-                    <td className="px-4 py-2">{perfil.rolPerfil}</td>
-                    <td className="px-4 py-2">{perfil.modulo}</td>
-                    <td className="px-4 py-2">
-                      {/* Aquí van botones o acciones */}
+              ))
+            ) : !data || data.length === 0 ? (
+              <tr className="border-t">
+                <td colSpan={9} className="px-4 py-6 text-center text-gray-500">
+                  No hay perfiles registrados.
+                </td>
+              </tr>
+            ) : (
+              currentData.map((item) => {
+                const modulos = (item.modulo_asignado || []).map((m: string) => m.trim()).filter(Boolean);
+
+                return (
+                  <tr key={item.id} className="border-t hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      {item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-4 py-3">{item.nombres || '-'}</td>
+                    <td className="px-4 py-3">{item.apellidos || '-'}</td>
+                    <td className="px-4 py-3">{item.DNI_CI || '-'}</td>
+                    <td className="px-4 py-3">{item.correo || '-'}</td>
+                    <td className="px-4 py-3">{item.telefono || '-'}</td>
+                    <td className="px-4 py-3">{item.perfil || '-'}</td>
+
+                    <td className="px-4 py-3">
+                      {modulos.length > 0 ? (
+                        <div className="relative group cursor-pointer">
+                          <span className="capitalize">{modulos[0]}</span>
+                          <div
+                            className="
+                              absolute left-0 top-full mt-1 hidden group-hover:block
+                              bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-10
+                              max-w-xs whitespace-normal break-words
+                            "
+                          >
+                            {modulos
+                              .map((mod: string) => mod.charAt(0).toUpperCase() + mod.slice(1))
+                              .join('\n')}
+                          </div>
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <FaRegEdit className="text-yellow-600 cursor-pointer" onClick={() => onEdit?.(item)} />
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4">
+          <Paginator
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) => {
+              if (page >= 1 && page <= totalPages) setCurrentPage(page);
+            }}
+          />
         </div>
-      </section>
-    );
-  }
-  
+      )}
+    </div>
+  );
+}
