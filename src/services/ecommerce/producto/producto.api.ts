@@ -38,7 +38,7 @@ export async function crearProducto(data: Partial<Producto>, token: string): Pro
   return res.json();
 }
 
-// 🆕 Nuevo: Filtros dinámicos
+//  Filtros dinámicos
 export async function fetchProductosFiltrados(
   filters: Record<string, any>,
   token: string

@@ -1,10 +1,10 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { importVentasDesdePreview } from '@/services/ecommerce/importExcel/importexcel.api';
+import { importVentasDesdePreview } from '@/services/ecommerce/importexcelPedido/importexcelPedido.api';
 import type {
   ImportPayload,
   PreviewGroupDTO,
   PreviewResponseDTO,
-} from '@/services/ecommerce/importExcel/importexcel.type';
+} from '@/services/ecommerce/importexcelPedido/importexcelPedido.type';
 import {
   fetchZonasByCourierPublic,
   fetchZonasByCourierPrivado,

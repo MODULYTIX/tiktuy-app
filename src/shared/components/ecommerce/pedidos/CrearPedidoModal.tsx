@@ -91,7 +91,13 @@ export default function CrearPedidoModal({
   useEffect(() => {
     if (form.courier_id && token) {
       fetchZonasByCourierPrivado(Number(form.courier_id), token)
-        .then(setZonas)
+        .then(response => {
+          if ('data' in response) {
+            setZonas(response.data.map(zona => ({ distrito: zona.distrito })));
+          } else {
+            setZonas([]);
+          }
+        })
         .catch((err) => {
           console.error('Error al obtener zonas tarifarias privadas:', err);
           setZonas([]);

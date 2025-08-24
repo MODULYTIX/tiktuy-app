@@ -1,8 +1,9 @@
+// src/services/ecommerce/almacenamiento/almacenamiento.api.ts
 import type { Almacenamiento, MovimientoAlmacen, MovimientoPayload } from './almacenamiento.types';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/almacenamiento`;
 
-// Obtener todos los almacenes
+// Obtener todos los almacenes del ecommer del usuario
 export async function fetchAlmacenes(token: string): Promise<Almacenamiento[]> {
   const res = await fetch(BASE_URL, {
     headers: {
@@ -11,6 +12,18 @@ export async function fetchAlmacenes(token: string): Promise<Almacenamiento[]> {
   });
 
   if (!res.ok) throw new Error('Error al obtener almacenes');
+  return res.json();
+}
+
+// NUEVO: Obtener almacenes del ecommer + almacenes de couriers asociados (activos)
+export async function fetchAlmacenesEcommerCourier(token: string): Promise<Almacenamiento[]> {
+  const res = await fetch(`${BASE_URL}/ecommer-courier`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) throw new Error('Error al obtener almacenes (ecommer y couriers)');
   return res.json();
 }
 
