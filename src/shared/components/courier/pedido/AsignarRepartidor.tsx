@@ -20,6 +20,13 @@ type MotorizadoOption = {
   apellidos: string;
 };
 
+type MotorizadoApi = {
+  id: number;
+  estado_id: number;
+  estado?: { nombre?: string; tipo?: string } | null;
+  usuario?: { nombres?: string; apellidos?: string } | null;
+};
+
 type PedidoDetalleMin = {
   id: number;
   codigo_pedido: string;
@@ -32,6 +39,7 @@ type PedidoDetalleMin = {
 };
 
 const API_URL = import.meta.env.VITE_API_URL as string;
+const ESTADO_ID_DISPONIBLE = 18; // Disponible
 
 export default function AsignarRepartidor({
   open,
@@ -50,30 +58,35 @@ export default function AsignarRepartidor({
 
   const isMulti = selectedIds.length > 1;
 
-  // Cargar motorizados del courier autenticado
+  // Cargar motorizados del courier autenticado (SOLO DISPONIBLES)
   useEffect(() => {
     if (!open) return;
     const ac = new AbortController();
+
     async function loadMotos() {
       setMotosLoading(true);
       setError('');
       try {
-        // Ajusta el endpoint si difiere en tu backend
+        // Si tienes un endpoint dedicado: `${API_URL}/motorizado/disponibles`
         const res = await fetch(`${API_URL}/motorizado`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: ac.signal,
         });
         if (!res.ok) throw new Error('Error al cargar repartidores');
-        const data: Array<{
-          id: number;
-          usuario?: { nombres?: string; apellidos?: string };
-        }> = await res.json();
+        const data: MotorizadoApi[] = await res.json();
 
-        const opts: MotorizadoOption[] = data.map((m) => ({
+        const soloDisponibles = data.filter(
+          (m) =>
+            m.estado_id === ESTADO_ID_DISPONIBLE ||
+            (m.estado?.nombre && m.estado.nombre.toLowerCase() === 'disponible')
+        );
+
+        const opts: MotorizadoOption[] = soloDisponibles.map((m) => ({
           id: m.id,
           nombres: m.usuario?.nombres ?? '',
           apellidos: m.usuario?.apellidos ?? '',
         }));
+
         setMotorizados(opts);
       } catch (e) {
         if ((e as Error).name !== 'AbortError') {
@@ -83,6 +96,7 @@ export default function AsignarRepartidor({
         setMotosLoading(false);
       }
     }
+
     loadMotos();
     return () => ac.abort();
   }, [open, token]);
@@ -113,14 +127,12 @@ export default function AsignarRepartidor({
     async function loadDetalle() {
       try {
         const id = selectedIds[0];
-        // Usa tu endpoint de detalle (ajusta si es otro)
         const res = await fetch(`${API_URL}/pedido/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: ac.signal,
         });
         if (!res.ok) throw new Error('Error al cargar detalle del pedido');
         const p = await res.json();
-        // adapta los campos al shape mínimo que necesitamos
         const items: { nombre: string; cantidad: number }[] =
           p.detalles?.map((d: any) => ({
             nombre: d.producto?.nombre_producto ?? 'Producto',
@@ -246,9 +258,7 @@ export default function AsignarRepartidor({
               </div>
               <div className="flex gap-2">
                 <span className="text-gray-500 min-w-[130px]">Cant. de Productos:</span>
-                <span className="font-medium">
-                  {String(totalItems).padStart(2, '0')}
-                </span>
+                <span className="font-medium">{String(totalItems).padStart(2, '0')}</span>
               </div>
             </div>
 
@@ -267,7 +277,6 @@ export default function AsignarRepartidor({
                     >
                       <div className="flex flex-col">
                         <span className="font-medium">{it.nombre}</span>
-                        {/* Si más adelante agregas marca, muéstrala aquí */}
                       </div>
                       <div className="text-right">{String(it.cantidad).padStart(2, '0')}</div>
                     </div>
