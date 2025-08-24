@@ -12,7 +12,7 @@ interface Props {
 
 const rolModuloMap: Record<string, string[]> = {
   // courier roles (IDs según tu DB)
-  '4': ['almacen', 'productos', 'movimiento'], // AlmaceneroCourier
+  '4': ['almacen', 'stock', 'movimiento'], // AlmaceneroCourier
   '5': ['panel', 'reportes', 'saldos', 'perfiles', 'almacen', 'pedidos'], // AsistenteCourier
   '6': ['pedidos'], // RepartidorCourier
 };
