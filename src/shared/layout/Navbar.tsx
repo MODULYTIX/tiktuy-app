@@ -15,7 +15,7 @@ interface Props {
   setOpen: (v: boolean) => void;
 }
 
-export default function Navbar({ isOpen, toggle, open, setOpen }: Props) {
+export default function Navbar({ isOpen,  open, setOpen }: Props) {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
