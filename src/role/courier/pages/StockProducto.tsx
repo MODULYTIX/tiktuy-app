@@ -1,17 +1,7 @@
 // shared/components/courier/pedido/SockPedidoCourierFilter.tsx
-import { Dispatch, SetStateAction } from 'react';
-import { FiSearch, FiX, FiChevronDown } from 'react-icons/fi';
+import { FiSearch, FiX } from 'react-icons/fi';
 import { Select } from '@/shared/components/Select';
-
-<<<<<<< HEAD
-type StockFilters = {
-  almacenId: string;
-  categoriaId: string;
-  estado: string;
-  stockBajo: boolean;
-  precioOrden: '' | 'asc' | 'desc';
-  q: string;
-=======
+import type { Dispatch, SetStateAction } from 'react';
 
 export type StockFilters = {
   almacenId: string;      
@@ -20,7 +10,6 @@ export type StockFilters = {
   stockBajo: boolean;    
   precioOrden: '' | 'asc' | 'desc';
   q: string;              
->>>>>>> 35cebb99104c82e716808a2e6c1c54a649d00293
 };
 
 type Option = { value: string; label: string };

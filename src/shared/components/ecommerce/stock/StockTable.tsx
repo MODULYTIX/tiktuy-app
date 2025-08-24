@@ -10,7 +10,6 @@ interface Props {
   filtrarInactivos?: boolean;
 }
 
-<<<<<<< HEAD
 const PAGE_SIZE = 5;
 
 export default function StockTable({ productos, onVer, onEditar }: Props) {
@@ -55,27 +54,6 @@ export default function StockTable({ productos, onVer, onEditar }: Props) {
     if (p < 1 || p > totalPages || p === page) return;
     setPage(p);
   };
-=======
-export default function StockTable({ productos, onVer, onEditar, filtrarInactivos = true }: Props) {
-  // Filtrar productos inactivos y con stock cero si la opción está activada
-  const productosFiltrados = filtrarInactivos
-    ? productos.filter(p => 
-        p.estado?.nombre !== 'Inactivo' && 
-        (p.stock !== undefined && p.stock > 0)
-      )
-    : productos;
-
-  const headers = [
-    '',
-    'Código',
-    'Producto',
-    'Almacén',
-    'Stock',
-    'Precio',
-    'Estado',
-    'Acciones',
-  ];
->>>>>>> 35cebb99104c82e716808a2e6c1c54a649d00293
 
   const renderEstadoStock = (stock?: number, minimo?: number) => {
     const isInvalid = stock === undefined || minimo === undefined;
@@ -95,7 +73,6 @@ export default function StockTable({ productos, onVer, onEditar, filtrarInactivo
     );
   };
 
-<<<<<<< HEAD
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
 
   return (
@@ -114,71 +91,6 @@ export default function StockTable({ productos, onVer, onEditar, filtrarInactivo
               <col className="w-[8%]" />   {/* Estado */}
               <col className="w-[8%]" />   {/* Acciones */}
             </colgroup>
-=======
-  if (!productosFiltrados.length) {
-    return (
-      <div className="p-6 text-center text-gray-500 bg-white rounded shadow-sm">
-        No hay productos activos con stock disponible.
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded shadow-sm overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-100 text-left">
-          <tr>
-            {headers.map((h, i) => (
-              <th key={i} className="p-3">
-                {i === 0 ? <input type="checkbox" /> : h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {productosFiltrados.map((prod) => (
-            <tr key={prod.uuid} className="border-t">
-              <td className="p-3">
-                <input type="checkbox" />
-              </td>
-              <td className="p-3">{prod.codigo_identificacion}</td>
-              <td className="p-3">
-                <div className="font-semibold">{prod.nombre_producto}</div>
-                <div className="text-gray-500 text-xs">{prod.descripcion}</div>
-              </td>
-              <td className="p-3">
-                {prod.almacenamiento?.nombre_almacen || (
-                  <span className="text-gray-400 italic">No asignado</span>
-                )}
-              </td>
-              <td className="p-3">
-                {renderEstadoStock(prod.stock, prod.stock_minimo)}
-              </td>
-              <td className="text-right p-3">
-                S/ {Number(prod.precio).toFixed(2)}
-              </td>
-              <td className="p-3">
-                <span className={`text-xs px-2 py-1 rounded ${
-                  prod.estado?.nombre === 'Inactivo' 
-                    ? 'bg-gray-400 text-white' 
-                    : 'bg-black text-white'
-                }`}>
-                  {prod.estado?.nombre || 'Desconocido'}
-                </span>
-              </td>
-              <td className="p-3 flex gap-3">
-                <button onClick={() => onVer(prod)} title="Ver producto">
-                  <FaEye className="text-blue-600" size={16} />
-                </button>
-                <button onClick={() => onEditar(prod)} title="Editar producto">
-                  <FaEdit className="text-yellow-600" size={16} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
->>>>>>> 35cebb99104c82e716808a2e6c1c54a649d00293
 
             <thead className="bg-[#E5E7EB]">
               <tr className="text-gray70 font-roboto font-medium">

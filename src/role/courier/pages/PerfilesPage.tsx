@@ -1,6 +1,16 @@
+import PerfilesCourierTable from '@/shared/components/courier/perfiles/PerfilesCourierTable';
+import { useEffect, useState } from 'react';
 import { CiUser } from 'react-icons/ci';
 
 export default function PerfilesPage() {
+  const [perfiles, setPerfiles] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Aquí iría tu fetch al backend
+    // Por ahora dejamos el array vacío
+    setPerfiles([]);
+  }, []);
+
   return (
     <section className="mt-8">
       <div className="flex justify-between">
@@ -18,7 +28,11 @@ export default function PerfilesPage() {
         </div>
       </div>
 
-      <div>{/* <PerfilesTable /> */}</div>
+      <div>
+      <PerfilesCourierTable perfiles={perfiles} />
+
+
+      </div>
 
       {/* <PerfilFormModal isOpen={modalOpen} onClose={() => setModalOpen(false)} /> */}
     </section>
