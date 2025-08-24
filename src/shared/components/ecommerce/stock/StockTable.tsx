@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FaEye, FaEdit } from "react-icons/fa";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
 
@@ -6,21 +6,46 @@ interface Props {
   productos: Producto[];
   onVer: (producto: Producto) => void;
   onEditar: (producto: Producto) => void;
-  // Prop opcional para controlar si se filtran productos inactivos
+  // Opcional: filtra inactivos y stock 0
   filtrarInactivos?: boolean;
 }
 
 const PAGE_SIZE = 5;
 
-export default function StockTable({ productos, onVer, onEditar }: Props) {
+export default function StockTable({
+  productos,
+  onVer,
+  onEditar,
+  filtrarInactivos = true,
+}: Props) {
   const [page, setPage] = useState(1);
 
-  const totalPages = Math.max(1, Math.ceil(productos.length / PAGE_SIZE));
+  // 1) Filtrado (memo) — si está activado: no inactivos y stock > 0
+  const productosFiltrados = useMemo(() => {
+    if (!filtrarInactivos) return productos;
+    return productos.filter(
+      (p) =>
+        p.estado?.nombre !== "Inactivo" &&
+        typeof p.stock === "number" &&
+        p.stock > 0
+    );
+  }, [productos, filtrarInactivos]);
+
+  // 2) Paginación basada en la lista filtrada
+  const totalPages = Math.max(
+    1,
+    Math.ceil(productosFiltrados.length / PAGE_SIZE)
+  );
+
+  // Si cambia el total, asegura que la página actual sea válida
+  useEffect(() => {
+    setPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
 
   const currentData = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
-    return productos.slice(start, start + PAGE_SIZE);
-  }, [productos, page]);
+    return productosFiltrados.slice(start, start + PAGE_SIZE);
+  }, [productosFiltrados, page]);
 
   const pagerItems = useMemo(() => {
     const maxButtons = 5;
@@ -61,7 +86,9 @@ export default function StockTable({ productos, onVer, onEditar }: Props) {
       return <span className="text-xs text-red-500">Datos no disponibles</span>;
     }
     const bajo = stock < minimo;
-    const bg = bajo ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700";
+    const bg = bajo
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-green-100 text-green-700";
     const texto = bajo ? "Stock bajo" : "Stock normal";
     return (
       <>
@@ -74,6 +101,15 @@ export default function StockTable({ productos, onVer, onEditar }: Props) {
   };
 
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
+
+  // Mensaje cuando tras filtrar no hay nada
+  if (!productosFiltrados.length) {
+    return (
+      <div className="p-6 text-center text-gray-500 bg-white rounded shadow-sm">
+        No hay productos activos con stock disponible.
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
@@ -95,7 +131,7 @@ export default function StockTable({ productos, onVer, onEditar }: Props) {
             <thead className="bg-[#E5E7EB]">
               <tr className="text-gray70 font-roboto font-medium">
                 <th className="px-4 py-3 text-left">
-                  <input type="checkbox" />
+                  <input aria-label="Seleccionar todos" type="checkbox" />
                 </th>
                 <th className="px-4 py-3 text-left">Código</th>
                 <th className="px-4 py-3 text-left">Producto</th>
@@ -108,81 +144,89 @@ export default function StockTable({ productos, onVer, onEditar }: Props) {
             </thead>
 
             <tbody className="divide-y divide-gray20">
-              {productos.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-4 text-center text-gray70 italic">
-                    Aún no hay productos registrados.
+              {currentData.map((prod) => (
+                <tr key={prod.uuid} className="hover:bg-gray10 transition-colors">
+                  <td className="px-4 py-3">
+                    <input type="checkbox" aria-label={`Seleccionar ${prod.nombre_producto}`} />
+                  </td>
+
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    {prod.codigo_identificacion}
+                  </td>
+
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    <div className="font-semibold">{prod.nombre_producto}</div>
+                    <div className="text-gray-500 text-xs line-clamp-2">
+                      {prod.descripcion}
+                    </div>
+                  </td>
+
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    {prod.almacenamiento?.nombre_almacen || (
+                      <span className="text-gray-400 italic">No asignado</span>
+                    )}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {renderEstadoStock(prod.stock, prod.stock_minimo)}
+                  </td>
+
+                  <td className="px-4 py-3 text-right text-gray70 font-[400]">
+                    S/ {Number(prod.precio).toFixed(2)}
+                  </td>
+
+                  <td className="px-4 py-3 text-center">
+                    <span
+                      className={`text-white text-[12px] px-3 py-[6px] rounded-full inline-flex items-center justify-center ${
+                        prod.estado?.nombre === "Inactivo"
+                          ? "bg-gray-400"
+                          : "bg-black"
+                      }`}
+                    >
+                      {prod.estado?.nombre || "Desconocido"}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        onClick={() => onVer(prod)}
+                        title="Ver producto"
+                        aria-label={`Ver ${prod.nombre_producto}`}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <FaEye size={16} />
+                      </button>
+                      <button
+                        onClick={() => onEditar(prod)}
+                        title="Editar producto"
+                        aria-label={`Editar ${prod.nombre_producto}`}
+                        className="text-amber-600 hover:text-amber-800"
+                      >
+                        <FaEdit size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ) : (
-                <>
-                  {currentData.map((prod) => (
-                    <tr key={prod.uuid} className="hover:bg-gray10 transition-colors">
-                      <td className="px-4 py-3">
-                        <input type="checkbox" />
-                      </td>
+              ))}
 
-                      <td className="px-4 py-3 text-gray70 font-[400]">
-                        {prod.codigo_identificacion}
+              {/* Relleno para mantener la altura constante */}
+              {emptyRows > 0 &&
+                Array.from({ length: emptyRows }).map((_, idx) => (
+                  <tr key={`empty-${idx}`} className="hover:bg-transparent">
+                    {Array.from({ length: 8 }).map((__, i) => (
+                      <td key={i} className="px-4 py-3">
+                        &nbsp;
                       </td>
-
-                      <td className="px-4 py-3 text-gray70 font-[400]">
-                        <div className="font-semibold">{prod.nombre_producto}</div>
-                        <div className="text-gray-500 text-xs line-clamp-2">
-                          {prod.descripcion}
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3 text-gray70 font-[400]">
-                        {prod.almacenamiento?.nombre_almacen || (
-                          <span className="text-gray-400 italic">No asignado</span>
-                        )}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        {renderEstadoStock(prod.stock, prod.stock_minimo)}
-                      </td>
-
-                      <td className="px-4 py-3 text-right text-gray70 font-[400]">
-                        S/ {Number(prod.precio).toFixed(2)}
-                      </td>
-
-                      <td className="px-4 py-3 text-center">
-                        <span className="text-white text-[12px] px-3 py-[6px] rounded-full bg-black inline-flex items-center justify-center">
-                          {prod.estado?.nombre || "Desconocido"}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-3">
-                          <button onClick={() => onVer(prod)} title="Ver producto" className="text-blue-600 hover:text-blue-800">
-                            <FaEye size={16} />
-                          </button>
-                          <button onClick={() => onEditar(prod)} title="Editar producto" className="text-amber-600 hover:text-amber-800">
-                            <FaEdit size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-
-                  {/* Relleno para mantener altura */}
-                  {emptyRows > 0 &&
-                    Array.from({ length: emptyRows }).map((_, idx) => (
-                      <tr key={`empty-${idx}`} className="hover:bg-transparent">
-                        {Array.from({ length: 8 }).map((__, i) => (
-                          <td key={i} className="px-4 py-3">&nbsp;</td>
-                        ))}
-                      </tr>
                     ))}
-                </>
-              )}
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
 
-        {/* Paginador del modelo base */}
-        {productos.length > 0 && (
+        {/* Paginador */}
+        {productosFiltrados.length > 0 && (
           <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
             <button
               onClick={() => goToPage(page - 1)}
@@ -204,7 +248,9 @@ export default function StockTable({ productos, onVer, onEditar }: Props) {
                   aria-current={page === p ? "page" : undefined}
                   className={[
                     "w-8 h-8 flex items-center justify-center rounded",
-                    page === p ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
+                    page === p
+                      ? "bg-gray90 text-white"
+                      : "bg-gray10 text-gray70 hover:bg-gray20",
                   ].join(" ")}
                 >
                   {p}
