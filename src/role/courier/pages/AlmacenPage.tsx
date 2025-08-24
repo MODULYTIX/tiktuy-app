@@ -1,4 +1,3 @@
-// pages/AlmacenPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { PiGarageLight } from "react-icons/pi";
 import AlmacenCourierTable from "@/shared/components/courier/almacen/AlmacenCourierTable";
@@ -15,9 +14,9 @@ export default function AlmacenPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  // Modal state centralizado
+  // 👇 Solo dos modos
   const [modalOpen, setModalOpen] = useState(false);
-  const [modo, setModo] = useState<"ver" | "editar" | "registrar">("ver");
+  const [modo, setModo] = useState<"editar" | "registrar">("registrar");
   const [seleccionado, setSeleccionado] = useState<AlmacenamientoCourier | null>(null);
 
   const token = useMemo(() => localStorage.getItem("token") ?? "", []);
@@ -47,11 +46,6 @@ export default function AlmacenPage() {
     setModalOpen(true);
   };
 
-  const onView = (row: AlmacenamientoCourier) => {
-    setModo("ver");
-    setSeleccionado(row);
-    setModalOpen(true);
-  };
 
   const onEdit = (row: AlmacenamientoCourier) => {
     setModo("editar");
@@ -64,7 +58,7 @@ export default function AlmacenPage() {
     setSeleccionado(null);
   };
 
-  // Submit del modal: crea o edita y refresca la tabla
+  // Submit del modal: crea o edita y refresca
   const onSubmit = async (form: AlmacenCourierCreateDTO) => {
     if (modo === "registrar") {
       await createAlmacenCourier(form, token);
@@ -92,12 +86,12 @@ export default function AlmacenPage() {
         </div>
       </div>
 
-      <div className="my-8">
+      <div className="">
         <AlmacenCourierTable
           items={items}
           loading={loading}
           error={error}
-          onView={onView}
+          onView={() => { /* ya no se usa ver detalle */ }}
           onEdit={onEdit}
         />
       </div>
@@ -105,13 +99,15 @@ export default function AlmacenPage() {
       <AlmacenFormModal
         isOpen={modalOpen}
         onClose={onClose}
-        modo={modo}
+        modo={modo}                   
         almacen={
           seleccionado
             ? {
                 uuid: seleccionado.uuid,
                 nombre_almacen: seleccionado.nombre_almacen,
                 departamento: seleccionado.departamento,
+                // provincia opcional si la tienes:
+                // provincia: (seleccionado as any).provincia,
                 ciudad: seleccionado.ciudad,
                 direccion: seleccionado.direccion,
                 fecha_registro: seleccionado.fecha_registro,

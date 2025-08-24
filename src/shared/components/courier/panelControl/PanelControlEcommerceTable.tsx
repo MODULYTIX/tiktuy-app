@@ -129,7 +129,7 @@ function DetalleEcommerceModal({
     >
       {/* Drawer derecho como el resto de modales */}
       <div
-        className="w-[740px] max-w-[92vw] h-full bg-white overflow-y-auto"
+        className="w-[40%] max-w-[500px] h-full bg-white overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

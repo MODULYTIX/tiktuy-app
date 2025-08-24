@@ -1,4 +1,3 @@
-// shared/components/courier/almacen/AlmacenCourierFormModal.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 
@@ -6,6 +5,7 @@ type FormData = {
   uuid?: string;
   nombre_almacen: string;
   departamento: string;
+  provincia: string;
   ciudad: string;
   direccion: string;
   fecha_registro?: string;
@@ -14,8 +14,8 @@ type FormData = {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  modo: "ver" | "editar" | "registrar";
-  almacen: FormData | null;
+  modo: "editar" | "registrar"; // 👈 solo 2 modos
+  almacen: Partial<FormData> | null;
   onSubmit: (payload: Omit<FormData, "uuid" | "fecha_registro">) => Promise<void> | void;
 }
 
@@ -29,21 +29,29 @@ export default function AlmacenFormModal({
   const [formData, setFormData] = useState<FormData>({
     nombre_almacen: "",
     departamento: "",
+    provincia: "",
     ciudad: "",
     direccion: "",
   });
 
-  const isViewMode = modo === "ver";
   const isEditMode = modo === "editar";
   const isCreateMode = modo === "registrar";
 
-  // Opciones demo (puedes reemplazar por tu API de ubigeo real)
+  // ⚠️ Demo de opciones (reemplazar por API real si aplica)
   const departamentos = useMemo(() => ["Lima", "Arequipa", "Cusco"], []);
-  const ciudadesPorDepartamento = useMemo<Record<string, string[]>>(
+  const provinciasPorDepartamento = useMemo<Record<string, string[]>>(
     () => ({
-      Lima: ["Lima", "Miraflores", "San Isidro"],
-      Arequipa: ["Arequipa", "Camaná", "Cayma"],
-      Cusco: ["Cusco", "San Sebastián", "San Jerónimo"],
+      Lima: ["Lima"],
+      Arequipa: ["Arequipa"],
+      Cusco: ["Cusco"],
+    }),
+    []
+  );
+  const ciudadesPorProvincia = useMemo<Record<string, string[]>>(
+    () => ({
+      "Lima|Lima": ["Lima", "Miraflores", "San Isidro"],
+      "Arequipa|Arequipa": ["Arequipa", "Camaná", "Cayma"],
+      "Cusco|Cusco": ["Cusco", "San Sebastián", "San Jerónimo"],
     }),
     []
   );
@@ -51,11 +59,12 @@ export default function AlmacenFormModal({
   // Carga inicial / cambio de modo
   useEffect(() => {
     if (!isOpen) return;
-    if (almacen && (isViewMode || isEditMode)) {
+    if (almacen && isEditMode) {
       setFormData({
         uuid: almacen.uuid,
         nombre_almacen: almacen.nombre_almacen ?? "",
         departamento: almacen.departamento ?? "",
+        provincia: almacen.provincia ?? "",
         ciudad: almacen.ciudad ?? "",
         direccion: almacen.direccion ?? "",
         fecha_registro: almacen.fecha_registro,
@@ -64,52 +73,45 @@ export default function AlmacenFormModal({
       setFormData({
         nombre_almacen: "",
         departamento: "",
+        provincia: "",
         ciudad: "",
         direccion: "",
       });
     }
-  }, [isOpen, almacen, isViewMode, isEditMode, isCreateMode]);
+  }, [isOpen, almacen, isEditMode, isCreateMode]);
 
   // Cerrar con ESC
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
-
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === overlayRef.current) onClose();
   };
 
+  // Handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
     if (name === "departamento") {
-      const ciudades = ciudadesPorDepartamento[value] ?? [];
-      setFormData((prev) => ({
-        ...prev,
-        departamento: value,
-        ciudad: ciudades.includes(prev.ciudad) ? prev.ciudad : "",
-      }));
+      setFormData((prev) => ({ ...prev, departamento: value, provincia: "", ciudad: "" }));
       return;
     }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (name === "provincia") {
+      setFormData((prev) => ({ ...prev, provincia: value, ciudad: "" }));
+      return;
+    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
-    if (isViewMode) return;
 
-    if (!formData.nombre_almacen || !formData.departamento || !formData.ciudad || !formData.direccion) {
+    if (!formData.nombre_almacen || !formData.departamento || !formData.provincia || !formData.ciudad || !formData.direccion) {
       console.warn("Complete todos los campos obligatorios");
       return;
     }
@@ -117,6 +119,7 @@ export default function AlmacenFormModal({
     await onSubmit({
       nombre_almacen: formData.nombre_almacen,
       departamento: formData.departamento,
+      provincia: formData.provincia,
       ciudad: formData.ciudad,
       direccion: formData.direccion,
     });
@@ -124,96 +127,122 @@ export default function AlmacenFormModal({
     onClose();
   };
 
-  if (!isOpen) return null;
+  const provincias = provinciasPorDepartamento[formData.departamento] ?? [];
+  const ciudades = ciudadesPorProvincia[`${formData.departamento}|${formData.provincia}`] ?? [];
 
-  const ciudades = ciudadesPorDepartamento[formData.departamento] ?? [];
+  // 🎨 Estilos normalizados (como tu figma)
+  const fieldClass =
+    "w-full h-11 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 " +
+    "placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors";
+  const labelClass = "block text-gray-700 font-medium mb-1";
 
-  return (
+  return !isOpen ? null : (
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
       className="fixed inset-0 bg-backgroundModal bg-opacity-50 z-50 flex justify-end"
     >
-      <div className="bg-white w-full max-w-md h-full shadow-xl p-6 overflow-y-auto animate-slide-in-right">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-blue-700 flex items-center gap-2">
-            <Icon icon="mdi:warehouse" width={24} />
-            {isCreateMode ? "Registrar Nuevo Almacén" : isEditMode ? "Editar Almacén" : "Detalle del Almacén"}
-          </h2>
-          <button onClick={onClose} aria-label="Cerrar">
-            <Icon icon="ic:round-close" width="24" />
-          </button>
+      {/* Drawer: ancho reducido + padding y separaciones de 20px; footer anclado */}
+      <div className="w-[480px] max-w-[92vw] h-full bg-white rounded-l-md shadow-lg flex flex-col">
+        {/* Header */}
+        <div className="p-5 border-b border-gray20">
+          <div className="flex items-center gap-2 mb-5">
+            <Icon icon="mdi:warehouse" width={22} className="text-primaryDark" />
+            <h2 className="text-xl font-bold uppercase text-[#1A253D]">
+              {isCreateMode ? "Registrar nuevo almacén" : "Editar almacén"}
+            </h2>
+          </div>
+
+          <p className="text-sm text-gray-600">
+            {isCreateMode
+              ? "Complete la información para registrar un nuevo almacén y habilitarlo como punto de origen o destino en sus operaciones logísticas."
+              : "Actualice la información del almacén y guarde los cambios."}
+          </p>
         </div>
 
-        <p className="text-sm text-gray-600 mb-6">
-          {isViewMode
-            ? "Visualiza la información del almacén."
-            : "Complete la información para registrar o editar un almacén."}
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Body (scroll) */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-5 space-y-5 text-sm">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Nombre de Almacén</label>
+            <label className={labelClass}>Nombre de Almacén</label>
             <input
               type="text"
               name="nombre_almacen"
+              placeholder="Ejem. Almacén secundario"
               value={formData.nombre_almacen}
               onChange={handleChange}
-              disabled={isViewMode}
-              placeholder="Ejem. Almacén secundario"
-              className="mt-1 w-full border px-3 py-2 rounded-md text-sm"
+              className={fieldClass}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Departamento</label>
-            <select
-              name="departamento"
-              value={formData.departamento}
-              onChange={handleChange}
-              disabled={isViewMode}
-              className="mt-1 w-full border px-3 py-2 rounded-md text-sm bg-white"
-              required
-            >
-              <option value="">Seleccionar departamento</option>
-              {departamentos.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+            <label className={labelClass}>Departamento</label>
+            <div className="relative">
+              <select
+                name="departamento"
+                value={formData.departamento}
+                onChange={handleChange}
+                className={`${fieldClass} appearance-none pr-9`}
+                required
+              >
+                <option value="">Seleccionar departamento</option>
+                {departamentos.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              <Icon icon="mdi:chevron-down" width={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Ciudad</label>
-            <select
-              name="ciudad"
-              value={formData.ciudad}
-              onChange={handleChange}
-              disabled={isViewMode || !formData.departamento}
-              className="mt-1 w-full border px-3 py-2 rounded-md text-sm bg-white"
-              required
-            >
-              <option value="">Seleccionar ciudad</option>
-              {ciudades.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <label className={labelClass}>Provincia</label>
+            <div className="relative">
+              <select
+                name="provincia"
+                value={formData.provincia}
+                onChange={handleChange}
+                className={`${fieldClass} appearance-none pr-9 disabled:opacity-50 disabled:cursor-not-allowed`}
+                disabled={!provincias.length}
+                required
+              >
+                <option value="">Seleccionar provincia</option>
+                {provincias.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <Icon icon="mdi:chevron-down" width={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Dirección</label>
+            <label className={labelClass}>Ciudad</label>
+            <div className="relative">
+              <select
+                name="ciudad"
+                value={formData.ciudad}
+                onChange={handleChange}
+                className={`${fieldClass} appearance-none pr-9 disabled:opacity-50 disabled:cursor-not-allowed`}
+                disabled={!formData.departamento || !formData.provincia}
+                required
+              >
+                <option value="">Seleccionar ciudad</option>
+                {ciudades.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <Icon icon="mdi:chevron-down" width={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Dirección</label>
             <input
               type="text"
               name="direccion"
+              placeholder="Av. Los Próceres 1234, Urb. Santa Catalina, La Victoria, Lima"
               value={formData.direccion}
               onChange={handleChange}
-              disabled={isViewMode}
-              placeholder="Ejem. Av. Los Próceres 1234, La Victoria, Lima"
-              className="mt-1 w-full border px-3 py-2 rounded-md text-sm"
+              className={fieldClass}
               required
             />
           </div>
@@ -226,25 +255,29 @@ export default function AlmacenFormModal({
               </div>
             </div>
           )}
-
-          <div className="mt-6 flex gap-2">
-            {!isViewMode && (
-              <button
-                type="submit"
-                className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-md text-sm font-medium w-full"
-              >
-                {isCreateMode ? "Crear nuevo" : "Guardar cambios"}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium w-full"
-            >
-              Cancelar
-            </button>
-          </div>
         </form>
+
+        {/* Footer (botones abajo a la izquierda) */}
+        <div className="p-5 border-t border-gray20 flex items-center gap-2">
+          <button
+            type="submit"
+            form="__no-id__" // no es necesario; el form submit es via onSubmit del form superior
+            onClick={(e) => {
+              // envía el form del body
+              (e.currentTarget.closest("div")?.previousElementSibling as HTMLFormElement)?.requestSubmit();
+            }}
+            className="bg-[#1A253D] text-white px-4 py-2 rounded hover:opacity-95"
+          >
+            {isCreateMode ? "Crear nuevo" : "Actualizar"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm border rounded hover:bg-gray-100"
+          >
+            Cancelar
+          </button>
+        </div>
       </div>
     </div>
   );

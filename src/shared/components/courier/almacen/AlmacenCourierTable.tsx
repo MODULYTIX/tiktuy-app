@@ -135,13 +135,6 @@ export default function AlmacenCourierTable({
                         <td className="h-12 px-4 py-3">
                           <div className="flex items-center justify-center gap-3">
                             <button
-                              onClick={() => onView(a)}
-                              className="text-blue-600 hover:text-blue-800 transition-colors"
-                              title="Ver"
-                            >
-                              <Icon icon="uil:eye" width="18" height="18" />
-                            </button>
-                            <button
                               onClick={() => onEdit(a)}
                               className="text-amber-600 hover:text-amber-800 transition-colors"
                               title="Editar"

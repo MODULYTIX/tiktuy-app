@@ -33,7 +33,7 @@ export default function StockPage() {
   const cargarProductos = async (filtros = filters) => {
     if (!token) return;
     try {
-      const t = token as string; // narrowing explícito para TypeScript
+      const t = token as string;
       const data = await fetchProductosFiltrados(filtros, t);
       setProductos(data);
     } catch (err) {
@@ -73,11 +73,10 @@ export default function StockPage() {
 
   return (
     <section className="mt-8 space-y-6">
-      <div className="flex justify-between items-start">
+      {/* Header: botones alineados a la línea inferior del subtítulo */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-end">
         <div>
-          <h1 className="text-3xl font-bold text-primary">
-            Stock de Productos
-          </h1>
+          <h1 className="text-3xl font-bold text-primary">Stock de Productos</h1>
           <p className="text-gray-500 mt-1">Control de Stock y Movimientos</p>
         </div>
 
@@ -92,7 +91,8 @@ export default function StockPage() {
           </ImportExcelFlow>
           <button
             onClick={handleAbrirModalNuevo}
-            className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition">
+            className="text-white flex px-3 py-[0.625rem] bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition"
+          >
             <TbCubePlus size={18} />
             <span>Nuevo Producto</span>
           </button>
