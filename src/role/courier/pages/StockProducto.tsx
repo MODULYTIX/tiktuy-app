@@ -3,33 +3,46 @@ import { FiSearch, FiX } from 'react-icons/fi';
 import { Select } from '@/shared/components/Select';
 import type { Dispatch, SetStateAction } from 'react';
 
+/** Tipos de filtros que usa la página de Stock */
 export type StockFilters = {
-  almacenId: string;      
-  categoriaId: string;   
-  estado: string;         
-  stockBajo: boolean;    
+  almacenId: string;
+  categoriaId: string;
+  estado: string;
+  stockBajo: boolean;
   precioOrden: '' | 'asc' | 'desc';
-  q: string;              
+  q: string;
 };
 
 type Option = { value: string; label: string };
 
 type Props = {
+  /** Estado completo de filtros controlado por el padre */
   filters: StockFilters;
+  /** setState del padre (no se cambia la firma) */
   onChange: Dispatch<SetStateAction<StockFilters>>;
-  options: {
+  /** Listas para selects (opcional con defaults seguros) */
+  options?: {
     almacenes: Option[];
     categorias: Option[];
     estados: Option[];
   };
+  /** Loading opcional (default false) */
   loading?: boolean;
 };
+
+/** Intenta extraer string tanto si el Select entrega event, string o {value,label} */
+function getValue(e: any): string {
+  if (typeof e === 'string') return e;
+  if (e && typeof e.value === 'string') return e.value;
+  if (e && e.target && typeof e.target.value === 'string') return e.target.value;
+  return '';
+}
 
 export default function StockPedidoFilterCourier({
   filters,
   onChange,
-  options,
-  loading,
+  options = { almacenes: [], categorias: [], estados: [] },
+  loading = false,
 }: Props) {
   const set = (patch: Partial<StockFilters>) =>
     onChange((prev) => ({ ...prev, ...patch }));
@@ -50,7 +63,7 @@ export default function StockPedidoFilterCourier({
           <div className="relative w-full">
             <Select
               value={filters.almacenId}
-              onChange={(e) => set({ almacenId: e.target.value })}
+              onChange={(e) => set({ almacenId: getValue(e) })}
               options={[{ value: '', label: 'Seleccionar ecommerce' }, ...options.almacenes]}
               placeholder="Seleccionar ecommerce"
               disabled={loading}
@@ -64,7 +77,7 @@ export default function StockPedidoFilterCourier({
           <div className="relative w-full">
             <Select
               value={filters.categoriaId}
-              onChange={(e) => set({ categoriaId: e.target.value })}
+              onChange={(e) => set({ categoriaId: getValue(e) })}
               options={[{ value: '', label: 'Seleccionar categoría' }, ...options.categorias]}
               placeholder="Seleccionar categoría"
               disabled={loading}
@@ -78,7 +91,7 @@ export default function StockPedidoFilterCourier({
           <div className="relative w-full">
             <Select
               value={filters.estado}
-              onChange={(e) => set({ estado: e.target.value })}
+              onChange={(e) => set({ estado: getValue(e) })}
               options={[{ value: '', label: 'Seleccionar estado' }, ...options.estados]}
               placeholder="Seleccionar estado"
               disabled={loading}

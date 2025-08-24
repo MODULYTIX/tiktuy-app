@@ -30,7 +30,6 @@ export default function AlmacenCourierTable({
   items,
   loading,
   error,
-  onView,
   onEdit,
 }: Props) {
   const [page, setPage] = useState(1);
