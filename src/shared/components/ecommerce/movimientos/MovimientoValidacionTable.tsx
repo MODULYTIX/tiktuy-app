@@ -2,9 +2,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FaEye } from 'react-icons/fa';
 import { useAuth } from '@/auth/context';
-import Paginator from '../../Paginator';
 import { fetchMovimientos } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import type { MovimientoAlmacen } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
+
+const PAGE_SIZE = 6;
 
 export default function MovimientoValidacionTable() {
   const { token } = useAuth();
@@ -12,8 +13,7 @@ export default function MovimientoValidacionTable() {
   const [loading, setLoading] = useState(false);
 
   // paginación local
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (!token) return;
@@ -24,7 +24,7 @@ export default function MovimientoValidacionTable() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  // Alias de compatibilidad: "Activo" (movimiento viejo) → "Proceso"
+  // Alias de compatibilidad: "Activo" → "Proceso"
   const normalizeEstado = (nombre?: string) => {
     if (!nombre) return '-';
     if (nombre.toLowerCase() === 'activo') return 'Proceso';
@@ -34,17 +34,14 @@ export default function MovimientoValidacionTable() {
   const renderEstado = (estado?: { nombre?: string }) => {
     const nombreNorm = normalizeEstado(estado?.nombre);
     const nombre = nombreNorm.toLowerCase();
+    const base =
+      'inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm whitespace-nowrap';
 
-    if (nombre === 'validado') {
-      return <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-600">Validado</span>;
-    }
-    if (nombre === 'proceso' || nombre === 'en proceso') {
-      return <span className="px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-700">Proceso</span>;
-    }
-    if (nombre === 'observado') {
-      return <span className="px-2 py-1 text-xs rounded bg-red-100 text-red-600">Observado</span>;
-    }
-    return <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-600">{nombreNorm}</span>;
+    if (nombre === 'validado') return <span className={`${base} bg-black text-white`}>Validado</span>;
+    if (nombre === 'proceso' || nombre === 'en proceso')
+      return <span className={`${base} bg-yellow-100 text-yellow-700`}>Proceso</span>;
+    if (nombre === 'observado') return <span className={`${base} bg-red-100 text-red-700`}>Observado</span>;
+    return <span className={`${base} bg-gray30 text-gray80`}>{nombreNorm}</span>;
   };
 
   const fmtFecha = (iso?: string) =>
@@ -55,7 +52,7 @@ export default function MovimientoValidacionTable() {
       : '-';
 
   const handleVerClick = (mov: MovimientoAlmacen) => {
-    // Aquí puedes abrir un modal con los detalles del movimiento
+    // abre modal o navega
     console.log('Ver movimiento:', mov);
   };
 
@@ -63,79 +60,166 @@ export default function MovimientoValidacionTable() {
     () =>
       [...movimientos].sort(
         (a, b) =>
-          new Date(b.fecha_movimiento ?? b.fecha_movimiento ?? 0).getTime() -
-          new Date(a.fecha_movimiento ?? a.fecha_movimiento ?? 0).getTime()
+          new Date(b.fecha_movimiento ?? 0).getTime() - new Date(a.fecha_movimiento ?? 0).getTime()
       ),
     [movimientos]
   );
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / itemsPerPage));
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const current = sorted.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const start = (page - 1) * PAGE_SIZE;
+  const current = sorted.slice(start, start + PAGE_SIZE);
 
   useEffect(() => {
-    // si cambian los datos y la página actual queda fuera de rango, reajustar
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  // paginador estilo base (ventana de 5 con elipsis)
+  const pagerItems = useMemo(() => {
+    const maxButtons = 5;
+    const pages: (number | string)[] = [];
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, page - 2);
+      let end = Math.min(totalPages, page + 2);
+      if (page <= 3) {
+        start = 1;
+        end = maxButtons;
+      } else if (page >= totalPages - 2) {
+        start = totalPages - (maxButtons - 1);
+        end = totalPages;
+      }
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (start > 1) {
+        pages.unshift('...');
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  }, [page, totalPages]);
+
+  // altura constante de la tabla
+  const visibleCount = Math.max(1, current.length);
+  const emptyRows = Math.max(0, PAGE_SIZE - visibleCount);
 
   return (
-    <div className="bg-white rounded shadow-sm overflow-hidden mt-4">
-      <div className="px-4 py-3 border-b text-sm text-gray-500">
-        {loading ? 'Cargando movimientos…' : `Mostrando ${current.length} de ${sorted.length} resultados`}
-      </div>
+    <div className="bg-white rounded-md overflow-hidden shadow-default mt-4">
+      <section className="flex-1 overflow-auto">
+        <div className="overflow-x-auto bg-white">
+          <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+            {/* Porcentajes por columna (suman 100%) */}
+            <colgroup>
+              <col className="w-[12%]" /> {/* Código */}
+              <col className="w-[18%]" /> {/* Desde */}
+              <col className="w-[18%]" /> {/* Hacia */}
+              <col className="w-[28%]" /> {/* Descripción */}
+              <col className="w-[12%]" /> {/* Fec. Movimiento */}
+              <col className="w-[6%]" />  {/* Estado */}
+              <col className="w-[6%]" />  {/* Acciones */}
+            </colgroup>
 
-      <table className="w-full text-sm">
-        <thead className="bg-gray-100 text-left">
-          <tr>
-            {['Código', 'Desde', 'Hacia', 'Descripción', 'Fec. Movimiento', 'Estado', 'Acciones'].map((h) => (
-              <th key={h} className="p-3">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {current.map((m) => (
-            <tr key={m.uuid} className="border-t hover:bg-gray-50">
-              <td className="p-3">{m.uuid.slice(0, 8).toUpperCase()}</td>
-              <td className="p-3">{m.almacen_origen?.nombre_almacen || '-'}</td>
-              <td className="p-3">{m.almacen_destino?.nombre_almacen || '-'}</td>
-              <td className="p-3">{m.descripcion || '-'}</td>
-              <td className="p-3">{fmtFecha(m.fecha_movimiento)}</td>
-              <td className="p-3">{renderEstado(m.estado)}</td>
-              <td className="p-3">
+            <thead className="bg-[#E5E7EB]">
+              <tr className="text-gray70 font-roboto font-medium">
+                <th className="px-4 py-3 text-left">CÓDIGO</th>
+                <th className="px-4 py-3 text-left">DESDE</th>
+                <th className="px-4 py-3 text-left">HACIA</th>
+                <th className="px-4 py-3 text-left">DESCRIPCIÓN</th>
+                <th className="px-4 py-3 text-left">FEC. MOVIMIENTO</th>
+                <th className="px-4 py-3 text-center">ESTADO</th>
+                <th className="px-4 py-3 text-center">ACCIONES</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray20">
+              {current.map((m) => (
+                <tr key={m.uuid} className="hover:bg-gray10 transition-colors">
+                  <td className="px-4 py-3 text-gray70 font-[400]">{m.uuid.slice(0, 8).toUpperCase()}</td>
+                  <td className="px-4 py-3 text-gray70 font-[400]">{m.almacen_origen?.nombre_almacen || '-'}</td>
+                  <td className="px-4 py-3 text-gray70 font-[400]">{m.almacen_destino?.nombre_almacen || '-'}</td>
+                  <td className="px-4 py-3 text-gray70 font-[400]">{m.descripcion || '-'}</td>
+                  <td className="px-4 py-3 text-gray70 font-[400]">{fmtFecha(m.fecha_movimiento)}</td>
+                  <td className="px-4 py-3 text-center">{renderEstado(m.estado)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center">
+                      <button
+                        className="text-blue-600 hover:text-blue-800"
+                        onClick={() => handleVerClick(m)}
+                        title="Ver detalle"
+                        aria-label={`Ver ${m.uuid}`}
+                      >
+                        <FaEye />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {/* Relleno para altura constante */}
+              {emptyRows > 0 &&
+                Array.from({ length: emptyRows }).map((_, idx) => (
+                  <tr key={`empty-${idx}`} className="hover:bg-transparent">
+                    {Array.from({ length: 7 }).map((__, i) => (
+                      <td key={i} className="px-4 py-3">&nbsp;</td>
+                    ))}
+                  </tr>
+                ))}
+
+              {!loading && current.length === 0 && (
+                <tr>
+                  <td className="px-4 py-6 text-center text-gray70 italic" colSpan={7}>
+                    No hay movimientos.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginador estilo base — visible si hay datos */}
+        {sorted.length > 0 && (
+          <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+            >
+              &lt;
+            </button>
+
+            {pagerItems.map((p, i) =>
+              typeof p === 'string' ? (
+                <span key={`dots-${i}`} className="px-2 text-gray70">
+                  {p}
+                </span>
+              ) : (
                 <button
-                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700"
-                  onClick={() => handleVerClick(m)}
-                  title="Ver detalle"
+                  key={p}
+                  onClick={() => setPage(p)}
+                  aria-current={page === p ? 'page' : undefined}
+                  className={[
+                    'w-8 h-8 flex items-center justify-center rounded',
+                    page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
+                  ].join(' ')}
                 >
-                  <FaEye />
-                  <span className="sr-only">Ver</span>
+                  {p}
                 </button>
-              </td>
-            </tr>
-          ))}
+              )
+            )}
 
-          {!loading && current.length === 0 && (
-            <tr>
-              <td className="p-6 text-center text-gray-400" colSpan={7}>
-                No hay movimientos.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      <div className="p-4 border-t flex justify-end">
-        <Paginator
-          totalPages={totalPages}
-          currentPage={currentPage}
-          onPageChange={(p) => {
-            if (p >= 1 && p <= totalPages) setCurrentPage(p);
-          }}
-        />
-      </div>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+            >
+              &gt;
+            </button>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

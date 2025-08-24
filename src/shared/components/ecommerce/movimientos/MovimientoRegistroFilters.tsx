@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/auth/context';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
+import { useAuth } from '@/auth/context';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 import { FiSearch } from 'react-icons/fi';
-import { LiaPlusSquareSolid } from 'react-icons/lia';
+import { Icon } from '@iconify/react/dist/iconify.js';
+import { Select } from '@/shared/components/Select';
 
 export interface Filters {
   almacenamiento_id: string;
@@ -17,23 +18,12 @@ export interface Filters {
   search: string;
 }
 
-type BooleanFilterKey = 'stock_bajo' | 'precio_bajo' | 'precio_alto';
-
 interface Props {
   onFilterChange?: (filters: Filters) => void;
-  onNuevoMovimientoClick?: () => void;
+  onNuevoMovimientoClick?: () => void; // <— agregado para tu otra vista
 }
 
-const booleanFilters: { name: BooleanFilterKey; label: string }[] = [
-  { name: 'stock_bajo', label: 'Stock bajo' },
-  { name: 'precio_bajo', label: 'Precios bajos' },
-  { name: 'precio_alto', label: 'Precios altos' },
-];
-
-export default function MovimientoRegistroFilters({
-  onFilterChange,
-  onNuevoMovimientoClick,
-}: Props) {
+export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovimientoClick }: Props) {
   const { token } = useAuth();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
@@ -57,38 +47,17 @@ export default function MovimientoRegistroFilters({
     onFilterChange?.(filters);
   }, [filters, onFilterChange]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const target = e.target;
-
-    // ✅ Type narrowing para poder usar .checked sin error TS
-    if (target instanceof HTMLInputElement && target.type === 'checkbox') {
-      const name = target.name as BooleanFilterKey;
-
-      // Opcional: hacerlos realmente exclusivos en UI
-      if (name === 'precio_bajo' && target.checked) {
-        setFilters((prev) => ({ ...prev, precio_bajo: true, precio_alto: false }));
-        return;
-      }
-      if (name === 'precio_alto' && target.checked) {
-        setFilters((prev) => ({ ...prev, precio_bajo: false, precio_alto: true }));
-        return;
-      }
-
-      setFilters((prev) => ({
-        ...prev,
-        [name]: target.checked,
-      }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked, type, value } = e.target;
+    if (type === 'checkbox') {
+      setFilters((prev) => ({ ...prev, [name]: checked }));
     } else {
-      const name = target.name as Exclude<keyof Filters, BooleanFilterKey>;
-      setFilters((prev) => ({
-        ...prev,
-        [name]: target.value,
-      }));
+      setFilters((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const handleReset = () => {
-    const reset: Filters = {
+    setFilters({
       almacenamiento_id: '',
       categoria_id: '',
       estado: '',
@@ -96,111 +65,156 @@ export default function MovimientoRegistroFilters({
       precio_bajo: false,
       precio_alto: false,
       search: '',
-    };
-    setFilters(reset);
-    onFilterChange?.(reset);
+    });
   };
 
+  const field =
+    'w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 ' +
+    'placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors';
+
   return (
-    <div className="bg-white p-4 rounded shadow-sm text-sm">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="bg-white p-5 rounded-md shadow-default border border-gray30">
+      {/* xs: 1 col, sm: 2 cols, lg: 1fr 1fr 1fr auto */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm">
+        {/* Almacén (solo cambia el label visual) */}
         <div>
-          <label className="block mb-1 font-medium">Almacén</label>
-          <select
-            name="almacenamiento_id"
-            value={filters.almacenamiento_id}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-          >
-            <option value="">Seleccionar almacén</option>
-            {almacenes.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nombre_almacen}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block mb-1 font-medium">Categoría</label>
-          <select
-            name="categoria_id"
-            value={filters.categoria_id}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-          >
-            <option value="">Seleccionar categoría</option>
-            {categorias.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.descripcion}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block mb-1 font-medium">Estado</label>
-          <select
-            name="estado"
-            value={filters.estado}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-          >
-            <option value="">Seleccionar estado</option>
-            <option value="activo">Activo</option>
-            <option value="inactivo">Inactivo</option>
-            <option value="descontinuado">Descontinuado</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block mb-1 font-medium">Filtros exclusivos</label>
-          <div className="flex flex-wrap gap-3 mt-3">
-            {booleanFilters.map(({ name, label }) => (
-              <label key={name} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  name={name}
-                  checked={filters[name]}
-                  onChange={handleChange}
-                />
-                <span className="text-xs">{label}</span>
-              </label>
-            ))}
+          <div className="text-center font-medium text-gray-700 mb-2">Almacén</div>
+          <div className="relative w-full">
+            <Select
+              id="f-ecommerce"
+              value={filters.almacenamiento_id}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, almacenamiento_id: e.target.value }))
+              }
+              options={[
+                { value: '', label: 'Seleccionar almacén' },
+                ...almacenes.map((a) => ({
+                  value: String(a.id),
+                  label: a.nombre_almacen,
+                })),
+              ]}
+              placeholder="Seleccionar almacén"
+            />
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-col md:flex-row md:items-center gap-2 mt-4">
-        <div className="relative w-full">
-          <FiSearch className="absolute left-3 top-3 text-gray-400" />
-          <input
-            type="text"
-            name="search"
-            value={filters.search}
-            onChange={handleChange}
-            placeholder="Buscar productos por nombre"
-            className="w-full border rounded pl-10 pr-4 py-2"
-          />
+        {/* Categorías */}
+        <div>
+          <div className="text-center font-medium text-gray-700 mb-2">Categorías</div>
+          <div className="relative w-full">
+            <Select
+              id="f-categoria"
+              value={filters.categoria_id}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, categoria_id: e.target.value }))
+              }
+              options={[
+                { value: '', label: 'Seleccionar categoría' },
+                ...categorias.map((c) => ({
+                  value: String(c.id),
+                  label: c.descripcion,
+                })),
+              ]}
+              placeholder="Seleccionar categoría"
+            />
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleReset}
-          className="border px-4 py-2 rounded hover:bg-gray-100 text-sm whitespace-nowrap"
-        >
-          Limpiar Filtros
-        </button>
+        {/* Estado */}
+        <div>
+          <div className="text-center font-medium text-gray-700 mb-2">Estado</div>
+          <div className="relative w-full">
+            <Select
+              id="f-estado"
+              value={filters.estado}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, estado: e.target.value }))
+              }
+              options={[
+                { value: '', label: 'Seleccionar estado' },
+                { value: 'activo', label: 'Activo' },
+                { value: 'inactivo', label: 'Inactivo' },
+              ]}
+              placeholder="Seleccionar estado"
+            />
+          </div>
+        </div>
 
-        <div className="ml-auto">
-          <button
-            type="button"
-            onClick={onNuevoMovimientoClick}
-            className="flex items-center gap-2 px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 transition"
-          >
-            <LiaPlusSquareSolid size={18} className="shrink-0" />
-            <span>Nuevo Movimiento</span>
-          </button>
+        {/* Filtros exclusivos */}
+        <div className="min-w-0">
+          <div className="text-center font-medium text-gray-700 mb-2">Filtros exclusivos</div>
+          <div className="h-10 flex items-center justify-center lg:justify-start gap-4">
+            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
+              <input
+                type="checkbox"
+                name="stock_bajo"
+                checked={filters.stock_bajo}
+                onChange={handleChange}
+                className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+              />
+              <span>Stock bajo</span>
+            </label>
+            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
+              <input
+                type="checkbox"
+                name="precio_bajo"
+                checked={filters.precio_bajo}
+                onChange={handleChange}
+                className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+              />
+              <span>Precios bajos</span>
+            </label>
+            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
+              <input
+                type="checkbox"
+                name="precio_alto"
+                checked={filters.precio_alto}
+                onChange={handleChange}
+                className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+              />
+              <span>Precios altos</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Buscador + acciones */}
+        <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          {/* Buscador */}
+          <div className="relative flex-1 border border-gray60 rounded">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              name="search"
+              type="text"
+              value={filters.search}
+              onChange={handleChange}
+              placeholder="Buscar productos por nombre, descripción ó código."
+              className={`${field} pl-10`}
+            />
+          </div>
+
+          {/* Acciones a la derecha */}
+          <div className="flex items-center gap-3 sm:ml-auto">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="flex items-center gap-3 text-gray-700 bg-gray10 border border-gray60 hover:bg-gray-100 px-4 py-2 rounded sm:w-auto"
+            >
+              <Icon icon="mynaui:delete" width="24" height="24" color="gray60" />
+              <span>Limpiar Filtros</span>
+            </button>
+
+            {/* Línea divisoria a la izquierda del botón azul */}
+            <div className="hidden sm:block h-10 w-px bg-gray30" />
+
+            <button
+              type="button"
+              onClick={onNuevoMovimientoClick}
+              className="flex items-center gap-2 px-4 h-10 rounded text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-sm"
+            >
+              <Icon icon="mdi:plus-box-outline" width="18" height="18" />
+              <span>Nuevo Movimiento</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

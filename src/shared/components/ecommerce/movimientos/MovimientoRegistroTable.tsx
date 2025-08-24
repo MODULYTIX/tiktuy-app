@@ -3,7 +3,6 @@ import { FaEye } from 'react-icons/fa';
 import { useAuth } from '@/auth/context';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
-import Paginator from '../../Paginator';
 import type { Filters } from '@/shared/components/ecommerce/movimientos/MovimientoRegistroFilters';
 
 interface Props {
@@ -12,7 +11,11 @@ interface Props {
   onViewProduct?: (uuid: string) => void;
 }
 
-export default function MovimientoRegistroTable({ filters, onSelectProducts, onViewProduct }: Props) {
+export default function MovimientoRegistroTable({
+  filters,
+  onSelectProducts,
+  onViewProduct,
+}: Props) {
   const { token } = useAuth();
 
   const [allProductos, setAllProductos] = useState<Producto[]>([]);
@@ -25,7 +28,6 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
     if (!token) return;
     fetchProductos(token)
       .then((rows) => {
-        // Filtrar productos inactivos (stock = 0) desde el inicio
         const productosActivos = (rows || []).filter(
           (p) => p.estado?.nombre !== 'Inactivo' && p.stock > 0
         );
@@ -40,21 +42,18 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
     onSelectProducts(seleccionados);
   }, [selectedIds, allProductos, onSelectProducts]);
 
-  // ------- Filtrado en memoria -------
+  // ------- Filtrado en memoria (igual que tenías) -------
   const filtered = useMemo(() => {
     let data = [...allProductos];
 
-    // Filtro por defecto: excluir productos inactivos
     data = data.filter((p) => p.estado?.nombre !== 'Inactivo' && p.stock > 0);
 
-    // 1) Almacén
     if (filters.almacenamiento_id) {
       data = data.filter(
         (p) => String(p.almacenamiento_id || '') === String(filters.almacenamiento_id)
       );
     }
 
-    // 2) Categoría
     if (filters.categoria_id) {
       data = data.filter(
         (p: any) =>
@@ -62,20 +61,17 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
       );
     }
 
-    // 3) Estado (por nombre) - excluimos "Inactivo" por defecto
     if (filters.estado) {
       data = data.filter(
         (p) => (p.estado?.nombre || '').toLowerCase() === filters.estado.toLowerCase()
       );
     }
 
-    // 4) Búsqueda por nombre
     if (filters.search.trim()) {
       const needle = filters.search.trim().toLowerCase();
       data = data.filter((p) => (p.nombre_producto || '').toLowerCase().includes(needle));
     }
 
-    // 5) Stock bajo
     if (filters.stock_bajo) {
       data = data.filter((p: any) => {
         const min = typeof p.stock_minimo === 'number' ? p.stock_minimo : 5;
@@ -83,7 +79,6 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
       });
     }
 
-    // 6) Precio bajo/alto
     if (filters.precio_bajo !== filters.precio_alto) {
       const precios = data.map((p) => Number(p.precio)).filter((n) => !Number.isNaN(n));
       if (precios.length > 0) {
@@ -91,19 +86,15 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
         const p25 = sorted[Math.floor(sorted.length * 0.25)];
         const p75 = sorted[Math.floor(sorted.length * 0.75)];
 
-        if (filters.precio_bajo) {
-          data = data.filter((p) => Number(p.precio) <= p25);
-        }
-        if (filters.precio_alto) {
-          data = data.filter((p) => Number(p.precio) >= p75);
-        }
+        if (filters.precio_bajo) data = data.filter((p) => Number(p.precio) <= p25);
+        if (filters.precio_alto) data = data.filter((p) => Number(p.precio) >= p75);
       }
     }
 
     return data;
   }, [allProductos, filters]);
 
-  // Resto del componente sin cambios...
+  // Paginación (igual que tenías)
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const page = Math.min(currentPage, totalPages);
   const pageData = useMemo(() => {
@@ -111,7 +102,6 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
     return filtered.slice(start, start + pageSize);
   }, [filtered, page]);
 
-  // Si cambian los filtros, resetea a la página 1
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
@@ -127,74 +117,183 @@ export default function MovimientoRegistroTable({ filters, onSelectProducts, onV
     else console.warn('onViewProduct no fue proporcionado');
   };
 
-  if (!allProductos.length) {
-    return (
-      <div className="p-6 text-center text-gray-500 bg-white rounded shadow-sm">
-        Aún no hay productos registrados.
-      </div>
-    );
-  }
+  // Paginador base (5 botones con elipsis)
+  const pagerItems = useMemo(() => {
+    const maxButtons = 5;
+    const pages: (number | string)[] = [];
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, page - 2);
+      let end = Math.min(totalPages, page + 2);
+      if (page <= 3) { start = 1; end = maxButtons; }
+      else if (page >= totalPages - 2) { start = totalPages - (maxButtons - 1); end = totalPages; }
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (start > 1) { pages.unshift('...'); pages.unshift(1); }
+      if (end < totalPages) { pages.push('...'); pages.push(totalPages); }
+    }
+    return pages;
+  }, [page, totalPages]);
+
+  // Mantener altura constante por página (10 filas)
+  const visibleCount = Math.max(1, pageData.length);
+  const emptyRows = Math.max(0, pageSize - visibleCount);
 
   return (
-    <div className="bg-white rounded shadow-sm overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-100 text-left">
-          <tr>
-            <th className="p-3">#</th>
-            {['Código', 'Producto', 'Almacén', 'Stock', 'Precio', 'Estado', 'Acciones'].map((h) => (
-              <th key={h} className="p-3">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {pageData.map((prod) => (
-            <tr key={prod.uuid} className="border-t">
-              <td className="p-3">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(prod.uuid)}
-                  onChange={() => toggleCheckbox(prod.uuid)}
-                />
-              </td>
-              <td className="p-3">{prod.codigo_identificacion}</td>
-              <td className="p-3">
-                <div className="font-semibold">{prod.nombre_producto}</div>
-                <div className="text-gray-500 text-xs">{prod.descripcion}</div>
-              </td>
-              <td className="p-3">{prod.almacenamiento?.nombre_almacen}</td>
-              <td className="p-3">{prod.stock}</td>
-              <td className="p-3 text-right">S/ {Number(prod.precio).toFixed(2)}</td>
-              <td className="p-3">
-                <span className={`text-xs px-2 py-1 rounded ${
-                  prod.estado?.nombre === 'Inactivo' 
-                    ? 'bg-gray-400 text-white' 
-                    : 'bg-black text-white'
-                }`}>
-                  {prod.estado?.nombre || 'Desconocido'}
-                </span>
-              </td>
-              <td className="p-3">
-                <button
-                  type="button"
-                  onClick={() => handleView(prod.uuid)}
-                  className="inline-flex items-center gap-1 text-blue-600 hover:underline"
-                  title="Ver detalle"
-                >
-                  <FaEye size={16} className="text-blue-600" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="bg-white rounded-md overflow-hidden shadow-default">
+      <section className="flex-1 overflow-auto">
+        <div className="overflow-x-auto bg-white">
+          <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+            {/* Porcentajes por columna (suman 100%) */}
+            <colgroup>
+              <col className="w-[4%]" />   {/* checkbox */}
+              <col className="w-[12%]" />  {/* Código */}
+              <col className="w-[30%]" />  {/* Producto */}
+              <col className="w-[16%]" />  {/* Almacén */}
+              <col className="w-[12%]" />  {/* Stock */}
+              <col className="w-[10%]" />  {/* Precio */}
+              <col className="w-[8%]" />   {/* Estado */}
+              <col className="w-[8%]" />   {/* Acciones */}
+            </colgroup>
 
-      <div className="p-4 border-t flex justify-end">
-        <Paginator
-          totalPages={totalPages}
-          currentPage={page}
-          onPageChange={setCurrentPage}
-        />
-      </div>
+            <thead className="bg-[#E5E7EB]">
+              <tr className="text-gray70 font-roboto font-medium">
+                <th className="px-4 py-3 text-left">#</th>
+                <th className="px-4 py-3 text-left">Código</th>
+                <th className="px-4 py-3 text-left">Producto</th>
+                <th className="px-4 py-3 text-left">Almacén</th>
+                <th className="px-4 py-3 text-left">Stock</th>
+                <th className="px-4 py-3 text-right">Precio</th>
+                <th className="px-4 py-3 text-center">Estado</th>
+                <th className="px-4 py-3 text-center">Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray20">
+              {pageData.map((prod) => (
+                <tr key={prod.uuid} className="hover:bg-gray10 transition-colors">
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(prod.uuid)}
+                      onChange={() => toggleCheckbox(prod.uuid)}
+                    />
+                  </td>
+
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    {prod.codigo_identificacion}
+                  </td>
+
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    <div className="font-semibold">{prod.nombre_producto}</div>
+                    <div className="text-gray-500 text-xs line-clamp-2">{prod.descripcion}</div>
+                  </td>
+
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    {prod.almacenamiento?.nombre_almacen || (
+                      <span className="text-gray-400 italic">No asignado</span>
+                    )}
+                  </td>
+
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    {prod.stock}
+                  </td>
+
+                  <td className="px-4 py-3 text-right text-gray70 font-[400]">
+                    S/ {Number(prod.precio).toFixed(2)}
+                  </td>
+
+                  <td className="px-4 py-3 text-center">
+                    <span
+                      className={`text-[12px] px-3 py-[6px] rounded-full inline-flex items-center justify-center shadow-sm ${
+                        prod.estado?.nombre === 'Inactivo'
+                          ? 'bg-gray-400 text-white'
+                          : 'bg-black text-white'
+                      }`}
+                    >
+                      {prod.estado?.nombre || 'Desconocido'}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => handleView(prod.uuid)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Ver detalle"
+                        aria-label={`Ver ${prod.nombre_producto}`}
+                      >
+                        <FaEye size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {/* Relleno para altura constante */}
+              {emptyRows > 0 &&
+                Array.from({ length: emptyRows }).map((_, idx) => (
+                  <tr key={`empty-${idx}`} className="hover:bg-transparent">
+                    {Array.from({ length: 8 }).map((__, i) => (
+                      <td key={i} className="px-4 py-3">&nbsp;</td>
+                    ))}
+                  </tr>
+                ))}
+
+              {/* Empty state visible como 1 fila */}
+              {pageData.length === 0 && (
+                <tr>
+                  <td className="px-4 py-6 text-center text-gray70 italic" colSpan={8}>
+                    Aún no hay productos registrados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginador base — visible siempre que haya datos */}
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+            >
+              &lt;
+            </button>
+
+            {pagerItems.map((p, i) =>
+              typeof p === 'string' ? (
+                <span key={`dots-${i}`} className="px-2 text-gray70">
+                  {p}
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  aria-current={page === p ? 'page' : undefined}
+                  className={[
+                    'w-8 h-8 flex items-center justify-center rounded',
+                    page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
+                  ].join(' ')}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+            >
+              &gt;
+            </button>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

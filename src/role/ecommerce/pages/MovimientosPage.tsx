@@ -71,7 +71,7 @@ export default function RegistroMovimientoPage() {
     <section className="mt-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-primary mb-1">Registro de Movimiento</h1>
+          <h1 className="text-3xl font-bold text-primary mb-1">Movimiento</h1>
           <p className="text-gray-500">
             {modalMode === 'registro'
               ? 'Realice nuevos movimientos de productos.'
@@ -107,16 +107,19 @@ export default function RegistroMovimientoPage() {
 
       {modalMode === 'registro' ? (
         <>
-          <MovimientoRegistroFilters
-            onFilterChange={setFilters}
-            onNuevoMovimientoClick={handleOpenModalCrear}
-          />
+          {/* 20px (1.25rem) de espacio vertical entre filtros y tabla */}
+          <div className="space-y-5">
+            <MovimientoRegistroFilters
+              onFilterChange={setFilters}
+              onNuevoMovimientoClick={handleOpenModalCrear}
+            />
 
-          <MovimientoRegistroTable
-            filters={filters}
-            onSelectProducts={setSelectedProducts}
-            onViewProduct={handleViewProduct}
-          />
+            <MovimientoRegistroTable
+              filters={filters}
+              onSelectProducts={setSelectedProducts}
+              onViewProduct={handleViewProduct}
+            />
+          </div>
 
           <CrearMovimientoModal
             open={modalOpen}
