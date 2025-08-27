@@ -1,29 +1,39 @@
 // src/layouts/Navbar.tsx
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { useAuth } from '@/auth/context/useAuth';
 import LOGOTIKTUY from '@/assets/logos/logo-tiktuy-sidebar.webp';
 import type { JSX } from 'react';
 
+// =====================================
+// Navbar móvil con header fijo (h-14)
+// y drawer lateral que NO repite header.
+// El drawer se abre debajo del header (top-14)
+// y mantiene el mismo alto del header al abrir/cerrar.
+// =====================================
+
 type LinkItem = { to: string; label: string; icon: JSX.Element; modulo?: string };
 
 interface Props {
-  isOpen: boolean;       // controla si mostrar labels en el drawer (puedes reutilizarlo)
-  toggle: () => void;    // abre/cierra el drawer
-  open: boolean;         // estado del drawer móvil
+  // isOpen: controla si mostrar labels (compat con tu Sidebar)
+  isOpen: boolean;
+  // open: estado del drawer móvil
+  open: boolean;
+  // setOpen: abre/cierra el drawer
   setOpen: (v: boolean) => void;
 }
 
-export default function Navbar({ isOpen,  open, setOpen }: Props) {
+export default function Navbar({ isOpen, open, setOpen }: Props) {
   const { user, logout } = useAuth();
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   const handleLogout = () => {
     logout();
     window.location.href = '/';
   };
 
-  // ====== misma lógica de links que tu Sidebar ======
+  // ====== Links por rol (igual a tu Sidebar) ======
   const linksByRole: Record<string, LinkItem[]> = {
     admin: [
       { to: '/', label: 'Panel de Control', icon: <Icon icon="mdi:view-dashboard" width="20" height="20" /> },
@@ -61,7 +71,7 @@ export default function Navbar({ isOpen,  open, setOpen }: Props) {
       { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="20" height="20" />, modulo: 'saldos' },
       { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="20" height="20" />, modulo: 'reportes' },
     ];
-    const modulosAsignados = user?.perfil_trabajador?.modulo_asignado?.split(',')?.map(m => m.trim());
+    const modulosAsignados = user?.perfil_trabajador?.modulo_asignado?.split(',')?.map((m: string) => m.trim());
     links = modulosAsignados ? links.filter(l => modulosAsignados.includes(l.modulo ?? '')) : [];
   } else if (user?.rol?.nombre && user.rol.nombre in linksByRole) {
     links = linksByRole[user.rol.nombre];
@@ -69,22 +79,32 @@ export default function Navbar({ isOpen,  open, setOpen }: Props) {
 
   links = links.map(l => ({ ...l, to: `${basePath}${l.to}` }));
 
-  // ====== UX: cerrar con ESC, bloquear scroll cuando open ======
+  // ====== UX: cerrar con ESC, bloquear scroll cuando open, focus-inicio ======
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
     window.addEventListener('keydown', onKey);
     document.body.classList.add('overflow-hidden');
+
+    // foco en el primer elemento clickeable del panel
+    const t = setTimeout(() => {
+      panelRef.current?.querySelector<HTMLElement>('a, button')?.focus();
+    }, 0);
+
     return () => {
       window.removeEventListener('keydown', onKey);
       document.body.classList.remove('overflow-hidden');
+      clearTimeout(t);
     };
   }, [open, setOpen]);
 
   return (
-    <header className="lg:hidden sticky top-0 z-40 w-full bg-white">
-      {/* Barra superior */}
-      <div className="flex h-14 items-center justify-between border-b px-4">
+    <header className="lg:hidden sticky top-0 z-50 w-full bg-white">
+      {/* Header fijo (NO se duplica) */}
+      <div className="flex h-14 items-center justify-between border-b border-b-gray-200 px-4">
         {/* Hamburguesa */}
         <button
           onClick={() => setOpen(true)}
@@ -113,30 +133,38 @@ export default function Navbar({ isOpen,  open, setOpen }: Props) {
         </button>
       </div>
 
-      {/* Drawer lateral (menú) */}
+      {/* Drawer lateral: aparece DEBAJO del header (top-14) y sin header duplicado */}
       {open && (
-        <div className="fixed inset-0 z-50">
-          {/* Overlay */}
+        <div className="fixed inset-x-0 top-14 bottom-0 z-50">
+          {/* Overlay bajo el header */}
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setOpen(false)}
+            aria-hidden="true"
           />
-          {/* Panel */}
-          <aside className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl">
-            {/* Header del panel */}
-            <div className="flex items-center justify-between px-4 py-4 border-b">
-              <img src={LOGOTIKTUY} alt="logo" className="h-7 w-auto" />
-              <button
-                onClick={() => setOpen(false)}
-                className="rounded-md p-2 text-[#1E3A8A]"
-                aria-label="Cerrar menú"
-              >
-                <Icon icon="mdi:close" width="22" height="22" />
-              </button>
-            </div>
 
-            {/* Links verticales con “píldora” activa */}
-            <nav className="no-scrollbar h-[calc(100%-64px)] overflow-y-auto px-3 py-3">
+          {/* Panel */}
+          <aside
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú de navegación"
+            className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl outline-none transition-transform duration-200 will-change-transform"
+            style={{ transform: 'translateX(0%)' }}
+          >
+            {/* Contenido del panel (sin header) */}
+            <nav className="no-scrollbar h-full overflow-y-auto px-3 py-4">
+              {/* Botón cerrar alineado a la derecha, pequeño, sin crear un header */}
+              <div className="flex justify-end mb-2 px-1">
+                <button
+                  onClick={() => setOpen(false)}
+                  className="rounded-md p-2 text-[#1E3A8A]"
+                  aria-label="Cerrar menú"
+                >
+                  <Icon icon="mdi:close" width="22" height="22" />
+                </button>
+              </div>
+
               <ul className="space-y-1">
                 {links.map(({ to, label, icon }) => (
                   <li key={to}>

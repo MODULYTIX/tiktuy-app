@@ -5,7 +5,7 @@ import ReportesPage from './pages/ReportesPage';
 
 
 export const motorizadoRoutes: RouteObject[] = [
-  { path: 'panel', element: <MotorizadoHomePage /> },
+  { path: '', element: <MotorizadoHomePage /> },
   { path: 'pedidos', element: <PedidosPage /> },
   { path: 'reportes', element: <ReportesPage /> },
 ];

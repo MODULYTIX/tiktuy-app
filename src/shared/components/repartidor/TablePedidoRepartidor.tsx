@@ -30,9 +30,6 @@ const PEN = new Intl.NumberFormat('es-PE', {
 });
 const two = (n: number) => String(n).padStart(2, '0');
 
-/* ===========================================================
-   Componente (sin Paginator)
-=========================================================== */
 export default function TablePedidoRepartidor({ view, token, onVerDetalle, onCambiarEstado }: Props) {
   // paginación (server-side)
   const [page, setPage] = useState(1);
@@ -132,7 +129,6 @@ export default function TablePedidoRepartidor({ view, token, onVerDetalle, onCam
 
   const totalPages = data?.totalPages ?? 1;
 
-  /* ---------------- UI ---------------- */
   return (
     <div className="w-full bg-white rounded-lg shadow overflow-hidden">
       {/* Encabezado de bloque */}
@@ -145,17 +141,17 @@ export default function TablePedidoRepartidor({ view, token, onVerDetalle, onCam
           </h2>
           <p className="text-sm text-gray-600">
             {view === 'hoy' && 'Pedidos programados para hoy asignados a ti.'}
-            {view === 'pendientes' &&
-              'Pedidos en gestión (recepcionará hoy / reprogramado).'}
+            {view === 'pendientes' && 'Pedidos en gestión (recepcionará hoy / reprogramado).'}
             {view === 'terminados' &&
               'Pedidos completados o finalizados (entregado / rechazado / no responde / anuló).'}
           </p>
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros: desktop en fila | móvil en accordion */}
       <div className="px-4 py-3">
-        <div className="bg-white border rounded p-3 flex flex-wrap gap-3 items-end">
+        {/* Desktop */}
+        <div className="hidden sm:flex bg-white border rounded p-3 flex-wrap gap-3 items-end">
           <div className="min-w-[200px]">
             <label className="block text-xs text-gray-600 mb-1">Distrito</label>
             <select
@@ -215,14 +211,82 @@ export default function TablePedidoRepartidor({ view, token, onVerDetalle, onCam
             Limpiar Filtros
           </button>
         </div>
+
+        {/* Móvil */}
+        <details className="sm:hidden border rounded">
+          <summary className="list-none cursor-pointer px-3 py-2 flex items-center justify-between">
+            <span className="text-sm font-medium">Filtros</span>
+            <span className="material-icons-outlined text-base text-gray-500">expand_more</span>
+          </summary>
+          <div className="px-3 pb-3 grid grid-cols-1 gap-3">
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Distrito</label>
+              <select
+                className="w-full border rounded px-3 py-2 text-sm"
+                value={filtroDistrito}
+                onChange={(e) => setFiltroDistrito(e.target.value)}
+              >
+                <option value="">Seleccionar distrito</option>
+                {distritos.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Cantidad</label>
+              <select
+                className="w-full border rounded px-3 py-2 text-sm"
+                value={filtroCantidad}
+                onChange={(e) => setFiltroCantidad(e.target.value)}
+              >
+                <option value="">Seleccionar cantidad</option>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {two(n)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Buscar productos por nombre</label>
+              <div className="relative">
+                <input
+                  className="w-full border rounded px-3 py-2 text-sm pr-8"
+                  placeholder="Buscar productos por nombre..."
+                  value={searchProducto}
+                  onChange={(e) => setSearchProducto(e.target.value)}
+                />
+                <span className="material-icons-outlined absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-base">
+                  search
+                </span>
+              </div>
+            </div>
+
+            <button
+              className="mt-1 inline-flex justify-center items-center gap-2 border px-3 py-2 rounded text-gray-700 hover:bg-gray-100"
+              onClick={() => {
+                setFiltroDistrito('');
+                setFiltroCantidad('');
+                setSearchProducto('');
+              }}
+            >
+              <span className="material-icons-outlined text-sm">restart_alt</span>
+              Limpiar Filtros
+            </button>
+          </div>
+        </details>
       </div>
 
-      {/* barra superior: total & paginación simple (sin componente externo) */}
-      <div className="flex justify-between items-center px-4 py-3 border-t">
+      {/* barra superior: total & paginación simple */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 px-4 py-3 border-t">
         <div className="text-sm text-gray-600">
           Total: <b>{data?.totalItems ?? 0}</b> registros
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-start gap-2">
           <button
             disabled={page <= 1 || loading}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -247,22 +311,89 @@ export default function TablePedidoRepartidor({ view, token, onVerDetalle, onCam
       {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
       {!loading && error && <div className="py-10 text-center text-red-600">{error}</div>}
 
-      {/* tabla */}
+      {/* LISTADO:
+          - Desktop: tabla (igual que antes)
+          - Móvil: tarjetas
+      */}
       {!loading && !error && (
-        <table className="w-full text-sm text-left text-gray-600">
-          <thead className="bg-gray-100 text-gray-700 text-xs uppercase">
-            <tr>
-              <th className="px-4 py-3">Fec. Entrega</th>
-              <th className="px-4 py-3">Ecommerce</th>
-              <th className="px-4 py-3">Cliente</th>
-              <th className="px-4 py-3">Dirección de Entrega</th>
-              <th className="px-4 py-3">Cant. de productos</th>
-              <th className="px-4 py-3">Monto</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
+        <>
+          {/* Desktop / tablet */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="min-w-[900px] sm:min-w-0 w-full text-sm text-left text-gray-600">
+              <thead className="bg-gray-100 text-gray-700 text-xs uppercase">
+                <tr>
+                  <th className="px-4 py-3 whitespace-nowrap">Fec. Entrega</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Ecommerce</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Cliente</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Dirección de Entrega</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Cant. de productos</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Monto</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Estado</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {itemsFiltrados.map((p) => {
+                  const fecha =
+                    view === 'terminados'
+                      ? p.fecha_entrega_real ?? p.fecha_entrega_programada
+                      : p.fecha_entrega_programada;
+
+                  const cant =
+                    p.items_total_cantidad ??
+                    (p.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
+
+                  return (
+                    <tr key={p.id} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {fecha ? new Date(fecha).toLocaleDateString('es-PE') : '—'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">{p.ecommerce?.nombre_comercial ?? '—'}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{p.cliente?.nombre ?? '—'}</td>
+                      <td className="px-4 py-3 max-w-[320px] truncate" title={p.direccion_envio ?? ''}>
+                        {p.direccion_envio ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">{two(cant)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{PEN.format(Number(p.monto_recaudar || 0))}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{p.estado_nombre}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <button
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Ver detalle"
+                            onClick={() => onVerDetalle?.(p.id)}
+                          >
+                            <FaEye />
+                          </button>
+
+                          {(view === 'hoy' || view === 'pendientes') && (
+                            <button
+                              className="text-amber-600 hover:text-amber-800"
+                              title="Cambiar estado"
+                              onClick={() => onCambiarEstado?.(p)}
+                            >
+                              <FaExchangeAlt />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {!itemsFiltrados.length && (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-gray-500">
+                      No hay pedidos para esta etapa.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Móvil: tarjetas */}
+          <div className="sm:hidden divide-y">
             {itemsFiltrados.map((p) => {
               const fecha =
                 view === 'terminados'
@@ -274,52 +405,68 @@ export default function TablePedidoRepartidor({ view, token, onVerDetalle, onCam
                 (p.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
 
               return (
-                <tr key={p.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    {fecha ? new Date(fecha).toLocaleDateString('es-PE') : '—'}
-                  </td>
-                  <td className="px-4 py-3">{p.ecommerce?.nombre_comercial ?? '—'}</td>
-                  <td className="px-4 py-3">{p.cliente?.nombre ?? '—'}</td>
-                  <td className="px-4 py-3 truncate max-w-[280px]" title={p.direccion_envio ?? ''}>
-                    {p.direccion_envio ?? '—'}
-                  </td>
-                  <td className="px-4 py-3">{two(cant)}</td>
-                  <td className="px-4 py-3">{PEN.format(Number(p.monto_recaudar || 0))}</td>
-                  <td className="px-4 py-3">{p.estado_nombre}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <button
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Ver detalle"
-                        onClick={() => onVerDetalle?.(p.id)}
-                      >
-                        <FaEye />
-                      </button>
-
-                      {(view === 'hoy' || view === 'pendientes') && (
-                        <button
-                          className="text-amber-600 hover:text-amber-800"
-                          title="Cambiar estado"
-                          onClick={() => onCambiarEstado?.(p)}
-                        >
-                          <FaExchangeAlt />
-                        </button>
-                      )}
+                <div key={p.id} className="p-4">
+                  {/* fila superior: fecha + estado */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-sm">
+                      <div className="font-medium">
+                        {fecha ? new Date(fecha).toLocaleDateString('es-PE') : '—'}
+                      </div>
+                      <div className="text-gray-500">
+                        {p.ecommerce?.nombre_comercial ?? '—'}
+                      </div>
                     </div>
-                  </td>
-                </tr>
+                    <span className="inline-flex items-center rounded-full border px-2 py-1 text-xs text-gray-700">
+                      {p.estado_nombre}
+                    </span>
+                  </div>
+
+                  {/* cuerpo */}
+                  <div className="mt-3 space-y-1 text-sm">
+                    <div>
+                      <span className="text-gray-500">Cliente: </span>
+                      <span className="font-medium">{p.cliente?.nombre ?? '—'}</span>
+                    </div>
+                    <div className="truncate" title={p.direccion_envio ?? ''}>
+                      <span className="text-gray-500">Dirección: </span>
+                      {p.direccion_envio ?? '—'}
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Productos:</span>
+                      <span className="font-medium">{two(cant)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Monto:</span>
+                      <span className="font-semibold">{PEN.format(Number(p.monto_recaudar || 0))}</span>
+                    </div>
+                  </div>
+
+                  {/* acciones */}
+                  <div className="mt-3 flex items-center gap-4">
+                    <button
+                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                      onClick={() => onVerDetalle?.(p.id)}
+                    >
+                      <FaEye /> <span className="text-sm">Ver</span>
+                    </button>
+                    {(view === 'hoy' || view === 'pendientes') && (
+                      <button
+                        className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-800"
+                        onClick={() => onCambiarEstado?.(p)}
+                      >
+                        <FaExchangeAlt /> <span className="text-sm">Estado</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
               );
             })}
 
             {!itemsFiltrados.length && (
-              <tr>
-                <td colSpan={8} className="py-8 text-center text-gray-500">
-                  No hay pedidos para esta etapa.
-                </td>
-              </tr>
+              <div className="py-8 text-center text-gray-500">No hay pedidos para esta etapa.</div>
             )}
-          </tbody>
-        </table>
+          </div>
+        </>
       )}
     </div>
   );
