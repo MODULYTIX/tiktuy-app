@@ -24,8 +24,7 @@ export default function PrivateLayout() {
   return (
     <>
       {/* Navbar móvil (reemplaza Header + Sidebar en pantallas pequeñas) */}
-      <Navbar isOpen={isOpen} toggle={toggleSidebar} open={navOpen} setOpen={setNavOpen} />
-
+      <Navbar isOpen={isOpen} open={navOpen} setOpen={setNavOpen} />
       <div className="flex">
         {/* Sidebar: oculto en móvil, visible en desktop */}
         <div className="hidden lg:block">
@@ -36,8 +35,7 @@ export default function PrivateLayout() {
         <div
           className={`flex-1 transition-all duration-300 ml-0 ${
             isOpen ? 'lg:ml-64' : 'lg:ml-20'
-          }`}
-        >
+          }`}>
           {/* Header: oculto en móvil, visible en desktop */}
           <div className="hidden lg:block">
             <Header />
