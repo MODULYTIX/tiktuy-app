@@ -77,6 +77,7 @@ const isAbort = (e: unknown) =>
   (e as any)?.name === 'AbortError' || /aborted/i.test((e as any)?.message || '');
 
 export default function MotorizadoHomePage() {
+  const {  token } = useAuth();
 
   const [activo, setActivo] = useState<boolean | null>(null);
   const [toggling, setToggling] = useState(false);
