@@ -1,6 +1,6 @@
-// src/shared/components/repartidor/pedido/TablePedidoRepartidor.tsx
 import { useEffect, useMemo, useState } from 'react';
-import { FaEye, FaExchangeAlt } from 'react-icons/fa';
+import { FaEye } from 'react-icons/fa';
+import { Icon } from '@iconify/react';
 
 import type {
   Paginated,
@@ -372,7 +372,7 @@ export default function TablePedidoRepartidor({ view, token, onVerDetalle, onCam
                               title="Cambiar estado"
                               onClick={() => onCambiarEstado?.(p)}
                             >
-                              <FaExchangeAlt />
+                              <Icon icon="mdi:swap-horizontal" className="text-lg" />
                             </button>
                           )}
                         </div>
@@ -454,7 +454,8 @@ export default function TablePedidoRepartidor({ view, token, onVerDetalle, onCam
                         className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-800"
                         onClick={() => onCambiarEstado?.(p)}
                       >
-                        <FaExchangeAlt /> <span className="text-sm">Estado</span>
+                        <Icon icon="mdi:swap-horizontal" className="text-lg" />
+                        <span className="text-sm">Estado</span>
                       </button>
                     )}
                   </div>

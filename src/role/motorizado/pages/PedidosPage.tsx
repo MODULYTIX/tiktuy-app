@@ -1,48 +1,98 @@
-// src/pages/motorizado/PedidosPage.tsx
 import { useContext, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 
 import { AuthContext } from '@/auth/context/AuthContext';
-import TablePedidoRepartidor from '@/shared/components/repartidor/TablePedidoRepartidor';
 
-import type { RepartidorVista, PedidoListItem } from '@/services/repartidor/pedidos/pedidos.types';
+import type {
+  RepartidorVista,
+  PedidoListItem,
+} from '@/services/repartidor/pedidos/pedidos.types';
+import TablePedidoRepartidor from '@/shared/components/repartidor/TablePedidoRepartidor';
+import ModalRepartidorMotorizado from '@/shared/components/repartidor/Pedido/ModalPedidoRepartidor';
+
+// importa la API correcta
+import { patchEstadoInicial } from '@/services/repartidor/pedidos/pedidos.api';
 
 type VistaUI = 'asignados' | 'pendientes' | 'terminados';
-
-// Mapeo para el componente (TablePedidoRepartidor usa 'hoy' en lugar de 'asignados')
-const toRepartidorVista = (v: VistaUI): RepartidorVista => (v === 'asignados' ? 'hoy' : v);
+const toRepartidorVista = (v: VistaUI): RepartidorVista =>
+  v === 'asignados' ? 'hoy' : v;
 
 export default function PedidosPage() {
   const auth = useContext(AuthContext);
   const token = auth?.token ?? '';
 
   const [vista, setVista] = useState<VistaUI>(() => {
-    const saved = localStorage.getItem('repartidor_vista_pedidos') as VistaUI | null;
+    const saved = localStorage.getItem(
+      'repartidor_vista_pedidos'
+    ) as VistaUI | null;
     return saved ?? 'asignados';
   });
-
   useEffect(() => {
     localStorage.setItem('repartidor_vista_pedidos', vista);
   }, [vista]);
+
+  // === estado del modal ===
+  const [openModalCambio, setOpenModalCambio] = useState(false);
+  const [pedidoSeleccionado, setPedidoSeleccionado] =
+    useState<PedidoListItem | null>(null);
 
   const handleVerDetalle = (id: number) => {
     console.log('[Repartidor] Ver detalle pedido', id);
   };
 
+  // Abre el modal con el pedido clickeado
   const handleCambiarEstado = (pedido: PedidoListItem) => {
     console.log('[Repartidor] Cambiar estado pedido', pedido.id);
+    setPedidoSeleccionado(pedido);
+    setOpenModalCambio(true);
   };
+
+  // Guardar resultado -> conecta con backend
+  async function handleConfirmResultado(payload: {
+    pedidoId: number;
+    resultado: 'RECEPCION_HOY' | 'NO_RESPONDE' | 'REPROGRAMADO' | 'ANULO';
+    fecha_nueva?: string;
+    observacion?: string | null;
+  }) {
+    try {
+      console.log('[Repartidor] Guardar resultado', payload);
+
+      // 🔄 Mapeo a lo que espera el backend
+      const mapResultado: Record<
+        'RECEPCION_HOY' | 'NO_RESPONDE' | 'REPROGRAMADO' | 'ANULO',
+        'RECEPCION_HOY' | 'NO_RESPONDE' | 'REPROGRAMADO' | 'ANULO'
+      > = {
+        RECEPCION_HOY: 'RECEPCION_HOY',
+        NO_RESPONDE: 'NO_RESPONDE',
+        REPROGRAMADO: 'REPROGRAMADO',
+        ANULO: 'ANULO',
+      };
+
+      await patchEstadoInicial(token, payload.pedidoId, {
+        resultado: mapResultado[payload.resultado],
+        fecha_nueva: payload.fecha_nueva,
+        observacion: payload.observacion ?? undefined,
+      });
+    } catch (err) {
+      console.error('Error al actualizar estado:', err);
+      alert((err as Error).message);
+    } finally {
+      setOpenModalCambio(false);
+    }
+  }
 
   return (
     <section className="mt-4 md:mt-8">
       {/* ===== MOBILE HEADER (< md) ===== */}
       <div className="block md:hidden text-center px-3">
-        <h1 className="text-2xl font-bold text-[#1E3A8A]">Gestión de Pedidos</h1>
+        <h1 className="text-2xl font-bold text-[#1E3A8A]">
+          Gestión de Pedidos
+        </h1>
         <p className="mt-1 text-sm text-gray-600">
-          Administra y visualiza el estado de tus pedidos en cada etapa del proceso
+          Administra y visualiza el estado de tus pedidos en cada etapa del
+          proceso
         </p>
 
-        {/* Segmentado: 2 arriba, 1 abajo */}
         <div className="mt-3 grid grid-cols-2 gap-2 max-w-xs mx-auto">
           <button
             onClick={() => setVista('asignados')}
@@ -50,8 +100,7 @@ export default function PedidosPage() {
               vista === 'asignados'
                 ? 'bg-[#0F172A] text-white'
                 : 'bg-gray-100 text-[#0F172A] hover:bg-gray-200'
-            }`}
-          >
+            }`}>
             <Icon icon="solar:bill-list-broken" width={18} height={18} />
             Asignados
           </button>
@@ -62,8 +111,7 @@ export default function PedidosPage() {
               vista === 'pendientes'
                 ? 'bg-[#0F172A] text-white'
                 : 'bg-gray-100 text-[#0F172A] hover:bg-gray-200'
-            }`}
-          >
+            }`}>
             <Icon icon="mdi:clock-outline" width={18} height={18} />
             Pendientes
           </button>
@@ -74,15 +122,14 @@ export default function PedidosPage() {
               vista === 'terminados'
                 ? 'bg-[#0F172A] text-white'
                 : 'bg-gray-100 text-[#0F172A] hover:bg-gray-200'
-            }`}
-          >
+            }`}>
             <Icon icon="mdi:clipboard-check-outline" width={18} height={18} />
             Terminado
           </button>
         </div>
       </div>
 
-      {/* ===== DESKTOP HEADER (≥ md) — SIN CAMBIOS ===== */}
+      {/* ===== DESKTOP HEADER (≥ md) ===== */}
       <div className="hidden md:flex md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-primary">Mis Pedidos</h1>
@@ -98,8 +145,7 @@ export default function PedidosPage() {
               vista === 'asignados'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
-          >
+            }`}>
             <Icon icon="solar:bill-list-broken" width={20} height={20} />
             <span>Asignados (Hoy)</span>
           </button>
@@ -112,8 +158,7 @@ export default function PedidosPage() {
               vista === 'pendientes'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
-          >
+            }`}>
             <Icon icon="mdi:clock-outline" width={20} height={20} />
             <span>Pendientes</span>
           </button>
@@ -126,8 +171,7 @@ export default function PedidosPage() {
               vista === 'terminados'
                 ? 'bg-primaryDark text-white'
                 : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
-          >
+            }`}>
             <Icon icon="mdi:clipboard-check-outline" width={20} height={20} />
             <span>Terminados</span>
           </button>
@@ -143,6 +187,14 @@ export default function PedidosPage() {
           onCambiarEstado={handleCambiarEstado}
         />
       </div>
+
+      {/* === RENDER DEL MODAL === */}
+      <ModalRepartidorMotorizado
+        isOpen={openModalCambio}
+        onClose={() => setOpenModalCambio(false)}
+        pedido={pedidoSeleccionado}
+        onConfirm={handleConfirmResultado}
+      />
     </section>
   );
 }
