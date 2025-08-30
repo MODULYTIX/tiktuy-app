@@ -1,100 +1,93 @@
-import { useEffect, useState } from 'react';
-import type React from 'react'; // <- para React.ChangeEvent tipado
-import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
-import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
-import { useAuth } from '@/auth/context';
-import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
-import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
-import { FiSearch } from 'react-icons/fi';
-import { Icon } from '@iconify/react';
+// shared/components/courier/pedido/SockPedidoCourierFilter.tsx
+import { FiSearch, FiX } from 'react-icons/fi';
 import { Select } from '@/shared/components/Select';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 
-interface Filters {
-  almacenamiento_id: string;
-  categoria_id: string;
+/** Tipos de filtros que usa la página de Stock */
+export type StockFilters = {
+  almacenId: string;
+  categoriaId: string;
   estado: string;
-  stock_bajo: boolean;
-  precio_bajo: boolean;
-  precio_alto: boolean;
-  search: string;
-}
-
-interface Props {
-  onFilterChange?: (filters: Filters) => void;
-}
-
-/** Acepta event, string o {value,label} y devuelve string de forma segura */
-type SelectChange = { target?: { value?: string } } | string | { value?: string; label?: string } | undefined | null;
-const pickSelectValue = (e: SelectChange): string => {
-  if (typeof e === 'string') return e;
-  if (e && typeof (e as any).value === 'string') return (e as any).value;
-  if (e && (e as any).target && typeof (e as any).target.value === 'string') return (e as any).target.value;
-  return '';
+  stockBajo: boolean;
+  precioOrden: '' | 'asc' | 'desc';
+  q: string;
 };
 
-export default function StockFilters({ onFilterChange }: Props) {
-  const { token } = useAuth();
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
-  const [filters, setFilters] = useState<Filters>({
-    almacenamiento_id: '',
-    categoria_id: '',
-    estado: '',
-    stock_bajo: false,
-    precio_bajo: false,
-    precio_alto: false,
-    search: '',
-  });
+type Option = { value: string; label: string };
 
-  useEffect(() => {
-    if (!token) return;
-    fetchCategorias(token).then(setCategorias).catch(console.error);
-    fetchAlmacenes(token).then(setAlmacenes).catch(console.error);
-  }, [token]);
+type Props = {
+  /** Estado completo de filtros controlado por el padre (ahora opcional) */
+  filters?: StockFilters;
+  /** setState del padre (ahora opcional) */
+  onChange?: Dispatch<SetStateAction<StockFilters>>;
+  /** Listas para selects (opcional con defaults seguros) */
+  options?: {
+    almacenes: Option[];
+    categorias: Option[];
+    estados: Option[];
+  };
+  /** Loading opcional (default false) */
+  loading?: boolean;
+};
 
-  useEffect(() => {
-    onFilterChange?.(filters);
-  }, [filters, onFilterChange]);
+/** Intenta extraer string tanto si el Select entrega event, string o {value,label} */
+function getValue(e: any): string {
+  if (typeof e === 'string') return e;
+  if (e && typeof e.value === 'string') return e.value;
+  if (e && e.target && typeof e.target.value === 'string') return e.target.value;
+  return '';
+}
 
-  const handleCheckOrText = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, type, checked, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+const DEFAULT_FILTERS: StockFilters = {
+  almacenId: '',
+  categoriaId: '',
+  estado: '',
+  stockBajo: false,
+  precioOrden: '',
+  q: '',
+};
+
+export default function StockPedidoFilterCourier({
+  filters,
+  onChange,
+  options = { almacenes: [], categorias: [], estados: [] },
+  loading = false,
+}: Props) {
+  // estado interno si el padre no controla
+  const [internal, setInternal] = useState<StockFilters>(DEFAULT_FILTERS);
+
+  // fuente de lectura
+  const view = filters ?? internal;
+
+  // setter que escribe en el padre si existe; si no, al interno
+  const set = (patch: Partial<StockFilters>) => {
+    if (onChange) {
+      onChange((prev) => ({ ...(prev ?? DEFAULT_FILTERS), ...patch }));
+    } else {
+      setInternal((prev) => ({ ...prev, ...patch }));
+    }
   };
 
-  const handleReset = () => {
-    setFilters({
-      almacenamiento_id: '',
-      categoria_id: '',
-      estado: '',
-      stock_bajo: false,
-      precio_bajo: false,
-      precio_alto: false,
-      search: '',
-    });
-  };
-
+  // input styling (igual que el otro filtro)
   const field =
     'w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 ' +
     'placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors';
 
   return (
     <div className="bg-white p-5 rounded-md shadow-default border border-gray30">
+      {/* xs: 1 col, sm: 2, lg: 1fr 1fr 1fr auto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm">
-        {/* Ecommerce */}
+
+        {/* Almacén */}
         <div>
           <div className="text-center font-medium text-gray-700 mb-2">Ecommerce</div>
           <div className="relative w-full">
             <Select
-              id="f-ecommerce"
-              value={filters.almacenamiento_id}
-              onChange={(e) =>
-                setFilters((p) => ({ ...p, almacenamiento_id: pickSelectValue(e as SelectChange) }))
-              }
-              options={[
-                { value: '', label: 'Seleccionar ecommerce' },
-                ...almacenes.map((a) => ({ value: String(a.id), label: a.nombre_almacen })),
-              ]}
+              value={view.almacenId}
+              onChange={(e) => set({ almacenId: getValue(e) })}
+              options={[{ value: '', label: 'Seleccionar ecommerce' }, ...options.almacenes]}
               placeholder="Seleccionar ecommerce"
+              disabled={loading}
             />
           </div>
         </div>
@@ -104,16 +97,11 @@ export default function StockFilters({ onFilterChange }: Props) {
           <div className="text-center font-medium text-gray-700 mb-2">Categorías</div>
           <div className="relative w-full">
             <Select
-              id="f-categoria"
-              value={filters.categoria_id}
-              onChange={(e) =>
-                setFilters((p) => ({ ...p, categoria_id: pickSelectValue(e as SelectChange) }))
-              }
-              options={[
-                { value: '', label: 'Seleccionar categoría' },
-                ...categorias.map((c) => ({ value: String(c.id), label: c.descripcion })),
-              ]}
+              value={view.categoriaId}
+              onChange={(e) => set({ categoriaId: getValue(e) })}
+              options={[{ value: '', label: 'Seleccionar categoría' }, ...options.categorias]}
               placeholder="Seleccionar categoría"
+              disabled={loading}
             />
           </div>
         </div>
@@ -123,17 +111,11 @@ export default function StockFilters({ onFilterChange }: Props) {
           <div className="text-center font-medium text-gray-700 mb-2">Estado</div>
           <div className="relative w-full">
             <Select
-              id="f-estado"
-              value={filters.estado}
-              onChange={(e) =>
-                setFilters((p) => ({ ...p, estado: pickSelectValue(e as SelectChange) }))
-              }
-              options={[
-                { value: '', label: 'Seleccionar estado' },
-                { value: 'activo', label: 'Activo' },
-                { value: 'inactivo', label: 'Inactivo' },
-              ]}
+              value={view.estado}
+              onChange={(e) => set({ estado: getValue(e) })}
+              options={[{ value: '', label: 'Seleccionar estado' }, ...options.estados]}
               placeholder="Seleccionar estado"
+              disabled={loading}
             />
           </div>
         </div>
@@ -141,74 +123,81 @@ export default function StockFilters({ onFilterChange }: Props) {
         {/* Filtros exclusivos */}
         <div className="min-w-0">
           <div className="text-center font-medium text-gray-700 mb-2">Filtros exclusivos</div>
-          <div className="h-10 flex items-center justify-center lg:justify-start gap-6">
-            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap cursor-pointer select-none">
+
+          {/* altura alineada a los selects */}
+          <div className="h-10 flex items-center justify-center lg:justify-start gap-4">
+            {/* Stock bajo */}
+            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
                 type="checkbox"
-                name="stock_bajo"
-                checked={filters.stock_bajo}
-                onChange={handleCheckOrText}
-                className="peer sr-only"
+                className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                checked={view.stockBajo}
+                onChange={(e) => set({ stockBajo: e.target.checked })}
+                disabled={loading}
               />
-              <span className="h-4 w-4 rounded-[3px] border border-gray-400 grid place-items-center peer-checked:bg-[#1A253D] peer-checked:border-[#1A253D] transition-colors">
-                <Icon icon="mdi:check" className="text-white text-[12px] opacity-0 peer-checked:opacity-100" />
-              </span>
               <span>Stock bajo</span>
             </label>
 
-            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap cursor-pointer select-none">
+            {/* Orden de precio (low/high) como radios mutuamente excluyentes */}
+            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
-                type="checkbox"
-                name="precio_bajo"
-                checked={filters.precio_bajo}
-                onChange={handleCheckOrText}
-                className="peer sr-only"
+                type="radio"
+                name="precioOrden"
+                className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                checked={view.precioOrden === 'asc'}
+                onChange={() => set({ precioOrden: view.precioOrden === 'asc' ? '' : 'asc' })}
+                disabled={loading}
               />
-              <span className="h-4 w-4 rounded-[3px] border border-gray-400 grid place-items-center peer-checked:bg-[#1A253D] peer-checked:border-[#1A253D] transition-colors">
-                <Icon icon="mdi:check" className="text-white text-[12px] opacity-0 peer-checked:opacity-100" />
-              </span>
               <span>Precios bajos</span>
             </label>
-
-            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap cursor-pointer select-none">
+            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
-                type="checkbox"
-                name="precio_alto"
-                checked={filters.precio_alto}
-                onChange={handleCheckOrText}
-                className="peer sr-only"
+                type="radio"
+                name="precioOrden"
+                className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                checked={view.precioOrden === 'desc'}
+                onChange={() => set({ precioOrden: view.precioOrden === 'desc' ? '' : 'desc' })}
+                disabled={loading}
               />
-              <span className="h-4 w-4 rounded-[3px] border border-gray-400 grid place-items-center peer-checked:bg-[#1A253D] peer-checked:border-[#1A253D] transition-colors">
-                <Icon icon="mdi:check" className="text-white text-[12px] opacity-0 peer-checked:opacity-100" />
-              </span>
               <span>Precios Altos</span>
             </label>
           </div>
         </div>
 
-        {/* Buscador + botón */}
+        {/* Buscador + limpiar */}
         <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <div className="relative flex-1 border border-gray60 rounded">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              name="search"
-              type="text"
-              value={filters.search}
-              onChange={handleCheckOrText}
-              placeholder="Buscar productos por nombre, descripción ó código."
               className={`${field} pl-10`}
+              type="text"
+              value={view.q}
+              onChange={(e) => set({ q: e.target.value })}
+              placeholder="Buscar productos por nombre, descripción ó código."
+              disabled={loading}
             />
           </div>
+
           <button
             type="button"
-            onClick={handleReset}
+            onClick={() =>
+              set({
+                almacenId: '',
+                categoriaId: '',
+                estado: '',
+                stockBajo: false,
+                precioOrden: '',
+                q: '',
+              })
+            }
             className="flex items-center gap-3 text-gray-700 bg-gray10 border border-gray60 hover:bg-gray-100 px-4 py-2 rounded sm:w-auto"
+            disabled={loading}
           >
-            <Icon icon="mynaui:delete" width="24" height="24" color="gray60" />
+            <FiX />
             <span>Limpiar Filtros</span>
           </button>
         </div>
       </div>
-    </div>
-  );
+    </div>
+  );
 }

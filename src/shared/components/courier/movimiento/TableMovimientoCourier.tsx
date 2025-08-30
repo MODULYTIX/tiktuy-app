@@ -1,7 +1,6 @@
 // src/shared/components/courier/movimiento/TableMovimientoCourier.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { FaEye, FaCheck } from 'react-icons/fa';
-import Paginator from '@/shared/components/Paginator';
 import { useAuth } from '@/auth/context';
 import {
   fetchCourierMovimientos,
@@ -88,19 +87,21 @@ export default function TableMovimientoCourier({ filters }: Props) {
   const indexOfFirst = indexOfLast - itemsPerPage;
   const currentMovimientos = filtered.slice(indexOfFirst, indexOfLast);
 
+  // ---------- estilos del badge de estado (sin cambiar tu mapeo)
   const renderEstado = (estado?: string) => {
     const name = (estado || '').toLowerCase();
+    const base =
+      'inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm';
     if (name === 'validado') {
-      return <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-600">Validado</span>;
+      return <span className={`${base} bg-green-100 text-green-700`}>Validado</span>;
     }
     if (name === 'proceso' || name === 'en proceso') {
-      return <span className="px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-600">Proceso</span>;
+      return <span className={`${base} bg-yellow-100 text-yellow-700`}>Proceso</span>;
     }
     if (name === 'observado') {
-      return <span className="px-2 py-1 text-xs rounded bg-red-100 text-red-600">Observado</span>;
+      return <span className={`${base} bg-red-100 text-red-700`}>Observado</span>;
     }
-    // fallback
-    return <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-600">{estado || '-'}</span>;
+    return <span className={`${base} bg-blue-100 text-blue-700`}>{estado || '-'}</span>;
   };
 
   const fmtFecha = (iso: string) =>
@@ -122,81 +123,178 @@ export default function TableMovimientoCourier({ filters }: Props) {
     setOpenModal(true);
   };
 
+  // ---------- paginador estilo base (5 botones con elipsis)
+  const pagerItems = useMemo(() => {
+    const maxButtons = 5;
+    const pages: (number | string)[] = [];
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, currentPage - 2);
+      let end = Math.min(totalPages, currentPage + 2);
+      if (currentPage <= 3) {
+        start = 1;
+        end = maxButtons;
+      } else if (currentPage >= totalPages - 2) {
+        start = totalPages - (maxButtons - 1);
+        end = totalPages;
+      }
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (start > 1) { pages.unshift('...'); pages.unshift(1); }
+      if (end < totalPages) { pages.push('...'); pages.push(totalPages); }
+    }
+    return pages;
+  }, [currentPage, totalPages]);
+
+  // iguala la altura total: si no hay filas visibles, la fila de mensaje cuenta como 1
+  const visibleCount = Math.max(1, currentMovimientos.length);
+  const emptyRows = Math.max(0, itemsPerPage - visibleCount);
+
   return (
     <>
-      <div className="w-full bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-4 py-3 border-b">
-          {loading && <p className="text-sm text-gray-500">Cargando movimientos…</p>}
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {!loading && !error && (
-            <p className="text-sm text-gray-500">
-              Mostrando {currentMovimientos.length} de {filtered.length} resultados
-            </p>
-          )}
-        </div>
+      <div className="bg-white rounded-md overflow-hidden shadow-default">
+        {/* Mensajes */}
+        {loading && <div className="px-4 py-3 text-sm text-gray-500">Cargando movimientos…</div>}
+        {error && !loading && <div className="px-4 py-3 text-sm text-red-600">{error}</div>}
 
-        <table className="w-full text-sm text-left text-gray-600">
-          <thead className="bg-gray-100 text-gray-700 text-xs uppercase">
-            <tr>
-              <th className="px-4 py-3">Código</th>
-              <th className="px-4 py-3">Desde</th>
-              <th className="px-4 py-3">Hacia</th>
-              <th className="px-4 py-3">Descripción</th>
-              <th className="px-4 py-3">Fec. Generación</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentMovimientos.map((mov) => (
-              <tr key={mov.id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3">{codigoFromUuid(mov.uuid)}</td>
-                <td className="px-4 py-3">{mov.almacen_origen?.nombre_almacen || '-'}</td>
-                <td className="px-4 py-3">{mov.almacen_destino?.nombre_almacen || '-'}</td>
-                <td className="px-4 py-3">{mov.descripcion || '-'}</td>
-                <td className="px-4 py-3">{fmtFecha(mov.fecha_movimiento)}</td>
-                <td className="px-4 py-3">{renderEstado(mov.estado?.nombre)}</td>
-                <td className="px-4 py-3 flex items-center gap-2">
-                  {(mov.estado?.nombre || '').toLowerCase() === 'proceso' && (
-                    <button
-                      className="text-green-500 hover:text-green-700"
-                      title="Validar"
-                      onClick={() => openValidate(mov.uuid)}
-                    >
-                      <FaCheck />
-                    </button>
+        {!loading && !error && (
+          <section className="flex-1 overflow-auto">
+            <div className="overflow-x-auto bg-white">
+              <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+                {/* Porcentajes por columna (suman 100%) */}
+                <colgroup>
+                  <col className="w-[12%]" /> {/* Código */}
+                  <col className="w-[18%]" /> {/* Desde */}
+                  <col className="w-[18%]" /> {/* Hacia */}
+                  <col className="w-[28%]" /> {/* Descripción */}
+                  <col className="w-[12%]" /> {/* Fec. Generación */}
+                  <col className="w-[6%]" />  {/* Estado */}
+                  <col className="w-[6%]" />  {/* Acciones */}
+                </colgroup>
+
+                <thead className="bg-[#E5E7EB]">
+                  <tr className="text-gray70 font-roboto font-medium">
+                    <th className="px-4 py-3 text-left">CÓDIGO</th>
+                    <th className="px-4 py-3 text-left">DESDE</th>
+                    <th className="px-4 py-3 text-left">HACIA</th>
+                    <th className="px-4 py-3 text-left">DESCRIPCIÓN</th>
+                    <th className="px-4 py-3 text-left">FEC. GENERACIÓN</th>
+                    <th className="px-4 py-3 text-center">ESTADO</th>
+                    <th className="px-4 py-3 text-center">ACCIONES</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-gray20">
+                  {currentMovimientos.map((mov) => (
+                    <tr key={mov.id} className="hover:bg-gray10 transition-colors">
+                      <td className="px-4 py-3 text-gray70 font-[400]">
+                        {codigoFromUuid(mov.uuid)}
+                      </td>
+                      <td className="px-4 py-3 text-gray70 font-[400]">
+                        {mov.almacen_origen?.nombre_almacen || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-gray70 font-[400]">
+                        {mov.almacen_destino?.nombre_almacen || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-gray70 font-[400]">
+                        {mov.descripcion || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-gray70 font-[400]">
+                        {fmtFecha(mov.fecha_movimiento)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {renderEstado(mov.estado?.nombre)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-3">
+                          {(mov.estado?.nombre || '').toLowerCase() === 'proceso' && (
+                            <button
+                              className="text-green-600 hover:text-green-700"
+                              title="Validar"
+                              onClick={() => openValidate(mov.uuid)}
+                              aria-label={`Validar ${codigoFromUuid(mov.uuid)}`}
+                            >
+                              <FaCheck />
+                            </button>
+                          )}
+                          <button
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Ver detalle"
+                            onClick={() => openView(mov.uuid)}
+                            aria-label={`Ver ${codigoFromUuid(mov.uuid)}`}
+                          >
+                            <FaEye />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {/* Relleno para altura constante */}
+                  {emptyRows > 0 &&
+                    Array.from({ length: emptyRows }).map((_, idx) => (
+                      <tr key={`empty-${idx}`} className="hover:bg-transparent">
+                        {Array.from({ length: 7 }).map((__, i) => (
+                          <td key={i} className="px-4 py-3">&nbsp;</td>
+                        ))}
+                      </tr>
+                    ))}
+
+                  {/* Empty state (ocupa 1 fila cuando no hay visibles) */}
+                  {currentMovimientos.length === 0 && (
+                    <tr>
+                      <td className="px-4 py-6 text-center text-gray70 italic" colSpan={7}>
+                        No hay resultados para los filtros aplicados.
+                      </td>
+                    </tr>
                   )}
-                  <button
-                    className="text-blue-500 hover:text-blue-700"
-                    title="Ver detalle"
-                    onClick={() => openView(mov.uuid)}
-                  >
-                    <FaEye />
-                  </button>
-                </td>
-              </tr>
-            ))}
+                </tbody>
+              </table>
+            </div>
 
-            {!loading && !error && currentMovimientos.length === 0 && (
-              <tr>
-                <td className="px-4 py-6 text-center text-gray-400" colSpan={7}>
-                  No hay resultados para los filtros aplicados.
-                </td>
-              </tr>
+            {/* Paginador estilo base — SIEMPRE que haya datos (aunque sea 1 página) */}
+            {filtered.length > 0 && (
+              <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+                >
+                  &lt;
+                </button>
+
+                {pagerItems.map((p, i) =>
+                  typeof p === 'string' ? (
+                    <span key={`dots-${i}`} className="px-2 text-gray70">
+                      {p}
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setCurrentPage(p)}
+                      aria-current={currentPage === p ? 'page' : undefined}
+                      className={[
+                        'w-8 h-8 flex items-center justify-center rounded',
+                        currentPage === p
+                          ? 'bg-gray90 text-white'
+                          : 'bg-gray10 text-gray70 hover:bg-gray20',
+                      ].join(' ')}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+                >
+                  &gt;
+                </button>
+              </div>
             )}
-          </tbody>
-        </table>
-
-        {totalPages > 1 && (
-          <div className="border-t p-4">
-            <Paginator
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={(page) => {
-                if (page >= 1 && page <= totalPages) setCurrentPage(page);
-              }}
-            />
-          </div>
+          </section>
         )}
       </div>
 

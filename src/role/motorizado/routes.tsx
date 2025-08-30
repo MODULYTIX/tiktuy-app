@@ -6,7 +6,7 @@ import CuadreSaldoPage from '../motorizado/pages/CuadreSaldoPage';
 
 
 export const motorizadoRoutes: RouteObject[] = [
-  { path: 'panel', element: <MotorizadoHomePage /> },
+  { path: '', element: <MotorizadoHomePage /> },
   { path: 'pedidos', element: <PedidosPage /> },
   { path: 'cuadreSaldo', element: <CuadreSaldoPage /> },
   { path: 'reportes', element: <ReportesPage /> },

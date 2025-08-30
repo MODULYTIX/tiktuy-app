@@ -1,9 +1,12 @@
-// src/services/repartidor/pedidos/pedidos.api.ts
 import type {
   Paginated,
   PedidoListItem,
   ListPedidosHoyQuery,
   ListByEstadoQuery,
+  UpdateEstadoInicialBody,
+  UpdateEstadoInicialResponse,
+  UpdateResultadoBody,
+  UpdateResultadoResponse,
 } from './pedidos.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -104,4 +107,83 @@ export async function fetchPedidosTerminados(
     signal: opts?.signal,
   });
   return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos terminados');
+}
+
+/* --------------------------
+   PATCH: Cambiar estado inicial (desde "Pendiente")
+   Endpoint backend: PATCH /repartidor-pedidos/:id/estado
+---------------------------*/
+export async function patchEstadoInicial(
+  token: string,
+  id: number,
+  body: UpdateEstadoInicialBody,
+  opts?: { signal?: AbortSignal }
+): Promise<UpdateEstadoInicialResponse> {
+  // Normalizamos fecha si viene como Date
+  const payload = {
+    ...body,
+    ...(body.fecha_nueva ? { fecha_nueva: toIso(body.fecha_nueva) } : {}),
+  };
+
+  const res = await fetch(`${BASE_URL}/${id}/estado`, {
+    method: 'PATCH',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+    signal: opts?.signal,
+  });
+
+  return handle<UpdateEstadoInicialResponse>(res, 'Error al actualizar el estado inicial del pedido');
+}
+
+/* --------------------------
+   PATCH: Resultado de entrega / cierre
+   Endpoint backend: PATCH /repartidor-pedidos/:id/resultado
+   - Si resultado = ENTREGADO y se adjunta evidencia → multipart/form-data
+   - En otros casos, JSON (resultado + observacion)
+---------------------------*/
+export async function patchResultado(
+  token: string,
+  id: number,
+  body: UpdateResultadoBody,
+  opts?: { signal?: AbortSignal }
+): Promise<UpdateResultadoResponse> {
+  // Si es ENTREGADO, preferimos multipart para permitir evidencia
+  if (body.resultado === 'ENTREGADO') {
+    const fd = new FormData();
+    fd.set('resultado', body.resultado);
+    if (body.monto_recaudado !== undefined) fd.set('monto_recaudado', String(body.monto_recaudado));
+    if (body.observacion) fd.set('observacion', body.observacion);
+    if (body.evidenciaFile) fd.set('evidencia', body.evidenciaFile);
+
+    const res = await fetch(`${BASE_URL}/${id}/resultado`, {
+      method: 'PATCH',
+      headers: {
+        ...authHeaders(token),
+        // ⚠️ NO pongas Content-Type aquí; el navegador lo define para FormData
+      },
+      body: fd,
+      signal: opts?.signal,
+    });
+
+    return handle<UpdateResultadoResponse>(res, 'Error al actualizar el resultado del pedido');
+  }
+
+  // Para RECHAZADO | NO_RESPONDE | ANULO → JSON
+  const res = await fetch(`${BASE_URL}/${id}/resultado`, {
+    method: 'PATCH',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      resultado: body.resultado,
+      observacion: body.observacion,
+    }),
+    signal: opts?.signal,
+  });
+
+  return handle<UpdateResultadoResponse>(res, 'Error al actualizar el resultado del pedido');
 }

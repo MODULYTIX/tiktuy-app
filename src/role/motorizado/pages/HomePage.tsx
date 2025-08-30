@@ -1,7 +1,8 @@
 // src/pages/motorizado/MotorizadoHomePage.tsx
-import { useAuth } from '@/auth/context/useAuth';
-import { Link } from 'react-router-dom';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Icon } from '@iconify/react';
+import { useAuth } from '@/auth/context/useAuth';
 import {
   getDisponibilidadRepartidor,
   setDisponibilidadRepartidor,
@@ -15,38 +16,72 @@ type KPIs = {
   reprogramados: number;
 };
 
-// Ajusta al path real de tu módulo de Gestión de Pedidos
 const GESTION_PEDIDOS_PATH = '/motorizado/pedidos';
 
 function KpiCard({
   title,
   value,
-  ring,
+  icon,
+  accent,
+  disabled,
 }: {
   title: string;
   value: number;
-  ring: string; // ring-blue-200 | ring-green-200 | ring-amber-200 | ring-red-200
+  icon: string;
+  accent: 'blue' | 'green' | 'amber' | 'red';
+  disabled?: boolean;
 }) {
-  const v = value.toString().padStart(2, '0');
+  const display = disabled ? '--' : value.toString().padStart(2, '0');
+
+  const c = {
+    blue: {
+      ring: 'ring-blue-200',
+      icon: 'text-blue-600',
+      bar: 'from-blue-500 to-blue-400',
+    },
+    green: {
+      ring: 'ring-green-200',
+      icon: 'text-green-600',
+      bar: 'from-green-500 to-green-400',
+    },
+    amber: {
+      ring: 'ring-amber-200',
+      icon: 'text-amber-600',
+      bar: 'from-amber-500 to-amber-400',
+    },
+    red: {
+      ring: 'ring-red-200',
+      icon: 'text-red-600',
+      bar: 'from-red-500 to-red-400',
+    },
+  }[accent];
+
   return (
-    <div className={`rounded-2xl border bg-white p-4 shadow-sm ring-1 ${ring}`}>
-      <p className="text-sm text-gray-500">{title}</p>
-      <p className="mt-2 text-3xl font-semibold tabular-nums">{v}</p>
+    <div className={`relative overflow-hidden rounded-2xl border bg-white p-4 shadow-sm ring-1 ${c.ring}`}>
+      <div className={`pointer-events-none absolute inset-x-0 bottom-0 h-2 bg-gradient-to-r ${c.bar}`} />
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-[14px] font-medium text-gray-700">{title}</p>
+          <p className="mt-3 text-3xl font-semibold tabular-nums text-gray-800">{display}</p>
+        </div>
+        <div className="flex h-14 w-14 items-center justify-center">
+          <Icon icon={icon} width="36" height="36" className={c.icon} />
+        </div>
+      </div>
     </div>
   );
 }
 
+// ---- helper para detectar aborts (USADO) ----
 const isAbort = (e: unknown) =>
   (e as any)?.name === 'AbortError' || /aborted/i.test((e as any)?.message || '');
 
 export default function MotorizadoHomePage() {
-  const { user, token } = useAuth();
+  const {  token } = useAuth();
 
-  // disponibilidad: null = aún cargando (evita parpadeo a "Inactivo")
   const [activo, setActivo] = useState<boolean | null>(null);
   const [toggling, setToggling] = useState(false);
 
-  // KPIs
   const [kpis, setKpis] = useState<KPIs>({
     asignadosHoy: 0,
     completados: 0,
@@ -62,7 +97,6 @@ export default function MotorizadoHomePage() {
     return activo ? 'Activo' : 'Inactivo';
   }, [activo]);
 
-  // Mostrar CTA si está activo y hay pedidos asignados hoy O pendientes (programados)
   const showCTA = useMemo(
     () => Boolean(activo && (kpis.asignadosHoy > 0 || kpis.pendientes > 0)),
     [activo, kpis.asignadosHoy, kpis.pendientes]
@@ -77,15 +111,13 @@ export default function MotorizadoHomePage() {
   const ctaSubtitle = useMemo(() => {
     if (kpis.pendientes > 0)
       return `Tienes ${kpis.pendientes} entregas pendientes hoy. Ingresa al módulo de pedidos para más detalles y acciones.`;
-    if (kpis.asignadosHoy > 0)
-      return 'Dirígete a tus entregas para ver más detalle.';
+    if (kpis.asignadosHoy > 0) return 'Dirígete a tus entregas para ver más detalle.';
     return '';
   }, [kpis.pendientes, kpis.asignadosHoy]);
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
       if (!token) return;
-
       setLoading(true);
       setErr('');
 
@@ -94,16 +126,16 @@ export default function MotorizadoHomePage() {
         fetchKpisMotorizado(token, signal),
       ]);
 
-      // Disponibilidad: única fuente para setActivo
+      // Disponibilidad
       if (dispRes.status === 'fulfilled') {
         setActivo(dispRes.value.activo);
       } else if (!isAbort(dispRes.reason)) {
         setErr(dispRes.reason?.message ?? 'No se pudo obtener la disponibilidad');
       }
 
-      // KPIs: no afectan 'activo'
+      // KPIs
       if (kpiRes.status === 'fulfilled') {
-        const kk = kpiRes.value;
+        const kk = kpiRes.value as Partial<KPIs>;
         setKpis({
           asignadosHoy: kk.asignadosHoy ?? 0,
           completados: kk.completados ?? 0,
@@ -133,10 +165,13 @@ export default function MotorizadoHomePage() {
       setErr('');
       setActivo(next); // optimista
       const r = await setDisponibilidadRepartidor({ token }, next);
-      setActivo(r.activo); // confirmación desde backend
-    } catch (e: any) {
-      setActivo((p) => (p === null ? null : !p)); // rollback
-      if (!isAbort(e)) setErr(e?.message ?? 'No se pudo actualizar la disponibilidad');
+      setActivo(r.activo); // confirma backend
+    } catch (e) {
+      // rollback si falla y no es abort
+      if (!isAbort(e)) {
+        setActivo((p) => (p === null ? null : !p));
+        setErr((e as any)?.message ?? 'No se pudo actualizar la disponibilidad');
+      }
     } finally {
       setToggling(false);
     }
@@ -148,17 +183,11 @@ export default function MotorizadoHomePage() {
       <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div>
-            <h1 className="text-lg font-semibold text-gray-800">Panel de Control</h1>
-            <p className="text-sm text-gray-500">
-              Activa o desactiva tu estado para realizar pedidos
-            </p>
+            <h1 className="text-lg font-semibold text-[#1E3A8A]">Panel de Control</h1>
+            <p className="text-sm text-gray-600">Active o desactive su estado para realizar pedidos</p>
           </div>
           <div className="flex items-center gap-3">
-            <span
-              className={`text-sm font-medium ${
-                activo ? 'text-emerald-600' : 'text-gray-500'
-              }`}
-            >
+            <span className={`text-sm font-medium ${activo ? 'text-emerald-600' : 'text-gray-600'}`}>
               {estadoText}
             </span>
             <button
@@ -183,18 +212,37 @@ export default function MotorizadoHomePage() {
 
       {/* Body */}
       <main className="mx-auto max-w-7xl px-4 py-6">
-        {/* saludo */}
-        <div className="mb-4">
-          <h2 className="text-2xl font-bold text-primaryDark">Bienvenido Motorizado</h2>
-          <p className="text-gray-700">Sesión iniciada como: {user?.correo}</p>
-        </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard title="Pedidos Asignados Hoy" value={kpis.asignadosHoy} ring="ring-blue-200" />
-          <KpiCard title="Entregas completadas" value={kpis.completados} ring="ring-green-200" />
-          <KpiCard title="Entregas Pendientes" value={kpis.pendientes} ring="ring-amber-200" />
-          <KpiCard title="Pedidos Reprogramados" value={kpis.reprogramados} ring="ring-red-200" />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard
+            title="Pedidos Asignados Hoy"
+            value={kpis.asignadosHoy}
+            icon="mdi:note-edit"
+            accent="blue"
+            disabled={!activo}
+          />
+          <KpiCard
+            title="Entregas completadas"
+            value={kpis.completados}
+            icon="mdi:clipboard-check"
+            accent="green"
+            disabled={!activo}
+          />
+          <KpiCard
+            title="Entregas Pendientes"
+            value={kpis.pendientes}
+            icon="mdi:clipboard-alert"
+            accent="amber"
+            disabled={!activo}
+          />
+          <KpiCard
+            title="Pedidos Reprogramados"
+            value={kpis.reprogramados}
+            icon="mdi:calendar-refresh"
+            accent="red"
+            disabled={!activo}
+          />
         </div>
 
         {/* Mensaje / CTA */}
@@ -216,17 +264,22 @@ export default function MotorizadoHomePage() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border bg-white p-8 text-center text-gray-500">
-                Aún no tienes entregas asignadas. Te avisaremos apenas llegue una.
+              <div className="flex flex-col items-center justify-center rounded-2xl border bg-white p-8 text-center text-gray-600">
+                <Icon icon="mdi:bell-outline" width="36" height="36" className="text-gray-400" />
+                <p className="mt-4 max-w-[48ch] text-sm leading-6">
+                  Aún no tienes entregas asignadas. Te avisaremos apenas llegue una.
+                </p>
               </div>
             )
           ) : (
-            <div className="rounded-2xl border bg-white p-8 text-center text-gray-500">
-              Actualmente estás inactivo. Activa tu estado para recibir pedidos asignados por tu
-              courier.
+            <div className="flex flex-col items-center justify-center rounded-2xl border bg-white p-8 text-center">
+              <Icon icon="mdi:minus" width="36" height="36" className="text-gray-400" />
+              <p className="mt-6 max-w-[48ch] text-sm leading-6 text-gray-600">
+                Actualmente estás inactivo. Activa tu estado para recibir pedidos asignados por tu courier.
+              </p>
             </div>
           )}
-          {err && !/aborted/i.test(err) && <p className="mt-3 text-sm text-red-600">{err}</p>}
+          {err && <p className="mt-3 text-sm text-red-600">{err}</p>}
         </section>
 
         <footer className="px-1 pt-6 text-xs text-gray-400">Versión 1.0</footer>

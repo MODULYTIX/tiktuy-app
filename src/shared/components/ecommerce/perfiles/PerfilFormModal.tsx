@@ -11,7 +11,7 @@ interface Props {
 
 const rolModuloMap: Record<string, string[]> = {
   '1': ['stock', 'movimiento'],
-  '2': ['pedido'],
+  '2': ['pedidos'], // <-- plural para ser coherente con el resto
   '3': [
     'panel',
     'almacen',
@@ -47,14 +47,16 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
     rol_perfil_id: '',
   });
   const [modulos, setModulos] = useState<string[]>([]);
+  const [selectModulo, setSelectModulo] = useState(''); // control del <select> de módulos
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const posiblesModulos = rolModuloMap[form.rol_perfil_id] || [];
-    setModulos(posiblesModulos.length > 0 ? [posiblesModulos[0]] : []);
+    const posibles = rolModuloMap[form.rol_perfil_id] || [];
+    setModulos(posibles.length ? [posibles[0]] : []);
+    setSelectModulo('');
   }, [form.rol_perfil_id]);
 
   useEffect(() => {
@@ -75,13 +77,15 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
   };
 
   const handleAddModulo = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+    const value = e.target.value; // clave canónica del módulo
     if (value && !modulos.includes(value)) {
       setModulos((prev) => [...prev, value]);
     }
+    setSelectModulo(''); // reset para volver a elegir
   };
 
   const handleRemoveModulo = (modulo: string) => {
+    // quitar por CLAVE, no por label
     setModulos((prev) => prev.filter((m) => m !== modulo));
   };
 
@@ -109,7 +113,7 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
           telefono: form.telefono,
           DNI_CI: form.dni,
           rol_perfil_id: Number(form.rol_perfil_id),
-          modulos,
+          modulos, // siempre claves
         },
         token
       );
@@ -118,7 +122,7 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Error al registrar trabajador');
+      setError(err?.message || 'Error al registrar trabajador');
     } finally {
       setLoading(false);
     }
@@ -127,15 +131,14 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
   if (!isOpen) return null;
 
   const modulosDisponibles = rolModuloMap[form.rol_perfil_id] || [];
-  const modulosFiltrados = modulosDisponibles.filter(
-    (m) => !modulos.includes(m)
-  );
+  const modulosFiltrados = modulosDisponibles.filter((m) => !modulos.includes(m));
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex justify-end">
       <div
         ref={modalRef}
-        className="bg-white p-6 rounded-l-md w-full max-w-md h-full overflow-auto shadow-lg">
+        className="bg-white p-6 rounded-l-md w-full max-w-md h-full overflow-auto shadow-lg"
+      >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-primary flex gap-2 items-center">
             <GrUserAdmin size={18} />
@@ -146,9 +149,9 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
           </button>
         </div>
         <p className="text-sm text-gray-500 mb-6">
-          Crea un nuevo perfil completando la información personal, datos de
-          contacto, rol y módulo asignado.
+          Crea un nuevo perfil completando la información personal, datos de contacto, rol y módulo asignado.
         </p>
+
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Nombre</label>
@@ -208,6 +211,7 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
               required
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Rol Perfil</label>
             <select
@@ -215,13 +219,15 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
               className="w-full border rounded-lg px-4 py-2"
               value={form.rol_perfil_id}
               onChange={handleChange}
-              required>
+              required
+            >
               <option value="">Seleccionar rol</option>
               <option value="1">Almacenero</option>
               <option value="2">Vendedor</option>
               <option value="3">Ecommerce asistente</option>
             </select>
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Contraseña</label>
             <input
@@ -235,9 +241,7 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Repetir Contraseña
-            </label>
+            <label className="block text-sm font-medium mb-1">Repetir Contraseña</label>
             <input
               name="confirmarPassword"
               type="password"
@@ -254,7 +258,8 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
             <select
               onChange={handleAddModulo}
               className="w-full border rounded-lg px-4 py-2"
-              value="">
+              value={selectModulo}
+            >
               <option value="">Seleccionar módulo</option>
               {modulosFiltrados.map((mod) => (
                 <option key={mod} value={mod}>
@@ -262,16 +267,20 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
                 </option>
               ))}
             </select>
+
             <div className="mt-2 flex flex-wrap gap-2">
               {modulos.map((mod) => (
                 <div
-                  key={moduloLabelMap[mod] || mod}
-                  className="bg-gray-100 text-sm text-gray-700 px-3 py-1 rounded-full flex items-center gap-2">
+                  key={mod}
+                  className="bg-gray-100 text-sm text-gray-700 px-3 py-1 rounded-full flex items-center gap-2"
+                >
                   {moduloLabelMap[mod] || mod}
                   <button
                     type="button"
-                    onClick={() => handleRemoveModulo(moduloLabelMap[mod] || mod)}
-                    className="text-red-500 hover:text-red-700">
+                    onClick={() => handleRemoveModulo(mod)} // pasar CLAVE, no label
+                    className="text-red-500 hover:text-red-700"
+                    aria-label={`Quitar ${moduloLabelMap[mod] || mod}`}
+                  >
                     &times;
                   </button>
                 </div>
@@ -279,21 +288,17 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
             </div>
           </div>
 
-          {error && (
-            <div className="col-span-2 text-sm text-red-500 mt-2">{error}</div>
-          )}
+          {error && <div className="col-span-2 text-sm text-red-500 mt-2">{error}</div>}
 
           <div className="col-span-2 flex justify-end gap-3 mt-4">
             <button
               type="submit"
               disabled={loading}
-              className="bg-primaryDark text-white px-5 py-2 rounded border">
+              className="bg-primaryDark text-white px-5 py-2 rounded border"
+            >
               {loading ? 'Creando...' : 'Crear nuevo'}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="border px-5 py-2 rounded">
+            <button type="button" onClick={onClose} className="border px-5 py-2 rounded">
               Cancelar
             </button>
           </div>
