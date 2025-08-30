@@ -68,7 +68,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     motorizado: [
       { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
       { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" /> },
-      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
+      { to: '/cuadreSaldo', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
       { to: '/reportes', label: 'Reporte', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
     ],
   };
