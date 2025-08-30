@@ -104,13 +104,17 @@ export default function ModalEntregaRepartidor({
 
   async function handleConfirm() {
     if (!resultado) return;
+    // ✅ Guard adicional para TS: garantiza que pedido no es null dentro del closure
+    if (!pedido) return;
+
+    const pid = pedido.id;
 
     try {
       setSubmitting(true);
 
       if (resultado === 'RECHAZADO') {
         await onConfirm?.({
-          pedidoId: pedido.id,
+          pedidoId: pid,
           resultado: 'RECHAZADO',
           observacion: observacion?.trim() || undefined,
         });
@@ -123,7 +127,7 @@ export default function ModalEntregaRepartidor({
       if (requiresEvidencia(metodo) && !evidenciaFile) return;
 
       await onConfirm?.({
-        pedidoId: pedido.id,
+        pedidoId: pid,
         resultado: 'ENTREGADO',
         metodo,
         observacion: observacion?.trim() || undefined,
