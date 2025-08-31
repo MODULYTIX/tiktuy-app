@@ -9,7 +9,6 @@ type ConfirmPayload =
   | {
       pedidoId: number;
       resultado: 'RECHAZADO';
-      observacion?: string;
     }
   | {
       pedidoId: number;
@@ -17,6 +16,7 @@ type ConfirmPayload =
       metodo: MetodoPagoUI;
       observacion?: string;
       evidenciaFile?: File;
+      fecha_entrega_real?: string; // ISO
     };
 
 type Props = {
@@ -45,6 +45,14 @@ export default function ModalEntregaRepartidor({
   const [observacion, setObservacion] = useState<string>('');
   const [evidenciaFile, setEvidenciaFile] = useState<File | undefined>(undefined);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fechaEntregaReal, setFechaEntregaReal] = useState<string>(() => {
+    // default a ahora en formato local compatible con input datetime-local
+    const d = new Date();
+    d.setSeconds(0, 0);
+    const off = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - off * 60_000);
+    return local.toISOString().slice(0, 16);
+  });
 
   const resumen = useMemo(() => {
     if (!pedido) return null;
@@ -72,6 +80,12 @@ export default function ModalEntregaRepartidor({
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
     }
+    // reset datetime
+    const d = new Date();
+    d.setSeconds(0, 0);
+    const off = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - off * 60_000);
+    setFechaEntregaReal(local.toISOString().slice(0, 16));
   }
 
   function closeAll() {
@@ -82,9 +96,8 @@ export default function ModalEntregaRepartidor({
   function handleNextFromResultado() {
     if (resultado === 'ENTREGADO') {
       setPaso('pago');
-    } else if (resultado === 'RECHAZADO') {
-      // se queda en resultado, solo confirmar
     }
+    // si es RECHAZADO no cambiamos paso (se confirma con el botón principal)
   }
 
   function requiresEvidencia(m: MetodoPagoUI | null): boolean {
@@ -102,10 +115,18 @@ export default function ModalEntregaRepartidor({
     setPreviewUrl(file ? URL.createObjectURL(file) : null);
   }
 
+  function toIsoFromLocalDatetime(dtLocal: string): string | undefined {
+    if (!dtLocal) return undefined;
+    // dtLocal es "YYYY-MM-DDTHH:mm" en hora local → convertir a ISO UTC
+    const [date, time] = dtLocal.split('T');
+    const [y, m, d] = date.split('-').map(Number);
+    const [hh, mm] = time.split(':').map(Number);
+    const local = new Date(y, (m ?? 1) - 1, d ?? 1, hh ?? 0, mm ?? 0, 0, 0);
+    return local.toISOString();
+  }
+
   async function handleConfirm() {
-    if (!resultado) return;
-    // ✅ Guard adicional para TS: garantiza que pedido no es null dentro del closure
-    if (!pedido) return;
+    if (!resultado || !pedido) return;
 
     const pid = pedido.id;
 
@@ -116,7 +137,6 @@ export default function ModalEntregaRepartidor({
         await onConfirm?.({
           pedidoId: pid,
           resultado: 'RECHAZADO',
-          observacion: observacion?.trim() || undefined,
         });
         closeAll();
         return;
@@ -126,12 +146,15 @@ export default function ModalEntregaRepartidor({
       if (!metodo) return;
       if (requiresEvidencia(metodo) && !evidenciaFile) return;
 
+      const fechaIso = metodo === 'EFECTIVO' ? toIsoFromLocalDatetime(fechaEntregaReal) : undefined;
+
       await onConfirm?.({
         pedidoId: pid,
         resultado: 'ENTREGADO',
         metodo,
         observacion: observacion?.trim() || undefined,
         evidenciaFile,
+        fecha_entrega_real: fechaIso,
       });
       closeAll();
     } finally {
@@ -212,17 +235,7 @@ export default function ModalEntregaRepartidor({
                   onClick={() => setResultado('RECHAZADO')}
                 />
               </div>
-
-              {/* Observación opcional visible siempre */}
-              <div className="mt-4">
-                <label className="text-xs text-gray-600">Observación (opcional)</label>
-                <textarea
-                  className="w-full border rounded-lg px-3 py-2 text-sm min-h-[84px] resize-y"
-                  placeholder="Escribe aquí"
-                  value={observacion}
-                  onChange={(e) => setObservacion(e.target.value)}
-                />
-              </div>
+              {/* Nota: sin observación aquí (según pedido) */}
             </div>
           )}
 
@@ -253,16 +266,27 @@ export default function ModalEntregaRepartidor({
                 />
               </div>
 
-              {/* Observación opcional para Efectivo */}
+              {/* Campos adicionales para EFECTIVO */}
               {metodo === 'EFECTIVO' && (
-                <div className="mt-4">
-                  <label className="text-xs text-gray-600">Observación (opcional)</label>
-                  <textarea
-                    className="w-full border rounded-lg px-3 py-2 text-sm min-h-[84px] resize-y"
-                    placeholder="Escribe aquí"
-                    value={observacion}
-                    onChange={(e) => setObservacion(e.target.value)}
-                  />
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <label className="text-xs text-gray-600">Fecha de entrega</label>
+                    <input
+                      type="datetime-local"
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      value={fechaEntregaReal}
+                      onChange={(e) => setFechaEntregaReal(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600">Observación (opcional)</label>
+                    <textarea
+                      className="w-full border rounded-lg px-3 py-2 text-sm min-h-[84px] resize-y"
+                      placeholder="Escribe aquí"
+                      value={observacion}
+                      onChange={(e) => setObservacion(e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -387,7 +411,6 @@ export default function ModalEntregaRepartidor({
               className="ml-auto rounded-lg py-2 px-4 bg-primary text-white disabled:opacity-50"
               onClick={() => {
                 if (metodo === 'EFECTIVO') {
-                  // no requiere evidencia → confirmamos
                   handleConfirm();
                 } else if (metodo && requiresEvidencia(metodo)) {
                   setPaso('evidencia');

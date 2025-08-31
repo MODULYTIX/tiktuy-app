@@ -45,11 +45,9 @@ export default function PedidosPage() {
   // según la vista activa, decide qué modal abrir
   const handleCambiarEstado = (pedido: PedidoListItem) => {
     if (vista === 'pendientes') {
-      console.log('[Repartidor] Finalizar entrega pedido', pedido.id);
       setPedidoEntrega(pedido);
       setOpenModalEntrega(true);
     } else {
-      console.log('[Repartidor] Cambiar estado inicial pedido', pedido.id);
       setPedidoSeleccionado(pedido);
       setOpenModalCambio(true);
     }
@@ -68,12 +66,13 @@ export default function PedidosPage() {
         fecha_nueva: payload.fecha_nueva,
         observacion: payload.observacion ?? undefined,
       });
+      // cerrar modal si todo ok
+      setOpenModalCambio(false);
+      setPedidoSeleccionado(null);
     } catch (err) {
       console.error('Error al actualizar estado inicial:', err);
       alert((err as Error).message);
-    } finally {
-      setOpenModalCambio(false);
-      setPedidoSeleccionado(null);
+      // NO cierro el modal para que el usuario pueda reintentar
     }
   }
 
@@ -87,7 +86,6 @@ export default function PedidosPage() {
           metodo: 'EFECTIVO' | 'BILLETERA' | 'DIRECTO_ECOMMERCE';
           observacion?: string;
           evidenciaFile?: File;
-          // monto_recaudado?: number; // si luego lo manejas en UI, el API lo soporta
         }
   ) {
     try {
@@ -97,8 +95,6 @@ export default function PedidosPage() {
           observacion: data.observacion,
         });
       } else {
-        // ENTREGADO: tu backend no recibe 'metodo' como campo;
-        // lo añadimos a la observación para conservar el dato.
         const obs = [
           data.observacion?.trim(),
           data.metodo ? `[Pago: ${data.metodo}]` : undefined,
@@ -110,15 +106,28 @@ export default function PedidosPage() {
           resultado: 'ENTREGADO',
           observacion: obs || undefined,
           evidenciaFile: data.evidenciaFile,
-          // monto_recaudado: data.monto_recaudado,
         });
       }
-    } catch (err) {
-      console.error('Error al guardar resultado final:', err);
-      alert((err as Error).message);
-    } finally {
+
+      // cerrar modal si todo ok
       setOpenModalEntrega(false);
       setPedidoEntrega(null);
+    } catch (err: any) {
+      // Agregado: detección específica del 404 del endpoint inexistente
+      const isResp = typeof err === 'object' && err !== null && 'message' in err;
+      console.error('Error al guardar resultado final:', err);
+
+      // Si tu helper `handle` lanzó con mensaje genérico, mostramos algo más claro:
+      if (isResp && String(err.message).includes('Error al actualizar el resultado del pedido')) {
+        alert(
+          'No se encontró el endpoint /repartidor-pedidos/:id/resultado (404).\n' +
+          'Debes implementarlo en el backend o ajustar la llamada del frontend.'
+        );
+      } else {
+        alert(String(err?.message || 'Error al actualizar el resultado del pedido'));
+      }
+
+      // Importante: NO cierres el modal para permitir reintentar
     }
   }
 
@@ -133,7 +142,7 @@ export default function PedidosPage() {
           Administra y visualiza el estado de tus pedidos en cada etapa del proceso
         </p>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 max-w-xs mx-auto">
+        <div className="mt-3 grid grid-cols-3 gap-2 max-w-xs mx-auto">
           <button
             onClick={() => setVista('asignados')}
             className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
@@ -156,7 +165,7 @@ export default function PedidosPage() {
 
           <button
             onClick={() => setVista('terminados')}
-            className={`col-span-2 inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
+            className={` inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
               vista === 'terminados' ? 'bg-[#0F172A] text-white' : 'bg-gray-100 text-[#0F172A] hover:bg-gray-200'
             }`}
           >

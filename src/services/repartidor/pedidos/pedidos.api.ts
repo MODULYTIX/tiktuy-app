@@ -45,7 +45,11 @@ function toQueryEstado(q: ListByEstadoQuery = {}): string {
 }
 
 function hasMessage(v: unknown): v is { message: string } {
-  return typeof v === 'object' && v !== null && typeof (v as { message?: unknown }).message === 'string';
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    typeof (v as { message?: unknown }).message === 'string'
+  );
 }
 
 async function handle<T>(res: Response, fallbackMsg: string): Promise<T> {
@@ -76,7 +80,10 @@ export async function fetchPedidosHoy(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos de hoy');
+  return handle<Paginated<PedidoListItem>>(
+    res,
+    'Error al obtener pedidos de hoy'
+  );
 }
 
 /* --------------------------
@@ -91,7 +98,10 @@ export async function fetchPedidosPendientes(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos pendientes');
+  return handle<Paginated<PedidoListItem>>(
+    res,
+    'Error al obtener pedidos pendientes'
+  );
 }
 
 /* --------------------------
@@ -106,7 +116,10 @@ export async function fetchPedidosTerminados(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos terminados');
+  return handle<Paginated<PedidoListItem>>(
+    res,
+    'Error al obtener pedidos terminados'
+  );
 }
 
 /* --------------------------
@@ -135,7 +148,10 @@ export async function patchEstadoInicial(
     signal: opts?.signal,
   });
 
-  return handle<UpdateEstadoInicialResponse>(res, 'Error al actualizar el estado inicial del pedido');
+  return handle<UpdateEstadoInicialResponse>(
+    res,
+    'Error al actualizar el estado inicial del pedido'
+  );
 }
 
 /* --------------------------
@@ -154,7 +170,8 @@ export async function patchResultado(
   if (body.resultado === 'ENTREGADO') {
     const fd = new FormData();
     fd.set('resultado', body.resultado);
-    if (body.monto_recaudado !== undefined) fd.set('monto_recaudado', String(body.monto_recaudado));
+    if (body.monto_recaudado !== undefined)
+      fd.set('monto_recaudado', String(body.monto_recaudado));
     if (body.observacion) fd.set('observacion', body.observacion);
     if (body.evidenciaFile) fd.set('evidencia', body.evidenciaFile);
 
@@ -162,16 +179,18 @@ export async function patchResultado(
       method: 'PATCH',
       headers: {
         ...authHeaders(token),
-        // ⚠️ NO pongas Content-Type aquí; el navegador lo define para FormData
       },
       body: fd,
       signal: opts?.signal,
     });
 
-    return handle<UpdateResultadoResponse>(res, 'Error al actualizar el resultado del pedido');
+    return handle<UpdateResultadoResponse>(
+      res,
+      'Error al actualizar el resultado del pedido'
+    );
   }
 
-  // Para RECHAZADO | NO_RESPONDE | ANULO → JSON
+  // Para RECHAZADO → JSON (NO usar aquí NO_RESPONDE ni ANULO)
   const res = await fetch(`${BASE_URL}/${id}/resultado`, {
     method: 'PATCH',
     headers: {
@@ -179,11 +198,15 @@ export async function patchResultado(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      resultado: body.resultado,
+      resultado: 'RECHAZADO',
       observacion: body.observacion,
+      // fecha_entrega_real NO aplica para RECHAZADO
     }),
     signal: opts?.signal,
   });
 
-  return handle<UpdateResultadoResponse>(res, 'Error al actualizar el resultado del pedido');
+  return handle<UpdateResultadoResponse>(
+    res,
+    'Error al actualizar el resultado del pedido'
+  );
 }
