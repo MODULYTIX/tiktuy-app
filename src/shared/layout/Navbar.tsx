@@ -8,20 +8,17 @@ import type { JSX } from 'react';
 
 // =====================================
 // Navbar móvil con header fijo (h-14)
-// y drawer lateral que NO repite header.
-// El drawer se abre debajo del header (top-14)
-// y mantiene el mismo alto del header al abrir/cerrar.
+// Drawer lateral debajo del header (top-14).
+// Abrir/Cerrar solo con el MISMO botón de hamburguesa.
+// Sin botón "X" dentro del panel.
 // =====================================
 
 type LinkItem = { to: string; label: string; icon: JSX.Element; modulo?: string };
 
 interface Props {
-  // isOpen: controla si mostrar labels (compat con tu Sidebar)
-  isOpen: boolean;
-  // open: estado del drawer móvil
-  open: boolean;
-  // setOpen: abre/cierra el drawer
-  setOpen: (v: boolean) => void;
+  isOpen: boolean;      // compat con tu Sidebar para mostrar labels
+  open: boolean;        // estado del drawer móvil
+  setOpen: (v: boolean) => void; // abre/cierra el drawer
 }
 
 export default function Navbar({ isOpen, open, setOpen }: Props) {
@@ -56,7 +53,7 @@ export default function Navbar({ isOpen, open, setOpen }: Props) {
     motorizado: [
       { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="20" height="20" /> },
       { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="20" height="20" /> },
-      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="20" height="20" /> },
+      { to: '/cuadreSaldo', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="20" height="20" /> },
       { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="20" height="20" /> },
     ],
   };
@@ -103,15 +100,19 @@ export default function Navbar({ isOpen, open, setOpen }: Props) {
 
   return (
     <header className="lg:hidden sticky top-0 z-50 w-full bg-white">
-      {/* Header fijo (NO se duplica) */}
+      {/* Header fijo */}
       <div className="flex h-14 items-center justify-between border-b border-b-gray-200 px-4">
-        {/* Hamburguesa */}
+        {/* Hamburguesa: mismo botón abre/cierra */}
         <button
-          onClick={() => setOpen(true)}
-          aria-label="Abrir menú"
+          onClick={() => setOpen(!open)}
+          aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={open}
           className="inline-flex items-center justify-center rounded-md p-2 text-[#1E3A8A]"
         >
+          {/* Usa el mismo ícono tipo hamburguesa. 
+              Si prefieres una ligera pista visual, descomenta la línea de 'menu-open'. */}
           <Icon icon="mdi:menu" width="26" height="26" />
+          {/* {open ? <Icon icon="mdi:menu-open" width="26" height="26" /> : <Icon icon="mdi:menu" width="26" height="26" />} */}
         </button>
 
         {/* Logo centrado */}
@@ -133,10 +134,10 @@ export default function Navbar({ isOpen, open, setOpen }: Props) {
         </button>
       </div>
 
-      {/* Drawer lateral: aparece DEBAJO del header (top-14) y sin header duplicado */}
+      {/* Drawer lateral debajo del header */}
       {open && (
         <div className="fixed inset-x-0 top-14 bottom-0 z-50">
-          {/* Overlay bajo el header */}
+          {/* Overlay (cierra al tocar) */}
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setOpen(false)}
@@ -152,19 +153,8 @@ export default function Navbar({ isOpen, open, setOpen }: Props) {
             className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl outline-none transition-transform duration-200 will-change-transform"
             style={{ transform: 'translateX(0%)' }}
           >
-            {/* Contenido del panel (sin header) */}
+            {/* Contenido del panel (sin header ni botón 'X') */}
             <nav className="no-scrollbar h-full overflow-y-auto px-3 py-4">
-              {/* Botón cerrar alineado a la derecha, pequeño, sin crear un header */}
-              <div className="flex justify-end mb-2 px-1">
-                <button
-                  onClick={() => setOpen(false)}
-                  className="rounded-md p-2 text-[#1E3A8A]"
-                  aria-label="Cerrar menú"
-                >
-                  <Icon icon="mdi:close" width="22" height="22" />
-                </button>
-              </div>
-
               <ul className="space-y-1">
                 {links.map(({ to, label, icon }) => (
                   <li key={to}>

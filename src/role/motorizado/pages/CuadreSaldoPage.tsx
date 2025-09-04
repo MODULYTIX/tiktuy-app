@@ -59,7 +59,7 @@ const CuadreSaldoPage: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-7xl p-6">
+    <div className="mt-8">
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Cuadre de Saldo</h1>

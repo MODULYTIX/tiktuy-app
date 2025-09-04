@@ -181,13 +181,13 @@ export default function MotorizadoHomePage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-center text-center flex-col px-4 py-3">
           <div>
-            <h1 className="text-lg font-semibold text-[#1E3A8A]">Panel de Control</h1>
-            <p className="text-sm text-gray-600">Active o desactive su estado para realizar pedidos</p>
+            <h1 className="text-3xl font-semibold text-[#1E3A8A]">Panel de Control</h1>
+            <p className="text-lg text-gray-600">Active o desactive su estado para realizar pedidos</p>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`text-sm font-medium ${activo ? 'text-emerald-600' : 'text-gray-600'}`}>
+            <span className={`text-lg font-medium ${activo ? 'text-emerald-600' : 'text-gray-600'}`}>
               {estadoText}
             </span>
             <button

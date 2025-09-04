@@ -137,7 +137,7 @@ export default function PedidosPage() {
     <section className="mt-4 md:mt-8">
       {/* ===== MOBILE HEADER (< md) ===== */}
       <div className="block md:hidden text-center px-3">
-        <h1 className="text-2xl font-bold text-[#1E3A8A]">Gestión de Pedidos</h1>
+        <h1 className="text-3xl font-bold text-[#1E3A8A]">Gestión de Pedidos</h1>
         <p className="mt-1 text-sm text-gray-600">
           Administra y visualiza el estado de tus pedidos en cada etapa del proceso
         </p>

@@ -46,7 +46,6 @@ export default function ModalEntregaRepartidor({
   const [evidenciaFile, setEvidenciaFile] = useState<File | undefined>(undefined);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fechaEntregaReal, setFechaEntregaReal] = useState<string>(() => {
-    // default a ahora en formato local compatible con input datetime-local
     const d = new Date();
     d.setSeconds(0, 0);
     const off = d.getTimezoneOffset();
@@ -64,7 +63,6 @@ export default function ModalEntregaRepartidor({
     const cliente = pedido.cliente?.nombre || '—';
     const ecommerce = pedido.ecommerce?.nombre_comercial || '—';
     const monto = Number(pedido.monto_recaudar || 0);
-
     return { fechaProg, distrito, telefono, codigo, direccion, cliente, ecommerce, monto };
   }, [pedido]);
 
@@ -80,7 +78,6 @@ export default function ModalEntregaRepartidor({
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
     }
-    // reset datetime
     const d = new Date();
     d.setSeconds(0, 0);
     const off = d.getTimezoneOffset();
@@ -94,10 +91,7 @@ export default function ModalEntregaRepartidor({
   }
 
   function handleNextFromResultado() {
-    if (resultado === 'ENTREGADO') {
-      setPaso('pago');
-    }
-    // si es RECHAZADO no cambiamos paso (se confirma con el botón principal)
+    if (resultado === 'ENTREGADO') setPaso('pago');
   }
 
   function requiresEvidencia(m: MetodoPagoUI | null): boolean {
@@ -117,7 +111,6 @@ export default function ModalEntregaRepartidor({
 
   function toIsoFromLocalDatetime(dtLocal: string): string | undefined {
     if (!dtLocal) return undefined;
-    // dtLocal es "YYYY-MM-DDTHH:mm" en hora local → convertir a ISO UTC
     const [date, time] = dtLocal.split('T');
     const [y, m, d] = date.split('-').map(Number);
     const [hh, mm] = time.split(':').map(Number);
@@ -147,12 +140,13 @@ export default function ModalEntregaRepartidor({
       if (requiresEvidencia(metodo) && !evidenciaFile) return;
 
       const fechaIso = metodo === 'EFECTIVO' ? toIsoFromLocalDatetime(fechaEntregaReal) : undefined;
+      const obs = metodo === 'EFECTIVO' ? (observacion.trim() || undefined) : undefined; // <- SOLO EFECTIVO
 
       await onConfirm?.({
         pedidoId: pid,
         resultado: 'ENTREGADO',
         metodo,
-        observacion: observacion?.trim() || undefined,
+        observacion: obs,
         evidenciaFile,
         fecha_entrega_real: fechaIso,
       });
@@ -162,7 +156,6 @@ export default function ModalEntregaRepartidor({
     }
   }
 
-  // helpers acción rápida
   const telHref =
     resumen?.telefono && resumen.telefono !== '—' ? `tel:${resumen.telefono}` : undefined;
   const waHref =
@@ -174,22 +167,26 @@ export default function ModalEntregaRepartidor({
     <div className="fixed inset-0 z-[60]">
       <div className="absolute inset-0 bg-black/40" onClick={closeAll} />
 
-      <div className="absolute inset-x-0 bottom-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[460px] bg-white rounded-t-2xl sm:rounded-none sm:rounded-l-2xl shadow-lg overflow-hidden">
-        {/* header */}
-        <div className="px-4 pt-4 pb-2 border-b">
+      <div className="absolute inset-x-0 bottom-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[460px] bg-white rounded-t-3xl sm:rounded-none sm:rounded-l-3xl shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="px-4 pt-4 pb-3 border-b bg-gray-50">
           <div className="flex items-center gap-2 text-emerald-700">
-            <Icon icon="mdi:check-decagram-outline" className="text-xl" />
-            <h2 className="text-base font-semibold">Validar contacto con el cliente</h2>
+            <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
+              <Icon icon="mdi:check-decagram-outline" className="text-lg" />
+            </div>
+            <h2 className="text-[15px] font-semibold tracking-wide uppercase">
+              Validar contacto con el cliente
+            </h2>
           </div>
-          <p className="text-xs text-gray-500 -mt-0.5">Validación de información para la entrega</p>
+          <p className="text-xs text-gray-500">Validación de información para la entrega</p>
         </div>
 
-        {/* contenido */}
-        <div className="p-4 space-y-3 overflow-y-auto max-h-[75vh] sm:max-h-full">
-          {/* resumen */}
-          <div className="border rounded-xl p-3">
-            <div className="text-xs text-gray-500">Cliente</div>
-            <div className="font-medium">{resumen?.cliente}</div>
+        {/* Contenido */}
+        <div className="p-4 space-y-4 overflow-y-auto max-h-[75vh] sm:max-h-full bg-white">
+          {/* Resumen */}
+          <section className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+            <div className="text-[11px] text-gray-500">Cliente</div>
+            <div className="font-medium text-gray-900">{resumen?.cliente}</div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 mt-3 text-sm">
               <Item label="Código" icon="mdi:identifier">{resumen?.codigo}</Item>
@@ -197,7 +194,7 @@ export default function ModalEntregaRepartidor({
               <Item label="Distrito" icon="mdi:map-marker-outline">{resumen?.distrito}</Item>
               <Item label="Ecommerce" icon="mdi:store-outline">{resumen?.ecommerce}</Item>
               <Item label="Dirección" icon="mdi:home-map-marker">{resumen?.direccion}</Item>
-              <Item label="Monto" icon="mdi:cash">
+              <Item label="S/. Monto" icon="mdi:cash">
                 {new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(resumen?.monto||0)}
               </Item>
               <Item label="Fecha" icon="mdi:calendar-blank-outline">
@@ -205,20 +202,18 @@ export default function ModalEntregaRepartidor({
               </Item>
             </div>
 
-            {/* acciones rápidas */}
-            <div className="mt-3 flex items-center justify-center gap-4">
+            {/* Acciones rápidas */}
+            <div className="mt-4 flex items-center justify-center gap-5">
               <AccionCircular icon="mdi:phone" label="Llamar" href={telHref} />
               <AccionCircular icon="mdi:whatsapp" label="WhatsApp" href={waHref} />
-              <AccionCircular icon="mdi:hard-hat" label="Otros" onClick={() => {}} />
+              <AccionCircular icon="mdi:account-voice" label="Otros" onClick={() => {}} />
             </div>
-          </div>
+          </section>
 
-          {/* PASO: Resultado final */}
+          {/* Paso: Resultado */}
           {paso === 'resultado' && (
-            <div>
-              <h3 className="text-sm font-semibold text-indigo-900">
-                ¿Cuál fue el resultado final de la entrega?
-              </h3>
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900">¿Cuál fue el resultado final?</h3>
               <p className="text-xs text-gray-500">Elige una de estas opciones</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
@@ -227,22 +222,25 @@ export default function ModalEntregaRepartidor({
                   icon="mdi:check-circle-outline"
                   title="Entregado"
                   onClick={() => setResultado('ENTREGADO')}
+                  activeColor="blue"
+                  fill
                 />
                 <OpcionCard
                   active={resultado === 'RECHAZADO'}
                   icon="mdi:close-circle-outline"
                   title="Pedido rechazado"
                   onClick={() => setResultado('RECHAZADO')}
+                  activeColor="red"
+                  fill
                 />
               </div>
-              {/* Nota: sin observación aquí (según pedido) */}
-            </div>
+            </section>
           )}
 
-          {/* PASO: Forma de pago (solo ENTREGADO) */}
+          {/* Paso: Forma de pago */}
           {paso === 'pago' && (
-            <div>
-              <h3 className="text-sm font-semibold text-indigo-900">Forma de pago</h3>
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Forma de pago</h3>
               <p className="text-xs text-gray-500">Elige una de estas opciones</p>
 
               <div className="grid grid-cols-1 gap-3 mt-3">
@@ -251,29 +249,35 @@ export default function ModalEntregaRepartidor({
                   icon="mdi:cash"
                   title="Efectivo"
                   onClick={() => handleMetodo('EFECTIVO')}
+                  activeColor="yellow"
+                  fill
                 />
                 <OpcionCard
                   active={metodo === 'BILLETERA'}
                   icon="mdi:qrcode-scan"
                   title="Pago por Billetera Digital"
                   onClick={() => handleMetodo('BILLETERA')}
+                  activeColor="lime"
+                  fill
                 />
                 <OpcionCard
                   active={metodo === 'DIRECTO_ECOMMERCE'}
-                  icon="mdi:store-outline"
+                  icon="mdi:credit-card-outline"
                   title="Pago directo al Ecommerce"
                   onClick={() => handleMetodo('DIRECTO_ECOMMERCE')}
+                  activeColor="blue"
+                  fill
                 />
               </div>
 
-              {/* Campos adicionales para EFECTIVO */}
+              {/* Extras solo para EFECTIVO */}
               {metodo === 'EFECTIVO' && (
                 <div className="mt-4 space-y-3">
                   <div>
                     <label className="text-xs text-gray-600">Fecha de entrega</label>
                     <input
                       type="datetime-local"
-                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                       value={fechaEntregaReal}
                       onChange={(e) => setFechaEntregaReal(e.target.value)}
                     />
@@ -281,7 +285,7 @@ export default function ModalEntregaRepartidor({
                   <div>
                     <label className="text-xs text-gray-600">Observación (opcional)</label>
                     <textarea
-                      className="w-full border rounded-lg px-3 py-2 text-sm min-h-[84px] resize-y"
+                      className="w-full border rounded-xl px-3 py-2 text-sm min-h-[84px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-300"
                       placeholder="Escribe aquí"
                       value={observacion}
                       onChange={(e) => setObservacion(e.target.value)}
@@ -289,13 +293,13 @@ export default function ModalEntregaRepartidor({
                   </div>
                 </div>
               )}
-            </div>
+            </section>
           )}
 
-          {/* PASO: Evidencias (Billetera o Directo Ecommerce) */}
+          {/* Paso: Evidencias (solo billetera o directo) */}
           {paso === 'evidencia' && (
-            <div>
-              <h3 className="text-sm font-semibold text-indigo-900">Subir evidencias</h3>
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Subir evidencias</h3>
               <p className="text-xs text-gray-500">Sube una evidencia para verificación del pago</p>
 
               <div className="mt-3 space-y-3">
@@ -306,7 +310,7 @@ export default function ModalEntregaRepartidor({
                     className="hidden"
                     onChange={(e) => onFilePicked(e.target.files?.[0])}
                   />
-                  <div className="w-full border rounded-lg px-3 py-2 text-sm flex items-center gap-2 cursor-pointer">
+                  <div className="w-full border rounded-xl px-3 py-2 text-sm flex items-center gap-2 cursor-pointer shadow-sm hover:bg-gray-50">
                     <Icon icon="mdi:upload" className="text-xl" />
                     Adjuntar imagen
                   </div>
@@ -320,7 +324,7 @@ export default function ModalEntregaRepartidor({
                     className="hidden"
                     onChange={(e) => onFilePicked(e.target.files?.[0])}
                   />
-                  <div className="w-full border rounded-lg px-3 py-2 text-sm flex items-center gap-2 cursor-pointer">
+                  <div className="w-full border rounded-xl px-3 py-2 text-sm flex items-center gap-2 cursor-pointer shadow-sm hover:bg-gray-50">
                     <Icon icon="mdi:camera-outline" className="text-xl" />
                     Tomar foto
                   </div>
@@ -331,31 +335,22 @@ export default function ModalEntregaRepartidor({
                     <img
                       src={previewUrl}
                       alt="Evidencia"
-                      className="w-full max-h-60 object-contain rounded border"
+                      className="w-full max-h-60 object-contain rounded-xl border"
                     />
                   </div>
                 )}
-
-                <div className="mt-3">
-                  <label className="text-xs text-gray-600">Observación (opcional)</label>
-                  <textarea
-                    className="w-full border rounded-lg px-3 py-2 text-sm min-h-[84px] resize-y"
-                    placeholder="Escribe aquí"
-                    value={observacion}
-                    onChange={(e) => setObservacion(e.target.value)}
-                  />
-                </div>
+                {/* IMPORTANTE: sin observación aquí para Billetera/Directo */}
               </div>
-            </div>
+            </section>
           )}
         </div>
 
-        {/* footer */}
-        <div className="px-4 py-3 border-t flex items-center gap-3">
-          {/* botón volver según paso */}
+        {/* Footer */}
+        <div className="px-4 py-3 border-t bg-white flex items-center gap-3">
+          {/* Volver / Cancelar izquierda */}
           {paso !== 'resultado' ? (
             <button
-              className="border rounded-lg py-2 px-4 text-gray-700"
+              className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50"
               onClick={() => {
                 if (paso === 'pago') setPaso('resultado');
                 else if (paso === 'evidencia') setPaso('pago');
@@ -366,7 +361,7 @@ export default function ModalEntregaRepartidor({
             </button>
           ) : (
             <button
-              className="border rounded-lg py-2 px-4 text-gray-700"
+              className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50"
               onClick={closeAll}
               disabled={submitting}
             >
@@ -374,10 +369,9 @@ export default function ModalEntregaRepartidor({
             </button>
           )}
 
-          {/* botón secundario (Cancelar cuando no es resultado) */}
           {paso !== 'resultado' && (
             <button
-              className="border rounded-lg py-2 px-4 text-gray-700"
+              className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50"
               onClick={closeAll}
               disabled={submitting}
             >
@@ -385,10 +379,10 @@ export default function ModalEntregaRepartidor({
             </button>
           )}
 
-          {/* Acción principal */}
+          {/* Acción principal derecha */}
           {paso === 'resultado' && resultado === 'ENTREGADO' && (
             <button
-              className="ml-auto rounded-lg py-2 px-4 bg-primary text-white disabled:opacity-50"
+              className="ml-auto rounded-xl py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
               onClick={handleNextFromResultado}
               disabled={!resultado || submitting}
             >
@@ -398,7 +392,7 @@ export default function ModalEntregaRepartidor({
 
           {paso === 'resultado' && resultado === 'RECHAZADO' && (
             <button
-              className="ml-auto rounded-lg py-2 px-4 bg-primary text-white disabled:opacity-50"
+              className="ml-auto rounded-xl py-2 px-4 text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
               onClick={handleConfirm}
               disabled={!resultado || submitting}
             >
@@ -408,7 +402,7 @@ export default function ModalEntregaRepartidor({
 
           {paso === 'pago' && (
             <button
-              className="ml-auto rounded-lg py-2 px-4 bg-primary text-white disabled:opacity-50"
+              className="ml-auto rounded-xl py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
               onClick={() => {
                 if (metodo === 'EFECTIVO') {
                   handleConfirm();
@@ -424,7 +418,7 @@ export default function ModalEntregaRepartidor({
 
           {paso === 'evidencia' && (
             <button
-              className="ml-auto rounded-lg py-2 px-4 bg-primary text-white disabled:opacity-50"
+              className="ml-auto rounded-xl py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
               onClick={handleConfirm}
               disabled={submitting || !evidenciaFile}
             >
@@ -436,6 +430,8 @@ export default function ModalEntregaRepartidor({
     </div>
   );
 }
+
+/* ------- Subcomponentes ------- */
 
 function Item({
   label,
@@ -450,8 +446,8 @@ function Item({
     <div className="flex items-start gap-2">
       <Icon icon={icon} className="mt-0.5 text-base text-gray-500" />
       <div className="min-w-0">
-        <div className="text-xs text-gray-500">{label}</div>
-        <div className="text-gray-800 truncate">{children}</div>
+        <div className="text-[11px] text-gray-500">{label}</div>
+        <div className="text-gray-900 truncate">{children}</div>
       </div>
     </div>
   );
@@ -468,45 +464,93 @@ function AccionCircular({
   href?: string;
   onClick?: () => void;
 }) {
-  const Comp = (
-    <div className="w-12 h-12 rounded-full bg-emerald-500/90 text-white flex items-center justify-center shadow">
+  const Circle = (
+    <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md">
       <Icon icon={icon} className="text-2xl" />
     </div>
   );
   return href ? (
     <a href={href} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1">
-      {Comp}
+      {Circle}
       <span className="text-[11px] text-gray-600">{label}</span>
     </a>
   ) : (
     <button onClick={onClick} className="flex flex-col items-center gap-1">
-      {Comp}
+      {Circle}
       <span className="text-[11px] text-gray-600">{label}</span>
     </button>
   );
 }
 
+/** Card con soporte de color y modo "fill" para verse como tus capturas.
+ *  activeColor: 'blue' | 'red' | 'emerald' | 'yellow' | 'lime'
+ */
 function OpcionCard({
   active,
   icon,
   title,
   onClick,
+  activeColor = 'emerald',
+  fill = false,
 }: {
   active: boolean;
   icon: string;
   title: string;
   onClick: () => void;
+  activeColor?: 'blue' | 'red' | 'emerald' | 'yellow' | 'lime';
+  fill?: boolean;
 }) {
+  const palette = {
+    blue: {
+      ring: 'ring-blue-300',
+      border: 'border-blue-500',
+      bg: 'bg-blue-600',
+      pale: 'bg-blue-50',
+      text: 'text-blue-600',
+    },
+    red: {
+      ring: 'ring-red-300',
+      border: 'border-red-500',
+      bg: 'bg-red-600',
+      pale: 'bg-red-50',
+      text: 'text-red-600',
+    },
+    emerald: {
+      ring: 'ring-emerald-300',
+      border: 'border-emerald-500',
+      bg: 'bg-emerald-600',
+      pale: 'bg-emerald-50',
+      text: 'text-emerald-600',
+    },
+    yellow: {
+      ring: 'ring-yellow-300',
+      border: 'border-yellow-500',
+      bg: 'bg-yellow-500',
+      pale: 'bg-yellow-50',
+      text: 'text-yellow-600',
+    },
+    lime: {
+      ring: 'ring-lime-300',
+      border: 'border-lime-500',
+      bg: 'bg-lime-500',
+      pale: 'bg-lime-50',
+      text: 'text-lime-600',
+    },
+  }[activeColor];
+
+  const activeFilled = `border ${palette.border} ${fill ? `${palette.bg} text-white` : `${palette.pale} ${palette.text}`} shadow-sm`;
+  const inactive = 'border border-gray-200 hover:bg-gray-50 text-gray-800';
+
   return (
     <button
       onClick={onClick}
-      className={`w-full border rounded-xl p-3 text-left flex items-center gap-3 ${
-        active ? 'border-emerald-500 bg-emerald-50' : 'hover:bg-gray-50'
-      }`}
+      className={`w-full rounded-2xl p-3 text-left flex items-center gap-3 transition focus:outline-none focus:ring-2 ${active ? `${palette.ring} ${activeFilled}` : `ring-gray-200 ${inactive}`}`}
     >
-      <Icon icon={icon} className="text-2xl text-emerald-600" />
-      <div className="text-sm">{title}</div>
-      {active && <Icon icon="mdi:check" className="ml-auto text-xl text-emerald-600" />}
+      <div className={`w-9 h-9 rounded-full flex items-center justify-center ${active ? 'bg-white/20' : 'bg-gray-100'}`}>
+        <Icon icon={icon} className={`text-xl ${active ? 'text-white' : 'text-gray-700'}`} />
+      </div>
+      <div className={`text-sm font-medium ${active ? 'opacity-95' : ''}`}>{title}</div>
+      {active && <Icon icon="mdi:check" className="ml-auto text-xl text-white" />}
     </button>
   );
 }

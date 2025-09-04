@@ -142,7 +142,7 @@ export default function BaseTablaPedidos({
         <details className="sm:hidden border rounded">
           <summary className="list-none cursor-pointer px-3 py-2 flex items-center justify-between">
             <span className="text-sm font-medium">Filtros</span>
-            <span className="material-icons-outlined text-base text-gray-500">expand_more</span>
+            <Icon icon="material-symbols:expand-all-rounded" width="24" height="24" />
           </summary>
           <div className="px-3 pb-3 grid grid-cols-1 gap-3">
             <div>
