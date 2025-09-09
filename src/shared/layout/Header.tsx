@@ -1,7 +1,11 @@
+// src/shared/layout/Header.tsx  (ajusta la ruta si tu Header está en otra carpeta)
 import { useAuth } from '@/auth/context/useAuth';
 import { FaUser } from 'react-icons/fa';
 import { Icon } from '@iconify/react';
 import { roleConfigs } from '@/shared/constants/roleConfigs';
+
+// 👇 Importa la campanita conectada al backend
+import NotificationBellIcon from '@/shared/context/notificacionesBell/NotificationBellIcon';
 
 export default function Header() {
   const { user } = useAuth();
@@ -11,13 +15,13 @@ export default function Header() {
   return (
     <header className="h-16 bg-white shadow flex items-center justify-end px-6 fixed top-0 left-0 w-full z-30 transition-all duration-300">
       <div className="flex items-center gap-6 text-primary justify-center content-center">
-        <div>
-          {/* 🔔 Icono con notificaciones */}
-          <Icon icon="famicons:notifications-outline" width="24" height="24" />
+        <div className="relative">
+          {/* 🔔 Icono con notificaciones (conectado al backend) */}
+          <NotificationBellIcon />
         </div>
 
         {/* ⚙ Icono de Configuración */}
-        <button type="button" className="hover:text-blue-600 transition">
+        <button type="button" className="hover:text-blue-600 transition" aria-label="Configuración">
           <Icon icon="solar:settings-broken" width="24" height="24" />
         </button>
 
@@ -34,7 +38,8 @@ export default function Header() {
             </span>
             {config && (
               <span
-                className={`flex items-center gap-1 text-[11px] font-medium px-2 py-[2px] rounded-sm w-fit ${config.bg} ${config.text}`}>
+                className={`flex items-center gap-1 text-[11px] font-medium px-2 py-[2px] rounded-sm w-fit ${config.bg} ${config.text}`}
+              >
                 {config.icon}
                 {config.label}
               </span>

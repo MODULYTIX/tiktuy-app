@@ -12,7 +12,7 @@ import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacen
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import { HiOutlineViewGridAdd } from 'react-icons/hi';
 import { FaEye } from 'react-icons/fa';
-import { useNotification } from '@/shared/context/notificaciones/useNotification';
+import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
 
 interface Props {
   open: boolean;

@@ -1,3 +1,4 @@
+// src/pages/courier/CourierHomePage.tsx
 import { useCallback, useState } from "react";
 import { Icon } from "@iconify/react";
 import PanelControlRepartidor from "@/shared/components/courier/panelControl/PanelControlRepartidorTable";
@@ -25,7 +26,7 @@ export default function CourierHomePage() {
   const sectionSubtitle =
     activeTab === "ecommerce"
       ? "Asociados con nuestra empresa"
-      : "Gestiona tus repartidores";
+      : "Gestiona tus repartidores (invitación y registro)";
 
   return (
     <div className="mt-6 p-5 flex flex-col gap-y-5">
@@ -33,7 +34,7 @@ export default function CourierHomePage() {
       <div className="flex justify-between items-center pb-5 border-b border-gray30">
         <div>
           <h1 className="text-3xl font-bold mb-1 text-[#1A237E]">Panel de Control</h1>
-          <p className="text-gray-600 text-sm">Monitoreo de convenio e repartidores</p>
+          <p className="text-gray-600 text-sm">Monitoreo de convenios y repartidores</p>
         </div>
 
         <div className="flex gap-3">
@@ -57,9 +58,9 @@ export default function CourierHomePage() {
           <button
             onClick={() => setActiveTab("motorizado")}
             className={[
-              "flex items-center gap-2 w-auto px-3  py-2.5 rounded font-bold transition",
+              "flex items-center gap-2 w-auto px-3 py-2.5 rounded font-bold transition",
               activeTab === "motorizado"
-                ? "bg-gray90 text-white font-bold hover:shadow-default"
+                ? "bg-gray90 text-white hover:shadow-default"
                 : "bg-gray20 text-gray90 hover:bg-gray30 hover:shadow-default",
             ].join(" ")}
           >
@@ -77,6 +78,9 @@ export default function CourierHomePage() {
         </div>
 
         <div className="flex gap-3">
+          {/* Invitar:
+              - En tab "ecommerce": invita a ecommerce (compartir/solicitar)
+              - En tab "motorizado": invita a motorizado (flujo Courier -> Motorizado) */}
           <button
             onClick={openModal}
             className="flex items-center gap-2 border-2 font-bold border-black px-4 py-2 rounded text-sm hover:bg-gray10"
@@ -85,6 +89,9 @@ export default function CourierHomePage() {
             Invitar
           </button>
 
+          {/* Registrar:
+              - En tab "ecommerce": registrar ecommerce
+              - En tab "motorizado": registrar repartidor */}
           <button
             onClick={openDrawer}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
@@ -99,18 +106,26 @@ export default function CourierHomePage() {
       {activeTab === "ecommerce" ? (
         <PanelControlTable key={`ecom-${reloadKey}`} />
       ) : (
+        // En esta vista Courier, PanelControlRepartidor se centra en invitar/gestionar motorizados.
+        // No pasamos ecommerceId aquí (no es necesario para invitar motorizados).
         <PanelControlRepartidor key={`moto-${reloadKey}`} />
       )}
 
-      {/* Modal Compartir */}
+      {/* Modal de invitación */}
       {isModalOpen && (
         <PanelControlInvitacion onClose={closeModal} activeTab={activeTab} />
       )}
 
       {/* Drawer de registro */}
       {isDrawerOpen && (
-        <div className="fixed inset-0 bg-black/50 bg-opacity-30 z-50 flex justify-end" onClick={closeDrawer}>
-          <div className="w-[450px] bg-white overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/50 bg-opacity-30 z-50 flex justify-end"
+          onClick={closeDrawer}
+        >
+          <div
+            className="w-[450px] bg-white overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             {activeTab === "ecommerce" ? (
               <PanelControlRegistroEcommerce onClose={closeDrawer} />
             ) : (
