@@ -1,7 +1,7 @@
+// src/shared/context/notificacionesBell/NotificationBellIcon.tsx
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useNotificationBell } from './useNotificationBell';
-import { FaBell } from 'react-icons/fa';
 import { Icon } from '@iconify/react';
 
 function formatRelativeDate(date: string): string {
@@ -19,7 +19,20 @@ function formatRelativeDate(date: string): string {
   return `Hace ${diffDay} días`;
 }
 
-const NotificationBellIcon = () => {
+type Props = {
+  /** clases extra opcionales para layout del botón */
+  className?: string;
+  /** color activo (cuando el popover está abierto) */
+  activeColor?: string; // tailwind class
+  /** color base (idle) */
+  baseColor?: string;   // tailwind class
+};
+
+const NotificationBellIcon = ({
+  className = '',
+  activeColor = 'text-[#1E3A8A]',
+  baseColor = 'text-gray-600',
+}: Props) => {
   const { unreadCount, notifications, markAllAsRead, loading } = useNotificationBell();
   const [open, setOpen] = useState(false);
 
@@ -32,13 +45,19 @@ const NotificationBellIcon = () => {
   };
 
   return (
-    <div className="relative">
-      {/* Botón de campana */}
-      <button onClick={toggle} className="relative" aria-label="Notificaciones">
-        <FaBell className="w-5 h-5" />
+    <div className={`relative ${className}`}>
+      {/* Botón campana: outline gris; activo/hover azul */}
+      <button
+        onClick={toggle}
+        className={`relative transition-colors ${open ? activeColor : baseColor} hover:${activeColor}`}
+        aria-label="Notificaciones"
+        title="Notificaciones"
+      >
+        {/* Ícono outline (sin relleno) */}
+        <Icon icon="mdi:bell-outline" width="22" height="22" />
         {unreadCount > 0 && (
           <span
-            className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center
+            className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-[3px] inline-flex items-center justify-center
                        text-[10px] font-bold text-white bg-red-600 rounded-full leading-none"
           >
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -59,10 +78,7 @@ const NotificationBellIcon = () => {
               <h3 className="text-sm font-semibold">Notificaciones</h3>
               <button
                 className="text-xs text-blue-600 hover:underline"
-                onClick={() => {
-                  // Aquí podrías redirigir a una página de /notificaciones
-                  window.location.href = '/notificaciones';
-                }}
+                onClick={() => (window.location.href = '/notificaciones')}
               >
                 Ver más
               </button>
@@ -75,46 +91,41 @@ const NotificationBellIcon = () => {
                 <p className="text-gray-500 text-sm p-3">No hay notificaciones</p>
               ) : (
                 notifications.map((n) => {
-                  // Elegir icono según tipo
+                  // Elegir icono según contexto (puedes sustituir por n.tipo/n.canal si los traes)
                   let icon = 'mdi:bell-outline';
-                  if (n.titulo?.toLowerCase().includes('whatsapp'))
+                  let iconClass = 'text-blue-600';
+                  if (n.titulo?.toLowerCase().includes('whatsapp')) {
                     icon = 'mdi:whatsapp';
-                  else if (n.titulo?.toLowerCase().includes('stock'))
+                    iconClass = 'text-green-500';
+                  } else if (n.titulo?.toLowerCase().includes('stock')) {
                     icon = 'mdi:package-variant';
+                    iconClass = 'text-blue-600';
+                  }
 
                   const content = (
                     <div
                       className="flex gap-3 items-start px-4 py-3 border-b last:border-none hover:bg-gray-50 cursor-pointer"
                       key={n.id}
                     >
-                      <Icon
-                        icon={icon}
-                        className={`text-xl ${
-                          n.titulo?.toLowerCase().includes('whatsapp')
-                            ? 'text-green-500'
-                            : 'text-blue-600'
-                        }`}
-                      />
+                      <Icon icon={icon} className={`text-xl ${iconClass}`} />
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{n.titulo}</p>
+                        {n.titulo && <p className="font-medium text-sm truncate">{n.titulo}</p>}
                         <p className="text-gray-600 text-xs truncate">{n.mensaje}</p>
-                        <span className="text-[11px] text-gray-400">
-                          {formatRelativeDate(n.fecha)}
-                        </span>
+                        <span className="text-[11px] text-gray-400">{formatRelativeDate(n.fecha)}</span>
                       </div>
-                      {!n.leido && (
-                        <span className="w-2 h-2 rounded-full bg-red-500 mt-1" />
-                      )}
+                      {!n.leido && <span className="w-2 h-2 rounded-full bg-red-500 mt-1" />}
                     </div>
                   );
 
-                  // Si hay link en data, que sea clickeable
-                  return n.data?.link ? (
+                  // Si viene un link en el payload, convertir el item en <a>
+                  const href = n?.data?.link ?? n?.data?.url;
+                  return href ? (
                     <a
-                      href={n.data.link}
+                      href={href}
                       target="_blank"
                       rel="noopener noreferrer"
                       key={n.id}
+                      className="block"
                     >
                       {content}
                     </a>

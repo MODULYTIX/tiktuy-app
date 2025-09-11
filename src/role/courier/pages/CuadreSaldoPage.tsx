@@ -38,11 +38,13 @@ function defaultMonthRange() {
 }
 
 /* ============== Botón toggle ============== */
-const ToggleBtn: React.FC<{ active?: boolean; onClick?: () => void }> = ({
-  active,
-  onClick,
-  children,
-}) => (
+type ToggleBtnProps = {
+  active?: boolean;
+  onClick?: () => void;
+  children?: React.ReactNode; // <- agrega children explícitamente
+};
+
+const ToggleBtn: React.FC<ToggleBtnProps> = ({ active, onClick, children }) => (
   <button
     onClick={onClick}
     className={[
@@ -57,7 +59,7 @@ const ToggleBtn: React.FC<{ active?: boolean; onClick?: () => void }> = ({
 /* ============== Stub de tabla Ecommerce (reemplázala por tu tabla real) ============== */
 const EcommerceTableStub: React.FC = () => (
   <div className="rounded-xl border border-dashed p-6 text-sm text-gray-600">
-    Conecta aquí tu <b>tabla de Ecommerce</b> (filtros ya preparados abajo).  
+    Conecta aquí tu <b>tabla de Ecommerce</b> (filtros ya preparados abajo).
     Si ya la tienes, impórtala y reemplaza <code>EcommerceTableStub</code>.
   </div>
 );
@@ -75,9 +77,11 @@ const CuadreSaldoPage: React.FC = () => {
   const [motorizadoId, setMotorizadoId] = useState<number | "">("");
   const [repDesde, setRepDesde] = useState(defaults.desde);
   const [repHasta, setRepHasta] = useState(defaults.hasta);
-  const [repApplied, setRepApplied] = useState<{ motorizadoId?: number; desde?: string; hasta?: string }>(
-    { motorizadoId: undefined, desde: defaults.desde, hasta: defaults.hasta }
-  );
+  const [repApplied, setRepApplied] = useState<{
+    motorizadoId?: number;
+    desde?: string;
+    hasta?: string;
+  }>({ motorizadoId: undefined, desde: defaults.desde, hasta: defaults.hasta });
 
   // filtros ECOMMERCE (placeholder: ajusta a tu API)
   const [eco, setEco] = useState<string>("");
@@ -140,7 +144,7 @@ const CuadreSaldoPage: React.FC = () => {
                 value={eco}
                 onChange={(e) => setEco(e.target.value)}
               >
-                <option value="">Seleccionar courier</option>
+                <option value="">Seleccionar ecommerce</option>
                 <option value="TechLine">TechLine</option>
                 <option value="Casa&Moda">Casa&Moda</option>
                 <option value="BookWorld">BookWorld</option>
@@ -154,7 +158,7 @@ const CuadreSaldoPage: React.FC = () => {
                 value={ecoEstado}
                 onChange={(e) => setEcoEstado(e.target.value)}
               >
-                <option value="">Seleccionar producto</option>
+                <option value="">Seleccionar estado</option>
                 <option value="VALIDADO">Validado</option>
                 <option value="POR_VALIDAR">Por Validar</option>
               </select>
@@ -206,7 +210,9 @@ const CuadreSaldoPage: React.FC = () => {
                 type="number"
                 min={1}
                 value={motorizadoId}
-                onChange={(e) => setMotorizadoId(e.target.value === "" ? "" : Number(e.target.value))}
+                onChange={(e) =>
+                  setMotorizadoId(e.target.value === "" ? "" : Number(e.target.value))
+                }
                 className="w-full rounded-xl border px-3 py-2 outline-none"
                 placeholder="Ej: 12"
               />
