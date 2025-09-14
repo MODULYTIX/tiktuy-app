@@ -1,4 +1,3 @@
-
 // src/pages/courier/PedidosPage.tsx
 import { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
@@ -11,7 +10,7 @@ type Vista = 'asignados' | 'pendientes' | 'terminados';
 export default function PedidosPage() {
   const { token } = useAuth();
 
-  // pestaña activa
+  // pestaña activa (persistida)
   const [vista, setVista] = useState<Vista>(() => {
     const saved = localStorage.getItem('courier_vista_pedidos') as Vista | null;
     return saved ?? 'asignados';
@@ -50,55 +49,58 @@ export default function PedidosPage() {
   };
 
   return (
-    <section className="mt-8 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-primary">Gestión de Pedidos</h1>
-          <p className="text-gray-500">
+    <section className="mt-8 flex flex-col gap-[1.25rem]">
+      {/* Header con tabs (modelo base) */}
+      <div className="flex justify-between items-end pb-5 border-b border-gray30">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-[1.75rem] font-bold text-primary">Gestión de Pedidos</h1>
+          <p className="text-gray60">
             Administra y visualiza el estado de tus pedidos en cada etapa del proceso
           </p>
         </div>
 
         {/* Tabs: Asignados / Pendientes / Terminados */}
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-3 items-center">
           <button
             onClick={() => setVista('asignados')}
-            className={`flex items-center px-4 py-2 rounded-sm gap-2 text-sm font-medium ${
+            className={[
+              'flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium',
               vista === 'asignados'
                 ? 'bg-primaryDark text-white'
-                : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
+                : 'bg-gray20 text-primaryDark hover:shadow-default',
+            ].join(' ')}
           >
-            <Icon icon="solar:bill-list-broken" width={20} height={20} />
+            <Icon icon="solar:bill-list-broken" width={18} height={18} />
             <span>Asignados</span>
           </button>
 
-          <span className="block h-8 w-[1px] bg-gray-300" />
+          <span className="w-[1px] h-10 bg-gray40" />
 
           <button
             onClick={() => setVista('pendientes')}
-            className={`flex items-center px-4 py-2 rounded-sm gap-2 text-sm font-medium ${
+            className={[
+              'flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium',
               vista === 'pendientes'
                 ? 'bg-primaryDark text-white'
-                : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
+                : 'bg-gray20 text-primaryDark hover:shadow-default',
+            ].join(' ')}
           >
-            <Icon icon="mdi:clock-outline" width={20} height={20} />
+            <Icon icon="mdi:clock-outline" width={18} height={18} />
             <span>Pendientes</span>
           </button>
 
-          <span className="block h-8 w-[1px] bg-gray-300" />
+          <span className="w-[1px] h-10 bg-gray40" />
 
           <button
             onClick={() => setVista('terminados')}
-            className={`flex items-center px-4 py-2 rounded-sm gap-2 text-sm font-medium ${
+            className={[
+              'flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium',
               vista === 'terminados'
                 ? 'bg-primaryDark text-white'
-                : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
+                : 'bg-gray20 text-primaryDark hover:shadow-default',
+            ].join(' ')}
           >
-            <Icon icon="mdi:clipboard-check-outline" width={20} height={20} />
+            <Icon icon="mdi:clipboard-check-outline" width={18} height={18} />
             <span>Terminados</span>
           </button>
         </div>

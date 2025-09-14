@@ -6,12 +6,12 @@ import { useEffect, useMemo, useState } from 'react';
 
 
 export type StockFilters = {
-  almacenId: string;      
-  categoriaId: string;   
-  estado: string;         
-  stockBajo: boolean;    
+  almacenId: string;      // "" para todos
+  categoriaId: string;    // "" para todos
+  estado: string;         // "" | "Activo" | "Descontinuado"
+  stockBajo: boolean;     // stock <= stock_minimo
   precioOrden: '' | 'asc' | 'desc';
-  q: string;              
+  q: string;              // búsqueda
 };
 
 export default function StockPage() {
@@ -98,5 +98,5 @@ export default function StockPage() {
         </div>
       </div>
     </section>
-  );
+  );
 }

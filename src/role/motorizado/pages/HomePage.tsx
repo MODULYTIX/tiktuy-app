@@ -18,6 +18,10 @@ type KPIs = {
 
 const GESTION_PEDIDOS_PATH = '/motorizado/pedidos';
 
+const isAbort = (e: unknown) =>
+  (e as any)?.name === 'AbortError' || /aborted/i.test((e as any)?.message || '');
+
+// ================== KPI CARD ==================
 function KpiCard({
   title,
   value,
@@ -31,56 +35,48 @@ function KpiCard({
   accent: 'blue' | 'green' | 'amber' | 'red';
   disabled?: boolean;
 }) {
-  const display = disabled ? '--' : value.toString().padStart(2, '0');
+  const display = (disabled ? 0 : value).toString().padStart(2, '0');
 
   const c = {
-    blue: {
-      ring: 'ring-blue-200',
-      icon: 'text-blue-600',
-      bar: 'from-blue-500 to-blue-400',
-    },
-    green: {
-      ring: 'ring-green-200',
-      icon: 'text-green-600',
-      bar: 'from-green-500 to-green-400',
-    },
-    amber: {
-      ring: 'ring-amber-200',
-      icon: 'text-amber-600',
-      bar: 'from-amber-500 to-amber-400',
-    },
-    red: {
-      ring: 'ring-red-200',
-      icon: 'text-red-600',
-      bar: 'from-red-500 to-red-400',
-    },
+    blue:  { icon: 'text-blue-500',  text: 'text-blue-600',  border: 'border-blue-500',  number: 'text-[28px] md:text-[30px]' },
+    green: { icon: 'text-green-500', text: 'text-green-600', border: 'border-green-500', number: 'text-[28px] md:text-[30px]' },
+    amber: { icon: 'text-amber-500', text: 'text-amber-600', border: 'border-amber-500', number: 'text-[28px] md:text-[30px]' },
+    red:   { icon: 'text-red-500',   text: 'text-red-600',   border: 'border-red-500',   number: 'text-[28px] md:text-[30px]' },
   }[accent];
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border bg-white p-4 shadow-sm ring-1 ${c.ring}`}>
-      <div className={`pointer-events-none absolute inset-x-0 bottom-0 h-2 bg-gradient-to-r ${c.bar}`} />
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[14px] font-medium text-gray-700">{title}</p>
-          <p className="mt-3 text-3xl font-semibold tabular-nums text-gray-800">{display}</p>
+    <div className="relative overflow-hidden rounded-xl bg-white border border-gray-200 p-4 shadow-[0_8px_14px_rgba(0,0,0,0.12)]">
+      <div className="grid grid-cols-[minmax(0,1fr)_72px] items-center gap-3">
+        <div className="min-h-[76px] md:min-h-[80px] flex flex-col justify-between min-w-0">
+          {/* Título con borde que crece con 1 o 2 líneas */}
+          <div className={`min-w-0 pl-2 border-l-2 ${c.border}`}>
+            <p
+              className="text-[12.5px] leading-[1.15] font-medium text-gray-700 overflow-hidden"
+              style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+              title={title}
+            >
+              {title}
+            </p>
+          </div>
+          <p className={`mt-2 font-semibold leading-none tabular-nums ${c.number} ${c.text}`}>{display}</p>
         </div>
-        <div className="flex h-14 w-14 items-center justify-center">
-          <Icon icon={icon} width="36" height="36" className={c.icon} />
+
+        {/* Icono ocupa el alto máximo de su celda */}
+        <div className="h-[56px] md:h-[60px] flex items-center justify-center ml-1">
+          <Icon icon={icon} height="100%" className={`${c.icon} h-full w-auto shrink-0`} aria-hidden />
         </div>
       </div>
     </div>
   );
 }
 
-// ---- helper para detectar aborts (USADO) ----
-const isAbort = (e: unknown) =>
-  (e as any)?.name === 'AbortError' || /aborted/i.test((e as any)?.message || '');
-
+// ================== PÁGINA ==================
 export default function MotorizadoHomePage() {
-  const {  token } = useAuth();
+  const { token } = useAuth();
 
   const [activo, setActivo] = useState<boolean | null>(null);
-  const [toggling, setToggling] = useState(false);
+  const [switchBusy, setSwitchBusy] = useState(false);
+  const [toggleErr, setToggleErr] = useState('');
 
   const [kpis, setKpis] = useState<KPIs>({
     asignadosHoy: 0,
@@ -94,8 +90,9 @@ export default function MotorizadoHomePage() {
 
   const estadoText = useMemo(() => {
     if (activo === null) return 'Cargando…';
+    if (switchBusy) return 'Actualizando…';
     return activo ? 'Activo' : 'Inactivo';
-  }, [activo]);
+  }, [activo, switchBusy]);
 
   const showCTA = useMemo(
     () => Boolean(activo && (kpis.asignadosHoy > 0 || kpis.pendientes > 0)),
@@ -126,14 +123,12 @@ export default function MotorizadoHomePage() {
         fetchKpisMotorizado(token, signal),
       ]);
 
-      // Disponibilidad
       if (dispRes.status === 'fulfilled') {
         setActivo(dispRes.value.activo);
       } else if (!isAbort(dispRes.reason)) {
         setErr(dispRes.reason?.message ?? 'No se pudo obtener la disponibilidad');
       }
 
-      // KPIs
       if (kpiRes.status === 'fulfilled') {
         const kk = kpiRes.value as Partial<KPIs>;
         setKpis({
@@ -157,132 +152,118 @@ export default function MotorizadoHomePage() {
     return () => ac.abort();
   }, [token, load]);
 
+  // Toggle con UX de carga y duración mínima
   const onToggle = async () => {
-    if (!token || toggling || activo === null) return;
+    if (!token || switchBusy || activo === null) return;
+
     const next = !activo;
+    setToggleErr('');
+    setSwitchBusy(true);
+
+    const start = Date.now();
+    const MIN_SPIN_MS = 450;
+
     try {
-      setToggling(true);
-      setErr('');
-      setActivo(next); // optimista
       const r = await setDisponibilidadRepartidor({ token }, next);
-      setActivo(r.activo); // confirma backend
-    } catch (e) {
-      // rollback si falla y no es abort
-      if (!isAbort(e)) {
-        setActivo((p) => (p === null ? null : !p));
-        setErr((e as any)?.message ?? 'No se pudo actualizar la disponibilidad');
-      }
+      setActivo(r.activo);
+    } catch (e: any) {
+      if (!isAbort(e)) setToggleErr(e?.message || 'No se pudo actualizar la disponibilidad');
     } finally {
-      setToggling(false);
+      const elapsed = Date.now() - start;
+      if (elapsed < MIN_SPIN_MS) await new Promise((res) => setTimeout(res, MIN_SPIN_MS - elapsed));
+      setSwitchBusy(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-center text-center flex-col px-4 py-3">
-          <div>
-            <h1 className="text-3xl font-semibold text-[#1E3A8A]">Panel de Control</h1>
-            <p className="text-lg text-gray-600">Active o desactive su estado para realizar pedidos</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className={`text-lg font-medium ${activo ? 'text-emerald-600' : 'text-gray-600'}`}>
-              {estadoText}
-            </span>
-            <button
-              type="button"
-              onClick={onToggle}
-              disabled={toggling || activo === null}
-              aria-pressed={!!activo}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition ${
-                activo ? 'bg-emerald-500' : 'bg-gray-300'
-              } ${toggling || activo === null ? 'opacity-60 cursor-not-allowed' : ''}`}
-            >
-              <span className="sr-only">Cambiar disponibilidad</span>
-              <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${
-                  activo ? 'translate-x-7' : 'translate-x-1'
-                }`}
-              />
-            </button>
+      {/* Header SIN fondo ni borde, con switch ABAJO a la derecha */}
+      <header className="bg-transparent">
+        <div className="mx-auto max-w-7xl px-6 pt-5 pb-2">
+          {/* Grid 2x2: título arriba izq, subtítulo abajo izq, switch abajo der */}
+          <div className="grid grid-cols-[1fr_auto] grid-rows-[auto_auto] items-end gap-x-4 gap-y-1">
+            <h1 className="col-start-1 row-start-1 text-[28px] md:text-[30px] font-bold text-[#1A237E]">
+              Panel de Control
+            </h1>
+
+            <p className="col-start-1 row-start-2 text-[14px] text-gray-600">
+              Active o desactive su estado para realizar pedidos
+            </p>
+
+            {/* Switch abajo-derecha */}
+            <div className="col-start-2 row-start-2 self-end">
+              <div className="flex items-center gap-3">
+                <span
+                  className={`text-[14px] font-medium ${
+                    switchBusy ? 'text-sky-700' : activo ? 'text-emerald-600' : 'text-gray-600'
+                  }`}
+                  aria-live="polite"
+                >
+                  {estadoText}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={onToggle}
+                  disabled={switchBusy || activo === null}
+                  aria-pressed={!!activo}
+                  aria-busy={switchBusy}
+                  className={[
+                    'relative inline-flex h-6 w-12 items-center rounded-full transition-colors',
+                    activo ? 'bg-green-500' : 'bg-gray-300',
+                    switchBusy ? 'cursor-wait animate-pulse' : '',
+                    switchBusy || activo === null ? 'opacity-90' : '',
+                  ].join(' ')}
+                >
+                  <span className="sr-only">Cambiar disponibilidad</span>
+                  <span
+                    className={[
+                      'inline-flex h-5 w-5 items-center justify-center transform rounded-full bg-white transition-transform',
+                      activo ? 'translate-x-6' : 'translate-x-1',
+                    ].join(' ')}
+                  >
+                    {switchBusy ? (
+                      <Icon icon="line-md:loading-twotone-loop" width="14" height="14" className="animate-spin text-gray-500" />
+                    ) : null}
+                  </span>
+                </button>
+              </div>
+              {toggleErr && (
+                <p className="mt-1 text-xs text-red-600" role="status" aria-live="polite">
+                  {toggleErr}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       {/* Body */}
-      <main className="mx-auto max-w-7xl px-4 py-6">
-
+      <main className="mx-auto max-w-7xl px-6 py-6">
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard
-            title="Pedidos Asignados Hoy"
-            value={kpis.asignadosHoy}
-            icon="mdi:note-edit"
-            accent="blue"
-            disabled={!activo}
-          />
-          <KpiCard
-            title="Entregas completadas"
-            value={kpis.completados}
-            icon="mdi:clipboard-check"
-            accent="green"
-            disabled={!activo}
-          />
-          <KpiCard
-            title="Entregas Pendientes"
-            value={kpis.pendientes}
-            icon="mdi:clipboard-alert"
-            accent="amber"
-            disabled={!activo}
-          />
-          <KpiCard
-            title="Pedidos Reprogramados"
-            value={kpis.reprogramados}
-            icon="mdi:calendar-refresh"
-            accent="red"
-            disabled={!activo}
-          />
+          <KpiCard title="Pedidos Asignados Hoy" value={kpis.asignadosHoy} icon="lsicon:order-done-outline" accent="blue" disabled={!activo} />
+          <KpiCard title="Entregas completadas" value={kpis.completados} icon="lsicon:order-abnormal-outline" accent="green" disabled={!activo} />
+          <KpiCard title="Entregas Pendientes" value={kpis.pendientes} icon="lsicon:order-edit-outline" accent="amber" disabled={!activo} />
+          <KpiCard title="Pedidos Reprogramados" value={kpis.reprogramados} icon="streamline-freehand:connect-device-exchange" accent="red" disabled={!activo} />
         </div>
 
         {/* Mensaje / CTA */}
-        <section className="mt-8">
+        <section className="mt-14 text-center">
           {loading ? (
             <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
           ) : activo ? (
-            showCTA ? (
-              <div className="rounded-2xl border bg-white p-6">
-                <p className="text-lg font-semibold text-gray-800">{ctaTitle}</p>
-                <p className="mt-1 text-gray-600">{ctaSubtitle}</p>
-                <div className="mt-4">
-                  <Link
-                    to={GESTION_PEDIDOS_PATH}
-                    className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-white shadow-sm hover:bg-slate-800"
-                  >
-                    Ir a ver pedidos <span className="ml-2">→</span>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center rounded-2xl border bg-white p-8 text-center text-gray-600">
-                <Icon icon="mdi:bell-outline" width="36" height="36" className="text-gray-400" />
-                <p className="mt-4 max-w-[48ch] text-sm leading-6">
-                  Aún no tienes entregas asignadas. Te avisaremos apenas llegue una.
-                </p>
-              </div>
-            )
+            <div className="flex flex-col items-center justify-center text-gray-400" />
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-2xl border bg-white p-8 text-center">
-              <Icon icon="mdi:minus" width="36" height="36" className="text-gray-400" />
-              <p className="mt-6 max-w-[48ch] text-sm leading-6 text-gray-600">
+            <div className="flex flex-col items-center justify-center text-gray-500">
+              <Icon icon="healthicons:negative-outline-24px" width="24" height="24" />
+              <p className="mt-6 text-sm">
                 Actualmente estás inactivo. Activa tu estado para recibir pedidos asignados por tu courier.
               </p>
             </div>
           )}
-          {err && <p className="mt-3 text-sm text-red-600">{err}</p>}
+          {err && <p className="mt-4 text-sm text-red-600">{err}</p>}
         </section>
-
-        <footer className="px-1 pt-6 text-xs text-gray-400">Versión 1.0</footer>
       </main>
     </div>
   );

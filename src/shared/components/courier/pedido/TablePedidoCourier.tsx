@@ -1,7 +1,8 @@
 // src/shared/components/courier/pedido/TablePedidoCourier.tsx
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FaEye } from 'react-icons/fa';
-import Paginator from '../../Paginator';
+import { Icon } from '@iconify/react';
+import { FiChevronDown } from 'react-icons/fi';
 
 import type {
   Paginated,
@@ -22,7 +23,7 @@ interface Props {
   view: View;
   token: string;
   onVerDetalle?: (pedidoId: number) => void;
-  onAsignar?: (ids: number[]) => void; // callback del botón "Asignar Repartidor"
+  onAsignar?: (ids: number[]) => void;
 }
 
 /* ---- utilidades de formato ---- */
@@ -84,11 +85,8 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
         if (view === 'asignados') {
           resp = await fetchPedidosAsignadosHoy(token, qHoy, { signal: ac.signal });
         } else if (view === 'pendientes') {
-          // agrupado: Pendiente, Recepcionará entrega hoy, No responde / número equivocado,
-          // Reprogramado, No hizo el pedido / anuló
           resp = await fetchPedidosPendientes(token, qEstado, { signal: ac.signal });
         } else {
-          // terminados: Entregados (si quieres incluir rechazados, crea endpoint /terminados o /rechazados)
           resp = await fetchPedidosEntregados(token, qEstado, { signal: ac.signal });
         }
         setData(resp);
@@ -120,14 +118,12 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
     if (filtroDistrito) {
       arr = arr.filter((x) => x.cliente?.distrito === filtroDistrito);
     }
-
     if (filtroCantidad) {
       const cant = Number(filtroCantidad);
       const cantidadDeItems = (x: PedidoListItem) =>
         x.items_total_cantidad ?? (x.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
       arr = arr.filter((x) => cantidadDeItems(x) === cant);
     }
-
     if (searchProducto.trim()) {
       const q = searchProducto.trim().toLowerCase();
       arr = arr.filter((x) => (x.items ?? []).some((it) => it.nombre.toLowerCase().includes(q)));
@@ -139,37 +135,73 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
   // selección de items visibles en la página actual
   const pageIds = itemsFiltrados.map((p) => p.id);
   const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+  const someSelected = !allSelected && pageIds.some((id) => selectedIds.includes(id));
 
-  const toggleSelectAll = () => {
-    if (view !== 'asignados') return;
-    if (allSelected) {
-      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
-    } else {
-      setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+  // header checkbox indeterminate
+  const headerCbRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (headerCbRef.current) {
+      headerCbRef.current.indeterminate = someSelected;
     }
-  };
-
-  const toggleSelectOne = (id: number) => {
-    if (view !== 'asignados') return;
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
+  }, [someSelected]);
 
   const totalPages = data?.totalPages ?? 1;
 
+  // paginador (misma lógica/estilo del modelo)
+  const pagerItems = useMemo(() => {
+    const maxButtons = 5;
+    const pages: (number | string)[] = [];
+    if (!totalPages || totalPages <= 1) return pages;
+
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, page - 2);
+      let end = Math.min(totalPages, page + 2);
+
+      if (page <= 3) {
+        start = 1;
+        end = maxButtons;
+      } else if (page >= totalPages - 2) {
+        start = totalPages - (maxButtons - 1);
+        end = totalPages;
+      }
+
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (start > 1) {
+        pages.unshift('…');
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push('…');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  }, [page, totalPages]);
+
+  const goToPage = (p: number) => {
+    if (!totalPages) return;
+    if (p < 1 || p > totalPages || p === page || loading) return;
+    setPage(p);
+  };
+
   return (
-    <div className="w-full bg-white rounded-lg shadow overflow-hidden">
-      {/* Header interno + botón Asignar */}
-      <div className="flex items-center justify-between px-4 pt-4">
+    <div className="w-full bg-transparent overflow-visible">
+      {/* Header */}
+      <div className="flex items-center justify-between px-0 pt-0 pb-0 mb-5">
         <div>
-          <h2 className="text-lg font-semibold text-primaryDark">
+          <h2 className="text-[20px] font-semibold text-primaryDark leading-tight">
             {view === 'asignados' && 'Pedidos Asignados'}
             {view === 'pendientes' && 'Pedidos Pendientes'}
             {view === 'terminados' && 'Pedidos Terminados'}
           </h2>
           <p className="text-sm text-gray-600">
             {view === 'asignados' && 'Selecciona y asigna pedidos a un repartidor.'}
-            {view === 'pendientes' && 'Pedidos en gestión con el cliente (contacto, reprogramación, etc.).'}
-            {view === 'terminados' && 'Pedidos completados (mostrar método de pago y evidencia si corresponde).'}
+            {view === 'pendientes' &&
+              'Pedidos en gestión con el cliente (contacto, reprogramación, etc.).'}
+            {view === 'terminados' &&
+              'Pedidos completados (mostrar método de pago y evidencia si corresponde).'}
           </p>
         </div>
 
@@ -183,178 +215,231 @@ export default function TablePedidoCourier({ view, token, onVerDetalle, onAsigna
         </button>
       </div>
 
-      {/* Filtros visuales */}
-      <div className="px-4 py-3">
-        <div className="bg-white border rounded p-3 flex flex-wrap gap-3 items-end">
-          <div className="min-w-[200px]">
-            <label className="block text-xs text-gray-600 mb-1">Distrito</label>
-            <select
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={filtroDistrito}
-              onChange={(e) => setFiltroDistrito(e.target.value)}
-            >
-              <option value="">Seleccionar distrito</option>
-              {distritos.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+      {/* Filtros */}
+      <div className="px-0 py-0 mb-5">
+        <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
+          {/* Distrito */}
+          <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
+            <label className="text-sm font-medium text-black block">Distrito</label>
+            <div className="relative">
+              <select
+                className="w-full h-10 px-3 pr-9 rounded-md border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors appearance-none"
+                value={filtroDistrito}
+                onChange={(e) => setFiltroDistrito(e.target.value)}
+              >
+                <option value="">Seleccionar distrito</option>
+                {distritos.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
+            </div>
           </div>
 
-          <div className="min-w-[200px]">
-            <label className="block text-xs text-gray-600 mb-1">Cantidad</label>
-            <select
-              className="w-full border rounded px-3 py-2 text-sm"
-              value={filtroCantidad}
-              onChange={(e) => setFiltroCantidad(e.target.value)}
-            >
-              <option value="">Seleccionar cantidad</option>
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {two(n)}
-                </option>
-              ))}
-            </select>
+          {/* Cantidad */}
+          <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
+            <label className="text-sm font-medium text-black block">Cantidad</label>
+            <div className="relative">
+              <select
+                className="w-full h-10 px-3 pr-9 rounded-md border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors appearance-none"
+                value={filtroCantidad}
+                onChange={(e) => setFiltroCantidad(e.target.value)}
+              >
+                <option value="">Seleccionar cantidad</option>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {two(n)}
+                  </option>
+                ))}
+              </select>
+              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
+            </div>
           </div>
 
-          <div className="flex-1 min-w-[240px]">
-            <label className="block text-xs text-gray-600 mb-1">Buscar productos por nombre</label>
+          {/* Búsqueda */}
+          <div className="flex-1 min-w-[240px] flex flex-col gap-[10px]">
+            <label className="text-sm font-medium text-black block">
+              Buscar productos por nombre
+            </label>
             <input
-              className="w-full border rounded px-3 py-2 text-sm"
+              className="w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors"
               placeholder="Buscar productos por nombre..."
               value={searchProducto}
               onChange={(e) => setSearchProducto(e.target.value)}
             />
           </div>
 
+          {/* Limpiar */}
           <button
-            className="inline-flex items-center gap-2 border px-3 py-2 rounded text-gray-600 hover:bg-gray-100"
+            className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100"
             onClick={() => {
               setFiltroDistrito('');
               setFiltroCantidad('');
               setSearchProducto('');
             }}
           >
+            <Icon icon="mynaui:delete" width={20} height={20} />
             Limpiar Filtros
           </button>
         </div>
       </div>
 
-      {/* barra superior: total & paginación */}
-      <div className="flex justify-between items-center px-4 py-3 border-t">
-        <div className="text-sm text-gray-600">
-          Total: <b>{data?.totalItems ?? 0}</b> registros
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            disabled={page <= 1 || loading}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Anterior
-          </button>
-          <span className="text-sm">
-            Página <b>{page}</b> de <b>{totalPages}</b>
-          </span>
-          <button
-            disabled={page >= totalPages || loading}
-            onClick={() => setPage((p) => p + 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Siguiente
-          </button>
-        </div>
-      </div>
-
-      {/* estados de carga */}
+      {/* Estados */}
       {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
       {!loading && error && <div className="py-10 text-center text-red-600">{error}</div>}
 
-      {/* tabla */}
+      {/* Tabla con estilos base */}
       {!loading && !error && (
         <>
-          <table className="w-full text-sm text-left text-gray-600">
-            <thead className="bg-gray-100 text-gray-700 text-xs uppercase">
-              <tr>
-                <th className="px-4 py-3">
-                  <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} disabled={view !== 'asignados'} />
-                </th>
-                <th className="px-4 py-3">Fec. Entrega</th>
-                <th className="px-4 py-3">Ecommerce</th>
-                <th className="px-4 py-3">Cliente</th>
-                <th className="px-4 py-3">Dirección de Entrega</th>
-                <th className="px-4 py-3">Cant. de productos</th>
-                <th className="px-4 py-3">Monto</th>
-                <th className="px-4 py-3">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {itemsFiltrados.map((p) => {
-                const fecha =
-                  view === 'terminados'
-                    ? p.fecha_entrega_real ?? p.fecha_entrega_programada
-                    : p.fecha_entrega_programada;
+          <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
+            <div className="overflow-x-auto bg-white">
+              <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+                <colgroup>
+                  <col className="w-[5%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[28%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[5%]" />
+                </colgroup>
 
-                const cantidad = p.items_total_cantidad ?? (p.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
-                const direccion = p.cliente?.direccion ?? ''; // viene del mapeo del service
-                const montoNumber = Number(p.monto_recaudar || 0);
-
-                return (
-                  <tr key={p.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(p.id)}
-                        onChange={() => toggleSelectOne(p.id)}
-                        disabled={view !== 'asignados'}
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      {fecha ? new Date(fecha).toLocaleDateString('es-PE') : '—'}
-                    </td>
-                    <td className="px-4 py-3">{p.ecommerce?.nombre_comercial ?? '—'}</td>
-                    <td className="px-4 py-3">{p.cliente?.nombre ?? '—'}</td>
-                    <td className="px-4 py-3 truncate max-w-[260px]" title={direccion}>
-                      {direccion || '—'}
-                    </td>
-                    <td className="px-4 py-3">{two(cantidad)}</td>
-                    <td className="px-4 py-3">{PEN.format(montoNumber)}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        className="text-blue-500 hover:text-blue-700"
-                        onClick={() => onVerDetalle?.(p.id)}
-                        title="Ver detalle"
-                      >
-                        <FaEye />
-                      </button>
-                    </td>
+                <thead className="bg-[#E5E7EB]">
+                  <tr className="text-gray70 font-roboto font-medium">
+                    <th className="px-4 py-3 text-left">
+                      <input ref={headerCbRef} type="checkbox" className="cursor-pointer" checked={allSelected} onChange={(e) => {
+                        if (view !== 'asignados') return;
+                        if (e.target.checked) {
+                          setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+                        } else {
+                          setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+                        }
+                      }} disabled={view !== 'asignados'} />
+                    </th>
+                    <th className="px-4 py-3 text-left">Fec. Entrega</th>
+                    <th className="px-4 py-3 text-left">Ecommerce</th>
+                    <th className="px-4 py-3 text-left">Cliente</th>
+                    <th className="px-4 py-3 text-left">Dirección de Entrega</th>
+                    <th className="px-4 py-3 text-center">Cant. de productos</th>
+                    <th className="px-4 py-3 text-left">Monto</th>
+                    <th className="px-4 py-3 text-center">Acciones</th>
                   </tr>
-                );
-              })}
+                </thead>
 
-              {!itemsFiltrados.length && (
-                <tr>
-                  <td colSpan={8} className="py-8 text-center text-gray-500">
-                    No hay pedidos para esta etapa.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                <tbody className="divide-y divide-gray20">
+                  {itemsFiltrados.map((p) => {
+                    const fecha =
+                      view === 'terminados'
+                        ? p.fecha_entrega_real ?? p.fecha_entrega_programada
+                        : p.fecha_entrega_programada;
 
-          {/* Paginación inferior (opcional con tu componente) */}
-          {totalPages > 1 && (
-            <div className="border-t p-4">
-              <Paginator
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={(next) => {
-                  if (!loading && next >= 1 && next <= totalPages) setPage(next);
-                }}
-              />
+                    const cantidad =
+                      p.items_total_cantidad ?? (p.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
+                    const direccion = p.cliente?.direccion ?? '';
+                    const montoNumber = Number(p.monto_recaudar || 0);
+
+                    return (
+                      <tr key={p.id} className="hover:bg-gray10 transition-colors">
+                        <td className="h-12 px-4 py-3">
+                          <input
+                            type="checkbox"
+                            className="cursor-pointer"
+                            checked={selectedIds.includes(p.id)}
+                            onChange={(e) => {
+                              if (view !== 'asignados') return;
+                              setSelectedIds((prev) =>
+                                e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id)
+                              );
+                            }}
+                            disabled={view !== 'asignados'}
+                          />
+                        </td>
+                        <td className="h-12 px-4 py-3 text-gray70">
+                          {fecha ? new Date(fecha).toLocaleDateString('es-PE') : '—'}
+                        </td>
+                        <td className="h-12 px-4 py-3 text-gray70">
+                          {p.ecommerce?.nombre_comercial ?? '—'}
+                        </td>
+                        <td className="h-12 px-4 py-3 text-gray70">{p.cliente?.nombre ?? '—'}</td>
+                        <td className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]" title={direccion}>
+                          {direccion || '—'}
+                        </td>
+                        <td className="h-12 px-4 py-3 text-center text-gray70">{two(cantidad)}</td>
+                        <td className="h-12 px-4 py-3 text-gray70">{PEN.format(montoNumber)}</td>
+                        <td className="h-12 px-4 py-3">
+                          <div className="flex items-center justify-center gap-3">
+                            <button
+                              className="text-blue-600 hover:text-blue-800 transition-colors"
+                              onClick={() => onVerDetalle?.(p.id)}
+                              title="Ver detalle"
+                              aria-label={`Ver ${p.id}`}
+                            >
+                              <FaEye />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {!itemsFiltrados.length && (
+                    <tr className="hover:bg-transparent">
+                      <td colSpan={8} className="px-4 py-8 text-center text-gray70 italic">
+                        No hay pedidos para esta etapa.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+
+            {/* Paginador */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+                <button
+                  onClick={() => goToPage(page - 1)}
+                  disabled={page === 1 || loading}
+                  className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+                  aria-label="Página anterior"
+                >
+                  &lt;
+                </button>
+
+                {pagerItems.map((p, i) =>
+                  typeof p === 'string' ? (
+                    <span key={`dots-${i}`} className="px-2 text-gray70">
+                      {p}
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => goToPage(p)}
+                      aria-current={page === p ? 'page' : undefined}
+                      className={[
+                        'w-8 h-8 flex items-center justify-center rounded',
+                        page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
+                      ].join(' ')}
+                      disabled={loading}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+                <button
+                  onClick={() => goToPage(page + 1)}
+                  disabled={page === totalPages || loading}
+                  className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+                  aria-label="Página siguiente"
+                >
+                  &gt;
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

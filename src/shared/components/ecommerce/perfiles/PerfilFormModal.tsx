@@ -1,6 +1,7 @@
 import { IoClose } from 'react-icons/io5';
 import { useEffect, useRef, useState } from 'react';
 import { GrUserAdmin } from 'react-icons/gr';
+import { FiChevronDown } from 'react-icons/fi';
 import { registerTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
 
 interface Props {
@@ -11,17 +12,8 @@ interface Props {
 
 const rolModuloMap: Record<string, string[]> = {
   '1': ['stock', 'movimiento'],
-  '2': ['pedidos'], // <-- plural para ser coherente con el resto
-  '3': [
-    'panel',
-    'almacen',
-    'stock',
-    'movimiento',
-    'pedidos',
-    'saldos',
-    'perfiles',
-    'reportes',
-  ],
+  '2': ['pedidos'],
+  '3': ['panel', 'almacen', 'stock', 'movimiento', 'pedidos', 'saldos', 'perfiles', 'reportes'],
 };
 
 const moduloLabelMap: Record<string, string> = {
@@ -47,7 +39,7 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
     rol_perfil_id: '',
   });
   const [modulos, setModulos] = useState<string[]>([]);
-  const [selectModulo, setSelectModulo] = useState(''); // control del <select> de módulos
+  const [selectModulo, setSelectModulo] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -61,31 +53,24 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        onClose();
-      }
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) onClose();
     }
     if (isOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, onClose]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleAddModulo = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value; // clave canónica del módulo
-    if (value && !modulos.includes(value)) {
-      setModulos((prev) => [...prev, value]);
-    }
-    setSelectModulo(''); // reset para volver a elegir
+    const value = e.target.value;
+    if (value && !modulos.includes(value)) setModulos((prev) => [...prev, value]);
+    setSelectModulo('');
   };
 
   const handleRemoveModulo = (modulo: string) => {
-    // quitar por CLAVE, no por label
     setModulos((prev) => prev.filter((m) => m !== modulo));
   };
 
@@ -113,11 +98,10 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
           telefono: form.telefono,
           DNI_CI: form.dni,
           rol_perfil_id: Number(form.rol_perfil_id),
-          modulos, // siempre claves
+          modulos,
         },
         token
       );
-
       onCreated?.();
       onClose();
     } catch (err: any) {
@@ -133,12 +117,23 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
   const modulosDisponibles = rolModuloMap[form.rol_perfil_id] || [];
   const modulosFiltrados = modulosDisponibles.filter((m) => !modulos.includes(m));
 
+  // 🎨 Modelo base de estilos
+  const fieldClass =
+    "w-full h-11 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 " +
+    "placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors";
+  const labelClass = "block text-gray-700 font-medium mb-1";
+  const selectBaseClass = `${fieldClass} appearance-none pr-9`;
+  const selectWrapperClass = "relative";
+  const selectChevronClass =
+    "absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400";
+  const btnPrimary =
+    "bg-[#1A253D] text-white px-4 py-0 rounded flex items-center gap-2 disabled:opacity-70 h-auto";
+  const btnSecondary = "px-4 py-2 text-sm border rounded hover:bg-gray-100";
+
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex justify-end">
-      <div
-        ref={modalRef}
-        className="bg-white p-6 rounded-l-md w-full max-w-md h-full overflow-auto shadow-lg"
-      >
+      <div ref={modalRef} className="bg-white p-6 rounded-l-md w-full max-w-md h-full overflow-auto shadow-lg">
+        {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-primary flex gap-2 items-center">
             <GrUserAdmin size={18} />
@@ -152,60 +147,65 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
           Crea un nuevo perfil completando la información personal, datos de contacto, rol y módulo asignado.
         </p>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <label className="block text-sm font-medium mb-1">Nombre</label>
+            <label className={labelClass}>Nombre</label>
             <input
               name="nombre"
               placeholder="Nombre"
-              className="w-full border rounded-lg px-4 py-2"
+              className={fieldClass}
               value={form.nombre}
               onChange={handleChange}
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1">Apellido</label>
+            <label className={labelClass}>Apellido</label>
             <input
               name="apellido"
               placeholder="Apellido"
-              className="w-full border rounded-lg px-4 py-2"
+              className={fieldClass}
               value={form.apellido}
               onChange={handleChange}
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1">DNI / CI</label>
+            <label className={labelClass}>DNI / CI</label>
             <input
               name="dni"
               placeholder="DNI / CI"
-              className="w-full border rounded-lg px-4 py-2"
+              className={fieldClass}
               value={form.dni}
               onChange={handleChange}
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1">Teléfono</label>
-            <div className="flex items-center border rounded-lg px-4 py-2 gap-2">
+            <label className={labelClass}>Teléfono</label>
+            <div className={`${fieldClass} flex items-center gap-2`}>
               <span className="text-gray-500 text-sm">+51</span>
               <input
                 name="telefono"
                 placeholder="987654321"
-                className="w-full outline-none"
+                className="bg-transparent outline-none w-full h-full"
                 value={form.telefono}
                 onChange={handleChange}
                 required
               />
             </div>
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1">Correo</label>
+            <label className={labelClass}>Correo</label>
             <input
               name="correo"
               placeholder="correo@gmail.com"
-              className="w-full border rounded-lg px-4 py-2"
+              className={fieldClass}
               value={form.correo}
               onChange={handleChange}
               required
@@ -213,40 +213,44 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Rol Perfil</label>
-            <select
-              name="rol_perfil_id"
-              className="w-full border rounded-lg px-4 py-2"
-              value={form.rol_perfil_id}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Seleccionar rol</option>
-              <option value="1">Almacenero</option>
-              <option value="2">Vendedor</option>
-              <option value="3">Ecommerce asistente</option>
-            </select>
+            <label className={labelClass}>Rol Perfil</label>
+            <div className={selectWrapperClass}>
+              <select
+                name="rol_perfil_id"
+                className={selectBaseClass}
+                value={form.rol_perfil_id}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Seleccionar rol</option>
+                <option value="1">Almacenero</option>
+                <option value="2">Vendedor</option>
+                <option value="3">Ecommerce asistente</option>
+              </select>
+              <FiChevronDown className={selectChevronClass} />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Contraseña</label>
+            <label className={labelClass}>Contraseña</label>
             <input
               name="password"
               type="password"
               placeholder="Escribir aquí"
-              className="w-full border rounded-lg px-4 py-2"
+              className={fieldClass}
               value={form.password}
               onChange={handleChange}
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1">Repetir Contraseña</label>
+            <label className={labelClass}>Repetir Contraseña</label>
             <input
               name="confirmarPassword"
               type="password"
               placeholder="Escribir aquí"
-              className="w-full border rounded-lg px-4 py-2"
+              className={fieldClass}
               value={form.confirmarPassword}
               onChange={handleChange}
               required
@@ -254,19 +258,22 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
           </div>
 
           <div className="col-span-2">
-            <label className="block text-sm font-medium mb-1">Módulo</label>
-            <select
-              onChange={handleAddModulo}
-              className="w-full border rounded-lg px-4 py-2"
-              value={selectModulo}
-            >
-              <option value="">Seleccionar módulo</option>
-              {modulosFiltrados.map((mod) => (
-                <option key={mod} value={mod}>
-                  {moduloLabelMap[mod] || mod}
-                </option>
-              ))}
-            </select>
+            <label className={labelClass}>Módulo</label>
+            <div className={selectWrapperClass}>
+              <select
+                onChange={handleAddModulo}
+                className={selectBaseClass}
+                value={selectModulo}
+              >
+                <option value="">Seleccionar módulo</option>
+                {modulosFiltrados.map((mod) => (
+                  <option key={mod} value={mod}>
+                    {moduloLabelMap[mod] || mod}
+                  </option>
+                ))}
+              </select>
+              <FiChevronDown className={selectChevronClass} />
+            </div>
 
             <div className="mt-2 flex flex-wrap gap-2">
               {modulos.map((mod) => (
@@ -277,7 +284,7 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
                   {moduloLabelMap[mod] || mod}
                   <button
                     type="button"
-                    onClick={() => handleRemoveModulo(mod)} // pasar CLAVE, no label
+                    onClick={() => handleRemoveModulo(mod)}
                     className="text-red-500 hover:text-red-700"
                     aria-label={`Quitar ${moduloLabelMap[mod] || mod}`}
                   >
@@ -288,17 +295,13 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
             </div>
           </div>
 
-          {error && <div className="col-span-2 text-sm text-red-500 mt-2">{error}</div>}
+          {error && <div className="col-span-2 text-sm text-red-600 mt-2">{error}</div>}
 
-          <div className="col-span-2 flex justify-end gap-3 mt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-primaryDark text-white px-5 py-2 rounded border"
-            >
+          <div className="col-span-2 flex justify-end gap-3 mt-screen h-full">
+            <button type="submit" disabled={loading} className={btnPrimary}>
               {loading ? 'Creando...' : 'Crear nuevo'}
             </button>
-            <button type="button" onClick={onClose} className="border px-5 py-2 rounded">
+            <button type="button" onClick={onClose} className={btnSecondary}>
               Cancelar
             </button>
           </div>
