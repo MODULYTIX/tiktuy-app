@@ -40,12 +40,23 @@ function defaultMonthRange() {
   return { desde: toYMD(first), hasta: toYMD(last) };
 }
 
+<<<<<<< HEAD
 /* ============== Toggle genérico ============== */
 type ToggleBtnProps = PropsWithChildren<{
   active?: boolean;
   onClick?: () => void;
 }>;
 const ToggleBtn = ({ active, onClick, children }: ToggleBtnProps) => (
+=======
+/* ============== Botón toggle ============== */
+type ToggleBtnProps = {
+  active?: boolean;
+  onClick?: () => void;
+  children?: React.ReactNode; // <- agrega children explícitamente
+};
+
+const ToggleBtn: React.FC<ToggleBtnProps> = ({ active, onClick, children }) => (
+>>>>>>> 0205d70a6e0b7717578f20b22dc3c6331c7f466d
   <button
     onClick={onClick}
     className={[
@@ -57,6 +68,17 @@ const ToggleBtn = ({ active, onClick, children }: ToggleBtnProps) => (
   </button>
 );
 
+<<<<<<< HEAD
+=======
+/* ============== Stub de tabla Ecommerce (reemplázala por tu tabla real) ============== */
+const EcommerceTableStub: React.FC = () => (
+  <div className="rounded-xl border border-dashed p-6 text-sm text-gray-600">
+    Conecta aquí tu <b>tabla de Ecommerce</b> (filtros ya preparados abajo).
+    Si ya la tienes, impórtala y reemplaza <code>EcommerceTableStub</code>.
+  </div>
+);
+
+>>>>>>> 0205d70a6e0b7717578f20b22dc3c6331c7f466d
 /* ============== Página ============== */
 type Tab = "ECOMMERCE" | "REPARTIDOR";
 
@@ -130,8 +152,77 @@ const CuadreSaldoPage: React.FC = () => {
 
       {/* Contenido por pestaña */}
       {tab === "ECOMMERCE" ? (
+<<<<<<< HEAD
         // El componente ya incluye sus propios filtros, detalle y abono
         <EcommerceCuadreSaldoTable token={token} />
+=======
+        <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 text-sm font-semibold text-gray-700">
+            Ecommerce — Visualiza lo abonado
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Ecommerce</label>
+              <select
+                className="w-full rounded-xl border px-3 py-2 outline-none"
+                value={eco}
+                onChange={(e) => setEco(e.target.value)}
+              >
+                <option value="">Seleccionar ecommerce</option>
+                <option value="TechLine">TechLine</option>
+                <option value="Casa&Moda">Casa&Moda</option>
+                <option value="BookWorld">BookWorld</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Estado</label>
+              <select
+                className="w-full rounded-xl border px-3 py-2 outline-none"
+                value={ecoEstado}
+                onChange={(e) => setEcoEstado(e.target.value)}
+              >
+                <option value="">Seleccionar estado</option>
+                <option value="VALIDADO">Validado</option>
+                <option value="POR_VALIDAR">Por Validar</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Fecha Inicio</label>
+              <input
+                type="date"
+                value={ecoDesde}
+                onChange={(e) => setEcoDesde(e.target.value)}
+                className="w-full rounded-xl border px-3 py-2 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Fecha Fin</label>
+              <input
+                type="date"
+                value={ecoHasta}
+                onChange={(e) => setEcoHasta(e.target.value)}
+                className="w-full rounded-xl border px-3 py-2 outline-none"
+              />
+            </div>
+
+            <div className="flex items-end justify-between gap-2">
+              <button className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                <CoinIcon /> Abonar Ecommerce
+              </button>
+              <button
+                onClick={limpiarEco}
+                className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm hover:bg-gray-50"
+              >
+                <BroomIcon /> Limpiar Filtros
+              </button>
+            </div>
+          </div>
+        </div>
+>>>>>>> 0205d70a6e0b7717578f20b22dc3c6331c7f466d
       ) : (
         <>
           {/* Filtros Repartidor */}
@@ -194,6 +285,7 @@ const CuadreSaldoPage: React.FC = () => {
             </div>
           </div>
 
+<<<<<<< HEAD
           {/* Tabla Repartidor */}
           {token && repApplied.motorizadoId ? (
             <RepartidorTable
@@ -205,6 +297,21 @@ const CuadreSaldoPage: React.FC = () => {
           ) : (
             <div className="rounded-xl border border-dashed p-6 text-sm text-gray-600">
               Selecciona un <b>motorizado</b> y el rango de fechas para ver los pedidos.
+=======
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">ID Motorizado</label>
+              <input
+                type="number"
+                min={1}
+                value={motorizadoId}
+                onChange={(e) =>
+                  setMotorizadoId(e.target.value === "" ? "" : Number(e.target.value))
+                }
+                className="w-full rounded-xl border px-3 py-2 outline-none"
+                placeholder="Ej: 12"
+              />
+>>>>>>> 0205d70a6e0b7717578f20b22dc3c6331c7f466d
             </div>
           )}
         </>

@@ -7,6 +7,9 @@ import {
 } from "@/services/courier/panel_control/panel_control.api";
 import type { EcommerceCourier } from "@/services/courier/panel_control/panel_control.types";
 
+//  Importa el modal de invitación (renombrado a Ecommer)
+import PanelControlInviteEcommer from "@/shared/components/courier/panelControl/PanelControlInviteEcommer";
+
 type EstadoTexto = "activo" | "pendiente";
 
 interface EcommerceRow {
@@ -17,6 +20,7 @@ interface EcommerceRow {
   telefono: string;
   estado: EstadoTexto;
   fecha_asociacion: string;
+  hasWhatsapp: boolean;     
   _raw: EcommerceCourier;
 }
 
@@ -51,6 +55,9 @@ function toRow(item: EcommerceCourier): EcommerceRow {
     u?.created_at ||
     null;
 
+  // Detecta si la asociación ya tiene link de WhatsApp
+  const hasWhatsapp = Boolean((item as any).link_whatsapp && String((item as any).link_whatsapp).trim().length > 0);
+
   return {
     id: e?.id ?? (item as any).id,
     nombre_comercial: e?.nombre_comercial ?? "-",
@@ -59,6 +66,7 @@ function toRow(item: EcommerceCourier): EcommerceRow {
     telefono: u?.telefono ?? "-",
     estado,
     fecha_asociacion: formatDateLikeDDMMYYYY(fecha),
+    hasWhatsapp,
     _raw: item,
   };
 }
@@ -127,7 +135,7 @@ function DetalleEcommerceModal({
       className="fixed inset-0 z-50 flex items-start justify-end bg-black/50 bg-opacity-30"
       onClick={onClose}
     >
-      {/* Drawer derecho como el resto de modales */}
+      {/* Drawer derecho */}
       <div
         className="w-[40%] max-w-[500px] h-full bg-white overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
@@ -260,29 +268,37 @@ export default function PanelControlTable() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailData, setDetailData] = useState<EcommerceCourier | null>(null);
 
+  // Modal de WhatsApp (invitar / actualizar link)
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteOtherId, setInviteOtherId] = useState<number | null>(null);
+
+  // Factorizo la carga para reutilizar tras guardar en el modal
+  const loadRows = async () => {
+    setLoading(true);
+    setErr(null);
+
+    const token = getAuthToken();
+    if (!token) {
+      setErr("No se encontró el token de autenticación.");
+      setLoading(false);
+      return;
+    }
+
+    const res = await listarEcommercesAsociados(token);
+    if ((res as any).ok) {
+      const mapped = ((res as any).data as EcommerceCourier[]).map(toRow);
+      setRows(mapped);
+    } else {
+      setErr((res as any).error || "Error al listar ecommerces.");
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
     let mounted = true;
     (async function load() {
-      setLoading(true);
-      setErr(null);
-
-      const token = getAuthToken();
-      if (!token) {
-        setErr("No se encontró el token de autenticación.");
-        setLoading(false);
-        return;
-      }
-
-      const res = await listarEcommercesAsociados(token);
+      await loadRows();
       if (!mounted) return;
-
-      if ((res as any).ok) {
-        const mapped = ((res as any).data as EcommerceCourier[]).map(toRow);
-        setRows(mapped);
-      } else {
-        setErr((res as any).error || "Error al listar ecommerces.");
-      }
-      setLoading(false);
     })();
     return () => {
       mounted = false;
@@ -453,8 +469,11 @@ export default function PanelControlTable() {
                         <td className="px-4 py-3 text-gray70 font-[400]">
                           {entry.fecha_asociacion}
                         </td>
+
+                        {/* ACCIONES */}
                         <td className="px-4 py-3">
-                          <div className="flex items-center justify-center">
+                          <div className="flex items-center justify-center gap-3">
+                            {/* Ver detalle */}
                             <FaEye
                               onClick={() => {
                                 setDetailData(entry._raw);
@@ -463,6 +482,28 @@ export default function PanelControlTable() {
                               className="text-blue-700 hover:text-blue-800 cursor-pointer"
                               title="Ver detalle"
                             />
+
+                            {/* WhatsApp: verde si ya hay link, gris si no. Abre el modal para registrar/actualizar */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setInviteOtherId(entry.id); // otherId = ecommerce_id (Courier invita)
+                                setInviteOpen(true);
+                              }}
+                              className="p-1 rounded hover:bg-gray10"
+                              title={
+                                entry.hasWhatsapp
+                                  ? "Grupo de WhatsApp configurado (clic para actualizar)"
+                                  : "Sin grupo de WhatsApp (clic para registrar)"
+                              }
+                            >
+                              <Icon
+                                icon="mdi:whatsapp"
+                                width={20}
+                                height={20}
+                                className={entry.hasWhatsapp ? "text-green-500" : "text-gray-400"}
+                              />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -545,6 +586,20 @@ export default function PanelControlTable() {
         onClose={() => setDetailOpen(false)}
         data={detailData}
       />
+
+      {/* Modal WhatsApp (invitar/actualizar link) */}
+      {inviteOpen && (
+        <PanelControlInviteEcommer
+          open={inviteOpen}
+          otherId={inviteOtherId ?? undefined} // Courier -> otherId = ecommerce_id
+          onClose={() => setInviteOpen(false)}
+          onSaved={async () => {
+            // recarga para actualizar el color del ícono
+            await loadRows();
+            snackbar.show("Cambios guardados");
+          }}
+        />
+      )}
     </div>
   );
 }

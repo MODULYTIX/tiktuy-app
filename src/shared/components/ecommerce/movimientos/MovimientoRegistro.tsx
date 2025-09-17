@@ -3,7 +3,7 @@ import MovimientoRegistroFilters, { type Filters } from './MovimientoRegistroFil
 import MovimientoRegistroTable from './MovimientoRegistroTable';
 import CrearMovimientoModal from '../CrearMovimientoModal';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
-import { useNotification } from '@/shared/context/notificaciones/useNotification';
+import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
 
 export default function MovimientoRegistro() {
   const { notify } = useNotification();

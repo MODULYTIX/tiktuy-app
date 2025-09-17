@@ -8,7 +8,7 @@ import {
 } from '@/services/courier/movimiento/movimientoCourier.api';
 import type { CourierMovimientoDetalle } from '@/services/courier/movimiento/movimientoCourier.type';
 import { FaTimes } from 'react-icons/fa';
-import { useNotification } from '@/shared/context/notificaciones/useNotification';
+import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
 
 interface Props {
   open: boolean;

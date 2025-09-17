@@ -9,7 +9,7 @@ import MovimientoRegistroFilters, {
 import MovimientoRegistroTable from '@/shared/components/ecommerce/movimientos/MovimientoRegistroTable';
 import MovimientoValidacionTable from '@/shared/components/ecommerce/movimientos/MovimientoValidacionTable';
 import CrearMovimientoModal from '@/shared/components/ecommerce/CrearMovimientoModal';
-import { useNotification } from '@/shared/context/notificaciones/useNotification';
+import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
 
 export default function RegistroMovimientoPage() {
   const { notify } = useNotification();
