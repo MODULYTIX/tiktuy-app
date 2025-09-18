@@ -1,5 +1,5 @@
 // src/shared/components/courier/cuadreSaldo/CuadreSaldoTable.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   listPedidos,
   updateServicio,
@@ -50,6 +50,7 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
   resumenRight = todayDMY(),
 }) => {
   const [checked, setChecked] = useState(false);
+
   useEffect(() => {
     if (open) setChecked(false);
   }, [open]);
@@ -62,7 +63,7 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
         {/* Header */}
         <div className="flex flex-col items-center gap-2 px-6 pt-6">
           {/* Shield icon */}
-          <div className="rounded-full bg-emerald-50 p-3">
+          <div className="rounded-full bg-emerald-50 p-3" aria-hidden="true">
             <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
               <path
                 d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z"
@@ -238,7 +239,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
           <h3 className="text-base font-semibold">
             Editar servicio • Pedido #{pedido.id}
           </h3>
-          <button onClick={onClose} className="p-1 text-gray-500 hover:text-black">
+          <button onClick={onClose} className="p-1 text-gray-500 hover:text-black" aria-label="Cerrar">
             ✕
           </button>
         </div>
@@ -343,7 +344,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -358,18 +359,19 @@ const CuadreSaldoTable: React.FC<Props> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, motorizadoId, desde, hasta, page, pageSize]);
 
+  // reiniciar página cuando cambian filtros
   useEffect(() => {
     setPage(1);
   }, [motorizadoId, desde, hasta, pageSize]);
 
+  // cargar datos
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, motorizadoId, desde, hasta, pageSize]);
+  }, [load]);
 
-  const onSavedServicio = (chg: EditModalChange) => {
+  const onSavedServicio = useCallback((chg: EditModalChange) => {
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== chg.id) return r;
@@ -386,13 +388,13 @@ const CuadreSaldoTable: React.FC<Props> = ({
           next.servicioCourier = chg.servicioCourier;
           if ("servicioCourierEfectivo" in next) {
             (next as any).servicioCourierEfectivo =
-              chg.servicioCourier ?? next.servicioCourierEfectivo ?? 0;
+              chg.servicioCourier ?? (next as any).servicioCourierEfectivo ?? 0;
           }
         }
         return next;
       })
     );
-  };
+  }, []);
 
   // ==== selección: sólo filas NO abonadas ====
   const selectableIds = useMemo(
@@ -402,12 +404,15 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const isAllSelected =
     selectedIds.length > 0 && selectedIds.length === selectableIds.length;
 
-  const toggleAll = () => setSelectedIds(isAllSelected ? [] : selectableIds);
+  const toggleAll = useCallback(() => {
+    setSelectedIds(isAllSelected ? [] : selectableIds);
+  }, [isAllSelected, selectableIds]);
 
-  const toggleOne = (id: number) =>
+  const toggleOne = useCallback((id: number) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+  }, []);
 
   const totalServicioSeleccionado = useMemo(
     () =>
@@ -418,30 +423,33 @@ const CuadreSaldoTable: React.FC<Props> = ({
   );
 
   // ==== abono (por fila)
-  const toggleAbono = async (row: PedidoListItem) => {
-    try {
-      const next = !row.abonado;
-      await abonarPedidos(token, { pedidoIds: [row.id], abonado: next });
-      setRows((prev) =>
-        prev.map((r) => (r.id === row.id ? { ...r, abonado: next } : r))
-      );
-      if (next) setSelectedIds((prev) => prev.filter((id) => id !== row.id));
-    } catch (e) {
-      console.error(e);
-      alert("No se pudo actualizar el abono.");
-    }
-  };
+  const toggleAbono = useCallback(
+    async (row: PedidoListItem) => {
+      try {
+        const next = !row.abonado;
+        await abonarPedidos(token, { pedidoIds: [row.id], abonado: next });
+        setRows((prev) =>
+          prev.map((r) => (r.id === row.id ? { ...r, abonado: next } : r))
+        );
+        if (next) setSelectedIds((prev) => prev.filter((id) => id !== row.id));
+      } catch (e) {
+        console.error(e);
+        alert("No se pudo actualizar el abono.");
+      }
+    },
+    [token]
+  );
 
   // ==== abono múltiple -> abre modal
-  const abrirModalAbono = () => {
+  const abrirModalAbono = useCallback(() => {
     if (selectedIds.length === 0) return;
     setOpenConfirm(true);
-  };
+  }, [selectedIds.length]);
 
-  const confirmarAbono = async () => {
+  const confirmarAbono = useCallback(async () => {
     try {
       setLoading(true);
-      const resp = await abonarPedidos(token, {
+      await abonarPedidos(token, {
         pedidoIds: selectedIds,
         abonado: true,
       });
@@ -457,7 +465,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, selectedIds]);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
@@ -519,7 +527,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
             </tr>
           </thead>
 
-        <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100">
             {rows.length === 0 && !loading && (
               <tr>
                 <td colSpan={8} className="p-4 text-gray-500">
@@ -623,6 +631,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
             className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
+            aria-label="Página anterior"
           >
             {"<"}
           </button>
@@ -630,6 +639,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
             className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
+            aria-label="Página siguiente"
           >
             {">"}
           </button>
