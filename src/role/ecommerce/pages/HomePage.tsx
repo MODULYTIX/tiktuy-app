@@ -215,15 +215,14 @@ export default function EcommerceHomePage() {
 
   return (
     <section className="mt-8 flex flex-col gap-[1.25rem]">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-primaryDark">Panel de Control</h1>
         <p className="text-gray60">Monitoreo de Asociación con couriers por ciudades</p>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros Aqui Waza*/}
       <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
-        {/* Filtro Ciudad */}
+        {/* Filtrar Ciudad Waza*/}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
           <label htmlFor="f-ciudad" className="text-sm font-medium text-gray70">Ciudad</label>
           <div className="relative w-full">
@@ -238,7 +237,7 @@ export default function EcommerceHomePage() {
           </div>
         </div>
 
-        {/* Filtro Courier */}
+        {/* Filtrar Courier Waza*/}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
           <label htmlFor="f-courier" className="text-sm font-medium text-gray70">Courier</label>
           <div className="relative w-full">

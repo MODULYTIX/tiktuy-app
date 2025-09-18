@@ -1,5 +1,5 @@
 // src/app/(courier)/perfiles/page.tsx
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CiUser } from 'react-icons/ci';
 import { useAuth } from '@/auth/context';
 import { fetchPerfilTrabajadores } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
@@ -10,22 +10,25 @@ import PerfilesCourierModal from '@/shared/components/courier/perfiles/PerfilerC
 export default function PerfilesPage() {
   const { token } = useAuth();
   const [data, setData] = useState<PerfilTrabajador[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const loadPerfiles = async () => {
+  const loadPerfiles = useCallback(async () => {
     if (!token) return;
+    setLoading(true);
     try {
       const res = await fetchPerfilTrabajadores(token);
       setData(res || []);
     } catch (e) {
       console.error('Error al cargar perfiles courier', e);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     loadPerfiles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [loadPerfiles]);
 
   return (
     <section className="mt-8">
@@ -44,12 +47,16 @@ export default function PerfilesPage() {
         </div>
       </div>
 
-      <PerfilesCourierTable data={data} onReload={loadPerfiles} />
+      <PerfilesCourierTable
+        data={data}
+        loading={loading}
+        onReload={loadPerfiles} // el table recargará tras editar
+      />
 
       <PerfilesCourierModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onCreated={loadPerfiles}
+        onCreated={loadPerfiles} // recarga tras crear
       />
     </section>
   );

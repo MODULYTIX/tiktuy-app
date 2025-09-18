@@ -4,19 +4,27 @@ import { FaRegEdit } from 'react-icons/fa';
 import { Skeleton } from '@/shared/components/ui/Skeleton';
 import Paginator from '@/shared/components/Paginator';
 import type { PerfilTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.types';
+import PerfilesCourierEditModal from '@/shared/components/courier/perfiles/PerfilesCourierEditModal';
 
 type Props = {
   data: PerfilTrabajador[];
   loading?: boolean;
-  onReload?: () => void;
-  onEdit?: (perfil: PerfilTrabajador) => void;
+  onReload?: () => void;             // <- lo llamamos después de editar
+  onEdit?: (perfil: PerfilTrabajador) => void; // opcional: callback externo
 };
 
-export default function PerfilesCourierTable({ data, loading = false, onEdit }: Props) {
+export default function PerfilesCourierTable({ data, loading = false, onReload, onEdit }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  const totalPages = useMemo(() => Math.ceil((data?.length || 0) / itemsPerPage), [data]);
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [selected, setSelected] = useState<PerfilTrabajador | null>(null);
+
+  const totalPages = useMemo(
+    () => Math.ceil((data?.length || 0) / itemsPerPage),
+    [data]
+  );
+
   const currentData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return (data || []).slice(start, start + itemsPerPage);
@@ -60,12 +68,16 @@ export default function PerfilesCourierTable({ data, loading = false, onEdit }: 
               </tr>
             ) : (
               currentData.map((item) => {
-                const modulos = (item.modulo_asignado || []).map((m: string) => m.trim()).filter(Boolean);
+                const modulos = (item.modulo_asignado || [])
+                  .map((m: string) => m.trim())
+                  .filter(Boolean);
 
                 return (
                   <tr key={item.id} className="border-t hover:bg-gray-50">
                     <td className="px-4 py-3">
-                      {item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString() : '-'}
+                      {item.fecha_creacion
+                        ? new Date(item.fecha_creacion).toLocaleDateString()
+                        : '-'}
                     </td>
                     <td className="px-4 py-3">{item.nombres || '-'}</td>
                     <td className="px-4 py-3">{item.apellidos || '-'}</td>
@@ -96,7 +108,14 @@ export default function PerfilesCourierTable({ data, loading = false, onEdit }: 
                     </td>
 
                     <td className="px-4 py-3">
-                      <FaRegEdit className="text-yellow-600 cursor-pointer" onClick={() => onEdit?.(item)} />
+                      <FaRegEdit
+                        className="text-yellow-600 cursor-pointer"
+                        onClick={() => {
+                          setSelected(item);
+                          setEditOpen(true);
+                          onEdit?.(item); // mantiene tu callback externo si lo usas
+                        }}
+                      />
                     </td>
                   </tr>
                 );
@@ -117,6 +136,20 @@ export default function PerfilesCourierTable({ data, loading = false, onEdit }: 
           />
         </div>
       )}
+
+      {/* Modal de edición */}
+      <PerfilesCourierEditModal
+        isOpen={isEditOpen}
+        onClose={() => {
+          setEditOpen(false);
+          setSelected(null);
+        }}
+        trabajador={selected}
+        onUpdated={() => {
+          // recargar data en el padre (si pasó onReload)
+          onReload?.();
+        }}
+      />
     </div>
   );
 }

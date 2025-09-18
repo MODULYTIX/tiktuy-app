@@ -1,10 +1,8 @@
-// src/shared/layout/Header.tsx  (ajusta la ruta si tu Header está en otra carpeta)
+// src/shared/layout/Header.tsx
 import { useAuth } from '@/auth/context/useAuth';
 import { FaUser } from 'react-icons/fa';
 import { Icon } from '@iconify/react';
 import { roleConfigs } from '@/shared/constants/roleConfigs';
-
-// 👇 Importa la campanita conectada al backend
 import NotificationBellIcon from '@/shared/context/notificacionesBell/NotificationBellIcon';
 
 export default function Header() {
@@ -15,21 +13,28 @@ export default function Header() {
   return (
     <header className="h-16 bg-white shadow flex items-center justify-end px-6 fixed top-0 left-0 w-full z-30 transition-all duration-300">
       <div className="flex items-center gap-6 text-primary justify-center content-center">
-        <div className="relative">
-          {/* 🔔 Icono con notificaciones (conectado al backend) */}
-          <NotificationBellIcon />
-        </div>
+        {/* 🔔 Campana outline gris; activa azul al abrir */}
+        <NotificationBellIcon
+          baseColor="text-gray-600"
+          activeColor="text-[#1E3A8A]"
+        />
 
-        {/* ⚙ Icono de Configuración */}
-        <button type="button" className="hover:text-blue-600 transition" aria-label="Configuración">
-          <Icon icon="solar:settings-broken" width="24" height="24" />
+        {/* ⚙ Ícono de configuración outline gris; hover azul */}
+        <button
+          type="button"
+          className="transition-colors text-gray-600 hover:text-[#1E3A8A]"
+          aria-label="Configuración"
+          title="Configuración"
+        >
+          {/* Usa variante lineal/outline, no 'broken' para que se vea limpio */}
+          <Icon icon="solar:settings-linear" width="22" height="22" />
         </button>
 
         <div className="h-5 w-px bg-gray-300" />
 
         {/* Usuario actual */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-[#1E3A8A] text-white rounded-full flex items-center justify-center">
             <FaUser size={16} />
           </div>
           <div className="flex flex-col leading-tight text-sm">

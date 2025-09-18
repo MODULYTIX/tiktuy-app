@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
 // ⛔️ Eliminado Paginator (usaremos el del modelo base)
 // import Paginator from '../../Paginator';
@@ -6,6 +6,9 @@ import { Skeleton } from '../../ui/Skeleton';
 import { useAuth } from '@/auth/context';
 import { fetchPerfilTrabajadores } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
 import type { PerfilTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.types';
+
+// 👉 IMPORTA el modal de edición que te pasé antes
+import PerfilEditModal from './PerfilEditModal';
 
 type Props = {
   onEdit?: (perfil: PerfilTrabajador) => void;
@@ -17,7 +20,7 @@ export default function PerfilesTable({ onEdit }: Props) {
   const { token } = useAuth();
   const [data, setData] = useState<PerfilTrabajador[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // totalPages y pageData (modelo base)
   const totalPages = Math.max(1, Math.ceil(data.length / ROWS_PER_PAGE));
@@ -64,7 +67,7 @@ export default function PerfilesTable({ onEdit }: Props) {
       try {
         const res = await fetchPerfilTrabajadores(token);
         setData(res || []);
-        setPage(1); // reinicia a la primera página al cargar nuevos datos
+        setCurrentPage(1); // Reinicia a la primera página al cargar datos nuevos
       } catch (error) {
         console.error('Error al cargar perfiles de trabajadores', error);
       } finally {
@@ -74,6 +77,10 @@ export default function PerfilesTable({ onEdit }: Props) {
 
     loadPerfiles();
   }, [token]);
+
+  useEffect(() => {
+    loadPerfiles();
+  }, [loadPerfiles]);
 
   return (
     <div className="mt-6">
@@ -152,93 +159,56 @@ export default function PerfilesTable({ onEdit }: Props) {
                         <td className="px-4 py-3 text-gray70 font-[400]">{item.telefono || '-'}</td>
                         <td className="px-4 py-3 text-gray70 font-[400]">{item.perfil || '-'}</td>
 
-                        <td className="px-4 py-3 text-gray70 font-[400]">
-                          {modulos.length > 0 ? (
-                            <div className="relative group cursor-pointer">
-                              <span className="capitalize">{modulos[0]}</span>
-                              <div
-                                className="
-                                  absolute left-0 top-full mt-1 hidden group-hover:block
-                                  bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-10
-                                  max-w-xs whitespace-normal break-words
-                                "
-                              >
-                                {modulos
-                                  .map((mod: string) => mod.charAt(0).toUpperCase() + mod.slice(1))
-                                  .join('\n')}
-                              </div>
-                            </div>
-                          ) : (
-                            '-'
-                          )}
-                        </td>
+                    <td className="px-4 py-3">
+                      {modulos.length > 0 ? (
+                        <div className="relative group cursor-pointer">
+                          <span className="capitalize">{modulos[0]}</span>
+                          <div
+                            className="
+          absolute left-0 top-full mt-1 hidden group-hover:block
+          bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-10
+          max-w-xs whitespace-normal break-words
+        ">
+                            {modulos
+                              .map(
+                                (mod: string) =>
+                                  mod.charAt(0).toUpperCase() + mod.slice(1)
+                              )
+                              .join('\n')}
+                          </div>
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
 
-                        {/* Acciones — SIN CAMBIOS */}
-                        <td className="px-4 py-3">
-                          <FaRegEdit
-                            className="text-yellow-600 cursor-pointer"
-                            onClick={() => onEdit?.(item)}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-
-                {/* Empty rows para altura constante */}
-                {!loading && data.length > 0 && emptyRows > 0 &&
-                  Array.from({ length: emptyRows }).map((_, idx) => (
-                    <tr key={`empty-${idx}`} className="hover:bg-transparent">
-                      {Array.from({ length: 9 }).map((__, i) => (
-                        <td key={i} className="px-4 py-3">&nbsp;</td>
-                      ))}
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Paginador base — visible si hay datos */}
-          {!loading && data.length > 0 && (
-            <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
-              <button
-                onClick={() => goToPage(page - 1)}
-                disabled={page === 1}
-                className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-              >
-                &lt;
-              </button>
-
-              {pagerItems.map((p, i) =>
-                typeof p === 'string' ? (
-                  <span key={`dots-${i}`} className="px-2 text-gray70">
-                    {p}
-                  </span>
-                ) : (
-                  <button
-                    key={p}
-                    onClick={() => goToPage(p)}
-                    aria-current={page === p ? 'page' : undefined}
-                    className={[
-                      'w-8 h-8 flex items-center justify-center rounded',
-                      page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
-                    ].join(' ')}
-                  >
-                    {p}
-                  </button>
-                )
-              )}
-
-              <button
-                onClick={() => goToPage(page + 1)}
-                disabled={page === totalPages}
-                className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-              >
-                &gt;
-              </button>
-            </div>
-          )}
-        </section>
+                    <td className="px-4 py-3">
+                      <FaRegEdit
+                        className="text-yellow-600 cursor-pointer"
+                        onClick={() => onEdit?.(item)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4">
+          <Paginator
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) => {
+              if (page >= 1 && page <= totalPages) {
+                setCurrentPage(page);
+              }
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
