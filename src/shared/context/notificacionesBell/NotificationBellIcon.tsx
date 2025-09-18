@@ -20,13 +20,95 @@ function formatRelativeDate(date: string): string {
 }
 
 type Props = {
-  /** clases extra opcionales para layout del botón */
   className?: string;
-  /** color activo (cuando el popover está abierto) */
-  activeColor?: string; // tailwind class
-  /** color base (idle) */
-  baseColor?: string;   // tailwind class
+  activeColor?: string;
+  baseColor?: string;
 };
+
+type Noti = {
+  id: number | string;
+  titulo?: string;
+  mensaje?: string;
+  fecha: string;
+  leido?: boolean;
+  canal?: 'APP' | 'WHATSAPP' | 'EMAIL';
+  tipo?: 'PEDIDO' | 'SISTEMA' | 'INVITACION' | 'ALERTA';
+  data?: any;
+};
+
+function buildHrefFromData(data: any): string | undefined {
+  if (!data) return undefined;
+  if (data.link || data.url) return data.link || data.url;
+  if (data.cta?.route) {
+    const params = data.cta.params
+      ? '?' + new URLSearchParams(data.cta.params as Record<string, string>).toString()
+      : '';
+    return `${data.cta.route}${params}`;
+  }
+  return undefined;
+}
+
+function getVisualByNotification(n: Noti) {
+  const title = (n.titulo || '').toLowerCase();
+
+  // 1) Prioriza canal
+  if (n.canal === 'WHATSAPP') {
+    return { icon: 'mdi:whatsapp', className: 'text-green-500' };
+  }
+  if (n.canal === 'EMAIL') {
+    return { icon: 'mdi:email-outline', className: 'text-indigo-500' };
+  }
+
+  // 2) Luego por tipo (enum)
+  if (n.tipo === 'INVITACION') {
+    // “Ecommerce - {Nombre}” (asociación) o “Almacenero aceptó la invitación”
+    if (title.includes('acept') || title.includes('almacener') || title.includes('almacenero')) {
+      return { icon: 'mdi:account-check-outline', className: 'text-blue-600' };
+    }
+    if (title.includes('ecommerce')) {
+      return { icon: 'mdi:account', className: 'text-blue-600' };
+    }
+    // fallback genérico de invitaciones
+    return { icon: 'mdi:email-fast-outline', className: 'text-blue-600' };
+  }
+
+  if (n.tipo === 'ALERTA') {
+    if (title.includes('bajo stock') || title.includes('stock bajo')) {
+      return { icon: 'mdi:alert-circle-outline', className: 'text-orange-500' };
+    }
+    return { icon: 'mdi:alert-outline', className: 'text-orange-500' };
+  }
+
+  if (n.tipo === 'PEDIDO') {
+    if (title.includes('incremento') || title.includes('semanal') || title.includes('pedidos')) {
+      return { icon: 'mdi:trending-up', className: 'text-blue-600' };
+    }
+    return { icon: 'mdi:package-variant', className: 'text-blue-600' };
+  }
+
+  // 3) Palabras clave (por si no llega tipo/canal)
+  if (title.includes('whatsapp')) {
+    return { icon: 'mdi:whatsapp', className: 'text-green-500' };
+  }
+  if (title.includes('ecommerce')) {
+    return { icon: 'mdi:account', className: 'text-blue-600' };
+  }
+  if (title.includes('acept')) {
+    return { icon: 'mdi:account-check-outline', className: 'text-blue-600' };
+  }
+  if (title.includes('bajo stock') || title.includes('stock')) {
+    return { icon: 'mdi:alert-circle-outline', className: 'text-orange-500' };
+  }
+  if (title.includes('movimiento de stock') || title.includes('movimiento') || title.includes('almacén') || title.includes('almacen')) {
+    return { icon: 'mdi:truck-outline', className: 'text-blue-600' };
+  }
+  if (title.includes('incremento') || title.includes('semanal') || title.includes('pedidos')) {
+    return { icon: 'mdi:trending-up', className: 'text-blue-600' };
+  }
+
+  // 4) Fallback
+  return { icon: 'mdi:bell-outline', className: 'text-blue-600' };
+}
 
 const NotificationBellIcon = ({
   className = '',
@@ -46,14 +128,12 @@ const NotificationBellIcon = ({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Botón campana: outline gris; activo/hover azul */}
       <button
         onClick={toggle}
         className={`relative transition-colors ${open ? activeColor : baseColor} hover:${activeColor}`}
         aria-label="Notificaciones"
         title="Notificaciones"
       >
-        {/* Ícono outline (sin relleno) */}
         <Icon icon="mdi:bell-outline" width="22" height="22" />
         {unreadCount > 0 && (
           <span
@@ -65,7 +145,6 @@ const NotificationBellIcon = ({
         )}
       </button>
 
-      {/* Dropdown */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -90,17 +169,9 @@ const NotificationBellIcon = ({
               ) : notifications.length === 0 ? (
                 <p className="text-gray-500 text-sm p-3">No hay notificaciones</p>
               ) : (
-                notifications.map((n) => {
-                  // Elegir icono según contexto (puedes sustituir por n.tipo/n.canal si los traes)
-                  let icon = 'mdi:bell-outline';
-                  let iconClass = 'text-blue-600';
-                  if (n.titulo?.toLowerCase().includes('whatsapp')) {
-                    icon = 'mdi:whatsapp';
-                    iconClass = 'text-green-500';
-                  } else if (n.titulo?.toLowerCase().includes('stock')) {
-                    icon = 'mdi:package-variant';
-                    iconClass = 'text-blue-600';
-                  }
+                notifications.map((n: Noti) => {
+                  const { icon, className: iconClass } = getVisualByNotification(n);
+                  const href = buildHrefFromData(n?.data);
 
                   const content = (
                     <div
@@ -117,8 +188,6 @@ const NotificationBellIcon = ({
                     </div>
                   );
 
-                  // Si viene un link en el payload, convertir el item en <a>
-                  const href = n?.data?.link ?? n?.data?.url;
                   return href ? (
                     <a
                       href={href}
@@ -130,7 +199,7 @@ const NotificationBellIcon = ({
                       {content}
                     </a>
                   ) : (
-                    content
+                    <div key={n.id}>{content}</div>
                   );
                 })
               )}

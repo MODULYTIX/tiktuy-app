@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
 import Paginator from '../../Paginator';
 import { Skeleton } from '../../ui/Skeleton';
 import { useAuth } from '@/auth/context';
 import { fetchPerfilTrabajadores } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
 import type { PerfilTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.types';
+
+// 👉 IMPORTA el modal de edición que te pasé antes
+import PerfilEditModal from './PerfilEditModal';
 
 type Props = {
   onEdit?: (perfil: PerfilTrabajador) => void;
@@ -16,6 +19,10 @@ export default function PerfilesTable({ onEdit }: Props) {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // 👉 estado para edición
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [selected, setSelected] = useState<PerfilTrabajador | null>(null);
+
   const itemsPerPage = 6;
   const totalPages = Math.ceil(data.length / itemsPerPage);
 
@@ -23,23 +30,24 @@ export default function PerfilesTable({ onEdit }: Props) {
   const indexOfFirst = indexOfLast - itemsPerPage;
   const currentData = data.slice(indexOfFirst, indexOfLast);
 
-  useEffect(() => {
-    const loadPerfiles = async () => {
-      if (!token) return;
-      setLoading(true);
-      try {
-        const res = await fetchPerfilTrabajadores(token);
-        setData(res || []);
-        setCurrentPage(1); // Reinicia a la primera página al cargar datos nuevos
-      } catch (error) {
-        console.error('Error al cargar perfiles de trabajadores', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPerfiles();
+  // 👉 función reutilizable para cargar (y recargar) la tabla
+  const loadPerfiles = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await fetchPerfilTrabajadores(token);
+      setData(res || []);
+      setCurrentPage(1); // Reinicia a la primera página al cargar datos nuevos
+    } catch (error) {
+      console.error('Error al cargar perfiles de trabajadores', error);
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
+
+  useEffect(() => {
+    loadPerfiles();
+  }, [loadPerfiles]);
 
   return (
     <div className="mt-6">
@@ -103,10 +111,10 @@ export default function PerfilesTable({ onEdit }: Props) {
                           <span className="capitalize">{modulos[0]}</span>
                           <div
                             className="
-          absolute left-0 top-full mt-1 hidden group-hover:block
-          bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-10
-          max-w-xs whitespace-normal break-words
-        ">
+                              absolute left-0 top-full mt-1 hidden group-hover:block
+                              bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-10
+                              max-w-xs whitespace-normal break-words
+                            ">
                             {modulos
                               .map(
                                 (mod: string) =>
@@ -123,7 +131,12 @@ export default function PerfilesTable({ onEdit }: Props) {
                     <td className="px-4 py-3">
                       <FaRegEdit
                         className="text-yellow-600 cursor-pointer"
-                        onClick={() => onEdit?.(item)}
+                        onClick={() => {
+                          // 👇 abre el modal interno de edición y dispara el callback externo si existe
+                          setSelected(item);
+                          setEditOpen(true);
+                          onEdit?.(item);
+                        }}
                       />
                     </td>
                   </tr>
@@ -147,6 +160,20 @@ export default function PerfilesTable({ onEdit }: Props) {
           />
         </div>
       )}
+
+      {/*  Modal de edición */}
+      <PerfilEditModal
+        isOpen={isEditOpen}
+        onClose={() => {
+          setEditOpen(false);
+          setSelected(null);
+        }}
+        trabajador={selected}
+        onUpdated={() => {
+          // recarga la tabla al guardar cambios
+          loadPerfiles();
+        }}
+      />
     </div>
   );
 }
