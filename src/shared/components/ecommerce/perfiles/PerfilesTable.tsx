@@ -17,7 +17,7 @@ export default function PerfilesTable({ onEdit }: Props) {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // 👉 estado para edición
+  //  estado para edición
   const [isEditOpen, setEditOpen] = useState(false);
   const [selected, setSelected] = useState<PerfilTrabajador | null>(null);
 

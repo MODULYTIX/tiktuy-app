@@ -6,8 +6,7 @@ interface Props {
   productos: Producto[];
   onVer: (producto: Producto) => void;
   onEditar: (producto: Producto) => void;
-  // Opcional: filtra inactivos y stock 0
-  filtrarInactivos?: boolean;
+  filtrarInactivos?: boolean; 
 }
 
 const PAGE_SIZE = 5;
@@ -20,24 +19,34 @@ export default function StockTable({
 }: Props) {
   const [page, setPage] = useState(1);
 
-  // 1) Filtrado (memo) — si está activado: no inactivos y stock > 0
+  // 0) Ordenar por "nuevo primero" (fallback si el backend no lo manda ya así)
+  // - Prioriza created_at DESC si existe; si no, usa id DESC si es numérico.
+  const productosOrdenados = useMemo(() => {
+    const byNewest = [...productos].sort((a: any, b: any) => {
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      if (aTime !== 0 || bTime !== 0) return bTime - aTime;
+      const aId = typeof a.id === "number" ? a.id : 0;
+      const bId = typeof b.id === "number" ? b.id : 0;
+      return bId - aId;
+    });
+    return byNewest;
+  }, [productos]);
+
+  // 1) Filtrado en memoria (si lo usas)
   const productosFiltrados = useMemo(() => {
-    if (!filtrarInactivos) return productos;
-    return productos.filter(
-      (p) =>
-        p.estado?.nombre !== "Inactivo" &&
-        typeof p.stock === "number" &&
+    if (!filtrarInactivos) return productosOrdenados;
+    return productosOrdenados.filter(
+      (p: any) =>
+        p?.estado?.nombre !== "Inactivo" &&
+        typeof p?.stock === "number" &&
         p.stock > 0
     );
-  }, [productos, filtrarInactivos]);
+  }, [productosOrdenados, filtrarInactivos]);
 
-  // 2) Paginación basada en la lista filtrada
-  const totalPages = Math.max(
-    1,
-    Math.ceil(productosFiltrados.length / PAGE_SIZE)
-  );
+  // 2) Paginación
+  const totalPages = Math.max(1, Math.ceil(productosFiltrados.length / PAGE_SIZE));
 
-  // Si cambia el total, asegura que la página actual sea válida
   useEffect(() => {
     setPage((prev) => Math.min(prev, totalPages));
   }, [totalPages]);
@@ -102,7 +111,6 @@ export default function StockTable({
 
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
 
-  // Mensaje cuando tras filtrar no hay nada
   if (!productosFiltrados.length) {
     return (
       <div className="p-6 text-center text-gray-500 bg-white rounded shadow-sm">
@@ -111,21 +119,27 @@ export default function StockTable({
     );
   }
 
+  // 👉 FIX DE HYDRATION: <colgroup> sin textos/comentarios/espacios.
+  const colClasses = [
+    "w-[4%]",  // checkbox
+    "w-[12%]", // Código
+    "w-[30%]", // Producto
+    "w-[16%]", // Almacén
+    "w-[12%]", // Stock
+    "w-[10%]", // Precio
+    "w-[8%]",  // Estado
+    "w-[8%]",  // Acciones
+  ];
+
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
       <section className="flex-1 overflow-auto">
         <div className="overflow-x-auto bg-white">
           <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-            {/* Porcentajes por columna */}
             <colgroup>
-              <col className="w-[4%]" />   {/* checkbox */}
-              <col className="w-[12%]" />  {/* Código */}
-              <col className="w-[30%]" />  {/* Producto */}
-              <col className="w-[16%]" />  {/* Almacén */}
-              <col className="w-[12%]" />  {/* Stock */}
-              <col className="w-[10%]" />  {/* Precio */}
-              <col className="w-[8%]" />   {/* Estado */}
-              <col className="w-[8%]" />   {/* Acciones */}
+              {colClasses.map((cls, i) => (
+                <col key={i} className={cls} />
+              ))}
             </colgroup>
 
             <thead className="bg-[#E5E7EB]">
@@ -144,8 +158,8 @@ export default function StockTable({
             </thead>
 
             <tbody className="divide-y divide-gray20">
-              {currentData.map((prod) => (
-                <tr key={prod.uuid} className="hover:bg-gray10 transition-colors">
+              {currentData.map((prod: any) => (
+                <tr key={prod.uuid ?? prod.id} className="hover:bg-gray10 transition-colors">
                   <td className="px-4 py-3">
                     <input type="checkbox" aria-label={`Seleccionar ${prod.nombre_producto}`} />
                   </td>
@@ -178,12 +192,10 @@ export default function StockTable({
                   <td className="px-4 py-3 text-center">
                     <span
                       className={`text-white text-[12px] px-3 py-[6px] rounded-full inline-flex items-center justify-center ${
-                        prod.estado?.nombre === "Inactivo"
-                          ? "bg-gray-400"
-                          : "bg-black"
+                        prod?.estado?.nombre === "Inactivo" ? "bg-gray-400" : "bg-black"
                       }`}
                     >
-                      {prod.estado?.nombre || "Desconocido"}
+                      {prod?.estado?.nombre || "Desconocido"}
                     </span>
                   </td>
 
@@ -210,7 +222,6 @@ export default function StockTable({
                 </tr>
               ))}
 
-              {/* Relleno para mantener la altura constante */}
               {emptyRows > 0 &&
                 Array.from({ length: emptyRows }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="hover:bg-transparent">

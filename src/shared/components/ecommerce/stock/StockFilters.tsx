@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { useAuth } from '@/auth/context';
@@ -8,10 +8,11 @@ import { FiSearch } from 'react-icons/fi';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Select } from '@/shared/components/Select';
 
-interface Filters {
+// Exporta para usar en la página
+export interface StockFilterValue {
   almacenamiento_id: string;
   categoria_id: string;
-  estado: string;
+  estado: '' | 'activo' | 'inactivo';
   stock_bajo: boolean;
   precio_bajo: boolean;
   precio_alto: boolean;
@@ -19,14 +20,15 @@ interface Filters {
 }
 
 interface Props {
-  onFilterChange?: (filters: Filters) => void;
+  onFilterChange?: (filters: StockFilterValue) => void;
+  searchDebounceMs?: number;
 }
 
-export default function StockFilters({ onFilterChange }: Props) {
+export default function StockFilters({ onFilterChange, searchDebounceMs = 300 }: Props) {
   const { token } = useAuth();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
-  const [filters, setFilters] = useState<Filters>({
+  const [filters, setFilters] = useState<StockFilterValue>({
     almacenamiento_id: '',
     categoria_id: '',
     estado: '',
@@ -42,16 +44,66 @@ export default function StockFilters({ onFilterChange }: Props) {
     fetchAlmacenes(token).then(setAlmacenes).catch(console.error);
   }, [token]);
 
+  // Emitir inmediatamente cuando cambian campos que no son "search"
+  const prevNoSearch = useRef<Omit<StockFilterValue, 'search'>>({
+    almacenamiento_id: '',
+    categoria_id: '',
+    estado: '',
+    stock_bajo: false,
+    precio_bajo: false,
+    precio_alto: false,
+  });
   useEffect(() => {
-    onFilterChange?.(filters);
-  }, [filters, onFilterChange]);
+    const { ...noSearch } = filters;
+    if (JSON.stringify(prevNoSearch.current) !== JSON.stringify(noSearch)) {
+      prevNoSearch.current = noSearch;
+      onFilterChange?.(filters);
+    }
+  }, [
+    filters.almacenamiento_id,
+    filters.categoria_id,
+    filters.estado,
+    filters.stock_bajo,
+    filters.precio_bajo,
+    filters.precio_alto,
+  ]); // eslint-disable-line
+
+  // Debounce sólo para search
+  useEffect(() => {
+    const t = setTimeout(() => onFilterChange?.(filters), searchDebounceMs);
+    return () => clearTimeout(t);
+  }, [filters.search, onFilterChange, searchDebounceMs]);
+
+  // Select acepta evento o value directo
+  const fromSelect = (eOrValue: any) =>
+    typeof eOrValue === 'string' || typeof eOrValue === 'number'
+      ? String(eOrValue)
+      : String(eOrValue?.target?.value ?? '');
+
+  const handleSelect = (name: keyof StockFilterValue) => (eOrValue: any) => {
+    if (name === 'estado') {
+      const raw = fromSelect(eOrValue);
+      const value = raw === 'activo' || raw === 'inactivo' ? raw : '';
+      setFilters((prev) => ({ ...prev, estado: value }));
+      return;
+    }
+    setFilters((prev) => ({ ...prev, [name]: fromSelect(eOrValue) }));
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked, type, value } = e.target;
     if (type === 'checkbox') {
-      setFilters((prev) => ({ ...prev, [name]: checked }));
+      if (name === 'stock_bajo') {
+        setFilters((p) => ({ ...p, stock_bajo: checked, precio_bajo: false, precio_alto: false }));
+      } else if (name === 'precio_bajo') {
+        setFilters((p) => ({ ...p, precio_bajo: checked, stock_bajo: false, precio_alto: false }));
+      } else if (name === 'precio_alto') {
+        setFilters((p) => ({ ...p, precio_alto: checked, stock_bajo: false, precio_bajo: false }));
+      } else {
+        setFilters((prev) => ({ ...prev, [name]: checked } as any));
+      }
     } else {
-      setFilters((prev) => ({ ...prev, [name]: value }));
+      setFilters((prev) => ({ ...prev, [name]: value } as any));
     }
   };
 
@@ -73,24 +125,18 @@ export default function StockFilters({ onFilterChange }: Props) {
 
   return (
     <div className="bg-white p-5 rounded-md shadow-default border border-gray30">
-      {/* xs: 1 col, sm: 2 cols, lg: 1fr 1fr 1fr auto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm">
-        {/* Ecommerce */}
+        {/* Ecommerce / Almacén */}
         <div>
           <div className="text-center font-medium text-gray-700 mb-2">Ecommerce</div>
           <div className="relative w-full">
             <Select
               id="f-ecommerce"
               value={filters.almacenamiento_id}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, almacenamiento_id: e.target.value }))
-              }
+              onChange={handleSelect('almacenamiento_id')}
               options={[
                 { value: '', label: 'Seleccionar ecommerce' },
-                ...almacenes.map((a) => ({
-                  value: String(a.id),
-                  label: a.nombre_almacen,
-                })),
+                ...almacenes.map((a) => ({ value: String(a.id), label: a.nombre_almacen })),
               ]}
               placeholder="Seleccionar ecommerce"
             />
@@ -104,15 +150,10 @@ export default function StockFilters({ onFilterChange }: Props) {
             <Select
               id="f-categoria"
               value={filters.categoria_id}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, categoria_id: e.target.value }))
-              }
+              onChange={handleSelect('categoria_id')}
               options={[
                 { value: '', label: 'Seleccionar categoría' },
-                ...categorias.map((c) => ({
-                  value: String(c.id),
-                  label: c.descripcion,
-                })),
+                ...categorias.map((c) => ({ value: String(c.id), label: c.descripcion })),
               ]}
               placeholder="Seleccionar categoría"
             />
@@ -126,9 +167,7 @@ export default function StockFilters({ onFilterChange }: Props) {
             <Select
               id="f-estado"
               value={filters.estado}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, estado: e.target.value }))
-              }
+              onChange={handleSelect('estado')}
               options={[
                 { value: '', label: 'Seleccionar estado' },
                 { value: 'activo', label: 'Activo' },
