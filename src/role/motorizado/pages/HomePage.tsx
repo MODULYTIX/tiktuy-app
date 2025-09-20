@@ -253,7 +253,31 @@ export default function MotorizadoHomePage() {
           {loading ? (
             <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
           ) : activo ? (
-            <div className="flex flex-col items-center justify-center text-gray-400" />
+            showCTA ? (
+              <div className="mx-auto max-w-2xl rounded-xl border border-blue-200 bg-blue-50 p-5 text-left">
+                <div className="flex items-start gap-3">
+                  <Icon icon="mdi:bell-alert-outline" width="22" height="22" className="shrink-0" />
+                  <div className="flex-1">
+                    <h3 className="text-[15px] font-semibold text-blue-800">{ctaTitle}</h3>
+                    <p className="mt-1 text-[13px] text-blue-900/80">{ctaSubtitle}</p>
+                    <div className="mt-4">
+                      <Link
+                        to={GESTION_PEDIDOS_PATH}
+                        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      >
+                        Ir a mis pedidos
+                        <Icon icon="mdi:arrow-right" width="18" height="18" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-gray-400">
+                <Icon icon="mdi:check-circle-outline" width="24" height="24" />
+                <p className="mt-6 text-sm">No tienes pedidos pendientes por ahora.</p>
+              </div>
+            )
           ) : (
             <div className="flex flex-col items-center justify-center text-gray-500">
               <Icon icon="healthicons:negative-outline-24px" width="24" height="24" />

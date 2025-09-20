@@ -1,3 +1,4 @@
+// src/shared/components/ecommerce/stock/ProductoEditarModal.tsx
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { HiOutlinePencil } from 'react-icons/hi';
 import { actualizarProducto } from '@/services/ecommerce/producto/producto.api';
@@ -29,10 +30,7 @@ function normalizarEstado(value: unknown): EstadoKey {
   if (!value) return 'activo';
   if (typeof value === 'string') {
     const k = value.toLowerCase().trim();
-    if (k === 'activo' || k === 'inactivo' || k === 'descontinuado') return k;
-    if (k === 'activo') return 'activo';
-    if (k === 'inactivo') return 'inactivo';
-    if (k === 'descontinuado') return 'descontinuado';
+    if (k === 'activo' || k === 'inactivo' || k === 'descontinuado') return k as EstadoKey;
   }
   if (typeof value === 'object') {
     const v = value as any;
@@ -122,7 +120,11 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
 
     setSaving(true);
 
-    const payload: Partial<Producto> & {
+    // ⚠️ Omitimos campos conflictivos de Producto antes de redefinirlos
+    type Payload = Omit<
+      Partial<Producto>,
+      'estado' | 'categoria_id' | 'almacenamiento_id' | 'precio' | 'stock' | 'stock_minimo' | 'peso' | 'fecha_registro'
+    > & {
       estado?: EstadoKey;
       categoria_id?: number;
       almacenamiento_id?: number;
@@ -131,7 +133,9 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
       stock_minimo?: number;
       peso?: number;
       fecha_registro?: string;
-    } = {
+    };
+
+    const payload: Payload = {
       nombre_producto: form.nombre_producto?.trim(),
       descripcion: form.descripcion?.trim(),
       codigo_identificacion: form.codigo_identificacion?.trim(),
@@ -142,7 +146,7 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
       stock_minimo: typeof stock_minimo === 'number' && !Number.isNaN(stock_minimo) ? stock_minimo : undefined,
       peso: typeof peso === 'number' && !Number.isNaN(peso) ? peso : undefined,
       estado: form.estado,
-      // fecha_registro: new Date(form.fecha_registro).toISOString(), // si decides habilitar edición de fecha
+      // fecha_registro: new Date(form.fecha_registro).toISOString(), // habilita si se edita la fecha
     };
 
     try {
@@ -302,7 +306,7 @@ function EstadoSelect({
       <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value as any)}
+        onChange={(e) => onChange(e.target.value as EstadoKey)}
         disabled={disabled}
         className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary"
       >
