@@ -92,11 +92,10 @@ export default function RegistroMovimientoPage() {
         <div className="flex gap-2 items-center">
           <button
             onClick={() => setModalMode('registro')}
-            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${
-              modalMode === 'registro'
-                ? 'bg-primaryDark text-white'
-                : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${modalMode === 'registro'
+              ? 'bg-primaryDark text-white'
+              : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
+              }`}
           >
             <FaExchangeAlt />
             Nuevo Movimiento
@@ -104,11 +103,10 @@ export default function RegistroMovimientoPage() {
           <span className="block w-[1px] h-8 bg-primary"></span>
           <button
             onClick={() => setModalMode('validacion')}
-            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${
-              modalMode === 'validacion'
-                ? 'bg-primaryDark text-white'
-                : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${modalMode === 'validacion'
+              ? 'bg-primaryDark text-white'
+              : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
+              }`}
           >
             <PiSealCheck size={18} />
             Ver Movimientos

@@ -6,7 +6,9 @@ import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 import { FiSearch } from 'react-icons/fi';
 import { Icon } from '@iconify/react/dist/iconify.js';
-import { Select } from '@/shared/components/Select';
+import { Select } from '../../Select';
+import { Selectx } from '@/shared/common/Selectx';
+
 
 export interface Filters {
   almacenamiento_id: string;
@@ -77,68 +79,52 @@ export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovim
       {/* xs: 1 col, sm: 2 cols, lg: 1fr 1fr 1fr auto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm">
         {/* Almacén (solo cambia el label visual) */}
-        <div>
-          <div className="text-center font-medium text-gray-700 mb-2">Almacén</div>
-          <div className="relative w-full">
-            <Select
-              id="f-ecommerce"
-              value={filters.almacenamiento_id}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, almacenamiento_id: e.target.value }))
-              }
-              options={[
-                { value: '', label: 'Seleccionar almacén' },
-                ...almacenes.map((a) => ({
-                  value: String(a.id),
-                  label: a.nombre_almacen,
-                })),
-              ]}
-              placeholder="Seleccionar almacén"
-            />
-          </div>
-        </div>
+        <Selectx
+          label="Almacén"
+          value={filters.almacenamiento_id}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, almacenamiento_id: e.target.value }))
+          }
+          placeholder="Seleccione almacén"
+          className="w-full"
+        >
+          {almacenes.map((a) => (
+            <option key={a.id} value={String(a.id)}>
+              {a.nombre_almacen}
+            </option>
+          ))}
+        </Selectx>
 
         {/* Categorías */}
-        <div>
-          <div className="text-center font-medium text-gray-700 mb-2">Categorías</div>
-          <div className="relative w-full">
-            <Select
-              id="f-categoria"
-              value={filters.categoria_id}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, categoria_id: e.target.value }))
-              }
-              options={[
-                { value: '', label: 'Seleccionar categoría' },
-                ...categorias.map((c) => ({
-                  value: String(c.id),
-                  label: c.descripcion,
-                })),
-              ]}
-              placeholder="Seleccionar categoría"
-            />
-          </div>
-        </div>
+        <Selectx
+          label="Categorías"
+          value={filters.categoria_id}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, categoria_id: e.target.value }))
+          }
+          placeholder="Seleccione categoría"
+          className="w-full"
+        >
+          {categorias.map((c) => (
+            <option key={c.id} value={String(c.id)}>
+              {c.descripcion}
+            </option>
+          ))}
+        </Selectx>
 
         {/* Estado */}
-        <div>
-          <div className="text-center font-medium text-gray-700 mb-2">Estado</div>
-          <div className="relative w-full">
-            <Select
-              id="f-estado"
-              value={filters.estado}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, estado: e.target.value }))
-              }
-              options={[
-                { value: '', label: 'Seleccionar estado' },
-                { value: 'activo', label: 'Activo' },
-                { value: 'inactivo', label: 'Inactivo' },
-              ]}
-              placeholder="Seleccionar estado"
-            />
-          </div>
-        </div>
+        <Selectx
+          label="Categoria" // El título (label)
+          value={filters.estado}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, estado: e.target.value }))
+          }
+          placeholder="Seleccione estado" // Este es el texto visible por defecto
+          className="w-full"
+        >
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </Selectx>
 
         {/* Filtros exclusivos */}
         <div className="min-w-0">

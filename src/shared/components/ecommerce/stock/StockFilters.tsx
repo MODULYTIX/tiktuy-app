@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { useAuth } from '@/auth/context';
@@ -7,12 +7,12 @@ import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacen
 import { FiSearch } from 'react-icons/fi';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Select } from '@/shared/components/Select';
+import { Selectx } from '@/shared/common/Selectx';
 
-// Exporta para usar en la página
-export interface StockFilterValue {
+interface Filters {
   almacenamiento_id: string;
   categoria_id: string;
-  estado: '' | 'activo' | 'inactivo';
+  estado: string;
   stock_bajo: boolean;
   precio_bajo: boolean;
   precio_alto: boolean;
@@ -20,15 +20,18 @@ export interface StockFilterValue {
 }
 
 interface Props {
-  onFilterChange?: (filters: StockFilterValue) => void;
-  searchDebounceMs?: number;
+  onFilterChange?: (filters: Filters) => void;
 }
 
-export default function StockFilters({ onFilterChange, searchDebounceMs = 300 }: Props) {
+/* 👇 Exporta el tipo que necesitas importar desde otros archivos */
+export type StockFilterValue = Filters;
+export type { Filters };
+
+export default function StockFilters({ onFilterChange }: Props) {
   const { token } = useAuth();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
-  const [filters, setFilters] = useState<StockFilterValue>({
+  const [filters, setFilters] = useState<Filters>({
     almacenamiento_id: '',
     categoria_id: '',
     estado: '',
@@ -44,66 +47,16 @@ export default function StockFilters({ onFilterChange, searchDebounceMs = 300 }:
     fetchAlmacenes(token).then(setAlmacenes).catch(console.error);
   }, [token]);
 
-  // Emitir inmediatamente cuando cambian campos que no son "search"
-  const prevNoSearch = useRef<Omit<StockFilterValue, 'search'>>({
-    almacenamiento_id: '',
-    categoria_id: '',
-    estado: '',
-    stock_bajo: false,
-    precio_bajo: false,
-    precio_alto: false,
-  });
   useEffect(() => {
-    const { ...noSearch } = filters;
-    if (JSON.stringify(prevNoSearch.current) !== JSON.stringify(noSearch)) {
-      prevNoSearch.current = noSearch;
-      onFilterChange?.(filters);
-    }
-  }, [
-    filters.almacenamiento_id,
-    filters.categoria_id,
-    filters.estado,
-    filters.stock_bajo,
-    filters.precio_bajo,
-    filters.precio_alto,
-  ]); // eslint-disable-line
-
-  // Debounce sólo para search
-  useEffect(() => {
-    const t = setTimeout(() => onFilterChange?.(filters), searchDebounceMs);
-    return () => clearTimeout(t);
-  }, [filters.search, onFilterChange, searchDebounceMs]);
-
-  // Select acepta evento o value directo
-  const fromSelect = (eOrValue: any) =>
-    typeof eOrValue === 'string' || typeof eOrValue === 'number'
-      ? String(eOrValue)
-      : String(eOrValue?.target?.value ?? '');
-
-  const handleSelect = (name: keyof StockFilterValue) => (eOrValue: any) => {
-    if (name === 'estado') {
-      const raw = fromSelect(eOrValue);
-      const value = raw === 'activo' || raw === 'inactivo' ? raw : '';
-      setFilters((prev) => ({ ...prev, estado: value }));
-      return;
-    }
-    setFilters((prev) => ({ ...prev, [name]: fromSelect(eOrValue) }));
-  };
+    onFilterChange?.(filters);
+  }, [filters, onFilterChange]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked, type, value } = e.target;
     if (type === 'checkbox') {
-      if (name === 'stock_bajo') {
-        setFilters((p) => ({ ...p, stock_bajo: checked, precio_bajo: false, precio_alto: false }));
-      } else if (name === 'precio_bajo') {
-        setFilters((p) => ({ ...p, precio_bajo: checked, stock_bajo: false, precio_alto: false }));
-      } else if (name === 'precio_alto') {
-        setFilters((p) => ({ ...p, precio_alto: checked, stock_bajo: false, precio_bajo: false }));
-      } else {
-        setFilters((prev) => ({ ...prev, [name]: checked } as any));
-      }
+      setFilters((prev) => ({ ...prev, [name]: checked }));
     } else {
-      setFilters((prev) => ({ ...prev, [name]: value } as any));
+      setFilters((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -125,58 +78,58 @@ export default function StockFilters({ onFilterChange, searchDebounceMs = 300 }:
 
   return (
     <div className="bg-white p-5 rounded-md shadow-default border border-gray30">
+      {/* xs: 1 col, sm: 2 cols, lg: 1fr 1fr 1fr auto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm">
-        {/* Ecommerce / Almacén */}
-        <div>
-          <div className="text-center font-medium text-gray-700 mb-2">Ecommerce</div>
-          <div className="relative w-full">
-            <Select
-              id="f-ecommerce"
-              value={filters.almacenamiento_id}
-              onChange={handleSelect('almacenamiento_id')}
-              options={[
-                { value: '', label: 'Seleccionar ecommerce' },
-                ...almacenes.map((a) => ({ value: String(a.id), label: a.nombre_almacen })),
-              ]}
-              placeholder="Seleccionar ecommerce"
-            />
-          </div>
-        </div>
+        {/* Ecommerce */}
+        <Selectx
+          label="Ecommerce"
+          value={filters.almacenamiento_id}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, almacenamiento_id: e.target.value }))
+          }
+          placeholder="Seleccionar ecommerce"
+          className="w-full"
+          id="f-ecommerce"
+        >
+          {almacenes.map((a) => (
+            <option key={a.id} value={String(a.id)}>
+              {a.nombre_almacen}
+            </option>
+          ))}
+        </Selectx>
 
         {/* Categorías */}
-        <div>
-          <div className="text-center font-medium text-gray-700 mb-2">Categorías</div>
-          <div className="relative w-full">
-            <Select
-              id="f-categoria"
-              value={filters.categoria_id}
-              onChange={handleSelect('categoria_id')}
-              options={[
-                { value: '', label: 'Seleccionar categoría' },
-                ...categorias.map((c) => ({ value: String(c.id), label: c.descripcion })),
-              ]}
-              placeholder="Seleccionar categoría"
-            />
-          </div>
-        </div>
+        <Selectx
+          label="Categorías"
+          value={filters.categoria_id}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, categoria_id: e.target.value }))
+          }
+          placeholder="Seleccionar categoría"
+          className="w-full"
+          id="f-categoria"
+        >
+          {categorias.map((c) => (
+            <option key={c.id} value={String(c.id)}>
+              {c.descripcion}
+            </option>
+          ))}
+        </Selectx>
 
         {/* Estado */}
-        <div>
-          <div className="text-center font-medium text-gray-700 mb-2">Estado</div>
-          <div className="relative w-full">
-            <Select
-              id="f-estado"
-              value={filters.estado}
-              onChange={handleSelect('estado')}
-              options={[
-                { value: '', label: 'Seleccionar estado' },
-                { value: 'activo', label: 'Activo' },
-                { value: 'inactivo', label: 'Inactivo' },
-              ]}
-              placeholder="Seleccionar estado"
-            />
-          </div>
-        </div>
+        <Selectx
+          label="Estado"
+          value={filters.estado}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, estado: e.target.value }))
+          }
+          placeholder="Seleccionar estado"
+          className="w-full"
+          id="f-estado"
+        >
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </Selectx>
 
         {/* Filtros exclusivos */}
         <div className="min-w-0">
