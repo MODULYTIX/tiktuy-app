@@ -5,11 +5,12 @@ import { Icon } from '@iconify/react/dist/iconify.js';
 import { useEffect, useMemo, useState } from 'react';
 import { FiEye } from 'react-icons/fi';
 
-interface PedidosTableAsignadoProps {
+interface Props {
+  onVer: (pedidoId: number) => void;
   onEditar: (pedidoId: number) => void;
 }
 
-export default function PedidosTableAsignado({ onEditar }: PedidosTableAsignadoProps) {
+export default function PedidosTableAsignado({ onVer, onEditar }: Props) {
   const { token } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,45 +30,28 @@ export default function PedidosTableAsignado({ onEditar }: PedidosTableAsignadoP
   const totalPages = Math.max(1, Math.ceil(pedidos.length / PAGE_SIZE));
 
   useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
+    if (page > totalPages) setPage(totalPages);
   }, [totalPages, page]);
 
-  const visiblePedidos = useMemo(() => {
-    return pedidos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  }, [pedidos, page]);
+  const visiblePedidos = useMemo(
+    () => pedidos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [pedidos, page]
+  );
 
   const pagerItems = useMemo(() => {
     const maxButtons = 5;
     const pages: (number | string)[] = [];
-
     if (totalPages <= maxButtons) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       let start = Math.max(1, page - 2);
       let end = Math.min(totalPages, page + 2);
-
-      if (page <= 3) {
-        start = 1;
-        end = maxButtons;
-      } else if (page >= totalPages - 2) {
-        start = totalPages - (maxButtons - 1);
-        end = totalPages;
-      }
-
+      if (page <= 3) { start = 1; end = maxButtons; }
+      else if (page >= totalPages - 2) { start = totalPages - (maxButtons - 1); end = totalPages; }
       for (let i = start; i <= end; i++) pages.push(i);
-
-      if (start > 1) {
-        pages.unshift('...');
-        pages.unshift(1);
-      }
-      if (end < totalPages) {
-        pages.push('...');
-        pages.push(totalPages);
-      }
+      if (start > 1) { pages.unshift('...'); pages.unshift(1); }
+      if (end < totalPages) { pages.push('...'); pages.push(totalPages); }
     }
-
     return pages;
   }, [totalPages, page]);
 
@@ -93,13 +77,13 @@ export default function PedidosTableAsignado({ onEditar }: PedidosTableAsignadoP
 
         <thead className="bg-[#E5E7EB]">
           <tr className="text-gray70 font-roboto font-medium">
-            <th className="px-2 py-3 text-gray70 text-center">Fec. Entrega</th>
-            <th className="px-4 py-3 text-gray70 text-left">Courier</th>
-            <th className="px-4 py-3 text-gray70 text-left">Cliente</th>
-            <th className="px-4 py-3 text-gray70 text-left">Producto</th>
-            <th className="px-4 py-3 text-gray70 text-center">Cantidad</th>
-            <th className="px-4 py-3 text-gray70 text-center">Monto</th>
-            <th className="px-4 py-3 text-gray70 text-center">Acciones</th>
+            <th className="px-2 py-3 text-center">Fec. Entrega</th>
+            <th className="px-4 py-3 text-left">Courier</th>
+            <th className="px-4 py-3 text-left">Cliente</th>
+            <th className="px-4 py-3 text-left">Producto</th>
+            <th className="px-4 py-3 text-center">Cantidad</th>
+            <th className="px-4 py-3 text-center">Monto</th>
+            <th className="px-4 py-3 text-center">Acciones</th>
           </tr>
         </thead>
 
@@ -108,9 +92,7 @@ export default function PedidosTableAsignado({ onEditar }: PedidosTableAsignadoP
             Array.from({ length: PAGE_SIZE }).map((_, idx) => (
               <tr key={idx} className="[&>td]:px-4 [&>td]:py-3 animate-pulse">
                 {Array.from({ length: 7 }).map((_, i) => (
-                  <td key={i}>
-                    <div className="h-4 bg-gray20 rounded w-3/4"></div>
-                  </td>
+                  <td key={i}><div className="h-4 bg-gray20 rounded w-3/4"></div></td>
                 ))}
               </tr>
             ))
@@ -124,33 +106,33 @@ export default function PedidosTableAsignado({ onEditar }: PedidosTableAsignadoP
             <>
               {visiblePedidos.map((pedido) => (
                 <tr key={pedido.id} className="hover:bg-gray10 transition-colors">
-                  <td className="px-2 py-3 text-gray70 font-[400] text-center">
+                  <td className="px-2 py-3 text-gray70 text-center">
                     {new Date(pedido.fecha_creacion).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 text-gray70 font-[400] text-left">
+                  <td className="px-4 py-3 text-gray70 text-left">
                     {pedido.courier?.nombre_comercial}
                   </td>
-                  <td className="px-4 py-3 text-gray70 font-[400] text-left">
+                  <td className="px-4 py-3 text-gray70 text-left">
                     {pedido.nombre_cliente}
                   </td>
-                  <td className="px-4 py-3 text-gray70 font-[400] text-left">
+                  <td className="px-4 py-3 text-gray70 text-left">
                     {pedido.detalles?.[0]?.producto?.nombre_producto ?? '-'}
                   </td>
-                  <td className="px-4 py-3 text-gray70 font-[400] text-center">
+                  <td className="px-4 py-3 text-gray70 text-center">
                     {pedido.detalles?.[0]?.cantidad?.toString().padStart(2, '0')}
                   </td>
-                  <td className="px-4 py-3 text-gray70 font-[400] text-center">
+                  <td className="px-4 py-3 text-gray70 text-center">
                     S/.{' '}
                     {pedido.detalles
-                      ?.reduce((acc, d) => acc + d.cantidad * d.precio_unitario, 0)
+                      ?.reduce((acc, d) => acc + Number(d.cantidad) * Number(d.precio_unitario), 0)
                       .toFixed(2)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-4">
                       <button
-                        onClick={() => onEditar(pedido.id)}
+                        onClick={() => onVer(pedido.id)}
                         className="text-primaryLight hover:text-primaryDark"
-                        title="Ver / Editar Pedido"
+                        title="Ver Pedido"
                       >
                         <FiEye className="inline-block w-4 h-4" />
                       </button>
@@ -198,9 +180,7 @@ export default function PedidosTableAsignado({ onEditar }: PedidosTableAsignadoP
               aria-current={page === p ? 'page' : undefined}
               className={[
                 'w-8 h-8 flex items-center justify-center rounded',
-                page === p
-                  ? 'bg-gray90 text-white'
-                  : 'bg-gray10 text-gray70 hover:bg-gray20'
+                page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20'
               ].join(' ')}
             >
               {p}

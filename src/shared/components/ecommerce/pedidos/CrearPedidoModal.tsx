@@ -12,17 +12,16 @@ import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.type
 // DTO local para creación/edición (lo que realmente envía el frontend al backend)
 type CreatePedidoDto = {
   codigo_pedido?: string;
-  // ecommerce_id YA NO ES NECESARIO ENVIARLO (lo resuelve el backend con el token)
-  ecommerce_id?: number;
-  courier_id?: number;               // opcional: si viene, el backend pone estado "Asignado"
+  ecommerce_id?: number;           // backend lo resuelve por token
+  courier_id?: number;             // opcional: si viene -> estado "Asignado"
   nombre_cliente: string;
   numero_cliente?: string;
   celular_cliente: string;
   direccion_envio: string;
   referencia_direccion?: string;
   distrito: string;
-  monto_recaudar: number;            // número (el backend lo maneja como Decimal/number)
-  fecha_entrega_programada: string;  // ISO string
+  monto_recaudar: number;
+  fecha_entrega_programada: string; // ISO
   detalles: Array<{
     producto_id: number;
     cantidad: number;
@@ -47,9 +46,12 @@ export default function CrearPedidoModal({
 }: CrearPedidoModalProps) {
   const { token, user } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
+
   const [productos, setProductos] = useState<Producto[]>([]);
   const [couriers, setCouriers] = useState<CourierAsociado[]>([]);
   const [zonas, setZonas] = useState<{ distrito: string }[]>([]);
+
+  const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     courier_id: '',
@@ -69,9 +71,14 @@ export default function CrearPedidoModal({
   const isReadOnly = modo === 'ver';
 
   const handleClickOutside = (e: MouseEvent) => {
+    if (submitting) return; // 🚫 no cerrar mientras se envía
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
       onClose();
     }
+  };
+
+  const handleEsc = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && !submitting) onClose(); // 🚫 no cerrar mientras se envía
   };
 
   // Fetch productos y couriers al abrir modal
@@ -81,19 +88,25 @@ export default function CrearPedidoModal({
     fetchCouriersAsociados(token).then(setCouriers).catch(console.error);
   }, [isOpen, token]);
 
-  // Click fuera del modal
+  // Click fuera + escape
   useEffect(() => {
-    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEsc);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [isOpen, submitting]);
 
   // Zonas tarifarias por courier seleccionado (privadas)
   useEffect(() => {
     if (form.courier_id && token) {
       fetchZonasByCourierPrivado(Number(form.courier_id), token)
-        .then(response => {
+        .then((response) => {
           if ('data' in response) {
-            setZonas(response.data.map(zona => ({ distrito: zona.distrito })));
+            setZonas(response.data.map((zona) => ({ distrito: zona.distrito })));
           } else {
             setZonas([]);
           }
@@ -115,7 +128,7 @@ export default function CrearPedidoModal({
           const data: any = await fetchPedidoById(pedidoId, token);
           const detalle = data.detalles?.[0] || {};
           setForm({
-            courier_id: String(data.courier?.id ?? ''), // usar id si courier es objeto
+            courier_id: String(data.courier?.id ?? ''),
             nombre_cliente: data.nombre_cliente ?? '',
             numero_cliente: data.numero_cliente ?? '',
             celular_cliente: data.celular_cliente ?? '',
@@ -168,9 +181,10 @@ export default function CrearPedidoModal({
 
   const handleSubmit = async () => {
     if (!token || !user) return;
+    if (submitting) return; // ⛔️ evita clics repetidos
 
-    // Validaciones mínimas (YA NO comprobamos ecommerce_id aquí)
-    const courierId = Number(form.courier_id);       // opcional
+    // Validaciones mínimas
+    const courierId = Number(form.courier_id); // opcional
     const productoId = Number(form.producto_id);
     const cantidad = Number(form.cantidad);
     const precioUnitario = Number(form.precio_unitario);
@@ -188,13 +202,12 @@ export default function CrearPedidoModal({
 
     const payload: CreatePedidoDto = {
       codigo_pedido: `PED-${Date.now()}`,
-      // ecommerce_id: LO RESUELVE EL BACK CON EL TOKEN
       courier_id: Number.isNaN(courierId) ? undefined : courierId,
       nombre_cliente: form.nombre_cliente.trim(),
-      numero_cliente: form.numero_cliente.trim(),
+      numero_cliente: (form.numero_cliente ?? '').trim(),
       celular_cliente: form.celular_cliente.trim(),
       direccion_envio: form.direccion_envio.trim(),
-      referencia_direccion: form.referencia_direccion.trim(),
+      referencia_direccion: (form.referencia_direccion ?? '').trim(),
       distrito: form.distrito,
       monto_recaudar: isNaN(montoRecaudar) ? cantidad * precioUnitario : montoRecaudar,
       fecha_entrega_programada: fechaISO,
@@ -207,12 +220,15 @@ export default function CrearPedidoModal({
       ],
     };
 
+    setSubmitting(true);
     try {
       await crearPedido(payload as unknown as Partial<any>, token);
       onPedidoCreado();
       onClose();
     } catch (err) {
       console.error('Error creando/actualizando pedido:', err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -223,6 +239,7 @@ export default function CrearPedidoModal({
       <div
         ref={modalRef}
         className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right"
+        aria-busy={submitting} // accesibilidad
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold flex items-center gap-2 text-gray-700">
@@ -233,7 +250,12 @@ export default function CrearPedidoModal({
               ? 'EDITAR PEDIDO'
               : 'REGISTRAR NUEVO PEDIDO'}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
+            disabled={submitting} // no cerrar mientras se envía
+            aria-disabled={submitting}
+          >
             <FiX className="w-6 h-6" />
           </button>
         </div>
@@ -250,12 +272,10 @@ export default function CrearPedidoModal({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Courier
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Courier</label>
             <select
               name="courier_id"
-              disabled={isReadOnly}
+              disabled={isReadOnly || submitting}
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={handleChange}
               value={form.courier_id}
@@ -275,13 +295,11 @@ export default function CrearPedidoModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
             <input
               name="nombre_cliente"
               value={form.nombre_cliente}
-              disabled={isReadOnly}
+              disabled={isReadOnly || submitting}
               placeholder="Ejem. Alvaro"
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={handleChange}
@@ -289,16 +307,14 @@ export default function CrearPedidoModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Teléfono
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
             <div className="flex border border-gray-300 rounded overflow-hidden">
               <span className="px-3 py-2 text-sm bg-gray-100 text-gray-700">+51</span>
               <input
                 type="text"
                 name="celular_cliente"
                 value={form.celular_cliente}
-                disabled={isReadOnly}
+                disabled={isReadOnly || submitting}
                 placeholder="987654321"
                 className="flex-1 px-3 py-2 text-sm outline-none"
                 onChange={handleChange}
@@ -307,12 +323,10 @@ export default function CrearPedidoModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Distrito
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
             <select
               name="distrito"
-              disabled={isReadOnly}
+              disabled={isReadOnly || submitting}
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={handleChange}
               value={form.distrito}
@@ -327,13 +341,11 @@ export default function CrearPedidoModal({
           </div>
 
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Dirección
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
             <input
               name="direccion_envio"
               value={form.direccion_envio}
-              disabled={isReadOnly}
+              disabled={isReadOnly || submitting}
               placeholder="Av. Grau J 499"
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={handleChange}
@@ -341,13 +353,11 @@ export default function CrearPedidoModal({
           </div>
 
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Referencia
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Referencia</label>
             <input
               name="referencia_direccion"
               value={form.referencia_direccion}
-              disabled={isReadOnly}
+              disabled={isReadOnly || submitting}
               placeholder="Al lado del supermercado UNO"
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={handleChange}
@@ -355,12 +365,10 @@ export default function CrearPedidoModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Producto
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Producto</label>
             <select
               name="producto_id"
-              disabled={isReadOnly}
+              disabled={isReadOnly || submitting}
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={(e) => {
                 handleChange(e);
@@ -390,16 +398,14 @@ export default function CrearPedidoModal({
               Cantidad{' '}
               {form.producto_id && (
                 <span className="text-xs text-gray-500">
-                  /
-                  {productos.find((p) => p.id === Number(form.producto_id))?.stock}{' '}
-                  disponibles
+                  /{productos.find((p) => p.id === Number(form.producto_id))?.stock ?? 0} disponibles
                 </span>
               )}
             </label>
             <input
               name="cantidad"
               value={form.cantidad}
-              disabled={isReadOnly}
+              disabled={isReadOnly || submitting}
               placeholder="50"
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={(e) => {
@@ -417,33 +423,27 @@ export default function CrearPedidoModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Monto
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
             <input
               name="monto_recaudar"
               value={form.monto_recaudar}
-              disabled={isReadOnly}
+              disabled={isReadOnly || submitting}
               placeholder="S/. 00.00"
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={handleChange}
             />
             {form.precio_unitario && (
-              <p className="text-xs text-gray-500 mt-1">
-                Precio unitario: S/. {form.precio_unitario}
-              </p>
+              <p className="text-xs text-gray-500 mt-1">Precio unitario: S/. {form.precio_unitario}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha Entrega
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Entrega</label>
             <input
               type="date"
               name="fecha_entrega_programada"
               value={form.fecha_entrega_programada}
-              disabled={isReadOnly}
+              disabled={isReadOnly || submitting}
               className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={handleChange}
             />
@@ -454,15 +454,33 @@ export default function CrearPedidoModal({
           <div className="flex justify-end gap-2 mt-6">
             <button
               onClick={onClose}
-              className="px-4 py-2 border rounded text-sm text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border rounded text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              disabled={submitting}
             >
               Cancelar
             </button>
             <button
               onClick={handleSubmit}
-              className="bg-gray-900 text-white px-4 py-2 rounded text-sm hover:bg-gray-800"
+              className="bg-gray-900 text-white px-4 py-2 rounded text-sm hover:bg-gray-800 disabled:opacity-60 inline-flex items-center gap-2"
+              disabled={submitting}
             >
-              {modo === 'editar' ? 'Guardar cambios' : 'Crear nuevo'}
+              {submitting && (
+                <svg
+                  className="animate-spin h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  ></path>
+                </svg>
+              )}
+              {modo === 'editar' ? (submitting ? 'Guardando…' : 'Guardar cambios') : (submitting ? 'Creando…' : 'Crear nuevo')}
             </button>
           </div>
         )}

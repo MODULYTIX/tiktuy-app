@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// src/pages/ecommerce/movimientos/RegistroMovimientoPage.tsx
+import { useEffect, useState } from 'react';
 import { FaExchangeAlt } from 'react-icons/fa';
 import { PiSealCheck } from 'react-icons/pi';
 
@@ -9,20 +10,21 @@ import MovimientoRegistroFilters, {
 import MovimientoRegistroTable from '@/shared/components/ecommerce/movimientos/MovimientoRegistroTable';
 import MovimientoValidacionTable from '@/shared/components/ecommerce/movimientos/MovimientoValidacionTable';
 import CrearMovimientoModal from '@/shared/components/ecommerce/CrearMovimientoModal';
+import VerMovimientoModal from '@/shared/components/ecommerce/movimientos/VerMovimientoModal';
 import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
 
 export default function RegistroMovimientoPage() {
   const { notify } = useNotification();
 
-  // Productos seleccionados por checkbox en la tabla
+  // Productos seleccionados para crear movimiento
   const [selectedProducts, setSelectedProducts] = useState<Producto[]>([]);
-  // UUIDs que se enviarán al modal (pueden venir de selección múltiple o del botón "ver" de una fila)
   const [selectedUuids, setSelectedUuids] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'registro' | 'validacion'>('registro'); // para tabs
-  const [modo, setModo] = useState<'crear' | 'ver'>('crear'); // para el modal
 
-  // Filtros conectados al listado
+  // Tabs
+  const [modalMode, setModalMode] = useState<'registro' | 'validacion'>('registro');
+
+  // Filtros
   const [filters, setFilters] = useState<Filters>({
     almacenamiento_id: '',
     categoria_id: '',
@@ -32,6 +34,10 @@ export default function RegistroMovimientoPage() {
     precio_alto: false,
     search: '',
   });
+
+  // Modal de VER
+  const [verOpen, setVerOpen] = useState(false);
+  const [verData, setVerData] = useState<Producto | null>(null);
 
   const handleOpenModalCrear = () => {
     if (selectedProducts.length === 0) {
@@ -56,16 +62,21 @@ export default function RegistroMovimientoPage() {
       return;
     }
 
-    setModo('crear');
     setSelectedUuids(selectedProducts.map((p) => p.uuid));
     setModalOpen(true);
   };
 
-  const handleViewProduct = (uuid: string) => {
-    setModo('ver');
-    setSelectedUuids([uuid]);
-    setModalOpen(true);
+  // Abrir modal “ver” instantáneo (recibe el producto completo desde la tabla)
+  const handleViewProduct = (producto: Producto) => {
+    setVerData(producto);
+    setVerOpen(true);
   };
+
+  // Al cambiar de tab, cerrar modales
+  useEffect(() => {
+    setModalOpen(false);
+    setVerOpen(false);
+  }, [modalMode]);
 
   return (
     <section className="mt-6">
@@ -107,7 +118,7 @@ export default function RegistroMovimientoPage() {
 
       {modalMode === 'registro' ? (
         <>
-          {/* 20px (1.25rem) de espacio vertical entre filtros y tabla */}
+          {/* 20px (1.25rem) entre filtros y tabla */}
           <div className="space-y-5">
             <MovimientoRegistroFilters
               onFilterChange={setFilters}
@@ -117,15 +128,22 @@ export default function RegistroMovimientoPage() {
             <MovimientoRegistroTable
               filters={filters}
               onSelectProducts={setSelectedProducts}
-              onViewProduct={handleViewProduct}
+              onViewProduct={handleViewProduct} // ⬅️ recibe el producto y abre VerMovimientoModal
             />
           </div>
 
+          {/* Modal CREAR */}
           <CrearMovimientoModal
             open={modalOpen}
             onClose={() => setModalOpen(false)}
-            selectedProducts={selectedUuids} // uuids que consume el modal
-            modo={modo} // 'crear' | 'ver'
+            selectedProducts={selectedUuids}
+          />
+
+          {/* Modal VER */}
+          <VerMovimientoModal
+            open={verOpen}
+            onClose={() => setVerOpen(false)}
+            data={verData}
           />
         </>
       ) : (

@@ -8,12 +8,16 @@ import PedidosGenerado from '@/shared/components/ecommerce/pedidos/PedidosGenera
 import PedidosAsignado from '@/shared/components/ecommerce/pedidos/PedidosAsignado';
 import PedidosCompletado from '@/shared/components/ecommerce/pedidos/PedidosCompletado';
 import CrearPedidoModal from '@/shared/components/ecommerce/pedidos/CrearPedidoModal';
+
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Select } from '@/shared/components/Select';
 import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
-
 import { useAuth } from '@/auth/context';
 import ImportExcelPedidosFlow from '@/shared/components/ecommerce/excel/pedido/ImportExcelPedidosFlow';
+
+// Modales para ASIGNADO (ya los tienes)
+import EditarPedidoAsignadoModal from '@/shared/components/ecommerce/pedidos/Asignado/EditarPedidoAsignadoModal';
+import VerPedidoModal from '@/shared/components/ecommerce/pedidos/Asignado/VerPedidoAsignadoModal';
 
 type Vista = 'generado' | 'asignado' | 'completado';
 
@@ -30,8 +34,19 @@ export default function PedidosPage() {
   const [vista, setVista] = useState<Vista>(
     () => (localStorage.getItem('pedidos_vista') as Vista) || 'generado'
   );
+
+  // crear/editar genérico (tu modal actual)
   const [modalAbierto, setModalAbierto] = useState(false);
   const [pedidoId, setPedidoId] = useState<number | null>(null);
+
+  // modales ASIGNADO (ya estaban)
+  const [verAsignadoOpen, setVerAsignadoOpen] = useState(false);
+  const [editarAsignadoOpen, setEditarAsignadoOpen] = useState(false);
+  const [pedidoAsignadoId, setPedidoAsignadoId] = useState<number | null>(null);
+
+  // NUEVO: modal para VER en COMPLETADO (solo lectura)
+  const [verCompletadoOpen, setVerCompletadoOpen] = useState(false);
+  const [pedidoCompletadoId, setPedidoCompletadoId] = useState<number | null>(null);
 
   const [filtros, setFiltros] = useState<Filtros>({
     courier: '',
@@ -47,6 +62,7 @@ export default function PedidosPage() {
     localStorage.setItem('pedidos_vista', vista);
   }, [vista]);
 
+  // Crear (Generado)
   const handleNuevoPedido = () => {
     setPedidoId(null);
     setModalAbierto(true);
@@ -55,7 +71,6 @@ export default function PedidosPage() {
     setPedidoId(id);
     setModalAbierto(true);
   };
-
   const handleCerrarModal = () => {
     setModalAbierto(false);
     setPedidoId(null);
@@ -65,8 +80,31 @@ export default function PedidosPage() {
     setModalAbierto(true);
   };
 
+  // ASIGNADO: Ver / Editar
+  const handleVerAsignado = (id: number) => {
+    setPedidoAsignadoId(id);
+    setVerAsignadoOpen(true);
+  };
+  const handleEditarAsignado = (id: number) => {
+    setPedidoAsignadoId(id);
+    setEditarAsignadoOpen(true);
+  };
+
+  // COMPLETADO: Ver (solo lectura)
+  const handleVerCompletado = (id: number) => {
+    setPedidoCompletadoId(id);
+    setVerCompletadoOpen(true);
+  };
+
   const refetchPedidos = () => {
-    handleCerrarModal();
+    // cierra cualquier modal y refresca
+    setModalAbierto(false);
+    setVerAsignadoOpen(false);
+    setEditarAsignadoOpen(false);
+    setVerCompletadoOpen(false);
+    setPedidoId(null);
+    setPedidoAsignadoId(null);
+    setPedidoCompletadoId(null);
     setRefreshKey((k) => k + 1);
   };
 
@@ -157,19 +195,14 @@ export default function PedidosPage() {
         {/* Botones solo en generado */}
         {vista === 'generado' && (
           <div className="flex gap-2 items-center">
-            {/* Envoltorio para forzar misma altura */}
             <div className="h-10 flex items-stretch">
               <ImportExcelPedidosFlow token={token ?? ''} onImported={handleImported}>
                 {(openPicker) => (
-                  <AnimatedExcelMenu
-                    onTemplateClick={handleDescargarPlantilla}
-                    onImportClick={openPicker}
-                  />
+                  <AnimatedExcelMenu onTemplateClick={handleDescargarPlantilla} onImportClick={openPicker} />
                 )}
               </ImportExcelPedidosFlow>
             </div>
 
-            {/* Igualado de altura y centrado vertical */}
             <button
               onClick={handleNuevoPedido}
               className="h-10 px-3 rounded-sm text-sm bg-primaryLight text-white flex items-center gap-2 hover:bg-blue-700"
@@ -183,7 +216,6 @@ export default function PedidosPage() {
 
       {/* Filtros */}
       <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
-        {/* Courier */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
           <label className="text-sm font-medium text-black block">Courier</label>
           <div className="relative w-full">
@@ -200,7 +232,6 @@ export default function PedidosPage() {
           </div>
         </div>
 
-        {/* Producto */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
           <label className="text-sm font-medium text-black block">Producto</label>
           <div className="relative w-full">
@@ -217,7 +248,6 @@ export default function PedidosPage() {
           </div>
         </div>
 
-        {/* Fecha Inicio */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
           <label className="text-sm font-medium text-black block">Fecha Inicio</label>
           <input
@@ -228,7 +258,6 @@ export default function PedidosPage() {
           />
         </div>
 
-        {/* Fecha Fin */}
         <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
           <label className="text-sm font-medium text-black block">Fecha Fin</label>
           <input
@@ -240,20 +269,36 @@ export default function PedidosPage() {
         </div>
 
         <button
-          onClick={handleLimpiarFiltros}
+          onClick={() => {
+            setFiltros({ courier: '', producto: '', fechaInicio: '', fechaFin: '' });
+            setRefreshKey((k) => k + 1);
+          }}
           className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100"
         >
-          <Icon icon="mynaui:delete" width="24" height="24" color="gray60" />
+          <Icon icon="mynaui:delete" width="24" height="24" />
           Limpiar Filtros
         </button>
       </div>
 
       {/* Vistas */}
       {vista === 'generado' && <PedidosGenerado key={`gen-${refreshKey}`} />}
-      {vista === 'asignado' && <PedidosAsignado key={`asi-${refreshKey}`} onEditar={handleEditar} />}
-      {vista === 'completado' && <PedidosCompletado key={`comp-${refreshKey}`} onVer={handleVer} />}
 
-      {/* Modal */}
+      {vista === 'asignado' && (
+        <PedidosAsignado
+          key={`asi-${refreshKey}`}
+          onVer={handleVerAsignado}
+          onEditar={handleEditarAsignado}
+        />
+      )}
+
+      {vista === 'completado' && (
+        <PedidosCompletado
+          key={`comp-${refreshKey}`}
+          onVer={handleVerCompletado}  // <-- usa modal de VER, no el de crear/editar
+        />
+      )}
+
+      {/* Modal crear/editar genérico (tu modal existente) */}
       {modalAbierto && (
         <CrearPedidoModal
           isOpen={modalAbierto}
@@ -261,6 +306,33 @@ export default function PedidosPage() {
           onPedidoCreado={refetchPedidos}
           pedidoId={pedidoId ?? undefined}
           modo={pedidoId ? 'editar' : 'crear'}
+        />
+      )}
+
+      {/* Modales de ASIGNADO */}
+      {verAsignadoOpen && (
+        <VerPedidoModal
+          isOpen={verAsignadoOpen}
+          onClose={() => setVerAsignadoOpen(false)}
+          pedidoId={pedidoAsignadoId}
+        />
+      )}
+
+      {editarAsignadoOpen && (
+        <EditarPedidoAsignadoModal
+          isOpen={editarAsignadoOpen}
+          onClose={() => setEditarAsignadoOpen(false)}
+          pedidoId={pedidoAsignadoId}
+          onUpdated={refetchPedidos}
+        />
+      )}
+
+      {/* Modal de VER para COMPLETADO (reusa VerPedidoModal) */}
+      {verCompletadoOpen && (
+        <VerPedidoModal
+          isOpen={verCompletadoOpen}
+          onClose={() => setVerCompletadoOpen(false)}
+          pedidoId={pedidoCompletadoId}
         />
       )}
     </section>

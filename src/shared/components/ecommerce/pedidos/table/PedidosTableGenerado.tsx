@@ -6,10 +6,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { FiEye } from 'react-icons/fi';
 
 interface PedidosTableGeneradoProps {
-  onEditar: (pedidoId: number) => void;
+  onVer: (pedidoId: number) => void;     // 👉 NUEVO: abre modal "Ver"
+  onEditar: (pedidoId: number) => void;  // ya lo tenías
 }
 
-export default function PedidosTableGenerado({ onEditar }: PedidosTableGeneradoProps) {
+export default function PedidosTableGenerado({ onVer, onEditar }: PedidosTableGeneradoProps) {
   const { token } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,13 +157,16 @@ export default function PedidosTableGenerado({ onEditar }: PedidosTableGeneradoP
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-4">
+                      {/* Ver → abre modal de solo lectura */}
                       <button
-                        onClick={() => onEditar(pedido.id)}
+                        onClick={() => onVer(pedido.id)}
                         className="text-primaryLight hover:text-primaryDark"
-                        title="Ver / Editar Pedido"
+                        title="Ver Pedido"
                       >
                         <FiEye className="inline-block w-4 h-4" />
                       </button>
+
+                      {/* Editar → abre modal de edición */}
                       <button
                         onClick={() => onEditar(pedido.id)}
                         className="text-[#CA8A04] hover:opacity-80"

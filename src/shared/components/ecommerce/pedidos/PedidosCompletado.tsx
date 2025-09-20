@@ -1,3 +1,4 @@
+// src/shared/components/ecommerce/pedidos/PedidosCompletado.tsx
 import PedidosTableCompletado from './table/PedidosTableCompletado';
 
 interface PedidosCompletadoProps {

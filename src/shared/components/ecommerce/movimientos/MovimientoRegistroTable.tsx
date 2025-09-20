@@ -1,3 +1,4 @@
+// src/shared/components/ecommerce/movimientos/MovimientoRegistroTable.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { FaEye } from 'react-icons/fa';
 import { useAuth } from '@/auth/context';
@@ -8,7 +9,7 @@ import type { Filters } from '@/shared/components/ecommerce/movimientos/Movimien
 interface Props {
   filters: Filters;
   onSelectProducts: (productos: Producto[]) => void;
-  onViewProduct?: (uuid: string) => void;
+  onViewProduct?: (producto: Producto) => void; // ⬅️ Ahora pasa el objeto completo
 }
 
 export default function MovimientoRegistroTable({
@@ -21,7 +22,7 @@ export default function MovimientoRegistroTable({
   const [allProductos, setAllProductos] = useState<Producto[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const pageSize = 10;
+  const pageSize = 6;
 
   // Carga inicial - filtrando productos inactivos
   useEffect(() => {
@@ -112,8 +113,8 @@ export default function MovimientoRegistroTable({
     );
   };
 
-  const handleView = (uuid: string) => {
-    if (onViewProduct) onViewProduct(uuid);
+  const handleView = (prod: Producto) => {
+    if (onViewProduct) onViewProduct(prod);
     else console.warn('onViewProduct no fue proporcionado');
   };
 
@@ -135,7 +136,7 @@ export default function MovimientoRegistroTable({
     return pages;
   }, [page, totalPages]);
 
-  // Mantener altura constante por página (10 filas)
+  // Mantener altura constante por página (6 filas)
   const visibleCount = Math.max(1, pageData.length);
   const emptyRows = Math.max(0, pageSize - visibleCount);
 
@@ -219,7 +220,7 @@ export default function MovimientoRegistroTable({
                     <div className="flex items-center justify-center">
                       <button
                         type="button"
-                        onClick={() => handleView(prod.uuid)}
+                        onClick={() => handleView(prod)} // ⬅️ pasa el producto completo
                         className="text-blue-600 hover:text-blue-800"
                         title="Ver detalle"
                         aria-label={`Ver ${prod.nombre_producto}`}

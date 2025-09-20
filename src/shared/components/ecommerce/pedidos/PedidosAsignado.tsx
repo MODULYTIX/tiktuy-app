@@ -1,13 +1,14 @@
 import PedidosTableAsignado from './table/PedidosTableAsignado';
 
-interface PedidosAsignadoProps {
+interface Props {
+  onVer: (pedidoId: number) => void;
   onEditar: (pedidoId: number) => void;
 }
 
-export default function PedidosAsignado({ onEditar }: PedidosAsignadoProps) {
+export default function PedidosAsignado({ onVer, onEditar }: Props) {
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
-      <PedidosTableAsignado onEditar={onEditar} />
+      <PedidosTableAsignado onVer={onVer} onEditar={onEditar} />
     </div>
   );
 }
