@@ -56,14 +56,6 @@ export default function VerMovimientoRealizadoModal({ open, onClose, data }: Pro
     return String(ref);
   };
 
-  const nombreUsuario = (ref?: UsuarioRef | number | string | null) => {
-    if (!ref && ref !== 0) return '';
-    if (typeof ref === 'object') {
-      const base = ref?.nombre ?? ref?.email ?? ref?.id;
-      return String(base ?? '');
-    }
-    return String(ref);
-  };
 
   const nombreEstado = (ref?: EstadoRef | string | null) => {
     if (!ref) return '';

@@ -6,7 +6,6 @@ import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 import { FiSearch } from 'react-icons/fi';
 import { Icon } from '@iconify/react/dist/iconify.js';
-import { Select } from '@/shared/components/Select';
 import { Selectx } from '@/shared/common/Selectx';
 
 interface Filters {

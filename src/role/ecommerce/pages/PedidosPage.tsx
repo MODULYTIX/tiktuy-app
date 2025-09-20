@@ -67,17 +67,10 @@ export default function PedidosPage() {
     setPedidoId(null);
     setModalAbierto(true);
   };
-  const handleEditar = (id: number) => {
-    setPedidoId(id);
-    setModalAbierto(true);
-  };
+
   const handleCerrarModal = () => {
     setModalAbierto(false);
     setPedidoId(null);
-  };
-  const handleVer = (id: number) => {
-    setPedidoId(id);
-    setModalAbierto(true);
   };
 
   // ASIGNADO: Ver / Editar
@@ -108,15 +101,6 @@ export default function PedidosPage() {
     setRefreshKey((k) => k + 1);
   };
 
-  const handleLimpiarFiltros = () => {
-    setFiltros({
-      courier: '',
-      producto: '',
-      fechaInicio: '',
-      fechaFin: '',
-    });
-    setRefreshKey((k) => k + 1);
-  };
 
   const handleDescargarPlantilla = () => {
     const a = document.createElement('a');

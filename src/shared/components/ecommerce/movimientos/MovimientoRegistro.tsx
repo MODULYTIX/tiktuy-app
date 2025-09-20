@@ -20,7 +20,9 @@ export default function MovimientoRegistro() {
   });
 
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState<'crear' | 'ver'>('crear');
+  // Puedes dejar este estado si lo usarás luego, pero NO lo pases al modal (el modal no lo acepta)
+  const [, setModalMode] = useState<'crear' | 'ver'>('crear');
+
   const [selectedProductsUuids, setSelectedProductsUuids] = useState<string[]>([]);
   const [productosSeleccionados, setProductosSeleccionados] = useState<Producto[]>([]);
 
@@ -47,14 +49,15 @@ export default function MovimientoRegistro() {
       return;
     }
 
-    setModalMode('crear');
+    setModalMode('crear'); // mantengo tu lógica interna
     setSelectedProductsUuids(productosSeleccionados.map((p) => p.uuid));
     setShowModal(true);
   };
 
-  const handleViewProduct = (uuid: string) => {
-    setModalMode('ver');
-    setSelectedProductsUuids([uuid]);
+  // La tabla espera (producto: Producto) => void
+  const handleViewProduct = (producto: Producto) => {
+    setModalMode('ver'); // mantengo tu lógica interna, aunque el modal no reciba "modo"
+    setSelectedProductsUuids([producto.uuid]);
     setShowModal(true);
   };
 
@@ -71,11 +74,11 @@ export default function MovimientoRegistro() {
         onViewProduct={handleViewProduct}
       />
 
+      {/* Pasa solo las props que existen en el modal */}
       <CrearMovimientoModal
         open={showModal}
         onClose={() => setShowModal(false)}
         selectedProducts={selectedProductsUuids}
-        modo={modalMode}
       />
     </div>
   );
