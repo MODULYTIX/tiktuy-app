@@ -32,7 +32,7 @@ function normalizarEstado(value: unknown): EstadoKey {
     const k = value.toLowerCase().trim();
     if (k === 'activo' || k === 'inactivo' || k === 'descontinuado') return k as EstadoKey;
   }
-  if (typeof value === 'object') {
+  if (typeof value === 'object' && value) {
     const v = value as any;
     if (typeof v.id === 'string') return normalizarEstado(v.id);
     if (typeof v.nombre === 'string') return normalizarEstado(v.nombre);
@@ -120,7 +120,7 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
 
     setSaving(true);
 
-    // ⚠️ Omitimos campos conflictivos de Producto antes de redefinirlos
+    // Omitimos campos conflictivos y definimos los que sí enviamos
     type Payload = Omit<
       Partial<Producto>,
       'estado' | 'categoria_id' | 'almacenamiento_id' | 'precio' | 'stock' | 'stock_minimo' | 'peso' | 'fecha_registro'
@@ -146,11 +146,16 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
       stock_minimo: typeof stock_minimo === 'number' && !Number.isNaN(stock_minimo) ? stock_minimo : undefined,
       peso: typeof peso === 'number' && !Number.isNaN(peso) ? peso : undefined,
       estado: form.estado,
-      // fecha_registro: new Date(form.fecha_registro).toISOString(), // habilita si se edita la fecha
+      // fecha_registro: new Date(form.fecha_registro).toISOString(), // habilítalo si se edita la fecha
     };
 
     try {
-      const producto = await actualizarProducto((initialData as any).uuid, payload, token);
+      // Cast puntual para cumplir la firma sin tocar tu API ni la lógica
+      const producto = await actualizarProducto(
+        (initialData as any).uuid,
+        (payload as unknown as Partial<Producto>),
+        token
+      );
       onUpdated?.(producto);
       onClose();
     } catch (err) {
