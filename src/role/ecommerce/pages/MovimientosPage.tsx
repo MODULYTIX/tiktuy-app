@@ -1,7 +1,5 @@
 // src/pages/ecommerce/movimientos/RegistroMovimientoPage.tsx
 import { useEffect, useState } from 'react';
-import { FaExchangeAlt } from 'react-icons/fa';
-import { PiSealCheck } from 'react-icons/pi';
 
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import MovimientoRegistroFilters, {
@@ -12,6 +10,7 @@ import MovimientoValidacionTable from '@/shared/components/ecommerce/movimientos
 import CrearMovimientoModal from '@/shared/components/ecommerce/CrearMovimientoModal';
 import VerMovimientoModal from '@/shared/components/ecommerce/movimientos/VerMovimientoModal';
 import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
+import { Icon } from '@iconify/react/dist/iconify.js';
 
 export default function RegistroMovimientoPage() {
   const { notify } = useNotification();
@@ -22,7 +21,9 @@ export default function RegistroMovimientoPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   // Tabs
-  const [modalMode, setModalMode] = useState<'registro' | 'validacion'>('registro');
+  const [modalMode, setModalMode] = useState<'registro' | 'validacion'>(
+    'registro'
+  );
 
   // Filtros
   const [filters, setFilters] = useState<Filters>({
@@ -92,24 +93,24 @@ export default function RegistroMovimientoPage() {
         <div className="flex gap-2 items-center">
           <button
             onClick={() => setModalMode('registro')}
-            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${modalMode === 'registro'
-              ? 'bg-primaryDark text-white'
-              : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-              }`}
-          >
-            <FaExchangeAlt />
+            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${
+              modalMode === 'registro'
+                ? 'bg-primaryDark text-white'
+                : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
+            }`}>
+            <Icon icon="carbon:asset-movement" width="20" height="20" />
             Nuevo Movimiento
           </button>
-          <span className="block w-[1px] h-8 bg-primary"></span>
+          <span className="block w-[0.5px] h-8 bg-primary"></span>
           <button
             onClick={() => setModalMode('validacion')}
-            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${modalMode === 'validacion'
-              ? 'bg-primaryDark text-white'
-              : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-              }`}
-          >
-            <PiSealCheck size={18} />
-            Ver Movimientos
+            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${
+              modalMode === 'validacion'
+                ? 'bg-primaryDark text-white'
+                : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
+            }`}>
+            <Icon icon="bitcoin-icons:verify-outline" width="26" height="26" />
+            Estado / Validación
           </button>
         </div>
       </div>
@@ -126,7 +127,7 @@ export default function RegistroMovimientoPage() {
             <MovimientoRegistroTable
               filters={filters}
               onSelectProducts={setSelectedProducts}
-              onViewProduct={handleViewProduct} // ⬅️ recibe el producto y abre VerMovimientoModal
+              onViewProduct={handleViewProduct}
             />
           </div>
 

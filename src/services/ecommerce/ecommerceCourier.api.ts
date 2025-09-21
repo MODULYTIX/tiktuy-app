@@ -4,7 +4,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Obtener todas las asociaciones ecommerce-courier
 export async function fetchEcommerceCourier(token: string): Promise<EcommerceCourier[]> {
-  const res = await fetch(`${API_URL}/ecommerce-courier`, {
+  const res = await fetch(`${API_URL}/ecommerce-courier`, { 
     headers: { Authorization: `Bearer ${token}` },
   });
 
