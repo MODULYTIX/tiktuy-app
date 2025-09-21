@@ -13,7 +13,7 @@ import type {
   AbonoEstado,
 } from "@/services/courier/cuadre_saldo/cuadreSaldoE.types";
 
-/* ============== helpers ============== */
+/* ================= helpers ================= */
 const formatPEN = (v: number) =>
   `S/. ${Number(v || 0).toLocaleString("es-PE", {
     minimumFractionDigits: 2,
@@ -37,7 +37,7 @@ function defaultMonthRange() {
   return { desde: toYMD(first), hasta: toYMD(last) };
 }
 
-/** Normalizadores robustos (por si el backend cambia nombres) */
+/** Normalizadores (defensivos) */
 const montoDe = (i: any) => Number(i?.monto ?? i?.monto_recaudar ?? 0);
 const servicioDe = (i: any) => {
   const sc = Number(i?.servicioCourier ?? i?.servicio_courier ?? i?.servicioCourierEfectivo ?? 0);
@@ -48,7 +48,47 @@ const servicioDe = (i: any) => {
   return 0;
 };
 
-/* ============== Modal Confirmar Abono (muestra cobrado, servicio y neto) ============== */
+/* ================= overrides en localStorage ================= */
+// Guardamos fechas recientemente abonadas (Por Validar) por ecommerceId
+type AbonoOverrides = Record<string /*ecommerceId*/, string[] /*YYYY-MM-DD*/>;
+const LS_KEY = "csE_abono_overrides";
+
+function readOverrides(): AbonoOverrides {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === "object" && parsed ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+function writeOverrides(data: AbonoOverrides) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  } catch {
+    /* ignore */
+  }
+}
+function addOverrides(ecommerceId: number, fechas: string[]) {
+  const all = readOverrides();
+  const key = String(ecommerceId);
+  const prev = new Set(all[key] ?? []);
+  fechas.forEach((f) => prev.add(f));
+  all[key] = Array.from(prev);
+  writeOverrides(all);
+}
+function removeOverrides(ecommerceId: number, fechas: string[]) {
+  const all = readOverrides();
+  const key = String(ecommerceId);
+  if (!all[key]) return;
+  const set = new Set(all[key]);
+  fechas.forEach((f) => set.delete(f));
+  all[key] = Array.from(set);
+  writeOverrides(all);
+}
+
+/* ================= Modal Confirmar ================= */
 type ConfirmAbonoModalProps = {
   open: boolean;
   ecommerceNombre: string;
@@ -86,7 +126,6 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl">
-        {/* header */}
         <div className="flex flex-col items-center gap-2 px-6 pt-7">
           <div className="rounded-full bg-emerald-50 p-4">
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
@@ -101,7 +140,6 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
           </p>
         </div>
 
-        {/* resumen */}
         <div className="mx-6 mt-2 rounded-xl border">
           <div className="border-b px-5 py-3 text-sm font-semibold text-gray-700">Resumen</div>
           <div className="grid grid-cols-2 items-center gap-2 px-5 py-4 text-sm">
@@ -111,12 +149,7 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
             <div className="text-gray-600">{fechas.length <= 1 ? "Fecha" : "Fechas"}</div>
             <div className="text-right">{fechasLabel}</div>
 
-            {ciudad && (
-              <>
-                <div className="text-gray-600">Ciudad</div>
-                <div className="text-right">{ciudad}</div>
-              </>
-            )}
+            {ciudad && (<><div className="text-gray-600">Ciudad</div><div className="text-right">{ciudad}</div></>)}
 
             <div className="text-gray-600">Pedidos seleccionados</div>
             <div className="text-right font-medium">{pedidosCount}</div>
@@ -132,24 +165,17 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
           </div>
         </div>
 
-        {/* check */}
         <label className="mx-6 mt-4 flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} className="h-4 w-4" />
           Confirmo que verifiqué e hice la transferencia
         </label>
 
-        {/* footer */}
         <div className="mt-5 flex items-center justify-end gap-2 border-t px-6 py-4">
-          <button onClick={onCancel} className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50">
-            Cancelar
-          </button>
+          <button onClick={onCancel} className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50">Cancelar</button>
           <button
             onClick={onConfirm}
             disabled={!checked}
-            className={[
-              "rounded-md px-4 py-2 text-sm font-medium",
-              checked ? "bg-emerald-600 text-white hover:opacity-90" : "bg-emerald-200 text-white cursor-not-allowed",
-            ].join(" ")}
+            className={["rounded-md px-4 py-2 text-sm font-medium", checked ? "bg-emerald-600 text-white hover:opacity-90" : "bg-emerald-200 text-white cursor-not-allowed"].join(" ")}
           >
             ✓ Confirmar
           </button>
@@ -159,33 +185,28 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
   );
 };
 
-/* ============== Tabla Ecommerce (resumen + detalle + abono con estado) ============== */
+/* ================= Tabla ================= */
 type Props = { token: string };
 type ResumenRow = ResumenDia & { estado?: AbonoEstado };
 
 const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
-  // filtros
   const defaults = useMemo(defaultMonthRange, []);
   const [ecommerces, setEcommerces] = useState<EcommerceItem[]>([]);
   const [ecoId, setEcoId] = useState<number | "">("");
   const [desde, setDesde] = useState(defaults.desde);
   const [hasta, setHasta] = useState(defaults.hasta);
 
-  // resumen
   const [rows, setRows] = useState<ResumenRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // selección (resumen)
   const [selectedFechas, setSelectedFechas] = useState<string[]>([]);
 
-  // detalle
   const [openDetalle, setOpenDetalle] = useState(false);
   const [detalleFecha, setDetalleFecha] = useState<string>("");
   const [detalleItems, setDetalleItems] = useState<PedidoDiaItem[]>([]);
   const [detalleLoading, setDetalleLoading] = useState(false);
 
-  // confirm modal (común)
   const [openConfirm, setOpenConfirm] = useState(false);
   const [confirmFechas, setConfirmFechas] = useState<string[]>([]);
   const [confirmCobrado, setConfirmCobrado] = useState(0);
@@ -211,7 +232,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  /* cargar resumen */
+  /* cargar resumen + aplicar overrides locales */
   const loadResumen = async () => {
     if (!ecoId || typeof ecoId !== "number") {
       setRows([]);
@@ -221,7 +242,28 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     setError(null);
     try {
       const data = await getEcommerceResumen(token, { ecommerceId: ecoId, desde, hasta });
-      setRows((data ?? []) as ResumenRow[]);
+      const baseRows: ResumenRow[] = (data ?? []) as ResumenRow[];
+
+      // aplica overrides locales: si abonaste hace un momento y el BE aún no refleja, mantenemos "Por Validar"
+      const overrides = readOverrides()[String(ecoId)] ?? [];
+      const overrideSet = new Set(overrides);
+
+      const merged = baseRows.map((r) => {
+        if (r.estado === "Validado") {
+          // si el backend ya validó, limpiamos override
+          if (overrideSet.has(r.fecha)) {
+            removeOverrides(ecoId, [r.fecha]);
+            overrideSet.delete(r.fecha);
+          }
+          return r;
+        }
+        if (overrideSet.has(r.fecha)) {
+          return { ...r, estado: "Por Validar" as AbonoEstado };
+        }
+        return r;
+      });
+
+      setRows(merged);
       setSelectedFechas([]);
     } catch (e: any) {
       setError(e?.message ?? "Error al cargar el resumen");
@@ -235,15 +277,16 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ecoId, desde, hasta]);
 
-  /* selección en resumen */
+  /* selección resumen */
   const toggleFecha = (fecha: string) =>
     setSelectedFechas((prev) => (prev.includes(fecha) ? prev.filter((f) => f !== fecha) : [...prev, fecha]));
+
   const toggleAllFechas = () => {
     if (selectedFechas.length === rows.length) setSelectedFechas([]);
     else setSelectedFechas(rows.map((r) => r.fecha));
   };
 
-  /* abrir detalle de un día */
+  /* abrir detalle */
   const openDia = async (fecha: string) => {
     if (!ecoId || typeof ecoId !== "number") return;
     setDetalleFecha(fecha);
@@ -286,7 +329,12 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     }
   };
 
-  /* preparar abono desde detalle: abona el DÍA completo, no por selección */
+  /* preparar abono desde detalle: abona el DÍA completo */
+  const totalDetalleServicio = useMemo(
+    () => detalleItems.reduce((acc, i) => acc + servicioDe(i), 0),
+    [detalleItems]
+  );
+
   const abrirConfirmDetalle = () => {
     const todos = detalleItems;
     setConfirmFechas([detalleFecha]);
@@ -296,49 +344,43 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     setOpenConfirm(true);
   };
 
-  /* confirmar abono (por fechas) -> cambia pill a "Por Validar" sin recargar de inmediato */
+  /* confirmar abono -> Por Validar (optimista + override en LS) */
   const confirmarAbono = async () => {
     try {
       setLoading(true);
       if (!ecoId || typeof ecoId !== "number") return;
       if (!confirmFechas.length) return;
 
-      // 1) backend: marcar fechas como "Por Validar"
       const resp = await abonarEcommerceFechas(token, {
         ecommerceId: ecoId,
         fechas: confirmFechas,
         estado: "Por Validar",
       });
 
-      // 2) update optimista del pill usando las fechas que confirmó el backend
       const fechasMarcadas = (resp?.fechas ?? confirmFechas).map((f) => f.slice(0, 10));
+
+      // 1) update optimista en la tabla
       setRows((prev) =>
         prev.map((r) =>
-          fechasMarcadas.includes(r.fecha) ? { ...r, estado: "Por Validar" } as ResumenRow : r
+          fechasMarcadas.includes(r.fecha) ? { ...r, estado: "Por Validar" as AbonoEstado } : r
         )
       );
 
-      // 3) cerrar modal y limpiar (NO llamamos a loadResumen aquí para evitar el “rebote”)
+      // 2) persistimos override para sobrevivir a F5
+      addOverrides(ecoId, fechasMarcadas);
+
+      // 3) cerrar modal
       setOpenConfirm(false);
       setConfirmFechas([]);
       setConfirmCobrado(0);
       setConfirmServicio(0);
       setConfirmCount(0);
-
-      // Si quieres, puedes re-sincronizar manualmente con “Aplicar filtros”.
-      // También podrías hacer un setTimeout(() => loadResumen(), 400) si luego te conviene.
     } catch (e: any) {
       alert(e?.message ?? "No se pudo procesar el abono");
     } finally {
       setLoading(false);
     }
   };
-
-  /* totales del detalle (solo informativos arriba de la tabla) */
-  const totalDetalleServicio = useMemo(
-    () => detalleItems.reduce((acc, i) => acc + servicioDe(i), 0),
-    [detalleItems]
-  );
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -550,9 +592,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                   </thead>
                   <tbody>
                     {detalleItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-6 text-center text-gray-500">Sin pedidos</td>
-                      </tr>
+                      <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">Sin pedidos</td></tr>
                     ) : (
                       detalleItems.map((it: any) => (
                         <tr key={it.id} className="border-t hover:bg-gray-50">
@@ -571,7 +611,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         </div>
       )}
 
-      {/* modal confirmar (usa fechas) */}
+      {/* modal confirmar */}
       <ConfirmAbonoModal
         open={openConfirm}
         ecommerceNombre={ecommerce?.nombre ?? ""}
