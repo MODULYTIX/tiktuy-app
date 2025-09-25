@@ -1,5 +1,5 @@
 // src/pages/RegistroInvitacionPage.tsx
-import { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
@@ -19,54 +19,149 @@ import StepInformacionComercial from "@/shared/components/courier/registroInvita
 import StepDatosVehiculo from "@/shared/components/courier/registroInvitacion/StepDatosVehiculo";
 import StepSeguridad from "@/shared/components/courier/registroInvitacion/StepSeguridad";
 
-type Step = 1 | 2 | 3;
+/* ---------------------------------- Const --------------------------------- */
+
+// Evita enum (problema con `erasableSyntaxOnly`)
+const STEP = { One: 1, Two: 2, Three: 3 } as const;
+type StepValue = (typeof STEP)[keyof typeof STEP];
+
 const LOGIN_PATH = "/login";
 
-/** Patches tipados (sin any) */
+/* --------------------------------- Tipos ---------------------------------- */
+
 type DatosPersonalesPatch = Partial<
-  Pick<RegistroInvitacionPayload, "nombres" | "apellidos" | "dni_ci" | "telefono" | "correo">
+  Pick<
+    RegistroInvitacionPayload,
+    "nombres" | "apellidos" | "dni_ci" | "telefono" | "correo"
+  >
 >;
+
 type InfoComercialPatch = Partial<
-  Pick<RegistroInvitacionPayload, "nombre_comercial" | "ruc" | "ciudad" | "direccion" | "rubro">
+  Pick<
+    RegistroInvitacionPayload,
+    "nombre_comercial" | "ruc" | "ciudad" | "direccion" | "rubro"
+  >
 >;
 
-/** Form local para motorizado: permite null hasta seleccionar tipo_vehiculo en UI */
-type FormMotorizado = Omit<RegistroInvitacionMotorizadoPayload, "token" | "tipo_vehiculo"> & {
-  tipo_vehiculo: TipoVehiculo | null;
-};
+type FormMotorizadoLocal = Omit<
+  RegistroInvitacionMotorizadoPayload,
+  "token" | "tipo_vehiculo"
+> & { tipo_vehiculo: TipoVehiculo | null };
 
-/** Valores del StepDatosVehiculo (para tipar el handler sin fricción) */
 type VehiculoValues = {
   licencia: string;
   tipo_vehiculo: TipoVehiculo | null;
   placa: string;
 };
 
+/* ------------------------------- Utilidades ------------------------------- */
+
+const hasAllPersonalFields = (v: {
+  nombres: string;
+  apellidos: string;
+  dni_ci: string;
+  telefono: string;
+  correo: string;
+}) =>
+  Boolean(
+    v.nombres.trim() &&
+      v.apellidos.trim() &&
+      v.dni_ci.trim() &&
+      v.telefono.trim() &&
+      v.correo.trim()
+  );
+
+/* ------------------------ UI: Pantalla de Éxito --------------------------- */
+
+function SuccessScreen({
+  label,
+  name,
+  description,
+  onGoLogin,
+}: {
+  label: string;
+  name: string;
+  description: string;
+  onGoLogin: () => void;
+}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <div className="w-full max-w-3xl text-center">
+        {/* Escudo */}
+        <div className="mx-auto mb-4">
+          <svg width="120" height="120" viewBox="0 0 24 24" className="mx-auto">
+            <path
+              fill="#FACC15"
+              d="M12 2l7 3v6c0 5-3.5 9.74-7 11-3.5-1.26-7-6-7-11V5l7-3z"
+            />
+            <path
+              fill="#FFF"
+              d="M10.5 14.5l-2.5-2.5l1.4-1.4l1.1 1.1l4-4l1.4 1.4z"
+            />
+          </svg>
+        </div>
+
+        <p className="text-2xl text-gray-600">
+          {label}:{" "}
+          <span className="font-semibold text-4xl text-yellow-500 break-words">
+            {name}
+          </span>
+        </p>
+
+        <h2 className="mt-6 text-3xl font-extrabold text-blue-600">
+          ¡Felicidades, por tu registro!
+        </h2>
+        <p className="mt-3 text-gray-600 max-w-2xl mx-auto">{description}</p>
+
+        <div className="mt-6 flex items-center justify-center">
+          <button
+            onClick={onGoLogin}
+            className="inline-flex items-center gap-2 rounded-md bg-[#0F172A] px-5 py-2.5 text-white text-sm font-medium hover:bg-black"
+          >
+            Ir a iniciar sesión
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M10 17l5-5l-5-5v10zM4 4h2v16H4z" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mt-8 flex items-center justify-center gap-2 text-green-600">
+          <span className="text-xl">✔</span>
+          <span className="text-sm">Paso 3 de 3 completados</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ Componente -------------------------------- */
+
 export default function RegistroInvitacionPage() {
+  // Router
+  const navigate = useNavigate();
   const location = useLocation();
   const path = location.pathname.toLowerCase();
 
-  const [searchparams] = useSearchParams();
-  const token = searchparams.get("token") || "";
-  const tipoQS = (searchparams.get("tipo") || "").toLowerCase();
+  const [sp] = useSearchParams();
+  const token = sp.get("token") || "";
+  const tipoQS = (sp.get("tipo") || "").toLowerCase();
 
-  // Acepta /registro-invitacion-motorizado o ?tipo=motorizado|repartidor
+  // /registro-invitacion-motorizado o ?tipo=motorizado|repartidor
   const isMotorizado =
     /registro-invitacion-(motorizado|repartidor)/.test(path) ||
     tipoQS === "motorizado" ||
     tipoQS === "repartidor";
 
-  const navigate = useNavigate();
-
-  const [step, setStep] = useState<Step>(1);
+  // Estado UI
+  const [step, setStep] = useState<StepValue>(STEP.One);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Nuevo: estado final + nombre a mostrar en banner
+  // Éxito
   const [finished, setFinished] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
 
-  // --------- Formularios ---------
+  // Formularios
   const [formE, setFormE] = useState<Omit<RegistroInvitacionPayload, "token">>({
     nombres: "",
     apellidos: "",
@@ -82,14 +177,14 @@ export default function RegistroInvitacionPage() {
     confirmar_contrasena: "",
   });
 
-  const [formM, setFormM] = useState<FormMotorizado>({
+  const [formM, setFormM] = useState<FormMotorizadoLocal>({
     nombres: "",
     apellidos: "",
     dni_ci: "",
     telefono: "",
     correo: "",
     licencia: "",
-    tipo_vehiculo: null, // null hasta que el usuario seleccione
+    tipo_vehiculo: null,
     placa: "",
     contrasena: "",
     confirmar_contrasena: "",
@@ -97,29 +192,7 @@ export default function RegistroInvitacionPage() {
 
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // --------- Helpers de validación sin any ---------
-  function hasAllPersonalFields(v: {
-    nombres: string;
-    apellidos: string;
-    dni_ci: string;
-    telefono: string;
-    correo: string;
-  }): boolean {
-    return (
-      v.nombres.trim().length > 0 &&
-      v.apellidos.trim().length > 0 &&
-      v.dni_ci.trim().length > 0 &&
-      v.telefono.trim().length > 0 &&
-      v.correo.trim().length > 0
-    );
-  }
-
-  // --------- Reglas de navegación ---------
-  const canSubmit = useMemo(() => {
-    const pwd = isMotorizado ? formM.contrasena : formE.contrasena;
-    return pwd.length >= 6 && pwd === confirmPassword;
-  }, [isMotorizado, formE.contrasena, formM.contrasena, confirmPassword]);
-
+  // Derivados
   const canContinue1 = useMemo(
     () => (isMotorizado ? hasAllPersonalFields(formM) : hasAllPersonalFields(formE)),
     [isMotorizado, formE, formM]
@@ -128,35 +201,32 @@ export default function RegistroInvitacionPage() {
   const canContinue2 = useMemo(() => {
     if (isMotorizado) {
       const { licencia, tipo_vehiculo, placa } = formM;
-      return (
-        licencia.trim().length > 0 &&
-        placa.trim().length > 0 &&
-        tipo_vehiculo !== null
-      );
-    } else {
-      const { nombre_comercial, ruc, ciudad, direccion, rubro } = formE;
-      return (
-        nombre_comercial.trim().length > 0 &&
-        ruc.trim().length > 0 &&
-        ciudad.trim().length > 0 &&
-        direccion.trim().length > 0 &&
-        rubro.trim().length > 0
-      );
+      return Boolean(licencia.trim() && placa.trim() && tipo_vehiculo !== null);
     }
+    const { nombre_comercial, ruc, ciudad, direccion, rubro } = formE;
+    return Boolean(
+      nombre_comercial.trim() &&
+        ruc.trim() &&
+        ciudad.trim() &&
+        direccion.trim() &&
+        rubro.trim()
+    );
   }, [isMotorizado, formE, formM]);
 
-  if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-white rounded shadow p-6">
-          <p className="text-red-600">Enlace inválido o falta el token de invitación.</p>
-        </div>
-      </div>
-    );
-  }
+  const canSubmit = useMemo(() => {
+    const pwd = isMotorizado ? formM.contrasena : formE.contrasena;
+    return pwd.length >= 6 && pwd === confirmPassword;
+  }, [isMotorizado, formE.contrasena, formM.contrasena, confirmPassword]);
 
-  // --------- Submit ---------
-  async function onSubmit() {
+  // Handlers
+  const handleVehiculoChange = useCallback(
+    (patch: Partial<VehiculoValues>) => setFormM((prev) => ({ ...prev, ...patch })),
+    []
+  );
+
+  const onGoLogin = useCallback(() => navigate(LOGIN_PATH), [navigate]);
+
+  const onSubmit = useCallback(async () => {
     setErrorMsg(null);
 
     if (!canSubmit) {
@@ -170,21 +240,20 @@ export default function RegistroInvitacionPage() {
       if (isMotorizado) {
         if (formM.tipo_vehiculo === null) {
           setErrorMsg("Selecciona el tipo de vehículo.");
-          setLoading(false);
           return;
         }
 
         const payload: RegistroInvitacionMotorizadoPayload = {
           token,
           ...formM,
-          tipo_vehiculo: formM.tipo_vehiculo, // ya asegurado como TipoVehiculo
+          tipo_vehiculo: formM.tipo_vehiculo,
           confirmar_contrasena: confirmPassword,
         };
 
         const res = await registrarDesdeInvitacionMotorizado(payload);
         if (res.ok) {
           setDisplayName(formM.nombres || "Tu cuenta");
-          setFinished(true); // Mostrar pantalla final
+          setFinished(true);
           window.scrollTo({ top: 0, behavior: "smooth" });
         } else {
           setErrorMsg(res.error || "No se pudo completar el registro del motorizado.");
@@ -195,10 +264,11 @@ export default function RegistroInvitacionPage() {
           ...formE,
           confirmar_contrasena: confirmPassword,
         };
+
         const res = await registrarDesdeInvitacion(payload);
         if (res.ok) {
           setDisplayName(formE.nombre_comercial || "Tu ecommerce");
-          setFinished(true); // Mostrar pantalla final
+          setFinished(true);
           window.scrollTo({ top: 0, behavior: "smooth" });
         } else {
           setErrorMsg(res.error || "No se pudo completar el registro.");
@@ -209,14 +279,19 @@ export default function RegistroInvitacionPage() {
     } finally {
       setLoading(false);
     }
+  }, [canSubmit, isMotorizado, formM, formE, token, confirmPassword]);
+
+  // Guard clauses
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white rounded shadow p-6">
+          <p className="text-red-600">Enlace inválido o falta el token de invitación.</p>
+        </div>
+      </div>
+    );
   }
 
-  // --------- Handler alineado con StepDatosVehiculo (sin any) ---------
-  const handleVehiculoChange = (patch: Partial<VehiculoValues>) => {
-    setFormM((prev) => ({ ...prev, ...patch }));
-  };
-
-  // --------- Pantalla de ÉXITO ---------
   if (finished) {
     const label = isMotorizado ? "Nombre del Repartidor" : "Nombre comercial";
     const description = isMotorizado
@@ -224,56 +299,16 @@ export default function RegistroInvitacionPage() {
       : "Tu ecommerce ha sido registrado exitosamente en nuestra plataforma de fulfillment. Ahora podrás gestionar tus pedidos, envíos y clientes de forma más eficiente.";
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white px-4">
-        <div className="w-full max-w-3xl text-center">
-          {/* Escudo */}
-          <div className="mx-auto mb-4">
-            <svg width="120" height="120" viewBox="0 0 24 24" className="mx-auto">
-              <path fill="#FACC15" d="M12 2l7 3v6c0 5-3.5 9.74-7 11-3.5-1.26-7-6-7-11V5l7-3z"/>
-              <path fill="#FFF" d="M10.5 14.5l-2.5-2.5l1.4-1.4l1.1 1.1l4-4l1.4 1.4z"/>
-            </svg>
-          </div>
-
-          {/* Título superior */}
-          <p className="text-2xl text-gray-600">
-            {label}:{" "}
-            <span className="font-semibold text-4xl text-yellow-500 break-words">
-              {displayName}
-            </span>
-          </p>
-
-          {/* Felicitación */}
-          <h2 className="mt-6 text-3xl font-extrabold text-blue-600">
-            ¡Felicidades, por tu registro!
-          </h2>
-          <p className="mt-3 text-gray-600 max-w-2xl mx-auto">
-            {description}
-          </p>
-
-          {/* Botón único: ir a login */}
-          <div className="mt-6 flex items-center justify-center">
-            <button
-              onClick={() => navigate(LOGIN_PATH)}
-              className="inline-flex items-center gap-2 rounded-md bg-[#0F172A] px-5 py-2.5 text-white text-sm font-medium hover:bg-black"
-            >
-              Ir a iniciar sesión
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M10 17l5-5l-5-5v10zM4 4h2v16H4z"/>
-              </svg>
-            </button>
-          </div>
-
-          {/* Paso completado */}
-          <div className="mt-8 flex items-center justify-center gap-2 text-green-600">
-            <span className="text-xl">✔</span>
-            <span className="text-sm">Paso 3 de 3 completados</span>
-          </div>
-        </div>
-      </div>
+      <SuccessScreen
+        label={label}
+        name={displayName}
+        description={description}
+        onGoLogin={onGoLogin}
+      />
     );
   }
 
-  // --------- Wizard (pasos 1–3) ---------
+  // Wizard
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-3xl bg-white rounded-lg shadow p-6">
@@ -286,11 +321,11 @@ export default function RegistroInvitacionPage() {
 
         {/* Progreso */}
         <div className="flex items-center justify-between mb-6">
-          <div className={`flex-1 h-2 rounded ${step >= 1 ? "bg-blue-800" : "bg-gray-200"}`} />
+          <div className={`flex-1 h-2 rounded ${step >= STEP.One ? "bg-blue-800" : "bg-gray-200"}`} />
           <div className="w-6" />
-          <div className={`flex-1 h-2 rounded ${step >= 2 ? "bg-blue-800" : "bg-gray-200"}`} />
+          <div className={`flex-1 h-2 rounded ${step >= STEP.Two ? "bg-blue-800" : "bg-gray-200"}`} />
           <div className="w-6" />
-          <div className={`flex-1 h-2 rounded ${step >= 3 ? "bg-blue-800" : "bg-gray-200"}`} />
+          <div className={`flex-1 h-2 rounded ${step >= STEP.Three ? "bg-blue-800" : "bg-gray-200"}`} />
         </div>
 
         {errorMsg && (
@@ -299,8 +334,8 @@ export default function RegistroInvitacionPage() {
           </div>
         )}
 
-        {/* Paso 1: Datos personales */}
-        {step === 1 && (
+        {/* Paso 1 */}
+        {step === STEP.One && (
           <StepDatosPersonales
             values={isMotorizado ? formM : formE}
             onChange={(patch: DatosPersonalesPatch) =>
@@ -308,12 +343,12 @@ export default function RegistroInvitacionPage() {
                 ? setFormM((p) => ({ ...p, ...patch }))
                 : setFormE((p) => ({ ...p, ...patch }))
             }
-            onNext={() => canContinue1 && setStep(2)}
+            onNext={() => canContinue1 && setStep(STEP.Two)}
           />
         )}
 
         {/* Paso 2 */}
-        {step === 2 &&
+        {step === STEP.Two &&
           (isMotorizado ? (
             <StepDatosVehiculo
               values={{
@@ -322,8 +357,8 @@ export default function RegistroInvitacionPage() {
                 placa: formM.placa,
               }}
               onChange={handleVehiculoChange}
-              onBack={() => setStep(1)}
-              onNext={() => canContinue2 && setStep(3)}
+              onBack={() => setStep(STEP.One)}
+              onNext={() => canContinue2 && setStep(STEP.Three)}
             />
           ) : (
             <StepInformacionComercial
@@ -331,23 +366,23 @@ export default function RegistroInvitacionPage() {
               onChange={(patch: InfoComercialPatch) =>
                 setFormE((p) => ({ ...p, ...patch }))
               }
-              onBack={() => setStep(1)}
-              onNext={() => canContinue2 && setStep(3)}
+              onBack={() => setStep(STEP.One)}
+              onNext={() => canContinue2 && setStep(STEP.Three)}
             />
           ))}
 
-        {/* Paso 3: Seguridad */}
-        {step === 3 && (
+        {/* Paso 3 */}
+        {step === STEP.Three && (
           <StepSeguridad
             password={isMotorizado ? formM.contrasena : formE.contrasena}
             confirm={confirmPassword}
-            onChangePassword={(v: string) =>
+            onChangePassword={(v) =>
               isMotorizado
                 ? setFormM((p) => ({ ...p, contrasena: v }))
                 : setFormE((p) => ({ ...p, contrasena: v }))
             }
-            onChangeConfirm={(v: string) => setConfirmPassword(v)}
-            onBack={() => setStep(2)}
+            onChangeConfirm={setConfirmPassword}
+            onBack={() => setStep(STEP.Two)}
             onSubmit={onSubmit}
             loading={loading}
             canSubmit={canSubmit}
