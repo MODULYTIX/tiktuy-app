@@ -1,4 +1,3 @@
-import { PiGarageLight } from 'react-icons/pi';
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/auth/context/useAuth';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';

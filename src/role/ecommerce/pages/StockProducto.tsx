@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
 import StockFilters, { type StockFilterValue } from '@/shared/components/ecommerce/stock/StockFilters';
 import StockTable from '@/shared/components/ecommerce/stock/StockTable';
-import { TbCubePlus } from 'react-icons/tb';
 import { useAuth } from '@/auth/context';
 import { fetchProductosFiltrados } from '@/services/ecommerce/producto/producto.api';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';

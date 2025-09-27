@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { CiUser } from 'react-icons/ci';
 import PerfilesTable from '@/shared/components/ecommerce/perfiles/PerfilesTable';
 import PerfilFormModal from '@/shared/components/ecommerce/perfiles/PerfilFormModal';
 import PerfilEditModal from '@/shared/components/ecommerce/perfiles/PerfilEditModal';

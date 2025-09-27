@@ -1,7 +1,12 @@
+import Tittlex from '@/shared/common/Tittlex';
+
 export default function ReportesPage() {
-    return (
-        <div>
-            <h1>Perfiles</h1>
-        </div>
-    )
+  return (
+    <section className="mt-6">
+      <Tittlex
+        title="Reportes Page"
+        description="Visualiza Reportes"
+      />
+    </section>
+  );
 }

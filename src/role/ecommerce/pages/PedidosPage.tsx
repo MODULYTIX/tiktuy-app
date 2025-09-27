@@ -1,7 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import { LuClipboardCheck } from 'react-icons/lu';
-import { MdOutlineAssignment } from 'react-icons/md';
-import { RiAiGenerate } from 'react-icons/ri';
+import { useEffect, useState } from 'react';
 import { FiPlus } from 'react-icons/fi';
 
 import PedidosGenerado from '@/shared/components/ecommerce/pedidos/PedidosGenerado';
@@ -10,7 +7,6 @@ import PedidosCompletado from '@/shared/components/ecommerce/pedidos/PedidosComp
 import CrearPedidoModal from '@/shared/components/ecommerce/pedidos/CrearPedidoModal';
 
 import { Icon } from '@iconify/react/dist/iconify.js';
-import { Select } from '@/shared/components/Select';
 import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
 import { useAuth } from '@/auth/context';
 import ImportExcelPedidosFlow from '@/shared/components/ecommerce/excel/pedido/ImportExcelPedidosFlow';
@@ -72,8 +68,8 @@ export default function PedidosPage() {
   // =========================
   // NUEVO: opciones dinámicas
   // =========================
-  const [pedidosForFilters, setPedidosForFilters] = useState<Pedido[]>([]);
-  const [loadingFilters, setLoadingFilters] = useState(false);
+  const [, setPedidosForFilters] = useState<Pedido[]>([]);
+  const [, setLoadingFilters] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -84,45 +80,6 @@ export default function PedidosPage() {
       .finally(() => setLoadingFilters(false));
   }, [token, refreshKey]); // si importas/creas, refresco recarga opciones
 
-  const courierOptions = useMemo(() => {
-    // unique por id si existe, si no por nombre
-    const map = new Map<string, string>(); // key=value,label
-    for (const p of pedidosForFilters) {
-      const id = (p as any).courier_id ?? p.courier?.id;
-      const name = p.courier?.nombre_comercial?.trim();
-      if (id != null) {
-        const key = String(id);
-        if (!map.has(key)) map.set(key, name || `Courier ${key}`);
-      } else if (name) {
-        if (!map.has(name)) map.set(name, name);
-      }
-    }
-    const arr = Array.from(map.entries()).map(([value, label]) => ({ value, label }));
-    arr.sort((a, b) => a.label.localeCompare(b.label));
-    return [{ value: '', label: 'Todos' }, ...arr];
-  }, [pedidosForFilters]);
-
-  const productoOptions = useMemo(() => {
-    // unique por id si existe; si no por nombre/código
-    const map = new Map<string, string>();
-    for (const p of pedidosForFilters) {
-      for (const d of p.detalles || []) {
-        const prod = d.producto;
-        if (!prod) continue;
-        const id = prod.id != null ? String(prod.id) : undefined;
-        const codigo = (prod as any)?.codigo ? String((prod as any).codigo) : undefined;
-        const nombre = prod.nombre_producto?.trim();
-        const key = id ?? nombre ?? codigo;
-        const label = nombre || codigo || (id ? `Producto ${id}` : '');
-        if (key && label && !map.has(key)) {
-          map.set(key, label);
-        }
-      }
-    }
-    const arr = Array.from(map.entries()).map(([value, label]) => ({ value, label }));
-    arr.sort((a, b) => a.label.localeCompare(b.label));
-    return [{ value: '', label: 'Todos' }, ...arr];
-  }, [pedidosForFilters]);
 
   // Crear (Generado)
   const handleNuevoPedido = () => {
@@ -252,7 +209,6 @@ export default function PedidosPage() {
       </div>
 
       {/* Filtros */}
-<<<<<<< HEAD
       <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
         <Selectx
           id="f-courier"
@@ -281,32 +237,6 @@ export default function PedidosPage() {
           <option value="p1">Producto 1</option>
           <option value="p2">Producto 2</option>
         </Selectx>
-=======
-      <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Courier</label>
-          <div className="relative w-full">
-            <Select
-              value={filtros.courier}
-              onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value }))}
-              options={courierOptions}
-              placeholder={loadingFilters ? 'Cargando...' : 'Seleccionar courier'}
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Producto</label>
-          <div className="relative w-full">
-            <Select
-              value={filtros.producto}
-              onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value }))}
-              options={productoOptions}
-              placeholder={loadingFilters ? 'Cargando...' : 'Seleccionar producto'}
-            />
-          </div>
-        </div>
->>>>>>> 8ecfb249a4abe9cacc459ba9a125e2047bef9140
 
         <SelectxDate
           id="f-fecha-inicio"
