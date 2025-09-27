@@ -1,5 +1,5 @@
 // src/pages/RegistroInvitacionPage.tsx
-import React, { useCallback, useMemo, useState } from "react";
+import  { useCallback, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import {

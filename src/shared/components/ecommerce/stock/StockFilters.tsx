@@ -4,8 +4,6 @@ import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamien
 import { useAuth } from '@/auth/context';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
-import { FiSearch } from 'react-icons/fi';
-import { Icon } from '@iconify/react/dist/iconify.js';
 import { Selectx } from '@/shared/common/Selectx';
 import Buttonx from '@/shared/common/Buttonx';
 import { SearchInputx } from '@/shared/common/SearchInputx';
@@ -72,10 +70,6 @@ export default function StockFilters({ onFilterChange }: Props) {
       search: '',
     });
   };
-
-  const field =
-    'w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 ' +
-    'placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors';
 
   return (
     <div className="bg-white p-5 rounded-md shadow-default border-b-4 border-gray90 ">

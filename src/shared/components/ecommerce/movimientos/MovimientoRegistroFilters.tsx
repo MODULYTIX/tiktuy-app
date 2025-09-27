@@ -4,12 +4,9 @@ import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamien
 import { useAuth } from '@/auth/context';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
-import { FiSearch } from 'react-icons/fi';
-import { Icon } from '@iconify/react/dist/iconify.js';
 import { Selectx } from '@/shared/common/Selectx';
 import Buttonx from '@/shared/common/Buttonx';
 import { SearchInputx } from '@/shared/common/SearchInputx';
-
 
 export interface Filters {
   almacenamiento_id: string;
@@ -23,7 +20,7 @@ export interface Filters {
 
 interface Props {
   onFilterChange?: (filters: Filters) => void;
-  onNuevoMovimientoClick?: () => void; // <— agregado para tu otra vista
+  onNuevoMovimientoClick?: () => void; // opcional desde fuera
 }
 
 export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovimientoClick }: Props) {
@@ -71,19 +68,15 @@ export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovim
     });
   };
 
-  const field =
-    'w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 ' +
-    'placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors';
-
   return (
     <div className="bg-white p-5 rounded-md shadow-default border-b-4 border-gray90">
       {/* xs: 1 col, sm: 2 cols, lg: 1fr 1fr 1fr auto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm">
-        {/* Almacén (solo cambia el label visual) */}
+        {/* Almacén */}
         <Selectx
           label="Almacén"
           value={filters.almacenamiento_id}
-          onChange={(e) =>
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
             setFilters((prev) => ({ ...prev, almacenamiento_id: e.target.value }))
           }
           placeholder="Seleccione almacén"
@@ -100,7 +93,7 @@ export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovim
         <Selectx
           label="Categorías"
           value={filters.categoria_id}
-          onChange={(e) =>
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
             setFilters((prev) => ({ ...prev, categoria_id: e.target.value }))
           }
           placeholder="Seleccione categoría"
@@ -115,12 +108,12 @@ export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovim
 
         {/* Estado */}
         <Selectx
-          label="Categoria" // El título (label)
+          label="Estado"
           value={filters.estado}
-          onChange={(e) =>
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
             setFilters((prev) => ({ ...prev, estado: e.target.value }))
           }
-          placeholder="Seleccione estado" // Este es el texto visible por defecto
+          placeholder="Seleccione estado"
           className="w-full"
         >
           <option value="activo">Activo</option>
@@ -169,30 +162,31 @@ export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovim
           {/* Buscador */}
           <SearchInputx
             value={filters.search}
-            onChange={handleChange} // Actualiza el valor de `filters.search` cuando se escribe
-            placeholder="Buscar productos por nombre, descripción ó código." // Placeholder que deseas
-            className="w-full pl-10" // Espaciado para el ícono de búsqueda
+            onChange={handleChange}
+            placeholder="Buscar productos por nombre, descripción ó código."
+            className="w-full pl-10"
+            name="search"
           />
 
           {/* Acciones a la derecha */}
           <div className="flex items-center gap-3 sm:ml-auto">
-            
             <Buttonx
               label="Limpiar Filtros"
               icon="mynaui:delete"
-              variant="outlined" // Si deseas el fondo azul, usa la variante "primary"
-              onClick={handleReset} // Asegúrate de que esto sea una función válida
+              variant="outlined"
+              onClick={handleReset}
               disabled={false}
             />
 
-            {/* Línea divisoria a la izquierda del botón azul */}
+            {/* Línea divisoria */}
             <div className="hidden sm:block h-10 w-px bg-gray30" />
+
             {/* Botón azul para "Nuevo Movimiento" */}
             <Buttonx
               label="Nuevo Movimiento"
               icon="material-symbols:tab-new-right-outline-rounded"
-              variant="primary" // Si deseas el fondo azul, usa la variante "primary"
-              onClick={onNuevoMovimientoClick} // Asegúrate de que esto sea una función válida
+              variant="primary"
+              onClick={() => onNuevoMovimientoClick?.()}
               disabled={false}
             />
           </div>

@@ -5,7 +5,6 @@ import { useAuth } from '@/auth/context';
 import { fetchPerfilTrabajadores } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
 import type { PerfilTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.types';
 import PerfilEditModal from './PerfilEditModal';
-import Buttonx from '@/shared/common/Buttonx';
 
 type Props = {
   onEdit?: (perfil: PerfilTrabajador) => void;
@@ -48,7 +47,6 @@ export default function PerfilesTable({ onEdit }: Props) {
   }, [loadPerfiles]);
 
   // Lógica del paginador (modelo base)
-  const PAGE_SIZE = 6; // Establecemos el tamaño de la página
   const pagerItems = useMemo(() => {
     const maxButtons = 5; // Número máximo de botones
     const pages: (number | string)[] = [];
@@ -83,7 +81,6 @@ export default function PerfilesTable({ onEdit }: Props) {
   }, [totalPages, currentPage]);
 
   // Filas vacías para mantener altura constante
-  const emptyRowsCount = PAGE_SIZE - currentData.length;
 
   return (
     <div className="mt-6 bg-white rounded-md overflow-hidden shadow-default">
