@@ -7,6 +7,7 @@ import ReportesPage from './pages/ReportesPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
 import MovimientosPage from './pages/MovimientosPage';
 import PedidosPage from './pages/PedidosPage';
+import CuadreSaldoPage from './pages/CuadreSalgoPage';
 
 export const ecommerceRoutes: RouteObject[] = [
   { path: '', element: <EcommerceHomePage /> },
@@ -14,6 +15,7 @@ export const ecommerceRoutes: RouteObject[] = [
   { path: 'stock', element: <StockPage /> },
   { path: 'movimientos', element: <MovimientosPage /> },
   { path: 'pedidos', element: <PedidosPage /> },
+  { path: 'saldos', element: <CuadreSaldoPage /> },
   { path: 'perfiles', element: <PerfilesPage /> },
   { path: 'reportes', element: <ReportesPage /> },
   { path: 'configuracion', element: <ConfiguracionPage /> },
