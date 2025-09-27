@@ -1,7 +1,5 @@
 // src/pages/ecommerce/movimientos/RegistroMovimientoPage.tsx
 import { useEffect, useState } from 'react';
-import { FaExchangeAlt } from 'react-icons/fa';
-import { PiSealCheck } from 'react-icons/pi';
 
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import MovimientoRegistroFilters, {
@@ -12,9 +10,13 @@ import MovimientoValidacionTable from '@/shared/components/ecommerce/movimientos
 import CrearMovimientoModal from '@/shared/components/ecommerce/CrearMovimientoModal';
 import VerMovimientoModal from '@/shared/components/ecommerce/movimientos/VerMovimientoModal';
 import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
+<<<<<<< HEAD
 import Buttonx from '@/shared/common/Buttonx';
 import { Inputx } from '@/shared/common/Inputx';
 import Tittlex from '@/shared/common/Tittlex';
+=======
+import { Icon } from '@iconify/react/dist/iconify.js';
+>>>>>>> 8ecfb249a4abe9cacc459ba9a125e2047bef9140
 
 export default function RegistroMovimientoPage() {
   const { notify } = useNotification();
@@ -25,7 +27,9 @@ export default function RegistroMovimientoPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   // Tabs
-  const [modalMode, setModalMode] = useState<'registro' | 'validacion'>('registro');
+  const [modalMode, setModalMode] = useState<'registro' | 'validacion'>(
+    'registro'
+  );
 
   // Filtros
   const [filters, setFilters] = useState<Filters>({
@@ -98,6 +102,7 @@ export default function RegistroMovimientoPage() {
             icon="carbon:asset-movement"
             variant={modalMode === 'registro' ? 'secondary' : 'tertiary'} // "primary" cuando está activo, "tertiary" cuando no
             onClick={() => setModalMode('registro')}
+<<<<<<< HEAD
             disabled={false}
           />
 
@@ -110,6 +115,27 @@ export default function RegistroMovimientoPage() {
             onClick={() => setModalMode('validacion')}
             disabled={false}
           />
+=======
+            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${
+              modalMode === 'registro'
+                ? 'bg-primaryDark text-white'
+                : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
+            }`}>
+            <Icon icon="carbon:asset-movement" width="20" height="20" />
+            Nuevo Movimiento
+          </button>
+          <span className="block w-[0.5px] h-8 bg-primary"></span>
+          <button
+            onClick={() => setModalMode('validacion')}
+            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${
+              modalMode === 'validacion'
+                ? 'bg-primaryDark text-white'
+                : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
+            }`}>
+            <Icon icon="bitcoin-icons:verify-outline" width="26" height="26" />
+            Estado / Validación
+          </button>
+>>>>>>> 8ecfb249a4abe9cacc459ba9a125e2047bef9140
         </div>
       </div>
 
@@ -125,7 +151,7 @@ export default function RegistroMovimientoPage() {
             <MovimientoRegistroTable
               filters={filters}
               onSelectProducts={setSelectedProducts}
-              onViewProduct={handleViewProduct} // ⬅️ recibe el producto y abre VerMovimientoModal
+              onViewProduct={handleViewProduct}
             />
           </div>
 

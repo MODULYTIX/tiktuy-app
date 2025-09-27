@@ -1,38 +1,11 @@
-// src/shared/components/ecommerce/movimiento/MovimientoValidacionTable.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { FaEye } from 'react-icons/fa';
 import { useAuth } from '@/auth/context';
 import { fetchMovimientos } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import type { MovimientoAlmacen } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
-import VerMovimientoRealizadoModal, {
-  type MovimientoRealizado,
-} from '@/shared/components/ecommerce/movimientos/VerMovimientoRealizadoModal';
+import VerMovimientoRealizadoModal from './VerMovimientoRealizadoModal';
 
 const PAGE_SIZE = 6;
-
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(v: unknown): v is UnknownRecord {
-  return typeof v === 'object' && v !== null;
-}
-
-function pickFirstArray(obj: UnknownRecord, keys: string[]): unknown[] {
-  for (const k of keys) {
-    const v = obj[k];
-    if (Array.isArray(v)) return v;
-  }
-  return [];
-}
-
-function pickString(obj: UnknownRecord, key: string): string | undefined {
-  const v = obj[key];
-  return typeof v === 'string' ? v : undefined;
-}
-
-function pickNumber(obj: UnknownRecord, key: string): number | undefined {
-  const v = obj[key];
-  return typeof v === 'number' ? v : undefined;
-}
 
 export default function MovimientoValidacionTable() {
   const { token } = useAuth();
@@ -41,7 +14,7 @@ export default function MovimientoValidacionTable() {
 
   // modal "ver"
   const [verOpen, setVerOpen] = useState(false);
-  const [verData, setVerData] = useState<MovimientoRealizado | null>(null);
+  const [verUuid, setVerUuid] = useState<string | null>(null);
 
   // paginación local
   const [page, setPage] = useState(1);
@@ -71,10 +44,16 @@ export default function MovimientoValidacionTable() {
     if (nombre === 'validado')
       return <span className={`${base} bg-black text-white`}>Validado</span>;
     if (nombre === 'proceso' || nombre === 'en proceso')
-      return <span className={`${base} bg-yellow-100 text-yellow-700`}>Proceso</span>;
+      return (
+        <span className={`${base} bg-yellow-100 text-yellow-700`}>Proceso</span>
+      );
     if (nombre === 'observado')
-      return <span className={`${base} bg-red-100 text-red-700`}>Observado</span>;
-    return <span className={`${base} bg-gray30 text-gray80`}>{nombreNorm}</span>;
+      return (
+        <span className={`${base} bg-red-100 text-red-700`}>Observado</span>
+      );
+    return (
+      <span className={`${base} bg-gray30 text-gray80`}>{nombreNorm}</span>
+    );
   };
 
   const fmtFecha = (iso?: string) =>
@@ -86,120 +65,18 @@ export default function MovimientoValidacionTable() {
         }).format(new Date(iso))
       : '-';
 
-  // Mapper seguro hacia el shape del modal (sin @ts-ignore)
-  const mapMovimientoToRealizado = (m: MovimientoAlmacen): MovimientoRealizado => {
-    const base = m as unknown as UnknownRecord;
-
-    // Posibles nombres de colecciones de ítems
-    const rawItems = pickFirstArray(base, ['items', 'detalles', 'movimiento_detalle']);
-
-    const items = rawItems.map((raw) => {
-      const it = raw as UnknownRecord;
-      const prod = isRecord(it.producto) ? (it.producto as UnknownRecord) : undefined;
-
-      const producto_id =
-        pickNumber(it, 'producto_id') ?? (prod ? pickNumber(prod, 'id') : undefined);
-      const producto_uuid =
-        pickString(it, 'producto_uuid') ?? (prod ? pickString(prod, 'uuid') : undefined);
-
-      const codigo_identificacion =
-        pickString(it, 'codigo_identificacion') ??
-        (prod ? pickString(prod, 'codigo_identificacion') : undefined) ??
-        '';
-
-      const nombre_producto =
-        pickString(it, 'nombre_producto') ??
-        (prod ? pickString(prod, 'nombre_producto') : undefined) ??
-        '';
-
-      const descripcion =
-        pickString(it, 'descripcion') ?? (prod ? pickString(prod, 'descripcion') : undefined) ?? '';
-
-      const cantidadRaw = pickNumber(it, 'cantidad');
-      const cantidad = typeof cantidadRaw === 'number' ? cantidadRaw : 0;
-
-      const stock_previo = pickNumber(it, 'stock_previo');
-      const stock_posterior = pickNumber(it, 'stock_posterior');
-
-      return {
-        producto_id,
-        producto_uuid,
-        codigo_identificacion,
-        nombre_producto,
-        descripcion,
-        cantidad,
-        stock_previo,
-        stock_posterior,
-      };
-    });
-
-    // Origen/Destino: o el objeto, o fallback a nombre_* (string)
-    const origen =
-      (isRecord(base['almacen_origen']) ? (base['almacen_origen'] as UnknownRecord) : undefined) ??
-      undefined;
-    const destino =
-      (isRecord(base['almacen_destino']) ? (base['almacen_destino'] as UnknownRecord) : undefined) ??
-      undefined;
-
-    const almacen_origen =
-      origen ??
-      (pickString(base, 'almacen_origen_nombre')
-        ? { nombre_almacen: pickString(base, 'almacen_origen_nombre') }
-        : undefined);
-
-    const almacen_destino =
-      destino ??
-      (pickString(base, 'almacen_destino_nombre')
-        ? { nombre_almacen: pickString(base, 'almacen_destino_nombre') }
-        : undefined);
-
-    // Usuario: puede venir como 'usuario' o 'creado_por'
-    const usuario =
-      (isRecord(base['usuario']) ? (base['usuario'] as UnknownRecord) : undefined) ??
-      (isRecord(base['creado_por']) ? (base['creado_por'] as UnknownRecord) : undefined) ??
-      null;
-
-    // Estado: puede venir como objeto con nombre o como string
-    const estadoObj = isRecord(base['estado']) ? (base['estado'] as UnknownRecord) : undefined;
-    const estado =
-      (estadoObj && pickString(estadoObj, 'nombre')) ??
-      (typeof base['estado'] === 'string' ? (base['estado'] as string) : null);
-
-    // Fechas tolerantes
-    const fecha =
-      pickString(base, 'fecha_movimiento') ??
-      pickString(base, 'created_at') ??
-      pickString(base, 'fecha') ??
-      undefined;
-
-    return {
-      id: (typeof base['id'] === 'number' || typeof base['id'] === 'string') ? (base['id'] as number | string) : (pickString(base, 'uuid') ?? undefined),
-      codigo: pickString(base, 'uuid') ?? undefined,
-      fecha,
-      descripcion: pickString(base, 'descripcion') ?? '',
-      almacen_origen: almacen_origen ?? null,
-      almacen_destino: almacen_destino ?? null,
-      usuario,
-      estado,
-      items,
-      meta: isRecord(base['meta']) ? (base['meta'] as UnknownRecord) : undefined,
-    };
-  };
-
   const handleVerClick = (mov: MovimientoAlmacen) => {
-    const data = mapMovimientoToRealizado(mov);
-    setVerData(data);
+    setVerUuid(mov.uuid);
     setVerOpen(true);
   };
 
   const sorted = useMemo(
     () =>
-      [...movimientos].sort(
-        (a, b) =>
-          new Date((a?.fecha_movimiento as unknown as string) ?? 0).getTime() <
-          new Date((b?.fecha_movimiento as unknown as string) ?? 0).getTime()
-            ? 1
-            : -1
+      [...movimientos].sort((a, b) =>
+        new Date((a?.fecha_movimiento as unknown as string) ?? 0).getTime() <
+        new Date((b?.fecha_movimiento as unknown as string) ?? 0).getTime()
+          ? 1
+          : -1
       ),
     [movimientos]
   );
@@ -257,8 +134,8 @@ export default function MovimientoValidacionTable() {
               <col className="w-[18%]" /> {/* Hacia */}
               <col className="w-[28%]" /> {/* Descripción */}
               <col className="w-[12%]" /> {/* Fec. Movimiento */}
-              <col className="w-[6%]" />  {/* Estado */}
-              <col className="w-[6%]" />  {/* Acciones */}
+              <col className="w-[6%]" /> {/* Estado */}
+              <col className="w-[6%]" /> {/* Acciones */}
             </colgroup>
 
             <thead className="bg-[#E5E7EB]">
@@ -322,7 +199,9 @@ export default function MovimientoValidacionTable() {
 
               {!loading && current.length === 0 && (
                 <tr>
-                  <td className="px-4 py-6 text-center text-gray70 italic" colSpan={7}>
+                  <td
+                    className="px-4 py-6 text-center text-gray70 italic"
+                    colSpan={7}>
                     No hay movimientos.
                   </td>
                 </tr>
@@ -331,7 +210,7 @@ export default function MovimientoValidacionTable() {
           </table>
         </div>
 
-        {/* Paginador estilo base — visible si hay datos */}
+        {/* Paginador */}
         {sorted.length > 0 && (
           <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
             <button
@@ -372,11 +251,14 @@ export default function MovimientoValidacionTable() {
         )}
       </section>
 
-      {/* Modal de VER */}
+      {/* Modal de VER — ahora pasa UUID para cargar el detalle desde la API */}
       <VerMovimientoRealizadoModal
         open={verOpen}
-        onClose={() => setVerOpen(false)}
-        data={verData}
+        onClose={() => {
+          setVerOpen(false);
+          setVerUuid(null);
+        }}
+        uuid={verUuid ?? ''}
       />
     </div>
   );

@@ -5,12 +5,20 @@ import { Icon } from '@iconify/react/dist/iconify.js';
 import { useEffect, useMemo, useState } from 'react';
 import { FiEye } from 'react-icons/fi';
 
+type Filtros = {
+  courier: string;
+  producto: string;
+  fechaInicio: string;
+  fechaFin: string;
+};
+
 interface PedidosTableGeneradoProps {
-  onVer: (pedidoId: number) => void;     // 👉 NUEVO: abre modal "Ver"
-  onEditar: (pedidoId: number) => void;  // ya lo tenías
+  onVer: (pedidoId: number) => void;     // abre modal "Ver"
+  onEditar: (pedidoId: number) => void;  // abre modal "Editar"
+  filtros: Filtros;
 }
 
-export default function PedidosTableGenerado({ onVer, onEditar }: PedidosTableGeneradoProps) {
+export default function PedidosTableGenerado({ onVer, onEditar, filtros }: PedidosTableGeneradoProps) {
   const { token } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +35,56 @@ export default function PedidosTableGenerado({ onVer, onEditar }: PedidosTableGe
       .finally(() => setLoading(false));
   }, [token]);
 
-  const totalPages = Math.max(1, Math.ceil(pedidos.length / PAGE_SIZE));
+  // =============== A) FILTROS (antes de paginar) ===============
+  const filteredPedidos = useMemo(() => {
+    const parseDate = (s?: string) => (s ? new Date(`${s}T00:00:00`) : undefined);
+    const start = parseDate(filtros.fechaInicio);
+    const end = parseDate(filtros.fechaFin);
+    if (end) end.setHours(23, 59, 59, 999); // inclusivo
+
+    return pedidos.filter((p) => {
+      // Fecha base (para NO cambiar tu lógica, usamos fecha_creacion)
+      const d = p.fecha_creacion ? new Date(p.fecha_creacion) : undefined;
+      if (start && d && d < start) return false;
+      if (end && d && d > end) return false;
+
+      // Courier: intenta por id o por nombre
+      if (filtros.courier) {
+        const courierId = (p as any).courier_id ?? p.courier?.id;
+        const byId = courierId != null && String(courierId) === filtros.courier;
+        const byName = (p.courier?.nombre_comercial || '')
+          .toLowerCase()
+          .includes(filtros.courier.toLowerCase());
+        if (!(byId || byName)) return false;
+      }
+
+      // Producto: por id/código/nombre dentro de detalles
+      if (filtros.producto) {
+        const needle = filtros.producto.toLowerCase();
+        const ok = (p.detalles || []).some((d) => {
+          const prod = d.producto;
+          const byId = prod?.id != null && String(prod.id) === filtros.producto;
+          const byCodigo =
+            (prod as any)?.codigo &&
+            String((prod as any).codigo).toLowerCase().includes(needle);
+          const byNombre =
+            (prod?.nombre_producto || '').toLowerCase().includes(needle);
+          return byId || byCodigo || byNombre;
+        });
+        if (!ok) return false;
+      }
+
+      return true;
+    });
+  }, [pedidos, filtros]);
+
+  // Si cambian filtros, vuelve a página 1 (evita páginas vacías)
+  useEffect(() => {
+    setPage(1);
+  }, [filtros.courier, filtros.producto, filtros.fechaInicio, filtros.fechaFin]);
+
+  // =============== B) PAGINACIÓN sobre la lista filtrada ===============
+  const totalPages = Math.max(1, Math.ceil(filteredPedidos.length / PAGE_SIZE));
 
   useEffect(() => {
     if (page > totalPages) {
@@ -36,8 +93,8 @@ export default function PedidosTableGenerado({ onVer, onEditar }: PedidosTableGe
   }, [totalPages, page]);
 
   const visiblePedidos = useMemo(() => {
-    return pedidos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  }, [pedidos, page]);
+    return filteredPedidos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  }, [filteredPedidos, page]);
 
   const pagerItems = useMemo(() => {
     const maxButtons = 5;
@@ -124,10 +181,10 @@ export default function PedidosTableGenerado({ onVer, onEditar }: PedidosTableGe
                 ))}
               </tr>
             ))
-          ) : pedidos.length === 0 ? (
+          ) : filteredPedidos.length === 0 ? (
             <tr>
               <td colSpan={7} className="px-4 py-4 text-center text-gray70 italic">
-                No hay pedidos registrados.
+                No hay pedidos que coincidan con los filtros.
               </td>
             </tr>
           ) : (

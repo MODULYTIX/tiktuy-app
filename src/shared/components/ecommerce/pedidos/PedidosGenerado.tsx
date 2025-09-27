@@ -3,8 +3,14 @@ import PedidosTableGenerado from './table/PedidosTableGenerado';
 import VerPedidoModal from './Generado/VerPedidoModal';
 import EditarPedidoGeneradoModal from './Generado/EditarPedidoGeneradoModal';
 
+type Filtros = {
+  courier: string;
+  producto: string;
+  fechaInicio: string;
+  fechaFin: string;
+};
 
-export default function PedidosGenerado() {
+export default function PedidosGenerado({ filtros }: { filtros: Filtros }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [verOpen, setVerOpen] = useState(false);
   const [editarOpen, setEditarOpen] = useState(false);
@@ -37,6 +43,7 @@ export default function PedidosGenerado() {
         onVer={handleVer}
         onEditar={handleEditar}
         key={`table-${refreshKey}`}
+        filtros={filtros}
       />
 
       {/* Modal Ver */}

@@ -1,4 +1,3 @@
-import React from "react";
 import type { PedidoDiaItem } from "@/services/ecommerce/cuadreSaldo/cuadreSaldoC.types";
 
 type Props = {
