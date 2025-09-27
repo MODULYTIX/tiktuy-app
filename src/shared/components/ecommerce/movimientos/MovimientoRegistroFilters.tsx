@@ -7,6 +7,8 @@ import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacen
 import { FiSearch } from 'react-icons/fi';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Selectx } from '@/shared/common/Selectx';
+import Buttonx from '@/shared/common/Buttonx';
+import { SearchInputx } from '@/shared/common/SearchInputx';
 
 
 export interface Filters {
@@ -74,7 +76,7 @@ export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovim
     'placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors';
 
   return (
-    <div className="bg-white p-5 rounded-md shadow-default border border-gray30">
+    <div className="bg-white p-5 rounded-md shadow-default border-b-4 border-gray90">
       {/* xs: 1 col, sm: 2 cols, lg: 1fr 1fr 1fr auto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm">
         {/* Almacén (solo cambia el label visual) */}
@@ -165,40 +167,34 @@ export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovim
         {/* Buscador + acciones */}
         <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           {/* Buscador */}
-          <div className="relative flex-1 border border-gray60 rounded">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              name="search"
-              type="text"
-              value={filters.search}
-              onChange={handleChange}
-              placeholder="Buscar productos por nombre, descripción ó código."
-              className={`${field} pl-10`}
-            />
-          </div>
+          <SearchInputx
+            value={filters.search}
+            onChange={handleChange} // Actualiza el valor de `filters.search` cuando se escribe
+            placeholder="Buscar productos por nombre, descripción ó código." // Placeholder que deseas
+            className="w-full pl-10" // Espaciado para el ícono de búsqueda
+          />
 
           {/* Acciones a la derecha */}
           <div className="flex items-center gap-3 sm:ml-auto">
-            <button
-              type="button"
-              onClick={handleReset}
-              className="flex items-center gap-3 text-gray-700 bg-gray10 border border-gray60 hover:bg-gray-100 px-4 py-2 rounded sm:w-auto"
-            >
-              <Icon icon="mynaui:delete" width="24" height="24" color="gray60" />
-              <span>Limpiar Filtros</span>
-            </button>
+            
+            <Buttonx
+              label="Limpiar Filtros"
+              icon="mynaui:delete"
+              variant="outlined" // Si deseas el fondo azul, usa la variante "primary"
+              onClick={handleReset} // Asegúrate de que esto sea una función válida
+              disabled={false}
+            />
 
             {/* Línea divisoria a la izquierda del botón azul */}
             <div className="hidden sm:block h-10 w-px bg-gray30" />
-
-            <button
-              type="button"
-              onClick={onNuevoMovimientoClick}
-              className="flex items-center gap-2 px-4 h-10 rounded text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-sm"
-            >
-              <Icon icon="mdi:plus-box-outline" width="18" height="18" />
-              <span>Nuevo Movimiento</span>
-            </button>
+            {/* Botón azul para "Nuevo Movimiento" */}
+            <Buttonx
+              label="Nuevo Movimiento"
+              icon="material-symbols:tab-new-right-outline-rounded"
+              variant="primary" // Si deseas el fondo azul, usa la variante "primary"
+              onClick={onNuevoMovimientoClick} // Asegúrate de que esto sea una función válida
+              disabled={false}
+            />
           </div>
         </div>
       </div>

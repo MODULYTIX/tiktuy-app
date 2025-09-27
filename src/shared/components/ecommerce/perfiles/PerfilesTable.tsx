@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { FaRegEdit } from 'react-icons/fa';
-import Paginator from '../../Paginator';
 import { Skeleton } from '../../ui/Skeleton';
 import { useAuth } from '@/auth/context';
 import { fetchPerfilTrabajadores } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
 import type { PerfilTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.types';
 import PerfilEditModal from './PerfilEditModal';
+import Buttonx from '@/shared/common/Buttonx';
 
 type Props = {
   onEdit?: (perfil: PerfilTrabajador) => void;
@@ -47,21 +47,68 @@ export default function PerfilesTable({ onEdit }: Props) {
     loadPerfiles();
   }, [loadPerfiles]);
 
+  // Lógica del paginador (modelo base)
+  const PAGE_SIZE = 6; // Establecemos el tamaño de la página
+  const pagerItems = useMemo(() => {
+    const maxButtons = 5; // Número máximo de botones
+    const pages: (number | string)[] = [];
+
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, currentPage - 2);
+      let end = Math.min(totalPages, currentPage + 2);
+
+      if (currentPage <= 3) {
+        start = 1;
+        end = maxButtons;
+      } else if (currentPage >= totalPages - 2) {
+        start = totalPages - (maxButtons - 1);
+        end = totalPages;
+      }
+
+      for (let i = start; i <= end; i++) pages.push(i);
+
+      if (start > 1) {
+        pages.unshift('...');
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  }, [totalPages, currentPage]);
+
+  // Filas vacías para mantener altura constante
+  const emptyRowsCount = PAGE_SIZE - currentData.length;
+
   return (
-    <div className="mt-6">
-      <div className="overflow-x-auto bg-white rounded shadow-md">
-        <table className="min-w-full text-sm text-left">
-          <thead className="bg-gray-100 text-gray-700 font-semibold">
-            <tr>
-              <th className="px-4 py-3">F. Creación</th>
-              <th className="px-4 py-3">Nombre</th>
-              <th className="px-4 py-3">Apellido</th>
-              <th className="px-4 py-3">DNI</th>
-              <th className="px-4 py-3">Correo</th>
-              <th className="px-4 py-3">Teléfono</th>
-              <th className="px-4 py-3">Rol - Perfil</th>
-              <th className="px-4 py-3">Módulo asignado</th>
-              <th className="px-4 py-3">Acciones</th>
+    <div className="mt-6 bg-white rounded-md overflow-hidden shadow-default">
+      <div className="overflow-x-auto">
+        <table className="min-w-full table-fixed text-smborder-b border-gray30">
+          <colgroup>
+            <col className="w-[8%]" />
+            <col className="w-[16%]" />
+            <col className="w-[16%]" />
+            <col className="w-[16%]" />
+            <col className="w-[8%]" />
+            <col className="w-[8%]" />
+            <col className="w-[8%]" />
+          </colgroup>
+          <thead className="bg-[#E5E7EB]">
+            <tr className="text-gray70 font-roboto font-medium text-xs">
+              <th className="px-4 py-3 text-left">F. Creación</th>
+              <th className="px-4 py-3 text-left">Nombre</th>
+              <th className="px-4 py-3 text-left">Apellido</th>
+              <th className="px-4 py-3 text-left">DNI</th>
+              <th className="px-4 py-3 text-left">Correo</th>
+              <th className="px-4 py-3 text-left">Teléfono</th>
+              <th className="px-4 py-3 text-center">Rol - Perfil</th>
+              <th className="px-4 py-3 text-center">Módulo asignado</th>
+              <th className="px-4 py-3 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -90,34 +137,21 @@ export default function PerfilesTable({ onEdit }: Props) {
                   .filter(Boolean);
 
                 return (
-                  <tr key={item.id} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      {item.fecha_creacion
-                        ? new Date(item.fecha_creacion).toLocaleDateString()
-                        : '-'}
-                    </td>
-                    <td className="px-4 py-3">{item.nombres || '-'}</td>
-                    <td className="px-4 py-3">{item.apellidos || '-'}</td>
-                    <td className="px-4 py-3">{item.DNI_CI || '-'}</td>
-                    <td className="px-4 py-3">{item.correo || '-'}</td>
-                    <td className="px-4 py-3">{item.telefono || '-'}</td>
-                    <td className="px-4 py-3">{item.perfil || '-'}</td>
-
-                    <td className="px-4 py-3">
+                  <tr key={item.id} className="border-b border-gray30 hover:bg-gray-50">
+                    <td className="px-4 py-3 text-xs">{item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString() : '-'}</td>
+                    <td className="px-4 py-3 text-xs">{item.nombres || '-'}</td>
+                    <td className="px-4 py-3 text-xs">{item.apellidos || '-'}</td>
+                    <td className="px-4 py-3 text-xs">{item.DNI_CI || '-'}</td>
+                    <td className="px-4 py-3 text-xs">{item.correo || '-'}</td>
+                    <td className="px-4 py-3 text-xs">{item.telefono || '-'}</td>
+                    <td className="px-4 py-3 text-xs">{item.perfil || '-'}</td>
+                    <td className="px-4 py-3 text-xs">
                       {modulos.length > 0 ? (
                         <div className="relative group cursor-pointer">
                           <span className="capitalize">{modulos[0]}</span>
-                          <div
-                            className="
-                              absolute left-0 top-full mt-1 hidden group-hover:block
-                              bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-10
-                              max-w-xs whitespace-normal break-words
-                            ">
+                          <div className="absolute left-0 top-full mt-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 shadow-lg z-10 max-w-xs whitespace-normal break-words">
                             {modulos
-                              .map(
-                                (mod: string) =>
-                                  mod.charAt(0).toUpperCase() + mod.slice(1)
-                              )
+                              .map((mod: string) => mod.charAt(0).toUpperCase() + mod.slice(1))
                               .join('\n')}
                           </div>
                         </div>
@@ -125,12 +159,10 @@ export default function PerfilesTable({ onEdit }: Props) {
                         '-'
                       )}
                     </td>
-
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-xs">
                       <FaRegEdit
                         className="text-yellow-600 cursor-pointer"
                         onClick={() => {
-                          // 👇 abre el modal interno de edición y dispara el callback externo si existe
                           setSelected(item);
                           setEditOpen(true);
                           onEdit?.(item);
@@ -145,21 +177,48 @@ export default function PerfilesTable({ onEdit }: Props) {
         </table>
       </div>
 
+      {/* Paginador */}
       {totalPages > 1 && (
-        <div className="mt-4">
-          <Paginator
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={(page) => {
-              if (page >= 1 && page <= totalPages) {
-                setCurrentPage(page);
-              }
-            }}
-          />
+        <div>
+          <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+            >
+              &lt;
+            </button>
+
+            {pagerItems.map((p, i) =>
+              typeof p === 'string' ? (
+                <span key={`dots-${i}`} className="px-2 text-gray70">{p}</span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  aria-current={currentPage === p ? 'page' : undefined}
+                  className={[
+                    'w-8 h-8 flex items-center justify-center rounded',
+                    currentPage === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
+                  ].join(' ')}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+            >
+              &gt;
+            </button>
+          </div>
         </div>
       )}
 
-      {/*  Modal de edición */}
+      {/* Modal de edición */}
       <PerfilEditModal
         isOpen={isEditOpen}
         onClose={() => {
@@ -168,7 +227,6 @@ export default function PerfilesTable({ onEdit }: Props) {
         }}
         trabajador={selected}
         onUpdated={() => {
-          // recarga la tabla al guardar cambios
           loadPerfiles();
         }}
       />

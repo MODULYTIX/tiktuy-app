@@ -23,7 +23,7 @@ export function Inputx({
                 <input
                     {...props}
                     placeholder={placeholder}
-                    className={`w-full h-12 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 outline-none focus:border-gray-80 focus:ring-2 font-roboto text-sm ${className ?? ""}`}
+                    className={`w-full h-10 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 outline-none focus:border-gray-80 focus:ring-2 font-roboto text-sm ${className ?? ""}`}
                 />
             </div>
         </div>

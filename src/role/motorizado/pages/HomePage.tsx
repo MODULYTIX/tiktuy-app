@@ -8,6 +8,7 @@ import {
   setDisponibilidadRepartidor,
 } from '@/services/repartidor/estado/estado.api';
 import { fetchKpisMotorizado } from '@/services/repartidor/estado/dashboard.api';
+import Tittlex from '@/shared/common/Tittlex';
 
 type KPIs = {
   asignadosHoy: number;
@@ -38,10 +39,10 @@ function KpiCard({
   const display = (disabled ? 0 : value).toString().padStart(2, '0');
 
   const c = {
-    blue:  { icon: 'text-blue-500',  text: 'text-blue-600',  border: 'border-blue-500',  number: 'text-[28px] md:text-[30px]' },
+    blue: { icon: 'text-blue-500', text: 'text-blue-600', border: 'border-blue-500', number: 'text-[28px] md:text-[30px]' },
     green: { icon: 'text-green-500', text: 'text-green-600', border: 'border-green-500', number: 'text-[28px] md:text-[30px]' },
     amber: { icon: 'text-amber-500', text: 'text-amber-600', border: 'border-amber-500', number: 'text-[28px] md:text-[30px]' },
-    red:   { icon: 'text-red-500',   text: 'text-red-600',   border: 'border-red-500',   number: 'text-[28px] md:text-[30px]' },
+    red: { icon: 'text-red-500', text: 'text-red-600', border: 'border-red-500', number: 'text-[28px] md:text-[30px]' },
   }[accent];
 
   return (
@@ -182,21 +183,17 @@ export default function MotorizadoHomePage() {
         <div className="mx-auto max-w-7xl px-6 pt-5 pb-2">
           {/* Grid 2x2: título arriba izq, subtítulo abajo izq, switch abajo der */}
           <div className="grid grid-cols-[1fr_auto] grid-rows-[auto_auto] items-end gap-x-4 gap-y-1">
-            <h1 className="col-start-1 row-start-1 text-[28px] md:text-[30px] font-bold text-[#1A237E]">
-              Panel de Control
-            </h1>
-
-            <p className="col-start-1 row-start-2 text-[14px] text-gray-600">
-              Active o desactive su estado para realizar pedidos
-            </p>
+            <Tittlex
+              title="Panel de Control"
+              description="Active o desactive su estado para realizar pedidos"
+            />
 
             {/* Switch abajo-derecha */}
-            <div className="col-start-2 row-start-2 self-end">
+            <div className="col-start-2 self-end">
               <div className="flex items-center gap-3">
                 <span
-                  className={`text-[14px] font-medium ${
-                    switchBusy ? 'text-sky-700' : activo ? 'text-emerald-600' : 'text-gray-600'
-                  }`}
+                  className={`text-[14px] font-medium ${switchBusy ? 'text-sky-700' : activo ? 'text-emerald-600' : 'text-gray-600'
+                    }`}
                   aria-live="polite"
                 >
                   {estadoText}

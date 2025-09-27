@@ -18,6 +18,9 @@ import ImportExcelPedidosFlow from '@/shared/components/ecommerce/excel/pedido/I
 // Modales para ASIGNADO (ya los tienes)
 import EditarPedidoAsignadoModal from '@/shared/components/ecommerce/pedidos/Asignado/EditarPedidoAsignadoModal';
 import VerPedidoModal from '@/shared/components/ecommerce/pedidos/Asignado/VerPedidoAsignadoModal';
+import { Selectx, SelectxDate } from '@/shared/common/Selectx';
+import Buttonx from '@/shared/common/Buttonx';
+import Tittlex from '@/shared/common/Tittlex';
 
 type Vista = 'generado' | 'asignado' | 'completado';
 
@@ -119,47 +122,39 @@ export default function PedidosPage() {
     <section className="mt-8 flex flex-col gap-[1.25rem]">
       {/* Tabs */}
       <div className="flex justify-between items-end pb-5 border-b border-gray30">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-[1.75rem] font-bold text-primary">Panel de Pedidos</h1>
-          <p className="text-gray60">
-            Administra y visualiza el estado de tus pedidos en cada etapa del proceso.
-          </p>
-        </div>
+        <Tittlex
+          title="Panel de Pedidos"
+          description="Administra y visualiza el estado de tus pedidos en cada etapa del proceso"
+        />
 
         <div className="flex gap-3 items-center">
-          <button
+          <Buttonx
+            label="Generado"
+            icon="ri:ai-generate" // Icono correspondiente
+            variant={vista === 'generado' ? 'secondary' : 'tertiary'} // Usamos "secondary" cuando está activo
             onClick={() => setVista('generado')}
-            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${
-              vista === 'generado' ? 'bg-primaryDark text-white' : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}
-          >
-            <RiAiGenerate size={18} />
-            Generado
-          </button>
+            disabled={false}
+          />
 
           <span className="w-[1px] h-10 bg-gray40" />
 
-          <button
+          <Buttonx
+            label="Asignado"
+            icon="solar:bill-list-broken" // Icono correspondiente
+            variant={vista === 'asignado' ? 'secondary' : 'tertiary'} // Usamos "secondary" cuando está activo
             onClick={() => setVista('asignado')}
-            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${
-              vista === 'asignado' ? 'bg-primaryDark text-white' : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}
-          >
-            <MdOutlineAssignment size={18} />
-            Asignado
-          </button>
+            disabled={false}
+          />
 
           <span className="w-[1px] h-10 bg-gray40" />
 
-          <button
+          <Buttonx
+            label="Completado"
+            icon="carbon:task-complete" // Icono correspondiente
+            variant={vista === 'completado' ? 'secondary' : 'tertiary'} // Usamos "secondary" cuando está activo
             onClick={() => setVista('completado')}
-            className={`flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium ${
-              vista === 'completado' ? 'bg-primaryDark text-white' : 'bg-gray20 text-primaryDark hover:shadow-default'
-            }`}
-          >
-            <LuClipboardCheck size={18} />
-            Completado
-          </button>
+            disabled={false}
+          />
         </div>
       </div>
 
@@ -170,8 +165,8 @@ export default function PedidosPage() {
             {vista === 'generado'
               ? 'Pedidos Generados'
               : vista === 'asignado'
-              ? 'Pedidos Asignados'
-              : 'Pedidos Completados'}
+                ? 'Pedidos Asignados'
+                : 'Pedidos Completados'}
           </h2>
           <p className="text-sm text-black font-regular">{descripcionVista[vista]}</p>
         </div>
@@ -199,65 +194,63 @@ export default function PedidosPage() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Courier</label>
-          <div className="relative w-full">
-            <Select
-              value={filtros.courier}
-              onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value }))}
-              options={[
-                { value: '', label: 'Todos' },
-                { value: '1', label: 'Courier 1' },
-                { value: '2', label: 'Courier 2' },
-              ]}
-              placeholder="Seleccionar courier"
-            />
-          </div>
-        </div>
+      <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
+        <Selectx
+          id="f-courier"
+          label="Courier"
+          value={filtros.courier}
+          onChange={(e) =>
+            setFiltros((prev) => ({ ...prev, courier: e.target.value }))
+          }
+          placeholder="Seleccionar courier"
+          className="w-full"
+        >
+          <option value="1">Courier 1</option>
+          <option value="2">Courier 2</option>
+        </Selectx>
 
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Producto</label>
-          <div className="relative w-full">
-            <Select
-              value={filtros.producto}
-              onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value }))}
-              options={[
-                { value: '', label: 'Todos' },
-                { value: 'p1', label: 'Producto 1' },
-                { value: 'p2', label: 'Producto 2' },
-              ]}
-              placeholder="Seleccionar producto"
-            />
-          </div>
-        </div>
+        <Selectx
+          id="f-producto"
+          label="Producto"
+          value={filtros.producto}
+          onChange={(e) =>
+            setFiltros((prev) => ({ ...prev, producto: e.target.value }))
+          }
+          placeholder="Seleccionar producto"
+          className="w-full"
+        >
+          <option value="p1">Producto 1</option>
+          <option value="p2">Producto 2</option>
+        </Selectx>
 
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Fecha Inicio</label>
-          <input
-            type="date"
-            className="border border-gray40 rounded px-3 py-2 text-sm w-full text-gray60"
-            value={filtros.fechaInicio}
-            onChange={(e) => setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))}
-          />
-        </div>
+        <SelectxDate
+          id="f-fecha-inicio"
+          label="Fecha Inicio"
+          value={filtros.fechaInicio}
+          onChange={(e) =>
+            setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))
+          }
+          placeholder="dd/mm/aaaa"
+          className="w-full"
+        />
 
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Fecha Fin</label>
-          <input
-            type="date"
-            className="border border-gray40 rounded px-3 py-2 text-sm w-full text-gray60"
-            value={filtros.fechaFin}
-            onChange={(e) => setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))}
-          />
-        </div>
+        <SelectxDate
+          id="f-fecha-fin"
+          label="Fecha Fin"
+          value={filtros.fechaFin}
+          onChange={(e) =>
+            setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))
+          }
+          placeholder="dd/mm/aaaa"
+          className="w-full"
+        />
 
         <button
           onClick={() => {
             setFiltros({ courier: '', producto: '', fechaInicio: '', fechaFin: '' });
             setRefreshKey((k) => k + 1);
           }}
-          className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100"
+          className="w-155 h-10 flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100"
         >
           <Icon icon="mynaui:delete" width="24" height="24" />
           Limpiar Filtros

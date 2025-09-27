@@ -3,8 +3,10 @@ import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { asociarCourier, crearRelacionCourier, desasociarCourier, fetchEcommerceCourier } from '@/services/ecommerce/ecommerceCourier.api';
 import { Icon } from '@iconify/react';
 import { ModalAsociarseCourier, type ModalMode } from '@/shared/components/ecommerce/asociarse/ModalAsociarseCourier';
-import { Select } from '@/shared/components/Select';
 import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
+import { Selectx } from '@/shared/common/Selectx';
+import Buttonx from '@/shared/common/Buttonx';
+import Tittlex from '@/shared/common/Tittlex';
 
 // ---------- Normalizador ----------
 type ApiCourierRaw = {
@@ -215,66 +217,65 @@ export default function EcommerceHomePage() {
 
   return (
     <section className="mt-8 flex flex-col gap-[1.25rem]">
-      <div>
-        <h1 className="text-3xl font-bold text-primaryDark">Panel de Control</h1>
-        <p className="text-gray60">Monitoreo de Asociación con couriers por ciudades</p>
-      </div>
+      <Tittlex
+        title="Panel de Control"
+        description="Monitoreo de Asociación con couriers por ciudades"
+      />
 
       {/* Filtros Aqui Waza*/}
-      <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
+      <div className="bg-white p-5 rounded shadow-default grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 items-end border-b-4 border-gray90">
         {/* Filtrar Ciudad Waza*/}
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label htmlFor="f-ciudad" className="text-sm font-medium text-gray70">Ciudad</label>
-          <div className="relative w-full">
-            <Select
-              id="f-ciudad"
-              name="ciudad"
-              value={filtros.ciudad}
-              onChange={handleChangeFiltro}
-              options={[{ value: '', label: 'Todas' }, ...ciudades.map((c) => ({ value: c, label: c }))]}
-              placeholder="Seleccionar Ciudad"
-            />
-          </div>
-        </div>
+        <Selectx
+          id="f-ciudad"
+          name="ciudad"
+          label="Ciudad"
+          value={filtros.ciudad}
+          onChange={handleChangeFiltro}
+          placeholder="Seleccionar Ciudad"
+          className="w-full"
+        >
+          {ciudades.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </Selectx>
 
         {/* Filtrar Courier Waza*/}
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label htmlFor="f-courier" className="text-sm font-medium text-gray70">Courier</label>
-          <div className="relative w-full">
-            <Select
-              id="f-courier"
-              name="courier"
-              value={filtros.courier}
-              onChange={handleChangeFiltro}
-              options={[{ value: '', label: 'Todos' }, ...couriersUnicos.map((c) => ({ value: c, label: c }))]}
-              placeholder="Seleccionar Courier"
-            />
-          </div>
-        </div>
+        <Selectx
+          id="f-courier"
+          name="courier"
+          label="Courier"
+          value={filtros.courier}
+          onChange={handleChangeFiltro}
+          placeholder="Seleccionar Courier"
+          className="w-full"
+        >
+          {couriersUnicos.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </Selectx>
 
         {/* Filtro Estado */}
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label htmlFor="f-estado" className="text-sm font-medium text-gray70">Estado</label>
-          <div className="relative w-full">
-            <Select
-              id="f-estado"
-              name="estado"
-              value={filtros.estado}
-              onChange={handleChangeFiltro}
-              options={[{ value: '', label: 'Todos' }, ...estados.map((e) => ({ value: e, label: e }))]}
-              placeholder="Seleccionar Estado"
-            />
-          </div>
-        </div>
+        <Selectx
+          id="f-estado"
+          name="estado"
+          label="Estado"
+          value={filtros.estado}
+          onChange={handleChangeFiltro}
+          placeholder="Seleccionar Estado"
+          className="w-full"
+        >
+          {estados.map((e) => (
+            <option key={e} value={e}>{e}</option>
+          ))}
+        </Selectx>
 
         {/* Botón Limpiar Filtros */}
-        <button
+        <Buttonx
           onClick={limpiarFiltros}
-          className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100"
-        >
-          <Icon icon="mynaui:delete" width="24" height="24" color="gray60" />
-          Limpiar Filtros
-        </button>
+          icon="mynaui:delete"
+          label="Limpiar Filtros"
+          variant="outlined"  // Aquí usamos la nueva variante con borde
+        />
       </div>
 
       {/* Tabla (ajustada a diseño figma + modelo base) */}
@@ -340,9 +341,8 @@ export default function EcommerceHomePage() {
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span
-                              className={`inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm ${
-                                asociado ? 'bg-black text-white' : 'bg-gray30 text-gray80'
-                              }`}
+                              className={`inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm ${asociado ? 'bg-black text-white' : 'bg-gray30 text-gray80'
+                                }`}
                             >
                               {asociado ? 'Asociado' : 'No Asociado'}
                             </span>
@@ -454,9 +454,8 @@ export default function EcommerceHomePage() {
       {/* Snackbar flotante */}
       <div
         aria-live="polite"
-        className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 transition-all duration-300 ${
-          snackbar.open ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3 pointer-events-none'
-        }`}
+        className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 transition-all duration-300 ${snackbar.open ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3 pointer-events-none'
+          }`}
       >
         <div className="rounded-full px-4 py-2 bg-gray90 text-white shadow-lg text-[12px]">{snackbar.message}</div>
       </div>

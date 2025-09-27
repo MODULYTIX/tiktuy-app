@@ -12,6 +12,9 @@ import MovimientoValidacionTable from '@/shared/components/ecommerce/movimientos
 import CrearMovimientoModal from '@/shared/components/ecommerce/CrearMovimientoModal';
 import VerMovimientoModal from '@/shared/components/ecommerce/movimientos/VerMovimientoModal';
 import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
+import Buttonx from '@/shared/common/Buttonx';
+import { Inputx } from '@/shared/common/Inputx';
+import Tittlex from '@/shared/common/Tittlex';
 
 export default function RegistroMovimientoPage() {
   const { notify } = useNotification();
@@ -81,36 +84,32 @@ export default function RegistroMovimientoPage() {
   return (
     <section className="mt-6">
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-primary mb-1">Movimiento</h1>
-          <p className="text-gray-500">
-            {modalMode === 'registro'
+        <Tittlex
+          title="Movimiento"
+          description={
+            modalMode === 'registro'
               ? 'Realice nuevos movimientos de productos.'
-              : 'Visualice y valide movimientos registrados.'}
-          </p>
-        </div>
+              : 'Visualice y valide movimientos registrados.'
+          }
+        />
         <div className="flex gap-2 items-center">
-          <button
+          <Buttonx
+            label="Nuevo Movimiento"
+            icon="carbon:asset-movement"
+            variant={modalMode === 'registro' ? 'secondary' : 'tertiary'} // "primary" cuando está activo, "tertiary" cuando no
             onClick={() => setModalMode('registro')}
-            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${modalMode === 'registro'
-              ? 'bg-primaryDark text-white'
-              : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-              }`}
-          >
-            <FaExchangeAlt />
-            Nuevo Movimiento
-          </button>
+            disabled={false}
+          />
+
           <span className="block w-[1px] h-8 bg-primary"></span>
-          <button
+
+          <Buttonx
+            label="Ver Movimientos"
+            icon="hugeicons:validation"
+            variant={modalMode === 'validacion' ? 'secondary' : 'tertiary'} // "primary" cuando está activo, "tertiary" cuando no
             onClick={() => setModalMode('validacion')}
-            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${modalMode === 'validacion'
-              ? 'bg-primaryDark text-white'
-              : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-              }`}
-          >
-            <PiSealCheck size={18} />
-            Ver Movimientos
-          </button>
+            disabled={false}
+          />
         </div>
       </div>
 

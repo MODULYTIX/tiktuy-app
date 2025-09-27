@@ -190,7 +190,7 @@ export default function ImportProductosPreviewModal({
 
   return (
     <CenteredModal title="Validación de productos" onClose={onClose} widthClass="max-w-[1200px]">
-      <div className="flex flex-wrap items-center gap-2 mb-3">
+      <div className="flex flex-wrap items-end gap-2 mb-3">
         <div className="ml-auto text-sm bg-gray-50 rounded px-2 py-1">
           <b>Total:</b> {groups.length} · <b>Válidos:</b> {totalValidosHeader}
         </div>

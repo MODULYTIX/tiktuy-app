@@ -16,7 +16,7 @@ export default function ImportLoadingModal({
       title="Verificando datos"
       onClose={onClose}
       widthClass="max-w-xl">
-      <div className="flex items-center justify-center min-h-[40vh]">
+      <div className="flex items-end justify-center min-h-[40vh]">
         <ThreeDots label={label} />
       </div>
     </CenteredModal>

@@ -7,6 +7,9 @@ import type {
   ListPedidosHoyQuery,
   ListByEstadoQuery,
 } from '@/services/repartidor/pedidos/pedidos.types';
+import { Selectx } from '@/shared/common/Selectx';
+import Buttonx from '@/shared/common/Buttonx';
+import { SearchInputx } from '@/shared/common/SearchInputx';
 
 type ViewKind = 'hoy' | 'pendientes' | 'terminados';
 type PropsBase = {
@@ -127,50 +130,47 @@ export default function BaseTablaPedidos({
       </div>
 
       {/* Filtros */}
-      <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90 mb-5">
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Distrito</label>
-          <select
-            className="w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors"
-            value={filtroDistrito}
-            onChange={(e) => setFiltroDistrito(e.target.value)}
-          >
-            <option value="">Seleccionar distrito</option>
-            {distritos.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-        </div>
-
-        <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Cantidad</label>
-          <select
-            className="w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors"
-            value={filtroCantidad}
-            onChange={(e) => setFiltroCantidad(e.target.value)}
-          >
-            <option value="">Seleccionar cantidad</option>
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>{two(n)}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex-1 min-w-[240px] flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">Buscar productos por nombre</label>
-          <input
-            className="w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors"
-            placeholder="Buscar productos por nombre..."
-            value={searchProducto}
-            onChange={(e) => setSearchProducto(e.target.value)}
-          />
-        </div>
-
-        <button
-          className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100"
-          onClick={() => { setFiltroDistrito(''); setFiltroCantidad(''); setSearchProducto(''); }}
+      <div className="bg-white p-5 rounded shadow-default flex gap-4 items-end border-b-4 border-gray90 mb-5">
+        <Selectx
+          label="Distrito"
+          value={filtroDistrito}
+          onChange={(e) => setFiltroDistrito(e.target.value)}
+          placeholder="Seleccionar distrito"
+          className="w-full"
         >
-          <Icon icon="mynaui:delete" width={20} height={20} />
-          Limpiar Filtros
-        </button>
+          <option value="">Seleccionar distrito</option>
+          {distritos.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </Selectx>
+
+        <Selectx
+          label="Cantidad"
+          value={filtroCantidad}
+          onChange={(e) => setFiltroCantidad(e.target.value)}
+          placeholder="Seleccionar cantidad"
+          className="w-full"
+        >
+          <option value="">Seleccionar cantidad</option>
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>{two(n)}</option>
+          ))}
+        </Selectx>
+
+        <SearchInputx
+                    value={searchProducto}
+                    onChange={(e) => setSearchProducto(e.target.value)}
+                    placeholder="Buscar productos por nombre" // Aquí defines el texto del placeholder
+                    className="w-full"
+                  />
+
+        <Buttonx
+              label="Limpiar Filtros"
+              icon="mynaui:delete"
+              variant="outlined" // Si deseas el fondo azul, usa la variante "primary"
+              onClick={() => { setFiltroDistrito(''); setFiltroCantidad(''); setSearchProducto(''); }} // Asegúrate de que esto sea una función válida
+              disabled={false}
+            />
       </div>
 
       {/* Estados */}

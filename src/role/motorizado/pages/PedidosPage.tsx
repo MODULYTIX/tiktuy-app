@@ -14,6 +14,8 @@ import { patchEstadoInicial, patchResultado } from '@/services/repartidor/pedido
 import TablePedidosHoy from '@/shared/components/repartidor/Pedido/TablePedidosHoy';
 import TablePedidosPendientes from '@/shared/components/repartidor/Pedido/TablePedidosPendientes';
 import TablePedidosTerminados from '@/shared/components/repartidor/Pedido/TablePedidosTerminados';
+import Tittlex from '@/shared/common/Tittlex';
+import Buttonx from '@/shared/common/Buttonx';
 
 type VistaUI = 'asignados' | 'pendientes' | 'terminados';
 const toRepartidorVista = (v: VistaUI): RepartidorVista => (v === 'asignados' ? 'hoy' : v);
@@ -81,12 +83,12 @@ export default function PedidosPage() {
     data:
       | { pedidoId: number; resultado: 'RECHAZADO'; observacion?: string }
       | {
-          pedidoId: number;
-          resultado: 'ENTREGADO';
-          metodo: 'EFECTIVO' | 'BILLETERA' | 'DIRECTO_ECOMMERCE';
-          observacion?: string;
-          evidenciaFile?: File;
-        }
+        pedidoId: number;
+        resultado: 'ENTREGADO';
+        metodo: 'EFECTIVO' | 'BILLETERA' | 'DIRECTO_ECOMMERCE';
+        observacion?: string;
+        evidenciaFile?: File;
+      }
   ) {
     try {
       if (data.resultado === 'RECHAZADO') {
@@ -145,9 +147,8 @@ export default function PedidosPage() {
         <div className="mt-3 grid grid-cols-3 gap-2 max-w-xs mx-auto">
           <button
             onClick={() => setVista('asignados')}
-            className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
-              vista === 'asignados' ? 'bg-[#0F172A] text-white' : 'bg-gray-100 text-[#0F172A] hover:bg-gray-200'
-            }`}
+            className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${vista === 'asignados' ? 'bg-[#0F172A] text-white' : 'bg-gray-100 text-[#0F172A] hover:bg-gray-200'
+              }`}
           >
             <Icon icon="solar:bill-list-broken" width={18} height={18} />
             Asignados
@@ -155,9 +156,8 @@ export default function PedidosPage() {
 
           <button
             onClick={() => setVista('pendientes')}
-            className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
-              vista === 'pendientes' ? 'bg-[#0F172A] text-white' : 'bg-gray-100 text-[#0F172A] hover:bg-gray-200'
-            }`}
+            className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${vista === 'pendientes' ? 'bg-[#0F172A] text-white' : 'bg-gray-100 text-[#0F172A] hover:bg-gray-200'
+              }`}
           >
             <Icon icon="mdi:clock-outline" width={18} height={18} />
             Pendientes
@@ -165,9 +165,8 @@ export default function PedidosPage() {
 
           <button
             onClick={() => setVista('terminados')}
-            className={` inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
-              vista === 'terminados' ? 'bg-[#0F172A] text-white' : 'bg-gray-100 text-[#0F172A] hover:bg-gray-200'
-            }`}
+            className={` inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${vista === 'terminados' ? 'bg-[#0F172A] text-white' : 'bg-gray-100 text-[#0F172A] hover:bg-gray-200'
+              }`}
           >
             <Icon icon="mdi:clipboard-check-outline" width={18} height={18} />
             Terminado
@@ -177,45 +176,39 @@ export default function PedidosPage() {
 
       {/* ===== DESKTOP HEADER (≥ md) ===== */}
       <div className="hidden md:flex md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold text-primary">Mis Pedidos</h1>
-          <p className="text-gray-500">Revisa tus pedidos asignados, gestiona pendientes y finalizados.</p>
-        </div>
+        <Tittlex
+          title="Mis Pedidos"
+          description="Revisa tus pedidos asignados, gestiona pendientes y finalizados"
+        />
 
         <div className="flex gap-2 items-center">
-          <button
+          <Buttonx
+            label="Asignados (Hoy)"
+            icon="solar:bill-list-broken"
+            variant={vista === 'asignados' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('asignados')}
-            className={`flex items-center px-4 py-2 rounded-sm gap-2 text-sm font-medium ${
-              vista === 'asignados' ? 'bg-primaryDark text-white' : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
-          >
-            <Icon icon="solar:bill-list-broken" width={20} height={20} />
-            <span>Asignados (Hoy)</span>
-          </button>
+            disabled={false}
+          />
 
           <span className="block h-8 w-[1px] bg-gray-300" />
 
-          <button
+          <Buttonx
+            label="Pendientes"
+            icon="mdi:clock-outline"
+            variant={vista === 'pendientes' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('pendientes')}
-            className={`flex items-center px-4 py-2 rounded-sm gap-2 text-sm font-medium ${
-              vista === 'pendientes' ? 'bg-primaryDark text-white' : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
-          >
-            <Icon icon="mdi:clock-outline" width={20} height={20} />
-            <span>Pendientes</span>
-          </button>
+            disabled={false}
+          />
 
           <span className="block h-8 w-[1px] bg-gray-300" />
 
-          <button
+          <Buttonx
+            label="Terminados"
+            icon="mdi:clipboard-check-outline"
+            variant={vista === 'terminados' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('terminados')}
-            className={`flex items-center px-4 py-2 rounded-sm gap-2 text-sm font-medium ${
-              vista === 'terminados' ? 'bg-primaryDark text-white' : 'bg-gray-100 text-primaryDark hover:bg-gray-200'
-            }`}
-          >
-            <Icon icon="mdi:clipboard-check-outline" width={20} height={20} />
-            <span>Terminados</span>
-          </button>
+            disabled={false}
+          />
         </div>
       </div>
 

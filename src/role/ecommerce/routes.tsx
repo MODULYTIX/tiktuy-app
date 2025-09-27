@@ -2,7 +2,6 @@ import type { RouteObject } from 'react-router-dom';
 import EcommerceHomePage from './pages/HomePage';
 import AlmacenPage from './pages/AlmacenPage';
 import StockPage from './pages/StockProducto';
-import CuadreSaldoPage from './pages/CuadreSaldoPage';
 import PerfilesPage from './pages/PerfilesPage';
 import ReportesPage from './pages/ReportesPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
@@ -15,7 +14,6 @@ export const ecommerceRoutes: RouteObject[] = [
   { path: 'stock', element: <StockPage /> },
   { path: 'movimientos', element: <MovimientosPage /> },
   { path: 'pedidos', element: <PedidosPage /> },
-  { path: 'saldos', element: <CuadreSaldoPage /> },
   { path: 'perfiles', element: <PerfilesPage /> },
   { path: 'reportes', element: <ReportesPage /> },
   { path: 'configuracion', element: <ConfiguracionPage /> },

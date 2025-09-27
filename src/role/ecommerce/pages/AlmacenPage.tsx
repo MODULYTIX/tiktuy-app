@@ -5,6 +5,8 @@ import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamien
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 import CrearAlmacenModal from '@/shared/components/ecommerce/CrearAlmacenModal';
 import { FaEdit } from 'react-icons/fa';
+import Buttonx from '@/shared/common/Buttonx';
+import Tittlex from '@/shared/common/Tittlex';
 
 const PAGE_SIZE = 5;
 
@@ -76,18 +78,20 @@ export default function AlmacenPage() {
 
   return (
     <section className="mt-8">
-      <div className="flex justify-between items-center mb-2">
-        <h1 className="text-3xl font-bold text-primary">Almacén</h1>
-        <button
-          onClick={() => { setAlmacenEditando(null); setShowModal(true); }}
-          className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition"
-        >
-          <PiGarageLight size={18} />
-          <span>Nuevo Almacén</span>
-        </button>
-      </div>
+      <div className="flex justify-between items-end mb-4">
+        <Tittlex
+          title="Almacén"
+          description="Visualice su almacén y sus movimientos"
+        />
 
-      <p className="text-gray-600 mb-4">Visualice su almacén y sus movimientos.</p>
+        <Buttonx
+          label="Nuevo Almacén"
+          icon="solar:garage-linear" // Aquí puedes poner el ícono que mejor se adapte
+          variant="secondary"
+          onClick={() => { setAlmacenEditando(null); setShowModal(true); }}
+          className='font-light'
+        />
+      </div>
 
       <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
         <section className="flex-1 overflow-auto">

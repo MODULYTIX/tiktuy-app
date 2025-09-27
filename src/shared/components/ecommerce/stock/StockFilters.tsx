@@ -7,6 +7,8 @@ import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacen
 import { FiSearch } from 'react-icons/fi';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { Selectx } from '@/shared/common/Selectx';
+import Buttonx from '@/shared/common/Buttonx';
+import { SearchInputx } from '@/shared/common/SearchInputx';
 
 interface Filters {
   almacenamiento_id: string;
@@ -76,9 +78,9 @@ export default function StockFilters({ onFilterChange }: Props) {
     'placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors';
 
   return (
-    <div className="bg-white p-5 rounded-md shadow-default border border-gray30">
+    <div className="bg-white p-5 rounded-md shadow-default border-b-4 border-gray90 ">
       {/* xs: 1 col, sm: 2 cols, lg: 1fr 1fr 1fr auto */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm ">
         {/* Ecommerce */}
         <Selectx
           label="Ecommerce"
@@ -169,25 +171,22 @@ export default function StockFilters({ onFilterChange }: Props) {
 
         {/* Buscador + botón */}
         <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-          <div className="relative flex-1 border border-gray60 rounded">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              name="search"
-              type="text"
-              value={filters.search}
-              onChange={handleChange}
-              placeholder="Buscar productos por nombre, descripción ó código."
-              className={`${field} pl-10`}
+          <SearchInputx
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            placeholder="Buscar productos por nombre, " // Aquí defines el texto del placeholder
+            className="w-full"
+          />
+          
+          <Buttonx
+              label="Limpiar Filtros"
+              icon="mynaui:delete"
+              variant="outlined" // Si deseas el fondo azul, usa la variante "primary"
+              onClick={handleReset} // Asegúrate de que esto sea una función válida
+              disabled={false}
             />
-          </div>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="flex items-center gap-3 text-gray-700 bg-gray10 border border-gray60 hover:bg-gray-100 px-4 py-2 rounded sm:w-auto"
-          >
-            <Icon icon="mynaui:delete" width="24" height="24" color="gray60" />
-            <span>Limpiar Filtros</span>
-          </button>
+
+
         </div>
       </div>
     </div>

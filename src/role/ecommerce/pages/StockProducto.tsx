@@ -12,6 +12,8 @@ import ImportExcelFlow from '@/shared/components/ecommerce/excel/ImportExcelFlow
 import ProductoCrearModal from '@/shared/components/ecommerce/stock/ProductoCrearModal';
 import ProductoVerModal from '@/shared/components/ecommerce/stock/ProductoVerModal';
 import ProductoEditarModal from '@/shared/components/ecommerce/stock/ProductoEditarModal';
+import Buttonx from '@/shared/common/Buttonx';
+import Tittlex from '@/shared/common/Tittlex';
 
 
 type UiFilters = StockFilterValue & {
@@ -157,12 +159,12 @@ export default function StockPage() {
   return (
     <section className="mt-8 space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-end">
-        <div>
-          <h1 className="text-3xl font-bold text-primary">Stock de Productos</h1>
-          <p className="text-gray-500 mt-1">Control de Stock y Movimientos</p>
-        </div>
+        <Tittlex
+          title="Stock de Productos"
+          description="Control de Stock y Movimientos"
+        />
 
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-end">
           <ImportExcelFlow token={token ?? ''} onImported={() => cargarProductos()}>
             {(openPicker) => (
               <AnimatedExcelMenu
@@ -171,13 +173,13 @@ export default function StockPage() {
               />
             )}
           </ImportExcelFlow>
-          <button
-            onClick={handleAbrirModalNuevo}
-            className="text-white flex px-3 py-[0.625rem] bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition"
-          >
-            <TbCubePlus size={18} />
-            <span>Nuevo Producto</span>
-          </button>
+          <Buttonx
+          label="Nuevo Producto"
+          icon="tabler:cube-plus" // Aquí puedes poner el ícono que mejor se adapte
+          variant="secondary"
+          onClick={handleAbrirModalNuevo}
+          className='font-light'
+        />
         </div>
       </div>
 
