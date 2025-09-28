@@ -114,3 +114,24 @@ export interface ReassignPedidoResponse {
   motorizado_anterior_id: number;
   motorizado_nuevo_id: number;
 }
+/* ----- Detalle de pedido (para el ojito 👁️) ----- */
+export interface PedidoDetalle {
+  id: number;
+  codigo_pedido: string;
+
+  cliente: string;
+  direccion_entrega: string;
+  fecha_entrega_programada: string | null;
+  cantidad_productos: number;
+  monto_total: number;
+
+  items: Array<{
+    producto_id: number;
+    nombre: string;
+    descripcion: string;
+    marca?: string | null;
+    cantidad: number;
+    precio_unitario: number;
+    subtotal: number;
+  }>;
+}

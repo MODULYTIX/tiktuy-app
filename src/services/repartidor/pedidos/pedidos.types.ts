@@ -22,12 +22,14 @@ export interface Paginated<T> {
   totalPages: number;
 }
 
+/* =========================
+ * PEDIDOS LISTADO + DETALLE
+ * ========================= */
 export interface PedidoItemResumen {
   producto_id?: number;
   nombre: string;
   descripcion?: string | null;
   cantidad: number;
-  /** Si el backend lo envía, lo recibimos sin problemas */
   precio_unitario?: string;
   subtotal?: string;
 }
@@ -41,7 +43,6 @@ export interface PedidoListItem {
   fecha_entrega_programada: string | null;
   fecha_entrega_real: string | null;
 
-  /** Dirección completa (para la columna de “Dirección de Entrega”) */
   direccion_envio: string | null;
 
   ecommerce: { id: number; nombre_comercial: string };
@@ -51,7 +52,6 @@ export interface PedidoListItem {
     nombre: string;
     celular: string;
     distrito: string;
-    /** Algunos listados lo usan para tooltip */
     direccion?: string | null;
     referencia?: string | null;
   };
@@ -62,12 +62,10 @@ export interface PedidoListItem {
   pago_evidencia_url?: string | null;
   observacion_estado?: string | null;
 
-  // Para tablas/resúmenes
   items?: PedidoItemResumen[];
   items_total_cantidad?: number;
   items_total_monto?: string;
 
-  // Solo cuando el estado es “Reprogramado”
   reprogramacion_ultima?: {
     fecha_anterior: string;
     fecha_nueva: string;
@@ -76,6 +74,9 @@ export interface PedidoListItem {
     creado_por_id?: number;
   } | null;
 }
+
+/** Versión extendida para detalle (GET /:id) */
+export type PedidoDetalle = PedidoListItem;
 
 /* =========================
  * Tipos para CAMBIO DE ESTADO
@@ -90,7 +91,6 @@ export type EstadoInicialResultado =
 
 export interface UpdateEstadoInicialBody {
   resultado: EstadoInicialResultado;
-  /** Requerido solo si resultado = "REPROGRAMADO" */
   fecha_nueva?: string | Date;
   observacion?: string;
 }
@@ -99,26 +99,16 @@ export interface UpdateEstadoInicialResponse {
   pedido_id: number;
   estado_id: number;
   estado_nombre: string;
-  /** Puede cambiar si es reprogramado */
   fecha_entrega_programada: string | null;
 }
 
 // 2) Resultado / Cierre de entrega
-export type ResultadoEntrega =
-  | 'ENTREGADO'
-  | 'RECHAZADO'
-  | 'NO_RESPONDE'
-  | 'ANULO';
+export type ResultadoEntrega = 'ENTREGADO' | 'RECHAZADO';
 
 export interface UpdateResultadoBody {
   resultado: ResultadoEntrega;
-  /** Requerido si resultado = ENTREGADO */
   monto_recaudado?: number | string;
   observacion?: string;
-  /**
-   * Opcional para envío de evidencia cuando ENTREGADO y el método lo requiere.
-   * Se usa solo en el front para armar FormData; el backend recibirá "evidencia".
-   */
   evidenciaFile?: File | Blob;
 }
 

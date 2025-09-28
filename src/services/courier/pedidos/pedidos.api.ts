@@ -8,6 +8,7 @@ import type {
   AssignPedidosResponse,
   ReassignPedidoPayload,
   ReassignPedidoResponse,
+  PedidoDetalle,
 } from './pedidos.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -163,4 +164,20 @@ export async function reassignPedido(
     console.error('❌ Error al reasignar pedido - backend:', errBody);
   }
   return handle<ReassignPedidoResponse>(res, 'Error al reasignar pedido');
+}
+/* --------------------------
+   GET: DETALLE DE PEDIDO (ojito 👁️)
+   Endpoint esperado: GET /courier-pedidos/:id/detalle
+---------------------------*/
+
+export async function fetchPedidoDetalle(
+  token: string,
+  pedidoId: number,
+  opts?: { signal?: AbortSignal }
+): Promise<PedidoDetalle> {
+  const res = await fetch(`${BASE_URL}/${pedidoId}/detalle`, {
+    headers: authHeaders(token),
+    signal: opts?.signal,
+  });
+  return handle<PedidoDetalle>(res, 'Error al obtener detalle del pedido');
 }

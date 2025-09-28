@@ -7,6 +7,7 @@ import type {
   UpdateEstadoInicialResponse,
   UpdateResultadoBody,
   UpdateResultadoResponse,
+  PedidoDetalle,
 } from './pedidos.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -210,3 +211,20 @@ export async function patchResultado(
     'Error al actualizar el resultado del pedido'
   );
 }
+
+/* --------------------------
+   GET: Detalle de un pedido
+   Endpoint backend: GET /repartidor-pedidos/:id
+---------------------------*/
+export async function fetchPedidoDetalle(
+  token: string,
+  id: number,
+  opts?: { signal?: AbortSignal }
+): Promise<PedidoDetalle> {
+  const res = await fetch(`${BASE_URL}/${id}`, {
+    headers: authHeaders(token),
+    signal: opts?.signal,
+  });
+  return handle(res, 'Error al obtener detalle del pedido');
+}
+
