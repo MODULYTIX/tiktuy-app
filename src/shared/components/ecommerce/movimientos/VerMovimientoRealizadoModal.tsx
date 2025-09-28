@@ -110,14 +110,14 @@ export default function VerMovimientoRealizadoModal(props: Props) {
       <div className="fixed inset-0 z-50">
         <div className="absolute inset-0 bg-black/40" onClick={onClose} />
         <div className="relative z-10 flex min-h-full items-center justify-center p-4">
-          <div className="w-full max-w-[1200px] bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="w-full max-w-[1200px] bg-white rounded-sm shadow-xl overflow-hidden">
             <div className="flex items-start justify-between px-6 pt-5 pb-2 ">
               <div className="flex items-center gap-2">
                 <Icon
-                  icon="icon-park:cycle-movement"
+                  icon="icon-park-outline:cycle-movement"
                   width="24"
                   height="24"
-                  className="text-primary"
+                  className="text-primary "
                 />
                 <h2 className="text-2xl font-bold tracking-tight text-primary">
                   DETALLES DEL MOVIMIENTO
@@ -127,7 +127,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                 aria-label="Cerrar"
                 onClick={onClose}
                 className="p-2 rounded hover:bg-gray-100">
-                <HiX className="h-5 w-5" />
+                <HiX className="h-5 w-5 "  />
               </button>
             </div>
             <div className="p-8 text-center text-slate-500">
@@ -175,12 +175,12 @@ export default function VerMovimientoRealizadoModal(props: Props) {
 
       {/* Contenido CENTRADO */}
       <div className="relative z-10 flex max-h-full items-center justify-center p-4">
-        <div className="w-full max-w-[1180px] bg-white rounded-2xl shadow-xl overflow-hidden max-h-[92vh]">
+        <div className="w-full max-w-[1180px] bg-white rounded-sm shadow-xl overflow-hidden max-h-[92vh]">
           {/* Header con título + botón cerrar */}
           <div className="flex items-start justify-between px-6 pt-5">
             <div className="flex items-center gap-2">
               <Icon
-                icon="icon-park:cycle-movement"
+                icon="icon-park-outline:cycle-movement"
                 width="24"
                 height="24"
                 className="text-primary"
@@ -326,7 +326,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                 </div>
 
                 {/* Tarjeta inferior vacía */}
-                <div className="mt-6 mb-2 border rounded-sm bg-white border-gray-400">
+                <div className="mt-6 mb-4 border rounded-sm bg-white border-gray-400">
                   <div className="p-10 text-center text-slate-400">
                     <p>Sin datos que mostrar, no hay</p>
                     <p>descripción ni archivo adjuntado.</p>

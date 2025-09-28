@@ -26,6 +26,13 @@ export default function PedidosGenerado({ filtros }: { filtros: Filtros }) {
     setEditarOpen(true);
   }, []);
 
+  // Abrir "Editar" desde el modal "Ver" (sin perder el id)
+  const handleEditarDesdeVer = useCallback((id: number) => {
+    setSelectedId(id);
+    setVerOpen(false);
+    setEditarOpen(true);
+  }, []);
+
   const handleClose = useCallback(() => {
     setSelectedId(null);
     setVerOpen(false);
@@ -51,6 +58,7 @@ export default function PedidosGenerado({ filtros }: { filtros: Filtros }) {
         open={verOpen}
         onClose={handleClose}
         pedidoId={selectedId}  // <- pasa number | null
+        onEditar={handleEditarDesdeVer} // <- para abrir "Editar" desde "Ver"
       />
 
       {/* Modal Editar */}

@@ -4,6 +4,7 @@ import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
 import { useAuth } from '@/auth/context';
 import { FiX } from 'react-icons/fi';
 import { BsBoxSeam } from 'react-icons/bs';
+import FieldX from '@/shared/common/FieldX';
 
 interface Props {
   isOpen: boolean;
@@ -11,15 +12,16 @@ interface Props {
   pedidoId: number | null;
 }
 
-export default function VerPedidoModal({ isOpen, onClose, pedidoId }: Props) {
+export default function VerPedidoCompletadoModal({ isOpen, onClose, pedidoId }: Props) {
   const { token } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
+
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Cerrar al hacer click fuera
   useEffect(() => {
     if (!isOpen) return;
-
     const clickOutside = (e: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) onClose();
     };
@@ -27,75 +29,119 @@ export default function VerPedidoModal({ isOpen, onClose, pedidoId }: Props) {
     return () => document.removeEventListener('mousedown', clickOutside);
   }, [isOpen, onClose]);
 
+  // Cargar pedido
   useEffect(() => {
     if (!isOpen || !token || !pedidoId) return;
     setLoading(true);
     fetchPedidoById(pedidoId, token)
-      .then(setPedido)
+      .then((p) => setPedido(p ?? null))
+      .catch(() => setPedido(null))
       .finally(() => setLoading(false));
   }, [isOpen, token, pedidoId]);
 
   if (!isOpen) return null;
 
+  const det = pedido?.detalles?.[0];
+
+  const montoCalc =
+    det?.precio_unitario && det?.cantidad
+      ? (Number(det.precio_unitario) * Number(det.cantidad)).toFixed(2)
+      : pedido?.monto_recaudar != null
+        ? Number(pedido.monto_recaudar).toFixed(2)
+        : '';
+
+  const fechaEntrega = pedido?.fecha_entrega_programada
+    ? new Date(pedido.fecha_entrega_programada)
+    : null;
+
+  const fechaEntregaStr = fechaEntrega
+    ? fechaEntrega.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : '';
+
+  // Estado (verde si es Entregado)
+  const estado: string =
+    (pedido as any)?.estado?.nombre ??
+    (pedido as any)?.estado_pedido ??
+    '';
+
+  const estadoColor =
+    estado?.toLowerCase() === 'entregado' ? 'text-green-600' : 'text-yellow-600';
+
   return (
     <div className="fixed inset-0 z-50 bg-black/20 bg-opacity-40 flex justify-end">
-      <div ref={modalRef} className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2 text-gray-700">
-            <BsBoxSeam className="text-primary text-2xl" />
-            DETALLES DEL PEDIDO
-          </h2>
+      <div
+        ref={modalRef}
+        className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right"
+      >
+        {/* Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-start gap-2">
+            <BsBoxSeam className="text-primary text-2xl mt-1" />
+            <div>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-semibold text-[#0B3C6F]">DETALLE DEL PEDIDO</h2>
+                {estado && (
+                  <div className="text-sm">
+                    <span className="text-gray-500">Estado : </span>
+                    <span className={`${estadoColor} font-medium`}>{estado}</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-gray-600 -mt-0.5">
+                Consulta toda la información registrada de este pedido, incluyendo los datos del
+                cliente, el producto y la entrega.
+              </p>
+            </div>
+          </div>
+
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <FiX className="w-6 h-6" />
           </button>
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-500">Cargando...</p>
+          <div className="space-y-3">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="h-4 bg-gray-200 animate-pulse rounded" />
+            ))}
+          </div>
         ) : !pedido ? (
           <p className="text-sm text-gray-500">No se pudo cargar el pedido.</p>
         ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-xs text-gray-500">Código</p><p className="text-sm">{pedido.codigo_pedido}</p></div>
-              <div><p className="text-xs text-gray-500">Estado</p><p className="text-sm">{pedido.estado_pedido}</p></div>
-              <div><p className="text-xs text-gray-500">Cliente</p><p className="text-sm">{pedido.nombre_cliente}</p></div>
-              <div><p className="text-xs text-gray-500">Celular</p><p className="text-sm">{pedido.celular_cliente}</p></div>
-              <div className="col-span-2"><p className="text-xs text-gray-500">Dirección</p><p className="text-sm">{pedido.direccion_envio}</p></div>
-              {pedido.referencia_direccion && (
-                <div className="col-span-2">
-                  <p className="text-xs text-gray-500">Referencia</p>
-                  <p className="text-sm">{pedido.referencia_direccion}</p>
-                </div>
-              )}
-              <div><p className="text-xs text-gray-500">Distrito</p><p className="text-sm">{pedido.distrito}</p></div>
-              <div><p className="text-xs text-gray-500">Courier</p><p className="text-sm">{pedido.courier?.nombre_comercial ?? '-'}</p></div>
+          <>
+            {/* Cuerpo (2 columnas) */}
+            <div className="grid grid-cols-2 gap-4">
+              <FieldX label="Courier" value={pedido.courier?.nombre_comercial ?? ''} placeholder="—" />
+              <FieldX label="Nombre" value={pedido.nombre_cliente} placeholder="Nombre del cliente" />
+
+              <FieldX label="Teléfono" prefix="+ 51" value={pedido.celular_cliente} placeholder="987654321" />
+              <FieldX label="Distrito" value={pedido.distrito} placeholder="Distrito" />
+
+              <div className="col-span-2">
+                <FieldX label="Dirección" value={pedido.direccion_envio} placeholder="Av. Grau J 499" />
+              </div>
+
+              <div className="col-span-2">
+                <FieldX label="Referencia" value={pedido.referencia_direccion ?? ''} placeholder="(opcional)" />
+              </div>
+
+              <FieldX label="Producto" value={det?.producto?.nombre_producto} placeholder="Producto" />
+              <FieldX label="Cantidad" value={det?.cantidad != null ? String(det.cantidad) : ''} placeholder="0" />
+
+              <FieldX
+                label="Monto"
+                value={
+                  montoCalc
+                    ? `S/. ${Number(montoCalc).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`
+                    : ''
+                }
+                placeholder="S/. 0.00"
+              />
+              <FieldX label="Fecha Entrega" value={fechaEntregaStr} placeholder="dd/mm/aaaa" />
             </div>
 
-            <div className="border-t pt-3">
-              <p className="text-sm font-medium mb-2">Detalle</p>
-              <div className="space-y-2">
-                {pedido.detalles?.map((d) => (
-                  <div key={d.id} className="flex justify-between text-sm">
-                    <span>{d.producto?.nombre_producto ?? `Prod ${d.producto_id}`}</span>
-                    <span>
-                      {Number(d.cantidad)} x S/. {Number(d.precio_unitario).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-2 flex justify-between text-sm font-semibold">
-                <span>Total</span>
-                <span>
-                  S/.{' '}
-                  {pedido.detalles?.reduce(
-                    (acc, d) => acc + Number(d.cantidad) * Number(d.precio_unitario),
-                    0
-                  ).toFixed(2)}
-                </span>
-              </div>
-            </div>
-          </div>
+            {/* Sin botones abajo (solo lectura) */}
+          </>
         )}
       </div>
     </div>

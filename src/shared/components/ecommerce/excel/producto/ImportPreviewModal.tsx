@@ -1,8 +1,13 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import type { ImportProductosPayload, PreviewProductoDTO, PreviewProductosResponseDTO } from '@/services/ecommerce/importExcelProducto/importexcel.type';
+import type {
+  ImportProductosPayload,
+  PreviewProductoDTO,
+  PreviewProductosResponseDTO,
+} from '@/services/ecommerce/importExcelProducto/importexcel.type';
 import type { Option } from '@/shared/common/Autocomplete';
 import CenteredModal from '@/shared/common/CenteredModal';
 import { importProductosDesdePreview } from '@/services/ecommerce/importExcelProducto/importexcel.api';
+import { Icon } from '@iconify/react/dist/iconify.js';
 
 type Props = {
   open: boolean;
@@ -23,6 +28,7 @@ export default function ImportProductosPreviewModal({
   preloadedAlmacenOptions = [],
   preloadedCategoriaOptions = [],
 }: Props) {
+  // ----------------- STATE -----------------
   const initialPreview: PreviewProductoDTO[] = Array.isArray(data?.preview) ? data.preview : [];
   const [groups, setGroups] = useState<PreviewProductoDTO[]>(initialPreview);
 
@@ -33,8 +39,14 @@ export default function ImportProductosPreviewModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const categoriaNames = useMemo(() => (preloadedCategoriaOptions ?? []).map(o => o.label), [preloadedCategoriaOptions]);
-  const almacenNames   = useMemo(() => (preloadedAlmacenOptions   ?? []).map(o => o.label), [preloadedAlmacenOptions]);
+  const categoriaNames = useMemo(
+    () => (preloadedCategoriaOptions ?? []).map(o => o.label),
+    [preloadedCategoriaOptions]
+  );
+  const almacenNames = useMemo(
+    () => (preloadedAlmacenOptions ?? []).map(o => o.label),
+    [preloadedAlmacenOptions]
+  );
 
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const allSelected  = groups.length > 0 && groups.every((_, i) => selected[i]);
@@ -46,9 +58,10 @@ export default function ImportProductosPreviewModal({
     }
   }, [allSelected, someSelected]);
 
-  const toggleRow  = (idx: number) => setSelected((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  const toggleRow  = (idx: number) => setSelected(prev => ({ ...prev, [idx]: !prev[idx] }));
   const toggleAll  = () => setSelected(allSelected ? {} : Object.fromEntries(groups.map((_, i) => [i, true])));
 
+  // ----------------- VALIDATION (misma lógica) -----------------
   const norm = (s: string) =>
     (s ?? '').toString().trim().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
   const categoriaSet = useMemo(() => new Set(categoriaNames.map(norm)), [categoriaNames]);
@@ -103,19 +116,18 @@ export default function ImportProductosPreviewModal({
     return e;
   };
 
-  const colorCategoria = (value: string | null | undefined) => {
+  // “semáforo” visual suave sin tocar la lógica
+  const bgWarnFromCatalog = (has: boolean, value: string | null | undefined) => {
     const v = String(value ?? '').trim();
-    if (!v) return 'border-red-500 bg-red-50';
-    return categoriaSet.has(norm(v)) ? '' : 'border-amber-500 bg-amber-50';
+    if (!v) return 'bg-red-50';
+    return has ? '' : 'bg-amber-50';
   };
-  const colorAlmacen = (value: string | null | undefined) => {
-    const v = String(value ?? '').trim();
-    if (!v) return 'border-red-500 bg-red-50';
-    return almacenSet.has(norm(v)) ? '' : 'border-amber-500 bg-amber-50';
-  };
+  const colorCategoria = (value?: string | null) => bgWarnFromCatalog(categoriaSet.has(norm(String(value ?? ''))), value);
+  const colorAlmacen   = (value?: string | null) => bgWarnFromCatalog(almacenSet.has(norm(String(value ?? ''))), value);
 
+  // ----------------- PATCH (misma lógica) -----------------
   const patchGroup = (idx: number, patch: Partial<PreviewProductoDTO>) => {
-    setGroups((prev) =>
+    setGroups(prev =>
       prev.map((g, i) => {
         if (i !== idx) return g;
         const next = { ...g, ...patch };
@@ -127,7 +139,7 @@ export default function ImportProductosPreviewModal({
   };
 
   const applyToSelected = (patch: Partial<PreviewProductoDTO>) => {
-    setGroups((prev) =>
+    setGroups(prev =>
       prev.map((g, i) => {
         if (!selected[i]) return g;
         const next = { ...g, ...patch };
@@ -138,26 +150,22 @@ export default function ImportProductosPreviewModal({
     );
   };
 
-  // Nota: calcularemos invalidez sobre lo que se enviará (seleccionadas o todas)
-  const computeHasInvalid = (arr: PreviewProductoDTO[]) => arr.some((g) => !recomputeValido(g));
-  const computeTotalValid = (arr: PreviewProductoDTO[]) => arr.filter((g) => recomputeValido(g)).length;
-
+  const computeHasInvalid = (arr: PreviewProductoDTO[]) => arr.some(g => !recomputeValido(g));
+  const computeTotalValid = (arr: PreviewProductoDTO[]) => arr.filter(g => recomputeValido(g)).length;
   const allRowsTotalValidos = useMemo(() => computeTotalValid(groups), [groups]);
 
+  // ----------------- SUBMIT (misma lógica) -----------------
   const confirmarImportacion = async () => {
     setError(null);
 
-    // Determina qué filas se envían
     let groupsToSend = someSelected ? groups.filter((_, i) => selected[i]) : groups;
 
-    // Sincroniza valido/errores antes de enviar
-    groupsToSend = groupsToSend.map((g) => {
+    groupsToSend = groupsToSend.map(g => {
       const valido = recomputeValido(g);
       return { ...g, valido, errores: valido ? [] : recomputeErrores(g) };
     });
 
-    // Validación previa UI (solo lo que se enviará)
-    const firstEmpty = groupsToSend.find((g) => isEmpty(g.categoria) || isEmpty(g.almacen));
+    const firstEmpty = groupsToSend.find(g => isEmpty(g.categoria) || isEmpty(g.almacen));
     if (firstEmpty) {
       setError(`Hay filas con "Categoría" o "Almacén" vacíos (p.ej. fila Excel ${firstEmpty.fila}).`);
       return;
@@ -184,187 +192,212 @@ export default function ImportProductosPreviewModal({
   };
 
   if (!open) return null;
-
-  // Para el header “Válidos” mostramos el total sobre todas las filas visibles
   const totalValidosHeader = allRowsTotalValidos;
 
+  // ----------------- UI (diseño “perfecto”) -----------------
   return (
-    <CenteredModal title="Validación de productos" onClose={onClose} widthClass="max-w-[1200px]">
-      <div className="flex flex-wrap items-end gap-2 mb-3">
+    <CenteredModal title="" onClose={onClose} widthClass="max-w-[1360px] w-[95vw]">
+      {/* Header */}
+      <div className="flex items-start gap-3 text-[#1F2A44] mb-2">
+        <div className="mt-0.5">
+          <Icon icon="vaadin:stock" width="20" height="20" />
+        </div>
+        <div>
+          <h2 className="uppercase tracking-wide font-bold text-[20px] leading-6">
+            Validación de datos
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Datos ingresados del excel, última validación
+          </p>
+        </div>
         <div className="ml-auto text-sm bg-gray-50 rounded px-2 py-1">
           <b>Total:</b> {groups.length} · <b>Válidos:</b> {totalValidosHeader}
         </div>
       </div>
 
-      {/* Fila de “Seleccionar / aplicar masivo” */}
-      <div className="border rounded-t overflow-hidden">
-        <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
-          <colgroup>
-            <col className="w-9" />
-            <col className="w-[22%]" />
-            <col className="w-[20%]" />
-            <col className="w-[16%]" />
-            <col className="w-[16%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
-            <col className="w-[11%]" />
-            <col className="w-[11%]" />
-          </colgroup>
-          <thead>
-            <tr className="bg-white">
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  ref={headerChkRef}
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={toggleAll}
-                  title="Seleccionar todo"
-                />
-              </th>
+      {/* Barra masiva (look de select) */}
+      <div className="mt-3 mb-4 rounded-lg border border-gray-200 bg-white p-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-3">
+          <div className="flex items-center">
+            <input
+              ref={headerChkRef}
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleAll}
+              className="h-4 w-4 rounded-[4px]"
+              title="Seleccionar todo"
+            />
+          </div>
 
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  placeholder="Nombre de producto (Enter para aplicar)"
-                  className="w-full border rounded px-2 py-1"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const val = (e.target as HTMLInputElement).value.trim();
-                      if (val) applyToSelected({ nombre_producto: val });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
+          {/* N. Producto */}
+          <div className="relative">
+            <input
+              placeholder="Seleccionar"
+              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const val = (e.target as HTMLInputElement).value.trim();
+                  if (val) applyToSelected({ nombre_producto: val });
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+            />
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
+          </div>
 
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  placeholder="Descripción (Enter para aplicar)"
-                  className="w-full border rounded px-2 py-1"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      applyToSelected({ descripcion: (e.target as HTMLInputElement).value });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
+          {/* Descripción */}
+          <div className="relative">
+            <input
+              placeholder="Seleccionar"
+              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  applyToSelected({ descripcion: (e.target as HTMLInputElement).value });
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+            />
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
+          </div>
 
-              {/* Categoría (masivo) con datalist */}
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  list="categorias-sugeridas"
-                  placeholder="Categoría (escribe o elige y Enter)"
-                  className="w-full border rounded px-2 py-1"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const v = (e.target as HTMLInputElement).value.trim();
-                      if (v) applyToSelected({ categoria: v });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-                <datalist id="categorias-sugeridas">
-                  {categoriaNames.map((n) => <option key={n} value={n} />)}
-                </datalist>
-              </th>
+          {/* Categoría */}
+          <div className="relative">
+            <input
+              list="categorias-sugeridas"
+              placeholder="Seleccionar"
+              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const v = (e.target as HTMLInputElement).value.trim();
+                  if (v) applyToSelected({ categoria: v });
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+            />
+            <datalist id="categorias-sugeridas">
+              {categoriaNames.map((n) => <option key={n} value={n} />)}
+            </datalist>
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
+          </div>
 
-              {/* Almacén (masivo) con datalist */}
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  list="almacenes-sugeridos"
-                  placeholder="Almacén (escribe o elige y Enter)"
-                  className="w-full border rounded px-2 py-1"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const v = (e.target as HTMLInputElement).value.trim();
-                      if (v) applyToSelected({ almacen: v });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-                <datalist id="almacenes-sugeridos">
-                  {almacenNames.map((n) => <option key={n} value={n} />)}
-                </datalist>
-              </th>
+          {/* Almacén */}
+          <div className="relative">
+            <input
+              list="almacenes-sugeridos"
+              placeholder="Seleccionar"
+              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const v = (e.target as HTMLInputElement).value.trim();
+                  if (v) applyToSelected({ almacen: v });
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+            />
+            <datalist id="almacenes-sugeridos">
+              {almacenNames.map((n) => <option key={n} value={n} />)}
+            </datalist>
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
+          </div>
 
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="Precio"
-                  className="w-full border rounded px-2 py-1 text-right"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const n = Number((e.target as HTMLInputElement).value);
-                      if (!Number.isNaN(n)) applyToSelected({ precio: n });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
+          {/* Precio */}
+          <div className="relative">
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Seleccionar"
+              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const n = Number((e.target as HTMLInputElement).value);
+                  if (!Number.isNaN(n)) applyToSelected({ precio: n });
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+            />
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
+          </div>
 
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  type="number"
-                  placeholder="Cantidad"
-                  className="w-full border rounded px-2 py-1 text-right"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const n = Number((e.target as HTMLInputElement).value);
-                      if (!Number.isNaN(n)) applyToSelected({ cantidad: Math.trunc(n) });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
+          {/* Cantidad */}
+          <div className="relative">
+            <input
+              type="number"
+              placeholder="Seleccionar"
+              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const n = Number((e.target as HTMLInputElement).value);
+                  if (!Number.isNaN(n)) applyToSelected({ cantidad: Math.trunc(n) });
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+            />
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
+          </div>
 
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  type="number"
-                  placeholder="Stock mínimo"
-                  className="w-full border rounded px-2 py-1 text-right"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const n = Number((e.target as HTMLInputElement).value);
-                      if (!Number.isNaN(n)) applyToSelected({ stock_minimo: Math.trunc(n) });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
+          {/* Stock mínimo */}
+          <div className="relative">
+            <input
+              type="number"
+              placeholder="Seleccionar"
+              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const n = Number((e.target as HTMLInputElement).value);
+                  if (!Number.isNaN(n)) applyToSelected({ stock_minimo: Math.trunc(n) });
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+            />
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
+          </div>
 
-              <th className="hidden" />
-            </tr>
-          </thead>
-        </table>
+          {/* Peso */}
+          <div className="relative">
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Seleccionar"
+              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const n = Number((e.target as HTMLInputElement).value);
+                  if (!Number.isNaN(n)) applyToSelected({ peso: n });
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+            />
+            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
+          </div>
+        </div>
       </div>
 
-      {/* Tabla */}
-      <div className="border-x border-b rounded-b overflow-auto max-h-[55vh]">
+      {/* Tabla “texto editable” */}
+      <div className="rounded-lg border border-gray-200 overflow-auto max-h-[60vh]">
         <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
           <colgroup>
             <col className="w-9" />
-            <col className="w-[22%]" />
             <col className="w-[20%]" />
+            <col className="w-[18%]" />
             <col className="w-[16%]" />
             <col className="w-[16%]" />
             <col className="w-[10%]" />
             <col className="w-[10%]" />
-            <col className="w-[11%]" />
-            <col className="w-[11%]" />
+            <col className="w-[12%]" />
+            <col className="w-[10%]" />
           </colgroup>
 
           <thead>
-            <tr className="sticky top-0 z-10 bg-gray-100 text-xs font-medium">
-              <th className="border-b border-gray-200 px-2 py-2" />
-              <th className="border-b border-gray-200 px-2 py-2 text-left">N. Producto</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Descripción</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Categoría</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Almacén</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-right">Precio</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-right">Cantidad</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-right">Stock mínimo</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-right">Peso</th>
+            <tr className="sticky top-0 z-10 bg-[#F3F6FA] text-[13px] font-semibold text-gray-600">
+              <th className="border-b border-gray-200 px-2 py-3" />
+              <th className="border-b border-gray-200 px-3 py-3 text-left">N. Producto</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-left">Descripción</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-left">Categoría</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-left">Almacén</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-right">Precio</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-right">Cantidad</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-right">Stock mínimo</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-right">Peso</th>
             </tr>
           </thead>
 
@@ -372,97 +405,110 @@ export default function ImportProductosPreviewModal({
             {groups.map((g, gi) => {
               const inv = invalidField(g);
               return (
-                <tr key={gi} className="odd:bg-white even:bg-gray-50">
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
+                <tr key={gi} className="odd:bg-white even:bg-gray-50 hover:bg-[#F8FAFD] transition-colors duration-150">
+                  <td className="border-b border-gray-200 px-2 py-2 align-middle">
                     <input
                       type="checkbox"
                       checked={!!selected[gi]}
                       onChange={() => toggleRow(gi)}
+                      className="h-4 w-4 rounded-[4px]"
                     />
                   </td>
 
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  {/* N. Producto */}
+                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
                     <input
                       value={g.nombre_producto ?? ''}
                       onChange={(e) => patchGroup(gi, { nombre_producto: e.target.value })}
-                      className={`w-full border rounded px-2 py-1 ${inv.nombre_producto ? 'border-red-500 bg-red-50' : ''}`}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${inv.nombre_producto ? 'bg-red-50' : ''}`}
+                      title={String(g.nombre_producto ?? '')}
                     />
                   </td>
 
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  {/* Descripción */}
+                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
                     <input
                       value={g.descripcion ?? ''}
                       onChange={(e) => patchGroup(gi, { descripcion: e.target.value })}
-                      className="w-full border rounded px-2 py-1"
+                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
+                      title={String(g.descripcion ?? '')}
                     />
                   </td>
 
-                  {/* Categoría (free text + datalist) */}
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  {/* Categoría */}
+                  <td className={`border-b border-gray-200 px-3 py-2 align-middle ${colorCategoria(g.categoria)}`}>
                     <input
                       list={`categorias-row-${gi}`}
                       value={g.categoria ?? ''}
                       onChange={(e) => patchGroup(gi, { categoria: e.target.value })}
-                      placeholder="Categoría"
-                      className={`w-full border rounded px-2 py-1 ${colorCategoria(g.categoria)}`}
+                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
+                      title={String(g.categoria ?? '')}
                     />
                     <datalist id={`categorias-row-${gi}`}>
                       {categoriaNames.map((n) => <option key={n} value={n} />)}
                     </datalist>
                   </td>
 
-                  {/* Almacén (free text + datalist) */}
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  {/* Almacén */}
+                  <td className={`border-b border-gray-200 px-3 py-2 align-middle ${colorAlmacen(g.almacen)}`}>
                     <input
                       list={`almacenes-row-${gi}`}
                       value={g.almacen ?? ''}
                       onChange={(e) => patchGroup(gi, { almacen: e.target.value })}
-                      placeholder="Almacén"
-                      className={`w-full border rounded px-2 py-1 ${colorAlmacen(g.almacen)}`}
+                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
+                      title={String(g.almacen ?? '')}
                     />
                     <datalist id={`almacenes-row-${gi}`}>
                       {almacenNames.map((n) => <option key={n} value={n} />)}
                     </datalist>
                   </td>
 
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  {/* Precio */}
+                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right tabular-nums">
                     <input
                       type="number"
                       step="0.01"
                       value={g.precio ?? 0}
                       onChange={(e) => patchGroup(gi, { precio: Number(e.target.value) })}
-                      className={`w-full border rounded px-2 py-1 text-right ${inv.precio ? 'border-red-500 bg-red-50' : ''}`}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isFinite(toNumber(g.precio)) || toNumber(g.precio) < 0 ? 'bg-red-50' : ''}`}
+                      title={String(g.precio ?? '')}
                     />
                   </td>
 
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  {/* Cantidad */}
+                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right tabular-nums">
                     <input
                       type="number"
                       min={0}
                       value={g.cantidad ?? 0}
                       onChange={(e) => patchGroup(gi, { cantidad: Math.trunc(Number(e.target.value) || 0) })}
-                      className={`w-full border rounded px-2 py-1 text-right ${inv.cantidad ? 'border-red-500 bg-red-50' : ''}`}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isInteger(toInt(g.cantidad)) || toInt(g.cantidad) < 0 ? 'bg-red-50' : ''}`}
+                      title={String(g.cantidad ?? '')}
                     />
                   </td>
 
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  {/* Stock mínimo */}
+                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right tabular-nums">
                     <input
                       type="number"
                       min={0}
                       value={g.stock_minimo ?? 0}
                       onChange={(e) => patchGroup(gi, { stock_minimo: Math.trunc(Number(e.target.value) || 0) })}
-                      className={`w-full border rounded px-2 py-1 text-right ${inv.stock_minimo ? 'border-red-500 bg-red-50' : ''}`}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isInteger(toInt(g.stock_minimo)) || toInt(g.stock_minimo) < 0 ? 'bg-red-50' : ''}`}
+                      title={String(g.stock_minimo ?? '')}
                     />
                   </td>
 
-                  <td className="border-b border-gray-100 px-2 py-1 align-top">
+                  {/* Peso */}
+                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right tabular-nums">
                     <input
                       type="number"
                       step="0.01"
                       min={0}
                       value={g.peso ?? 0}
                       onChange={(e) => patchGroup(gi, { peso: Number(e.target.value) })}
-                      className={`w-full border rounded px-2 py-1 text-right ${inv.peso ? 'border-red-500 bg-red-50' : ''}`}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isFinite(toNumber(g.peso)) || toNumber(g.peso) < 0 ? 'bg-red-50' : ''}`}
+                      title={String(g.peso ?? '')}
                     />
                   </td>
                 </tr>
@@ -474,25 +520,24 @@ export default function ImportProductosPreviewModal({
 
       {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
 
-      <div className="flex justify-end gap-2 mt-4">
-        <button onClick={onClose} className="px-3 py-2 text-sm rounded border hover:bg-gray-50">
+      {/* Footer */}
+      <div className="flex justify-end gap-2 mt-4 pt-3 ">
+        <button onClick={onClose} className="px-4 h-10 text-sm rounded-md border border-gray-300 hover:bg-gray-50">
           Cerrar
         </button>
         <button
           onClick={confirmarImportacion}
-          // Deshabilita si hay inválidos en lo que se enviará (seleccionadas o todas)
           disabled={submitting || computeHasInvalid(someSelected ? groups.filter((_, i) => selected[i]) : groups)}
-          className="px-4 py-2 text-sm rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
+          className="px-5 h-10 text-sm rounded-md bg-[#1F2A44] text-white hover:bg-[#182238] disabled:opacity-60"
           title={computeHasInvalid(someSelected ? groups.filter((_, i) => selected[i]) : groups) ? 'Corrige los campos en rojo' : ''}
         >
-          {submitting ? 'Importando…' : 'Importar productos'}
+          {submitting ? 'Importando…' : 'Cargar Datos'}
         </button>
       </div>
 
       <style>{`
         table td, table th { border-right: 1px solid #eef0f2; }
         thead tr th:last-child, tbody tr td:last-child { border-right: none; }
-        tbody tr:last-child td { border-bottom: 1px solid #eef0f2; }
       `}</style>
     </CenteredModal>
   );

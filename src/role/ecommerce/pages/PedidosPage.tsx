@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FiPlus } from 'react-icons/fi';
 
 import PedidosGenerado from '@/shared/components/ecommerce/pedidos/PedidosGenerado';
@@ -11,13 +11,10 @@ import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
 import { useAuth } from '@/auth/context';
 import ImportExcelPedidosFlow from '@/shared/components/ecommerce/excel/pedido/ImportExcelPedidosFlow';
 
-// NUEVO: traemos pedidos solo para armar opciones dinámicas
+// Opciones dinámicas de filtros
 import { fetchPedidos } from '@/services/ecommerce/pedidos/pedidos.api';
 import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
 
-// Modales para ASIGNADO (ya los tienes)
-import EditarPedidoAsignadoModal from '@/shared/components/ecommerce/pedidos/Asignado/EditarPedidoAsignadoModal';
-import VerPedidoModal from '@/shared/components/ecommerce/pedidos/Asignado/VerPedidoAsignadoModal';
 import { Selectx, SelectxDate } from '@/shared/common/Selectx';
 import Buttonx from '@/shared/common/Buttonx';
 import Tittlex from '@/shared/common/Tittlex';
@@ -38,18 +35,9 @@ export default function PedidosPage() {
     () => (localStorage.getItem('pedidos_vista') as Vista) || 'generado'
   );
 
-  // crear/editar genérico (tu modal actual)
+  // crear/editar (modal genérico)
   const [modalAbierto, setModalAbierto] = useState(false);
   const [pedidoId, setPedidoId] = useState<number | null>(null);
-
-  // modales ASIGNADO (ya estaban)
-  const [verAsignadoOpen, setVerAsignadoOpen] = useState(false);
-  const [editarAsignadoOpen, setEditarAsignadoOpen] = useState(false);
-  const [pedidoAsignadoId, setPedidoAsignadoId] = useState<number | null>(null);
-
-  // VER en COMPLETADO
-  const [verCompletadoOpen, setVerCompletadoOpen] = useState(false);
-  const [pedidoCompletadoId, setPedidoCompletadoId] = useState<number | null>(null);
 
   const [filtros, setFiltros] = useState<Filtros>({
     courier: '',
@@ -66,10 +54,10 @@ export default function PedidosPage() {
   }, [vista]);
 
   // =========================
-  // NUEVO: opciones dinámicas
+  // Opciones dinámicas para filtros
   // =========================
-  const [, setPedidosForFilters] = useState<Pedido[]>([]);
-  const [, setLoadingFilters] = useState(false);
+  const [pedidosForFilters, setPedidosForFilters] = useState<Pedido[]>([]);
+  const [loadingFilters, setLoadingFilters] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -78,45 +66,50 @@ export default function PedidosPage() {
       .then((res) => setPedidosForFilters(res || []))
       .catch(() => setPedidosForFilters([]))
       .finally(() => setLoadingFilters(false));
-  }, [token, refreshKey]); // si importas/creas, refresco recarga opciones
+  }, [token, refreshKey]);
 
+  const courierOptions = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const p of pedidosForFilters) {
+      const id = (p as any).courier_id ?? p.courier?.id;
+      const name = p.courier?.nombre_comercial;
+      if (id != null && name) map.set(Number(id), name);
+    }
+    return Array.from(map.entries())
+      .map(([id, nombre]) => ({ id: String(id), nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [pedidosForFilters]);
+
+  const productoOptions = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const p of pedidosForFilters) {
+      for (const d of p.detalles || []) {
+        const prod = d.producto;
+        if (prod?.id != null) {
+          const nombre = prod.nombre_producto || `Producto ${prod.id}`;
+          if (!map.has(prod.id)) map.set(prod.id, nombre);
+        }
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, nombre]) => ({ id: String(id), nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [pedidosForFilters]);
 
   // Crear (Generado)
   const handleNuevoPedido = () => {
     setPedidoId(null);
     setModalAbierto(true);
   };
-
   const handleCerrarModal = () => {
     setModalAbierto(false);
     setPedidoId(null);
   };
 
-  // ASIGNADO: Ver / Editar
-  const handleVerAsignado = (id: number) => {
-    setPedidoAsignadoId(id);
-    setVerAsignadoOpen(true);
-  };
-  const handleEditarAsignado = (id: number) => {
-    setPedidoAsignadoId(id);
-    setEditarAsignadoOpen(true);
-  };
-
-  // COMPLETADO: Ver (solo lectura)
-  const handleVerCompletado = (id: number) => {
-    setPedidoCompletadoId(id);
-    setVerCompletadoOpen(true);
-  };
-
+  // Refrescar tablas luego de crear/editar/importar
   const refetchPedidos = () => {
-    // cierra cualquier modal y refresca
     setModalAbierto(false);
-    setVerAsignadoOpen(false);
-    setEditarAsignadoOpen(false);
-    setVerCompletadoOpen(false);
     setPedidoId(null);
-    setPedidoAsignadoId(null);
-    setPedidoCompletadoId(null);
     setRefreshKey((k) => k + 1);
   };
 
@@ -145,8 +138,8 @@ export default function PedidosPage() {
         <div className="flex gap-3 items-center">
           <Buttonx
             label="Generado"
-            icon="ri:ai-generate" // Icono correspondiente
-            variant={vista === 'generado' ? 'secondary' : 'tertiary'} // Usamos "secondary" cuando está activo
+            icon="ri:ai-generate"
+            variant={vista === 'generado' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('generado')}
             disabled={false}
           />
@@ -155,8 +148,8 @@ export default function PedidosPage() {
 
           <Buttonx
             label="Asignado"
-            icon="solar:bill-list-broken" // Icono correspondiente
-            variant={vista === 'asignado' ? 'secondary' : 'tertiary'} // Usamos "secondary" cuando está activo
+            icon="solar:bill-list-broken"
+            variant={vista === 'asignado' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('asignado')}
             disabled={false}
           />
@@ -165,8 +158,8 @@ export default function PedidosPage() {
 
           <Buttonx
             label="Completado"
-            icon="carbon:task-complete" // Icono correspondiente
-            variant={vista === 'completado' ? 'secondary' : 'tertiary'} // Usamos "secondary" cuando está activo
+            icon="carbon:task-complete"
+            variant={vista === 'completado' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('completado')}
             disabled={false}
           />
@@ -180,10 +173,12 @@ export default function PedidosPage() {
             {vista === 'generado'
               ? 'Pedidos Generados'
               : vista === 'asignado'
-                ? 'Pedidos Asignados'
-                : 'Pedidos Completados'}
+              ? 'Pedidos Asignados'
+              : 'Pedidos Completados'}
           </h2>
-          <p className="text-sm text-black font-regular">{descripcionVista[vista]}</p>
+          <p className="text-sm text-black font-regular">
+            {descripcionVista[vista]}
+          </p>
         </div>
 
         {/* Botones solo en generado */}
@@ -192,7 +187,10 @@ export default function PedidosPage() {
             <div className="h-10 flex items-stretch">
               <ImportExcelPedidosFlow token={token ?? ''} onImported={handleImported}>
                 {(openPicker) => (
-                  <AnimatedExcelMenu onTemplateClick={handleDescargarPlantilla} onImportClick={openPicker} />
+                  <AnimatedExcelMenu
+                    onTemplateClick={handleDescargarPlantilla}
+                    onImportClick={openPicker}
+                  />
                 )}
               </ImportExcelPedidosFlow>
             </div>
@@ -214,37 +212,43 @@ export default function PedidosPage() {
           id="f-courier"
           label="Courier"
           value={filtros.courier}
-          onChange={(e) =>
-            setFiltros((prev) => ({ ...prev, courier: e.target.value }))
-          }
+          onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value }))}
           placeholder="Seleccionar courier"
           className="w-full"
         >
-          <option value="1">Courier 1</option>
-          <option value="2">Courier 2</option>
+          <option value="">— Seleccionar courier —</option>
+          {loadingFilters ? (
+            <option value="" disabled>Cargando…</option>
+          ) : (
+            courierOptions.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))
+          )}
         </Selectx>
 
         <Selectx
           id="f-producto"
           label="Producto"
           value={filtros.producto}
-          onChange={(e) =>
-            setFiltros((prev) => ({ ...prev, producto: e.target.value }))
-          }
+          onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value }))}
           placeholder="Seleccionar producto"
           className="w-full"
         >
-          <option value="p1">Producto 1</option>
-          <option value="p2">Producto 2</option>
+          <option value="">— Seleccionar producto —</option>
+          {loadingFilters ? (
+            <option value="" disabled>Cargando…</option>
+          ) : (
+            productoOptions.map((p) => (
+              <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))
+          )}
         </Selectx>
 
         <SelectxDate
           id="f-fecha-inicio"
           label="Fecha Inicio"
           value={filtros.fechaInicio}
-          onChange={(e) =>
-            setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))
-          }
+          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))}
           placeholder="dd/mm/aaaa"
           className="w-full"
         />
@@ -253,9 +257,7 @@ export default function PedidosPage() {
           id="f-fecha-fin"
           label="Fecha Fin"
           value={filtros.fechaFin}
-          onChange={(e) =>
-            setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))
-          }
+          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))}
           placeholder="dd/mm/aaaa"
           className="w-full"
         />
@@ -280,15 +282,16 @@ export default function PedidosPage() {
       {vista === 'asignado' && (
         <PedidosAsignado
           key={`asi-${refreshKey}`}
-          onVer={handleVerAsignado}
-          onEditar={handleEditarAsignado}
+          filtros={filtros}
+          onVer={() => {}}
+          onEditar={() => {}}
         />
       )}
 
       {vista === 'completado' && (
         <PedidosCompletado
           key={`comp-${refreshKey}`}
-          onVer={handleVerCompletado}
+          filtros={filtros}
         />
       )}
 
@@ -300,33 +303,6 @@ export default function PedidosPage() {
           onPedidoCreado={refetchPedidos}
           pedidoId={pedidoId ?? undefined}
           modo={pedidoId ? 'editar' : 'crear'}
-        />
-      )}
-
-      {/* Modales de ASIGNADO */}
-      {verAsignadoOpen && (
-        <VerPedidoModal
-          isOpen={verAsignadoOpen}
-          onClose={() => setVerAsignadoOpen(false)}
-          pedidoId={pedidoAsignadoId}
-        />
-      )}
-
-      {editarAsignadoOpen && (
-        <EditarPedidoAsignadoModal
-          isOpen={editarAsignadoOpen}
-          onClose={() => setEditarAsignadoOpen(false)}
-          pedidoId={pedidoAsignadoId}
-          onUpdated={refetchPedidos}
-        />
-      )}
-
-      {/* Modal de VER para COMPLETADO */}
-      {verCompletadoOpen && (
-        <VerPedidoModal
-          isOpen={verCompletadoOpen}
-          onClose={() => setVerCompletadoOpen(false)}
-          pedidoId={pedidoCompletadoId}
         />
       )}
     </section>

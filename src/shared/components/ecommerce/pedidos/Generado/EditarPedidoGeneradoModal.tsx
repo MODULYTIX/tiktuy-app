@@ -11,8 +11,8 @@ import type { Producto } from '@/services/ecommerce/producto/producto.types';
 type Props = {
   open: boolean;
   onClose: () => void;
-  pedidoId: number | null;        // <- number | null
-  onUpdated?: () => void;         // para refrescar tabla
+  pedidoId: number | null;
+  onUpdated?: () => void;
 };
 
 export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onUpdated }: Props) {
@@ -24,6 +24,10 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
+
+  // Catálogos visuales (si no tienes endpoints, mostramos valores actuales)
+  const [courierOptions, setCourierOptions] = useState<{ id: string; nombre: string }[]>([]);
+  const [distritoOptions, setDistritoOptions] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     nombre_cliente: '',
@@ -37,6 +41,8 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
     cantidad: '',
     precio_unitario: '',
     monto_recaudar: '',
+    // NOTA: no se envía en payload para no cambiar tu lógica
+    courier_id: '',
   });
 
   // Cargar recursos
@@ -52,6 +58,15 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
           setPedido(p);
           const det = p.detalles?.[0];
 
+          // Opciones visuales (si no hay más, solo actual)
+          const cId = ((p as any).courier_id ?? p.courier?.id) ?? '';
+          const cName = p.courier?.nombre_comercial ?? '';
+          const couriers = cId && cName ? [{ id: String(cId), nombre: cName }] : [];
+          setCourierOptions(couriers);
+
+          const distritos = p.distrito ? [p.distrito] : [];
+          setDistritoOptions(distritos);
+
           setForm({
             nombre_cliente: p.nombre_cliente ?? '',
             numero_cliente: p.numero_cliente ?? '',
@@ -66,6 +81,7 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
             cantidad: String(det?.cantidad ?? ''),
             precio_unitario: String(det?.precio_unitario ?? ''),
             monto_recaudar: String(p.monto_recaudar ?? ''),
+            courier_id: cId ? String(cId) : '',
           });
         })
         .catch(() => setPedido(null))
@@ -149,11 +165,17 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
         ref={modalRef}
         className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right"
       >
+        {/* Header como la imagen */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2 text-gray-700">
-            <BsBoxSeam className="text-primary text-2xl" />
-            EDITAR PEDIDO (GENERADO)
-          </h2>
+          <div className="flex items-start gap-2">
+            <BsBoxSeam className="text-primary text-2xl mt-1" />
+            <div>
+              <h2 className="text-xl font-semibold text-[#0B3C6F]">EDITAR PEDIDO</h2>
+              <p className="text-sm text-gray-600 -mt-0.5">
+                Modifique los datos del cliente, el producto o la información de entrega y guarde los cambios en el pedido.
+              </p>
+            </div>
+          </div>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <FiX className="w-6 h-6" />
           </button>
@@ -163,7 +185,7 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
           <p className="text-sm text-gray-600">Seleccione un pedido.</p>
         ) : loading ? (
           <div className="space-y-3">
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="h-4 bg-gray-200 animate-pulse rounded" />
             ))}
           </div>
@@ -171,7 +193,25 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
           <p className="text-sm text-gray-600">No se encontró el pedido.</p>
         ) : (
           <>
+            {/* Grid como la imagen */}
             <div className="grid grid-cols-2 gap-4">
+              {/* Courier (visual) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Courier</label>
+                <select
+                  name="courier_id"
+                  value={form.courier_id}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                >
+                  <option value="">{pedido.courier?.nombre_comercial ?? 'Seleccionar'}</option>
+                  {courierOptions.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Nombre */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
                 <input
@@ -179,32 +219,44 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
                   value={form.nombre_cliente}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                   onChange={handleChange}
-                  placeholder="Ej. Alvaro"
+                  placeholder="Alvaro"
                 />
               </div>
+
+              {/* Teléfono */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                <input
-                  name="numero_cliente"
-                  value={form.numero_cliente}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  onChange={handleChange}
-                  placeholder="(opcional)"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Celular</label>
                 <div className="flex border border-gray-300 rounded overflow-hidden">
-                  <span className="px-3 py-2 text-sm bg-gray-100 text-gray-700">+51</span>
+                  <span className="px-3 py-2 text-sm bg-gray-100 text-gray-700">+ 51</span>
                   <input
-                    name="celular_cliente"
-                    value={form.celular_cliente}
+                    name="numero_cliente"
+                    value={form.numero_cliente}
                     className="flex-1 px-3 py-2 text-sm outline-none"
                     onChange={handleChange}
+                    placeholder="(opcional)"
                   />
                 </div>
               </div>
 
+              {/* Distrito (visual select, mantiene tu lógica usando form.distrito) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
+                <select
+                  name="distrito"
+                  value={form.distrito}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                >
+                  {form.distrito ? <option value={form.distrito}>{form.distrito}</option> : <option value="">Seleccionar</option>}
+                  {distritoOptions
+                    .filter((d) => d && d !== form.distrito)
+                    .map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Dirección (full) */}
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
                 <input
@@ -215,6 +267,8 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
                   placeholder="Av. Grau J 499"
                 />
               </div>
+
+              {/* Referencia (full) */}
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Referencia</label>
                 <input
@@ -222,33 +276,11 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
                   value={form.referencia_direccion}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                   onChange={handleChange}
-                  placeholder="(opcional)"
+                  placeholder="Al lado del supermercado UNO"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
-                <input
-                  name="distrito"
-                  value={form.distrito}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  onChange={handleChange}
-                  placeholder="Ej. Miraflores"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Entrega</label>
-                <input
-                  type="date"
-                  name="fecha_entrega_programada"
-                  value={form.fecha_entrega_programada}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="col-span-2 border-t my-2" />
-
+              {/* Producto */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Producto</label>
                 <select
@@ -268,14 +300,14 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
                   }}
                   value={form.producto_id}
                 >
-                  <option value="">Seleccionar producto</option>
+                  <option value="">{pedido.detalles?.[0]?.producto?.nombre_producto ?? 'Seleccionar producto'}</option>
                   {productos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre_producto}
-                    </option>
+                    <option key={p.id} value={p.id}>{p.nombre_producto}</option>
                   ))}
                 </select>
               </div>
+
+              {/* Cantidad */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
                 <input
@@ -287,15 +319,14 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
                     const cantidad = Number(e.target.value);
                     const precio = Number(form.precio_unitario);
                     if (!isNaN(cantidad) && !isNaN(precio)) {
-                      setForm((prev) => ({
-                        ...prev,
-                        monto_recaudar: String(cantidad * precio),
-                      }));
+                      setForm((prev) => ({ ...prev, monto_recaudar: String(cantidad * precio) }));
                     }
                   }}
+                  placeholder="0"
                 />
               </div>
 
+              {/* Monto */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
                 <input
@@ -303,6 +334,7 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
                   value={form.monto_recaudar}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                   onChange={handleChange}
+                  placeholder="S/. 0.00"
                 />
                 {form.precio_unitario && (
                   <p className="text-xs text-gray-500 mt-1">
@@ -310,22 +342,35 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
                   </p>
                 )}
               </div>
+
+              {/* Fecha Entrega */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Entrega</label>
+                <input
+                  type="date"
+                  name="fecha_entrega_programada"
+                  value={form.fecha_entrega_programada}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                  onChange={handleChange}
+                />
+              </div>
             </div>
 
-            <div className="flex justify-end gap-2 mt-6">
+            {/* Footer: acciones abajo a la izquierda (justify-start) */}
+            <div className="flex justify-start gap-3 mt-6 items-end">
+              <button
+                onClick={handleSubmit}
+                className="bg-gray-900 text-white px-4 py-2 rounded text-sm hover:bg-gray-800 disabled:opacity-60"
+                disabled={saving}
+              >
+                Actualizar
+              </button>
               <button
                 onClick={onClose}
                 className="px-4 py-2 border rounded text-sm text-gray-700 hover:bg-gray-50"
                 disabled={saving}
               >
                 Cancelar
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="bg-gray-900 text-white px-4 py-2 rounded text-sm hover:bg-gray-800 disabled:opacity-60"
-                disabled={saving}
-              >
-                Guardar cambios
               </button>
             </div>
           </>

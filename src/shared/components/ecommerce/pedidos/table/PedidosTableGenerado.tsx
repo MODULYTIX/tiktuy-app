@@ -35,20 +35,52 @@ export default function PedidosTableGenerado({ onVer, onEditar, filtros }: Pedid
       .finally(() => setLoading(false));
   }, [token]);
 
+  // ---- Helper robusto para fechas: dd/mm/aaaa y yyyy-mm-dd ----
+  const parseDateInput = (s?: string) => {
+    if (!s) return undefined;
+    const str = s.trim();
+
+    // dd/mm/aaaa
+    const ddmmyyyy = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const m1 = str.match(ddmmyyyy);
+    if (m1) {
+      const dd = Number(m1[1]);
+      const mm = Number(m1[2]);
+      const yyyy = Number(m1[3]);
+      const d = new Date(yyyy, mm - 1, dd, 0, 0, 0, 0);
+      return isNaN(d.getTime()) ? undefined : d;
+    }
+
+    // yyyy-mm-dd
+    const yyyymmdd = /^(\d{4})-(\d{2})-(\d{2})$/;
+    const m2 = str.match(yyyymmdd);
+    if (m2) {
+      const yyyy = Number(m2[1]);
+      const mm = Number(m2[2]);
+      const dd = Number(m2[3]);
+      const d = new Date(yyyy, mm - 1, dd, 0, 0, 0, 0);
+      return isNaN(d.getTime()) ? undefined : d;
+    }
+
+    // fallback
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? undefined : d;
+  };
+
   // =============== A) FILTROS (antes de paginar) ===============
   const filteredPedidos = useMemo(() => {
-    const parseDate = (s?: string) => (s ? new Date(`${s}T00:00:00`) : undefined);
-    const start = parseDate(filtros.fechaInicio);
-    const end = parseDate(filtros.fechaFin);
-    if (end) end.setHours(23, 59, 59, 999); // inclusivo
+    const start = parseDateInput(filtros.fechaInicio);
+    const end = parseDateInput(filtros.fechaFin);
+    if (end) end.setHours(23, 59, 59, 999); // inclusivo hasta fin de día
 
     return pedidos.filter((p) => {
-      // Fecha base (para NO cambiar tu lógica, usamos fecha_creacion)
+      // Fecha base: fecha_creacion (sin cambiar tu lógica)
       const d = p.fecha_creacion ? new Date(p.fecha_creacion) : undefined;
+
       if (start && d && d < start) return false;
       if (end && d && d > end) return false;
 
-      // Courier: intenta por id o por nombre
+      // Courier: por id o por nombre
       if (filtros.courier) {
         const courierId = (p as any).courier_id ?? p.courier?.id;
         const byId = courierId != null && String(courierId) === filtros.courier;
@@ -78,7 +110,7 @@ export default function PedidosTableGenerado({ onVer, onEditar, filtros }: Pedid
     });
   }, [pedidos, filtros]);
 
-  // Si cambian filtros, vuelve a página 1 (evita páginas vacías)
+  // Si cambian filtros, vuelve a página 1
   useEffect(() => {
     setPage(1);
   }, [filtros.courier, filtros.producto, filtros.fechaInicio, filtros.fechaFin]);
