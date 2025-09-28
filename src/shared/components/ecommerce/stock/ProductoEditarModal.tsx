@@ -1,6 +1,5 @@
 // src/shared/components/ecommerce/stock/ProductoEditarModal.tsx
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { HiOutlinePencil } from 'react-icons/hi';
 import { actualizarProducto } from '@/services/ecommerce/producto/producto.api';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';

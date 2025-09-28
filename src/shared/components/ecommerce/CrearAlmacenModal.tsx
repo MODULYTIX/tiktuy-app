@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createAlmacenamiento, updateAlmacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
-import { PiGarageLight } from 'react-icons/pi';
-import { FaSpinner } from 'react-icons/fa';
-import { FiChevronDown } from 'react-icons/fi';
 import Tittlex from '@/shared/common/Tittlex';
 import { Inputx } from '@/shared/common/Inputx';
 import { Selectx } from '@/shared/common/Selectx';
