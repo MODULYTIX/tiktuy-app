@@ -1,39 +1,53 @@
 import React, { useRef, useCallback } from "react";
 import { Icon } from "@iconify/react";
 
+type LabelVariant = "center" | "left";
+
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  label: string;  // Prop para el título (label)
+  label: string;
   placeholder?: string;
+  labelVariant?: LabelVariant;
 }
 
 export function Selectx({
   label,
   placeholder = "Seleccionar opción",
   className,
+  labelVariant = "center",
   ...props
 }: SelectProps) {
-  return (
-    <div className="w-full">
-      {/* Título o label dinámico */}
-      <label className="block text-base font-medium text-black mb-[6px] text-center">
-        {label}
-      </label>
+  const labelClasses: Record<LabelVariant, string> = {
+    center: "block text-base font-normal text-black text-center",
+    left: "block text-base font-normal text-gray90 text-left",
+  };
 
-      {/* Componente select */}
+  // Si value está vacío ("" | null | undefined) => mostramos color de placeholder
+  // Para selects controlados funciona perfecto (value={...}).
+  const isPlaceholder =
+    props.value == null ||
+    (typeof props.value === "string" && props.value === "") ||
+    (Array.isArray(props.value) && props.value.length === 0 && !props.multiple);
+
+  const textColorClass = isPlaceholder ? "text-gray-500" : "text-gray90";
+
+  return (
+    <div className="w-full flex flex-col gap-1.5">
+      <label className={labelClasses[labelVariant]}>{label}</label>
+
       <div className="relative">
         <select
           {...props}
-          className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white text-gray-500 placeholder:text-gray-300 
-          font-roboto text-sm appearance-none pr-9 ${className ?? ""}`}
+          className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
+          ${textColorClass} placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
+          focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300
+          ${className ?? ""}`}
         >
           <option value="" disabled hidden>
             {placeholder}
           </option>
-          {/* Las opciones se insertan aquí */}
           {props.children}
         </select>
 
-        {/* Icono de flecha hacia abajo */}
         <Icon
           icon="ep:arrow-down"
           width="16"
@@ -51,8 +65,8 @@ export function Selectx({
    ============================ */
 
 interface SelectDateProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label: string;       // Título encima (mismo comportamiento que Selectx)
-  placeholder?: string; // Ej: "dd/mm/aaaa" (puede no mostrarse según navegador)
+  label: string;
+  placeholder?: string;
 }
 
 export function SelectxDate({
@@ -68,52 +82,42 @@ export function SelectxDate({
     const el = inputRef.current;
     if (!el) return;
 
-    // API moderna
-    if (typeof el.showPicker === "function") {
-      // @ts-ignore
-      el.showPicker();
+    if (typeof (el as any).showPicker === "function") {
+      (el as any).showPicker();
       return;
     }
 
-    // Fallback para navegadores que no exponen showPicker
     el.focus();
     try { el.click(); } catch {}
   }, []);
 
   return (
-    <div className="w-full">
-      {/* Título o label dinámico */}
-      <label className="block text-base font-medium text-black mb-[6px] text-center">
+    <div className="w-full flex flex-col gap-1.5">
+      <label className="block text-base font-medium text-black text-center">
         {label}
       </label>
 
-      {/* Input de fecha con icono que abre el calendario */}
       <div className="relative">
         <input
           ref={inputRef}
           type="date"
           placeholder={placeholder}
-          className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white text-gray-500 placeholder:text-gray-300 font-roboto text-sm pr-9 appearance-none
+          className={`w-full h-10 px-4 pr-9 rounded-md border border-gray-300 bg-white text-gray-500 placeholder:text-gray-300 font-roboto text-sm appearance-none
           [&::-webkit-calendar-picker-indicator]:opacity-0
           [&::-webkit-calendar-picker-indicator]:cursor-pointer
+          outline-none focus:outline-none focus:ring-0 focus:shadow-none focus:border-gray-300
           ${className ?? ""}`}
           {...props}
         />
 
-        {/* Botón-ícono que abre el calendario nativo */}
         <button
           type="button"
-          onMouseDown={(e) => e.preventDefault()} // evita perder foco
+          onMouseDown={(e) => e.preventDefault()}
           onClick={openPicker}
           aria-label="Abrir calendario"
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100 outline-none focus:outline-none focus:ring-0"
         >
-          <Icon
-            icon="mdi:calendar-outline"   // alternativa: "lucide:calendar"
-            width="18"
-            height="18"
-            className="text-gray-500"
-          />
+          <Icon icon="mdi:calendar-outline" width="18" height="18" className="text-gray-500" />
         </button>
       </div>
     </div>

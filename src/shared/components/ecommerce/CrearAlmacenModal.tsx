@@ -4,6 +4,10 @@ import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacen
 import { PiGarageLight } from 'react-icons/pi';
 import { FaSpinner } from 'react-icons/fa';
 import { FiChevronDown } from 'react-icons/fi';
+import Tittlex from '@/shared/common/Tittlex';
+import { Inputx } from '@/shared/common/Inputx';
+import { Selectx } from '@/shared/common/Selectx';
+import Buttonx from '@/shared/common/Buttonx';
 
 interface Props {
   token: string;
@@ -139,138 +143,124 @@ export default function CrearAlmacenModal({
   };
 
   // 🎨 Estilos normalizados para inputs/select
-  const fieldClass =
-    "w-full h-11 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 " +
-    "placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors";
   const labelClass = "block text-gray-700 font-medium mb-1";
 
   return (
     <div className="fixed inset-0 bg-backgroundModal z-50 flex justify-end">
       {/* Drawer angosto + layout columna (footer fijo), padding 20px y 20px vertical entre bloques */}
-      <div className="w-[420px] max-w-[92vw] h-full bg-white rounded-l-md shadow-lg flex flex-col">
+      <div className="w-[440px] max-w-[92vw] h-full bg-white rounded-l-md shadow-lg flex flex-col gap-5 px-5 py-5">
         {/* Header */}
-        <div className="p-5 border-b border-gray20">
-          <div className="flex items-center gap-2 mb-5">
-            <PiGarageLight size={20} className="text-primaryDark" />
-            <h2 className="text-lg font-bold uppercase">{
-              modo === 'editar' ? 'Editar Almacén' : 'Registrar Nuevo Almacén'
-            }</h2>
-          </div>
-
-          <p className="text-sm text-gray-600">
-            {modo === 'editar'
-              ? 'Edite el almacén y cambie el punto de origen o destino en sus operaciones logísticas.'
-              : 'Complete la información para registrar un nuevo almacén y habilitarlo como punto de origen o destino en sus operaciones logísticas.'}
-          </p>
-        </div>
+        <Tittlex
+          variant="modal"
+          icon="hugeicons:warehouse" // pon aquí el nombre del ícono de Iconify que prefieras
+          title={modo === "editar" ? "Editar Almacén" : "Registrar Nuevo Almacén"}
+          description={
+            modo === "editar"
+              ? "Edite el almacén y cambie el punto de origen o destino en sus operaciones logísticas."
+              : "Complete la información para registrar un nuevo almacén y habilitarlo como punto de origen o destino en sus operaciones logísticas."
+          }
+        />
 
         {/* Contenido */}
-        <div className="flex-1 overflow-auto p-5 space-y-5 text-sm">
-          <div>
-            <label className={labelClass}>Nombre de Almacén</label>
-            <input
-              type="text"
-              name="nombre_almacen"
-              placeholder="Ejem. Almacén secundario"
-              value={form.nombre_almacen}
-              onChange={handleChange}
-              className={fieldClass}
-            />
-          </div>
+        <div className="flex flex-col gap-5 flex-1 overflow-auto">
+          {/* Nombre de Almacén */}
+          <Inputx
+            label="Nombre de Almacén"
+            placeholder="Ejem. Almacén secundario"
+            type="text"
+            name="nombre_almacen"
+            value={form.nombre_almacen}
+            onChange={handleChange}
+          />
 
-          <div>
-            <label className={labelClass}>Departamento</label>
-            <div className="relative">
-              <select
-                name="departamento"
-                value={form.departamento}
-                onChange={handleChange}
-                className={`${fieldClass} appearance-none pr-9`}
-              >
-                <option value="">Seleccionar departamento</option>
-                {[...new Set(ubigeos.map((u) => u.nombre.split('/')[0]))]
-                  .sort()
-                  .map((dep) => (
-                    <option key={dep} value={dep}>{dep}</option>
-                  ))}
-              </select>
-              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
-            </div>
-          </div>
+          <Selectx
+            label="Departamento"
+            labelVariant="left"
+            name="departamento"
+            value={form.departamento}
+            onChange={handleChange}
+            placeholder="Seleccionar departamento"
+          >
+            {[...new Set(ubigeos.map((u) => u.nombre.split("/")[0]))]
+              .sort()
+              .map((dep) => (
+                <option key={dep} value={dep}>
+                  {dep}
+                </option>
+              ))}
+          </Selectx>
 
-          <div>
-            <label className={labelClass}>Provincia</label>
-            <div className="relative">
-              <select
-                name="provincia"
-                value={form.provincia}
-                onChange={handleChange}
-                className={`${fieldClass} appearance-none pr-9 disabled:opacity-50 disabled:cursor-not-allowed`}
-                disabled={!provincias.length}
-              >
-                <option value="">Seleccionar provincia</option>
-                {provincias.map((p) => (
-                  <option key={p.nombre} value={p.nombre.split('/')[1]}>
-                    {p.nombre.split('/')[1]}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
-            </div>
-          </div>
+          <Selectx
+            label="Provincia"
+            labelVariant="left"
+            name="provincia"
+            value={form.provincia}
+            onChange={handleChange}
+            placeholder="Seleccionar provincia"
+            disabled={!provincias.length}
+            className={`disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {provincias.map((p) => {
+              const nombre = p.nombre.split("/")[1];
+              return (
+                <option key={p.nombre} value={nombre}>
+                  {nombre}
+                </option>
+              );
+            })}
+          </Selectx>
 
-          <div>
-            <label className={labelClass}>Ciudad</label>
-            <div className="relative">
-              <select
-                name="distrito"
-                value={form.distrito}
-                onChange={handleChange}
-                className={`${fieldClass} appearance-none pr-9 disabled:opacity-50 disabled:cursor-not-allowed`}
-                disabled={!distritos.length}
-              >
-                <option value="">Seleccionar ciudad</option>
-                {distritos.map((d) => (
-                  <option key={d.codigo} value={d.codigo}>
-                    {d.nombre.split('/')[2]}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
-            </div>
-          </div>
+          <Selectx
+            label="Ciudad"
+            labelVariant="left"
+            name="distrito"
+            value={form.distrito}
+            onChange={handleChange}
+            placeholder="Seleccionar ciudad"
+            disabled={!distritos.length}
+            className={`disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {distritos.map((d) => (
+              <option key={d.codigo} value={d.codigo}>
+                {d.nombre.split("/")[2]}
+              </option>
+            ))}
+          </Selectx>
 
-          <div>
-            <label className={labelClass}>Dirección</label>
-            <input
-              type="text"
-              name="direccion"
-              placeholder="Ejem. Av. Los Próceres 1234, Urb. Santa Catalina, La Victoria, Lima"
-              value={form.direccion}
-              onChange={handleChange}
-              className={fieldClass}
-            />
-          </div>
+          <Inputx
+            label="Dirección"
+            type="text"
+            name="direccion"
+            placeholder="Ejem. Av. Los Próceres 1234, Urb. Santa Catalina, La Victoria, Lima"
+            value={form.direccion}
+            onChange={handleChange}
+          />
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
         </div>
 
         {/* Footer: botones abajo a la izquierda */}
-        <div className="p-5 border-t border-gray20 flex items-center gap-2">
-          <button
+        <div className="border-t border-gray20 flex items-center gap-5">
+
+          <Buttonx
+            variant="quartery"
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-[#1A253D] text-white px-4 py-2 rounded flex items-center gap-2 disabled:opacity-70"
-          >
-            {loading && <FaSpinner className="animate-spin" />}
-            {modo === 'editar' ? 'Guardar cambios' : 'Crear nuevo'}
-          </button>
-          <button
+            label={
+              modo === "editar"
+                ? loading ? "Guardando..." : "Guardar cambios"
+                : loading ? "Creando..." : "Crear nuevo"
+            }
+            icon={loading ? "line-md:loading-twotone-loop" : undefined}
+            className={`px-4 ${loading ? "[&_svg]:animate-spin" : ""}`}
+          />
+
+          <Buttonx
+            variant="outlinedw"
             onClick={onClose}
-            className="px-4 py-2 text-sm border rounded hover:bg-gray-100"
-          >
-            Cancelar
-          </button>
+            label="Cancelar"
+            className="px-4 text-sm border"
+          />
         </div>
       </div>
     </div>

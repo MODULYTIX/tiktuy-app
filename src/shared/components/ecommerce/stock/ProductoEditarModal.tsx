@@ -9,6 +9,10 @@ import { useAuth } from '@/auth/context';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
+import Tittlex from '@/shared/common/Tittlex';
+import { Inputx, InputxNumber, InputxTextarea } from '@/shared/common/Inputx';
+import { Selectx } from '@/shared/common/Selectx';
+import Buttonx from '@/shared/common/Buttonx';
 
 type Props = {
   open: boolean;
@@ -17,8 +21,8 @@ type Props = {
   onUpdated?: (producto: Producto) => void;
 };
 
-type EstadoKey = 'activo' | 'inactivo' | 'descontinuado';
-type EstadoOption = { id: EstadoKey; nombre: string };
+type EstadoId = 'activo' | 'inactivo' | 'descontinuado';
+type EstadoOption = { id: EstadoId; nombre: string };
 
 const ESTADO_OPCIONES: EstadoOption[] = [
   { id: 'activo', nombre: 'Activo' },
@@ -26,11 +30,11 @@ const ESTADO_OPCIONES: EstadoOption[] = [
   { id: 'descontinuado', nombre: 'Descontinuado' },
 ];
 
-function normalizarEstado(value: unknown): EstadoKey {
+function normalizarEstado(value: unknown): EstadoId {
   if (!value) return 'activo';
   if (typeof value === 'string') {
     const k = value.toLowerCase().trim();
-    if (k === 'activo' || k === 'inactivo' || k === 'descontinuado') return k as EstadoKey;
+    if (k === 'activo' || k === 'inactivo' || k === 'descontinuado') return k as EstadoId;
   }
   if (typeof value === 'object' && value) {
     const v = value as any;
@@ -51,7 +55,7 @@ type FormState = {
   stock: string;
   stock_minimo: string;
   peso: string;
-  estado: EstadoKey;
+  estado: EstadoId;
   fecha_registro: string;
 };
 
@@ -125,7 +129,7 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
       Partial<Producto>,
       'estado' | 'categoria_id' | 'almacenamiento_id' | 'precio' | 'stock' | 'stock_minimo' | 'peso' | 'fecha_registro'
     > & {
-      estado?: EstadoKey;
+      estado?: EstadoId;
       categoria_id?: number;
       almacenamiento_id?: number;
       precio?: number;
@@ -170,157 +174,177 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/40" onClick={handleClose} />
-      <div className="w-full max-w-md bg-white shadow-lg h-full p-6 overflow-y-auto">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <HiOutlinePencil />
-          EDITAR PRODUCTO
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">Modifica la información del producto existente.</p>
+      <div className="w-full max-w-md bg-white shadow-lg h-full flex flex-col gap-5 px-5 py-5">
+        <Tittlex
+          variant="modal"
+          icon="mdi:pencil-outline"
+          title="EDITAR PRODUCTO"
+          description="Actualiza la información de un producto existente en tu inventario modificando sus datos básicos, ubicación en almacén y condiciones de stock."
+        />
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Input name="codigo_identificacion" label="Código" value={form.codigo_identificacion} readOnly disabled={saving} />
-            <Input name="nombre_producto" label="Nombre del Producto" value={form.nombre_producto} onChange={handleChange} required disabled={saving} />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 h-full">
+          <div className="h-full flex flex-col gap-5">
+            <div className="grid grid-cols-2 gap-5">
+              <Inputx
+                name="codigo_identificacion"
+                label="Código"
+                value={form.codigo_identificacion}
+                readOnly
+                disabled={saving}
+                type="text"
+              />
+
+              <Inputx
+                name="nombre_producto"
+                label="Nombre del Producto"
+                placeholder="Ejem. Zapatos de Cuero"
+                value={form.nombre_producto}
+                onChange={handleChange}
+                required
+                disabled={saving}
+                type="text"
+              />
+            </div>
+
+            <InputxTextarea
+              name="descripcion"
+              label="Descripción"
+              value={form.descripcion}
+              onChange={handleChange}
+              disabled={saving}
+              placeholder="Describe el producto…"
+              autoResize
+              minRows={3}
+              maxRows={8}
+            />
+
+            <Selectx
+              label="Categoría"
+              name="categoria_id"
+              labelVariant="left"
+              value={form.categoria_id}
+              onChange={handleChange}
+              placeholder="Seleccionar categoría"
+              required
+              disabled={saving}
+            >
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.descripcion}
+                </option>
+              ))}
+            </Selectx>
+
+            <Selectx
+              label="Almacén"
+              name="almacenamiento_id"
+              labelVariant="left"
+              value={form.almacenamiento_id}
+              onChange={handleChange}
+              placeholder="Seleccionar almacén"
+              required
+              disabled={saving}
+            >
+              {almacenes.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre_almacen}
+                </option>
+              ))}
+            </Selectx>
+
+            <Selectx
+              label="Estado"
+              labelVariant="left"
+              value={form.estado}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, estado: e.target.value as EstadoId }))
+              }
+              placeholder="Seleccionar estado"
+              disabled={saving}
+            >
+              {ESTADO_OPCIONES.map((op) => (
+                <option key={op.id} value={op.id}>
+                  {op.nombre}
+                </option>
+              ))}
+            </Selectx>
+
+            <div className="grid grid-cols-2 gap-5">
+              <InputxNumber
+                label="Precio"
+                name="precio"
+                value={form.precio}
+                onChange={handleChange}
+                decimals={2}
+                step={0.01}
+                min={0}
+                placeholder="0.00"
+                disabled={saving}
+              />
+
+              <InputxNumber
+                label="Cantidad"
+                name="stock"
+                value={form.stock}
+                onChange={handleChange}
+                decimals={0}
+                step={1}
+                min={0}
+                placeholder="0"
+                inputMode="numeric"
+                disabled={saving}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-5">
+              <InputxNumber
+                label="Stock Mínimo"
+                name="stock_minimo"
+                value={form.stock_minimo}
+                onChange={handleChange}
+                decimals={0}
+                step={1}
+                min={0}
+                placeholder="0"
+                inputMode="numeric"
+                disabled={saving}
+              />
+
+              <InputxNumber
+                label="Peso (kg)"
+                name="peso"
+                value={form.peso}
+                onChange={handleChange}
+                decimals={3}
+                step={0.001}
+                min={0}
+                placeholder="0.000"
+                disabled={saving}
+              />
+            </div>
           </div>
 
-          <Textarea name="descripcion" label="Descripción" value={form.descripcion} onChange={handleChange} disabled={saving} />
+          <div className="flex items-center gap-5">
+            <Buttonx
+              variant="quartery"
+              disabled={saving}
+              onClick={() => { }}
+              label={saving ? "Guardando…" : "Guardar cambios"}
+              icon={saving ? "line-md:loading-twotone-loop" : undefined}
+              className={`px-4 text-sm ${saving ? "[&_svg]:animate-spin" : ""}`}
+            />
 
-          <SelectNative<Categoria, 'descripcion'>
-            name="categoria_id"
-            label="Categoría"
-            value={form.categoria_id}
-            onChange={handleChange}
-            options={categorias}
-            optionLabel="descripcion"
-            required
-            disabled={saving}
-          />
-
-          <SelectNative<Almacenamiento, 'nombre_almacen'>
-            name="almacenamiento_id"
-            label="Almacén"
-            value={form.almacenamiento_id}
-            onChange={handleChange}
-            options={almacenes}
-            optionLabel="nombre_almacen"
-            required
-            disabled={saving}
-          />
-
-          <EstadoSelect
-            label="Estado"
-            value={form.estado}
-            options={ESTADO_OPCIONES}
-            onChange={(estadoId) => setForm((p) => ({ ...p, estado: estadoId }))}
-            disabled={saving}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <Input name="precio" label="Precio" type="number" step="0.01" value={form.precio} onChange={handleChange} required disabled={saving} />
-            <Input name="stock" label="Cantidad" type="number" value={form.stock} onChange={handleChange} required disabled={saving} />
+            <Buttonx
+              variant="outlinedw"
+              onClick={handleClose}
+              label="Cancelar"
+              className="px-4 text-sm border"
+              disabled={saving}
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input name="stock_minimo" label="Stock Mínimo" type="number" value={form.stock_minimo} onChange={handleChange} required disabled={saving} />
-            <Input name="peso" label="Peso" type="number" step="0.01" value={form.peso} onChange={handleChange} required disabled={saving} />
-          </div>
-
-          <div className="flex justify-end gap-2 mt-6">
-            <button type="button" onClick={handleClose} className="border px-4 py-2 text-sm rounded hover:bg-gray-50" disabled={saving}>
-              Cancelar
-            </button>
-            <button type="submit" disabled={saving} className={`px-4 py-2 text-sm rounded text-white ${saving ? 'bg-gray-600' : 'bg-black hover:opacity-90'}`}>
-              {saving ? 'Guardando…' : 'Guardar cambios'}
-            </button>
-          </div>
         </form>
       </div>
-    </div>
-  );
-}
-
-/* ------------ Reusables ------------- */
-
-function Input({
-  label,
-  ...rest
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-      <input {...rest} className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
-    </div>
-  );
-}
-
-function Textarea({
-  label,
-  ...rest
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-      <textarea {...rest} className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
-    </div>
-  );
-}
-
-function SelectNative<
-  T extends { id: number },
-  K extends keyof T & string
->({
-  label,
-  options,
-  optionLabel,
-  ...rest
-}: React.SelectHTMLAttributes<HTMLSelectElement> & {
-  label: string;
-  options: T[];
-  optionLabel: K;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-      <select {...rest} className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary">
-        <option value="">Seleccionar</option>
-        {options.map((opt) => (
-          <option key={opt.id} value={String(opt.id)}>
-            {String(opt[optionLabel] ?? '')}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function EstadoSelect({
-  label,
-  value,
-  options,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  value: EstadoKey;
-  options: EstadoOption[];
-  disabled?: boolean;
-  onChange: (id: EstadoKey) => void;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as EstadoKey)}
-        disabled={disabled}
-        className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-      >
-        {options.map((op) => (
-          <option key={op.id} value={op.id}>
-            {op.nombre}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

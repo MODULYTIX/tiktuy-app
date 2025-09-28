@@ -19,6 +19,85 @@ function formatDate(iso?: string) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+/** ============================
+ *  Modal que desliza desde la DERECHA (entrada y salida suave)
+ *  ============================ */
+function ModalSlideRight({
+  open,
+  onClose,
+  widthClass = 'w-[420px] max-w-[92vw]',
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  widthClass?: string;
+  children: React.ReactNode;
+}) {
+  const [mounted, setMounted] = useState(open);
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    let r1 = 0, r2 = 0, t: ReturnType<typeof setTimeout> | undefined;
+
+    if (open) {
+      setMounted(true);
+      // Asegura un primer render con translate-x-full y luego activa la animación
+      r1 = requestAnimationFrame(() => {
+        r2 = requestAnimationFrame(() => setShow(true));
+      });
+    } else {
+      // Animación de salida
+      setShow(false);
+      t = setTimeout(() => setMounted(false), 320); // ~ duration-300 + un pelín
+    }
+
+    return () => {
+      if (r1) cancelAnimationFrame(r1);
+      if (r2) cancelAnimationFrame(r2);
+      if (t) clearTimeout(t);
+    };
+  }, [open]);
+
+  // Cerrar con ESC
+  useEffect(() => {
+    if (!mounted) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mounted, onClose]);
+
+  if (!mounted) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100]">
+      {/* Overlay con fade suave */}
+      <div
+        className={[
+          'absolute inset-0 bg-black/40 transition-opacity duration-300 ease-out',
+          show ? 'opacity-100' : 'opacity-0',
+        ].join(' ')}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      {/* Panel deslizante desde la derecha */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={[
+          'absolute right-0 top-0 h-full bg-white shadow-lg border-l border-gray-200',
+          widthClass,
+          'transform-gpu transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          show ? 'translate-x-0' : 'translate-x-full',
+          'flex flex-col',
+        ].join(' ')}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function AlmacenPage() {
   const { token } = useAuth();
   const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
@@ -40,7 +119,9 @@ export default function AlmacenPage() {
     }
   };
 
-  useEffect(() => { loadData(); }, [token]);
+  useEffect(() => {
+    loadData();
+  }, [token]);
 
   // Paginación (modelo base)
   const totalPaginas = useMemo(
@@ -85,10 +166,10 @@ export default function AlmacenPage() {
 
         <Buttonx
           label="Nuevo Almacén"
-          icon="solar:garage-linear" // Aquí puedes poner el ícono que mejor se adapte
+          icon="solar:garage-linear"
           variant="secondary"
           onClick={() => { setAlmacenEditando(null); setShowModal(true); }}
-          className='font-light'
+          className="font-light"
         />
       </div>
 
@@ -97,12 +178,12 @@ export default function AlmacenPage() {
           <div className="overflow-x-auto bg-white">
             <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
               <colgroup>
-                <col className="w-[20%]" /> {/* Nom. Almacén */}
-                <col className="w-[15%]" /> {/* Depto */}
-                <col className="w-[15%]" /> {/* Ciudad */}
-                <col className="w-[25%]" /> {/* Dirección */}
-                <col className="w-[15%]" /> {/* F. Creación */}
-                <col className="w-[10%]" /> {/* Acciones */}
+                <col className="w-[20%]" />
+                <col className="w-[15%]" />
+                <col className="w-[15%]" />
+                <col className="w-[25%]" />
+                <col className="w-[15%]" />
+                <col className="w-[10%]" />
               </colgroup>
 
               <thead className="bg-[#E5E7EB]">
@@ -204,20 +285,27 @@ export default function AlmacenPage() {
         </section>
       </div>
 
-      {showModal && token && (
-        <CrearAlmacenModal
-          token={token}
-          almacen={almacenEditando}
-          modo={almacenEditando ? 'editar' : 'crear'}
+      {/* Modal con animación desde la DERECHA */}
+      {token && (
+        <ModalSlideRight
+          open={showModal}
           onClose={() => { setShowModal(false); setAlmacenEditando(null); }}
-          onSuccess={(nuevo) => {
-            setAlmacenes((prev) => {
-              const existe = prev.some((a) => a.uuid === nuevo.uuid);
-              return existe ? prev.map((a) => (a.uuid === nuevo.uuid ? nuevo : a)) : [nuevo, ...prev];
-            });
-            setPaginaActual(1);
-          }}
-        />
+          widthClass="w-[420px] max-w-[92vw]"
+        >b
+          <CrearAlmacenModal
+            token={token}
+            almacen={almacenEditando}
+            modo={almacenEditando ? 'editar' : 'crear'}
+            onClose={() => { setShowModal(false); setAlmacenEditando(null); }}
+            onSuccess={(nuevo) => {
+              setAlmacenes((prev) => {
+                const existe = prev.some((a) => a.uuid === nuevo.uuid);
+                return existe ? prev.map((a) => (a.uuid === nuevo.uuid ? nuevo : a)) : [nuevo, ...prev];
+              });
+              setPaginaActual(1);
+            }}
+          />
+        </ModalSlideRight>
       )}
     </section>
   );

@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
-
 @import "tailwindcss";
 
 @theme {
@@ -14,6 +13,7 @@
   
   /* Color gray */
   --color-gray90: #111827;
+  --color-gray80: #1F2937;
   --color-gray70: #374151;
   --color-gray60: #4B5563;
   --color-gray40: #9CA3AF;
@@ -40,11 +40,4 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-@layer base {
-  select {
-    /* Tailwind */
-    @apply w-full py-2 px-3 pr-10 border rounded border-gray40 text-sm text-gray40 appearance-none;
-  }
 }

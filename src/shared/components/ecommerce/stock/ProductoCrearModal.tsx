@@ -1,5 +1,4 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
-import { HiOutlineViewGridAdd } from 'react-icons/hi';
 import { crearProducto } from '@/services/ecommerce/producto/producto.api';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
@@ -8,6 +7,10 @@ import { useAuth } from '@/auth/context';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
+import { Inputx, InputxNumber, InputxTextarea } from '@/shared/common/Inputx';
+import { Selectx } from '@/shared/common/Selectx';
+import Tittlex from '@/shared/common/Tittlex';
+import Buttonx from '@/shared/common/Buttonx';
 
 type Props = {
   open: boolean;
@@ -16,7 +19,9 @@ type Props = {
   onCreated?: (producto: Producto) => void;
 };
 
-type EstadoOption = { id: 'activo' | 'inactivo' | 'descontinuado'; nombre: string };
+type EstadoId = 'activo' | 'inactivo' | 'descontinuado';
+type EstadoOption = { id: EstadoId; nombre: string };
+
 const ESTADO_OPCIONES: EstadoOption[] = [
   { id: 'activo', nombre: 'Activo' },
   { id: 'inactivo', nombre: 'Inactivo' },
@@ -37,13 +42,14 @@ type CreateProductoDto = {
   fecha_registro: string; // ISO
 };
 
+
 // Genera un código amigable (hora + mes abreviado + año + char + minutos)
 function generarCodigoConFecha(): string {
   const now = new Date();
   const hora = String(now.getHours()).padStart(2, '0');
   const minutos = String(now.getMinutes()).padStart(2, '0');
   const year = String(now.getFullYear()).slice(2);
-  const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
   const mesAbrev = meses[now.getMonth()];
   const charset = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789';
   const aleatorio = charset[Math.floor(Math.random() * charset.length)];
@@ -160,221 +166,180 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/40" onClick={handleClose} />
-      <div className="w-full max-w-md bg-white shadow-lg h-full p-6 overflow-y-auto">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <HiOutlineViewGridAdd />
-          REGISTRAR NUEVO PRODUCTO
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Registra un nuevo producto en tu inventario especificando su información básica.
-        </p>
+      <div className="w-full max-w-md bg-white shadow-lg h-full flex flex-col gap-5 px-5 py-5">
+        <Tittlex
+          variant="modal"
+          icon="vaadin:stock" // pon aquí el nombre del ícono de Iconify que prefieras
+          title="REGISTRAR NUEVO PRODUCTO"
+          description="Registra un nuevo producto en tu inventario especificando su información básica, ubicación en almacén y condiciones de stock."
+        />
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              name="codigo_identificacion"
-              label="Código"
-              value={form.codigo_identificacion}
-              readOnly
-              disabled={saving}
-            />
-            <Input
-              name="nombre_producto"
-              label="Nombre del Producto"
-              value={form.nombre_producto}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 h-full">
+          <div className="h-full flex flex-col gap-5">
+            <div className="grid grid-cols-2 gap-5">
+              <Inputx
+                name="codigo_identificacion"
+                label="Código"
+                value={form.codigo_identificacion}
+                readOnly
+                disabled={saving}
+                type="text"
+              />
+
+              <Inputx
+                name="nombre_producto"
+                label="Nombre del Producto"
+                placeholder="Ejem. Zapatos de Cuero"
+                value={form.nombre_producto}
+                onChange={handleChange}
+                required
+                disabled={saving}
+                type="text"
+              />
+            </div>
+
+            <InputxTextarea
+              name="descripcion"
+              label="Descripción"
+              value={form.descripcion}
               onChange={handleChange}
+              disabled={saving}
+              placeholder="Describe el producto…"
+              autoResize
+              minRows={3}
+              maxRows={8}
+            />
+
+            <Selectx
+              label="Categoría"
+              name="categoria_id"
+              labelVariant="left"
+              value={form.categoria_id}
+              onChange={handleChange}
+              placeholder="Seleccionar categoría"
               required
               disabled={saving}
-            />
+            >
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.descripcion}
+                </option>
+              ))}
+            </Selectx>
+
+            <Selectx
+              label="Almacén"
+              name="almacenamiento_id"
+              labelVariant="left"
+              value={form.almacenamiento_id}
+              onChange={handleChange}
+              placeholder="Seleccionar almacén"
+              required
+              disabled={saving}
+            >
+              {almacenes.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre_almacen}
+                </option>
+              ))}
+            </Selectx>
+
+            <Selectx
+              label="Estado"
+              labelVariant="left"
+              value={form.estado || ""} // 👈 "" para que se vea el placeholder si no hay selección
+              onChange={(e) =>
+                setForm((p) => ({ ...p, estado: e.target.value as EstadoId }))
+              }
+              placeholder="Seleccionar estado"
+              disabled={saving}
+            >
+              {ESTADO_OPCIONES.map((op) => (
+                <option key={op.id} value={op.id}>
+                  {op.nombre}
+                </option>
+              ))}
+            </Selectx>
+
+            <div className="flex flex-col-2 gap-5">
+              {/* Precio: 2 decimales */}
+              <InputxNumber
+                label="Precio"
+                name="precio"
+                value={form.precio}
+                onChange={handleChange}
+                decimals={2}
+                step={0.01}
+                min={0}
+                placeholder="0.00"
+                disabled={saving}
+              />
+
+              {/* Cantidad: entero */}
+              <InputxNumber
+                label="Cantidad"
+                name="stock"
+                value={form.stock}
+                onChange={handleChange}
+                decimals={0}
+                step={1}
+                min={0}
+                placeholder="0"
+                inputMode="numeric"
+                disabled={saving}
+              />
+            </div>
+
+            <div className="flex flex-col-2 gap-5">
+              {/* Stock mínimo: entero */}
+              <InputxNumber
+                label="Stock Mínimo"
+                name="stock_minimo"
+                value={form.stock_minimo}
+                onChange={handleChange}
+                decimals={0}
+                step={1}
+                min={0}
+                placeholder="0"
+                inputMode="numeric"
+                disabled={saving}
+              />
+
+              {/* Peso: 3 decimales */}
+              <InputxNumber
+                label="Peso (kg)"
+                name="peso"
+                value={form.peso}
+                onChange={handleChange}
+                decimals={3}
+                step={0.001}
+                min={0}
+                placeholder="0.000"
+                disabled={saving}
+              />
+            </div>
           </div>
 
-          <Textarea
-            name="descripcion"
-            label="Descripción"
-            value={form.descripcion}
-            onChange={handleChange}
-            disabled={saving}
-          />
-
-          <SelectNative<Categoria, 'descripcion'>
-            name="categoria_id"
-            label="Categoría"
-            value={form.categoria_id}
-            onChange={handleChange}
-            options={categorias}
-            optionLabel="descripcion"
-            required
-            disabled={saving}
-          />
-
-          <SelectNative<Almacenamiento, 'nombre_almacen'>
-            name="almacenamiento_id"
-            label="Almacén"
-            value={form.almacenamiento_id}
-            onChange={handleChange}
-            options={almacenes}
-            optionLabel="nombre_almacen"
-            required
-            disabled={saving}
-          />
-
-          <EstadoSelect
-            label="Estado"
-            value={form.estado}
-            options={ESTADO_OPCIONES}
-            onChange={(estadoId) => setForm((p) => ({ ...p, estado: estadoId }))}
-            disabled={saving}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              name="precio"
-              label="Precio"
-              type="number"
-              step="0.01"
-              value={form.precio}
-              onChange={handleChange}
-              required
+          <div className="flex items-center gap-5">
+            <Buttonx
+              variant="quartery"
               disabled={saving}
+              onClick={() => { }} // mantiene el submit por estar dentro del <form>
+              label={saving ? "Creando…" : "Crear nuevo"}
+              icon={saving ? "line-md:loading-twotone-loop" : undefined}
+              className={`px-4 text-sm ${saving ? "[&_svg]:animate-spin" : ""}`}
             />
-            <Input
-              name="stock"
-              label="Cantidad"
-              type="number"
-              value={form.stock}
-              onChange={handleChange}
-              required
-              disabled={saving}
-            />
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              name="stock_minimo"
-              label="Stock Mínimo"
-              type="number"
-              value={form.stock_minimo}
-              onChange={handleChange}
-              required
-              disabled={saving}
-            />
-            <Input
-              name="peso"
-              label="Peso"
-              type="number"
-              step="0.01"
-              value={form.peso}
-              onChange={handleChange}
-              required
-              disabled={saving}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 mt-6">
-            <button
-              type="button"
+            <Buttonx
+              variant="outlinedw"
               onClick={handleClose}
-              className="border px-4 py-2 text-sm rounded hover:bg-gray-50"
+              label="Cancelar"
+              className="px-4 text-sm border"
               disabled={saving}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className={`px-4 py-2 text-sm rounded text-white ${saving ? 'bg-gray-600' : 'bg-black hover:opacity-90'}`}
-            >
-              {saving ? 'Creando…' : 'Crear nuevo'}
-            </button>
+            />
           </div>
         </form>
       </div>
-    </div>
-  );
-}
-
-/* ------------ Reusables ------------- */
-
-function Input({
-  label,
-  ...rest
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-      <input {...rest} className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
-    </div>
-  );
-}
-
-function Textarea({
-  label,
-  ...rest
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-      <textarea {...rest} className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
-    </div>
-  );
-}
-
-function SelectNative<
-  T extends { id: number },
-  K extends keyof T & string
->({
-  label,
-  options,
-  optionLabel,
-  ...rest
-}: React.SelectHTMLAttributes<HTMLSelectElement> & {
-  label: string;
-  options: T[];
-  optionLabel: K;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-      <select {...rest} className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary">
-        <option value="">Seleccionar</option>
-        {options.map((opt) => (
-          <option key={opt.id} value={String(opt.id)}>
-            {String(opt[optionLabel] ?? '')}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function EstadoSelect({
-  label,
-  value,
-  options,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  value: 'activo' | 'inactivo' | 'descontinuado';
-  options: EstadoOption[];
-  disabled?: boolean;
-  onChange: (id: 'activo' | 'inactivo' | 'descontinuado') => void;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as any)}
-        disabled={disabled}
-        className="border border-gray-300 px-3 py-2 rounded w-full text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-      >
-        {options.map((op) => (
-          <option key={op.id} value={op.id}>
-            {op.nombre}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

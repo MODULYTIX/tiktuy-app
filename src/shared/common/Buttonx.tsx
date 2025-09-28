@@ -1,7 +1,7 @@
 import React from "react";
 import { Icon } from "@iconify/react";
 
-type ButtonVariant = "primary" | "secondary" | "tertiary" | "outlined";
+type ButtonVariant = "primary" | "secondary" | "tertiary" | "quartery" | "outlined" | "outlinedw";
 
 interface ButtonProps {
     label: string;
@@ -27,7 +27,9 @@ const Buttonx: React.FC<ButtonProps> = ({
         primary: "bg-blue-600 text-white hover:bg-blue-700",
         secondary: "bg-black text-white font-normal hover:bg-gray-800",
         tertiary: "bg-gray-200 text-black hover:bg-gray-300",
-        outlined: "border-2 bg-gray-50 font-medium border-gray-400 text-gray-500 hover:bg-gray-100", 
+        quartery: "bg-gray90 text-black text-white hover:bg-gray-300",
+        outlined: "border-2 bg-gray-50 font-medium border-gray-400 text-gray-500 hover:bg-gray-100",
+        outlinedw: "border-2 font-medium border-gray80 text-black hover:bg-gray-100", 
     };
 
     return (

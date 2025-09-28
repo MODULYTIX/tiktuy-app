@@ -1,5 +1,5 @@
 // src/components/almacenamiento/CrearMovimientoModal.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   fetchAlmacenes,
@@ -10,13 +10,16 @@ import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import { useAuth } from '@/auth/context';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
-import { HiOutlineViewGridAdd } from 'react-icons/hi';
 import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
+import { Selectx } from '@/shared/common/Selectx';
+import { Inputx, InputxTextarea } from '@/shared/common/Inputx';
+import Buttonx from '@/shared/common/Buttonx';
+import Tittlex from '@/shared/common/Tittlex';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  selectedProducts?: string[]; // uuids de productos
+  selectedProducts?: string[]; // uuids
 }
 
 export default function CrearMovimientoModal({
@@ -27,7 +30,6 @@ export default function CrearMovimientoModal({
   const { token } = useAuth();
   const { notify } = useNotification();
 
-  // Origen (solo ecommerce) y destino (ecommerce + couriers asociados)
   const [almacenesOrigen, setAlmacenesOrigen] = useState<Almacenamiento[]>([]);
   const [almacenesDestino, setAlmacenesDestino] = useState<Almacenamiento[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -39,31 +41,31 @@ export default function CrearMovimientoModal({
 
   useEffect(() => {
     if (!open || !token) return;
-    // Origen: solo almacenes del ecommerce
     fetchAlmacenes(token).then(setAlmacenesOrigen).catch(console.error);
-    // Destino: almacenes del ecommerce + couriers asociados
     fetchAlmacenesEcommerCourier(token).then(setAlmacenesDestino).catch(console.error);
-    // Productos para la tabla
     fetchProductos(token).then(setProductos).catch(console.error);
   }, [open, token]);
 
-  // Autoseleccionar origen según el 1er producto seleccionado
   useEffect(() => {
     if (selectedProducts.length > 0 && productos.length > 0) {
       const base = productos.find((p) => p.uuid === selectedProducts[0]);
-      if (base?.almacenamiento_id) {
-        setAlmacenOrigen(String(base.almacenamiento_id));
-      }
+      if (base?.almacenamiento_id) setAlmacenOrigen(String(base.almacenamiento_id));
     }
   }, [selectedProducts, productos]);
 
   const handleCantidadChange = (productoId: string, value: number, stock: number) => {
-    const safe = Math.min(Math.max(0, value), stock);
+    const safe = Math.min(Math.max(0, value || 0), stock);
     setCantidades((prev) => ({ ...prev, [productoId]: safe }));
   };
 
+  const origenNombre = useMemo(() => {
+    const v = almacenOrigen as any;
+    if (v && typeof v === 'object') return v.nombre_almacen ?? '';
+    const match = almacenesOrigen.find((a) => String(a.id) === String(v));
+    return match?.nombre_almacen ?? '';
+  }, [almacenOrigen, almacenesOrigen]);
+
   const handleSubmit = async () => {
-    // validar mismo almacén entre seleccionados
     const almacenesProductos = productos
       .filter((p) => selectedProducts.includes(p.uuid))
       .map((p) => (p.almacenamiento_id != null ? String(p.almacenamiento_id) : ''))
@@ -74,15 +76,9 @@ export default function CrearMovimientoModal({
         ? almacenesProductos.every((id) => id === almacenesProductos[0])
         : false;
 
-    if (!todosIguales) {
-      notify('Todos los productos deben pertenecer al mismo almacén de origen.', 'error');
-      return;
-    }
-
-    if (!almacenOrigen || !almacenDestino || almacenOrigen === almacenDestino) {
-      notify('Selecciona almacenes válidos.', 'error');
-      return;
-    }
+    if (!todosIguales) return notify('Todos los productos deben pertenecer al mismo almacén de origen.', 'error');
+    if (!almacenOrigen || !almacenDestino || almacenOrigen === almacenDestino)
+      return notify('Selecciona almacenes válidos.', 'error');
 
     const productosMov = selectedProducts
       .filter((uuid) => (cantidades[uuid] ?? 0) > 0)
@@ -93,10 +89,7 @@ export default function CrearMovimientoModal({
       })
       .filter((p): p is { producto_id: number; cantidad: number } => p !== null);
 
-    if (productosMov.length === 0) {
-      notify('Debes ingresar al menos una cantidad válida.', 'error');
-      return;
-    }
+    if (productosMov.length === 0) return notify('Debes ingresar al menos una cantidad válida.', 'error');
 
     setLoading(true);
     try {
@@ -110,8 +103,6 @@ export default function CrearMovimientoModal({
         token!
       );
       notify('Movimiento registrado correctamente.', 'success');
-
-      // reset simple
       setCantidades({});
       setDescripcion('');
       setAlmacenOrigen('');
@@ -131,55 +122,72 @@ export default function CrearMovimientoModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
+      {/* Panel derecho / ancho fijo */}
       <div
-        className="w-full max-w-2xl bg-white h-full overflow-y-auto shadow-lg p-6"
+        className="h-screen w-[700px] bg-white shadow-xl flex flex-col gap-5 px-5 py-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-semibold flex items-center gap-2 mb-2">
-          <HiOutlineViewGridAdd size={20} className="text-primaryDark" />
-          REGISTRAR NUEVO MOVIMIENTO
-        </h2>
+        <Tittlex
+          variant="modal"
+          icon="vaadin:stock"
+          title="REGISTRAR NUEVO MOVIMIENTO"
+          description="Selecciona productos y completa los datos para registrar un movimiento."
+        />
 
-        <p className="text-sm text-gray-500 mb-4">
-          Selecciona productos y completa los datos para registrar un movimiento.
-        </p>
+        {/* ========== Tabla con bordes redondeados correctos ========== */}
+        <div className="rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full table-fixed text-sm border-separate border-spacing-0">
+            <colgroup>
+              <col className="w-[22%]" />
+              <col className="w-[24%]" />
+              <col className="w-[34%]" />
+              <col className="w-[20%]" />
+            </colgroup>
 
-        <div
-          className={`border rounded overflow-hidden mb-6 ${
-            productosSeleccionados.length > 5 ? 'max-h-72 overflow-y-auto' : ''
-          }`}
-        >
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100 text-left">
-              <tr>
-                <th className="p-2">Código</th>
-                <th className="p-2">Producto</th>
-                <th className="p-2">Descripción</th>
-                <th className="p-2 text-right">Cantidad</th>
+            <thead className="bg-gray-100 text-gray-700">
+              <tr className="h-12">
+                <th className="px-4 text-left font-medium">Código</th>
+                <th className="px-4 text-left font-medium">Producto</th>
+                <th className="px-4 text-left font-medium">Descripción</th>
+                <th className="px-4 text-right font-medium">Cantidad</th>
               </tr>
             </thead>
-            <tbody>
+
+            <tbody className="bg-white">
               {productosSeleccionados.map((prod) => (
-                <tr key={prod.uuid} className="border-t">
-                  <td className="p-2">{prod.codigo_identificacion}</td>
-                  <td className="p-2">{prod.nombre_producto}</td>
-                  <td className="p-2 text-gray-500 truncate">{prod.descripcion}</td>
-                  <td className="p-2 text-right flex justify-end items-center gap-1">
-                    <input
-                      type="number"
-                      min={0}
-                      max={prod.stock}
-                      value={
-                        Number.isFinite(cantidades[prod.uuid])
-                          ? cantidades[prod.uuid]
-                          : ''
-                      }
-                      onChange={(e) =>
-                        handleCantidadChange(prod.uuid, Number(e.target.value), prod.stock)
-                      }
-                      className="w-16 border rounded px-2 py-1 text-right"
-                    />
-                    <span className="text-xs text-gray-400">/ {prod.stock}</span>
+                <tr key={prod.uuid} className="border-t last:border-0 hover:bg-gray-50">
+                  <td className="px-4 py-4 align-middle whitespace-nowrap text-gray-900">
+                    {prod.codigo_identificacion}
+                  </td>
+                  <td className="px-4 py-4 align-middle whitespace-nowrap text-gray-900">
+                    {prod.nombre_producto}
+                  </td>
+                  <td className="px-4 py-4 align-middle text-gray-700">
+                    <div className="line-clamp-2 leading-5 break-words">{prod.descripcion}</div>
+                  </td>
+                  <td className="px-4 py-4 align-middle">
+                    <div className="ml-auto flex w-full justify-end items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        max={prod.stock}
+                        value={
+                          Number.isFinite(cantidades[prod.uuid])
+                            ? cantidades[prod.uuid]
+                            : ''
+                        }
+                        onChange={(e) =>
+                          handleCantidadChange(prod.uuid, Number(e.target.value), prod.stock)
+                        }
+                        className="w-[64px] h-9 rounded-lg border border-gray-300 px-2
+                                   text-center text-sm shadow-sm
+                                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
+                                   appearance-auto"
+                      />
+                      <span className="text-sm text-gray-600 whitespace-nowrap">
+                        / {prod.stock}
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -187,69 +195,62 @@ export default function CrearMovimientoModal({
           </table>
         </div>
 
-        {/* Almacenes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Almacén Origen</label>
-            <select
-              value={almacenOrigen}
-              onChange={(e) => setAlmacenOrigen(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            >
-              <option value="">Seleccionar almacén</option>
-              {almacenesOrigen.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre_almacen}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Almacén Destino</label>
-            <select
-              value={almacenDestino}
+        {/* Datos adicionales */}
+        <div className="flex-1 flex flex-col gap-5">
+          <div className="grid grid-cols-2 gap-5">
+            <Inputx
+              label="Almacén Origen"
+              name="almacen_origen"
+              value={origenNombre}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Selectx
+              label="Almacén Destino"
+              name="almacen_destino"
+              labelVariant="left"
+              value={almacenDestino ?? ''}
               onChange={(e) => setAlmacenDestino(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              placeholder="Seleccionar almacén"
             >
-              <option value="">Seleccionar almacén</option>
               {almacenesDestino.map((a) => (
-                <option key={a.id} value={a.id}>
+                <option key={a.id} value={String(a.id)}>
                   {a.nombre_almacen}
                 </option>
               ))}
-            </select>
+            </Selectx>
           </div>
-        </div>
 
-        {/* Descripción */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-1">Descripción</label>
-          <textarea
-            rows={3}
+          <InputxTextarea
+            name="descripcion"
+            label="Descripción"
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
             placeholder="Motivo del movimiento..."
-            className="w-full border rounded px-3 py-2 resize-none"
+            autoResize
+            minRows={3}
+            maxRows={8}
           />
         </div>
 
         {/* Botones */}
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
+        <div className="flex items-center gap-5">
+          <Buttonx
+            variant="quartery"
             disabled={loading}
-            className="px-4 py-2 border rounded hover:bg-gray-100"
-          >
-            Cancelar
-          </button>
-          <button
             onClick={handleSubmit}
+            label={loading ? 'Registrando...' : 'Crear nuevo'}
+            icon={loading ? 'line-md:loading-twotone-loop' : undefined}
+            className={`px-4 text-sm ${loading ? '[&_svg]:animate-spin' : ''}`}
+          />
+          <Buttonx
+            variant="outlinedw"
+            onClick={onClose}
+            label="Cancelar"
+            className="px-4 text-sm border"
             disabled={loading}
-            className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
-          >
-            {loading ? 'Registrando...' : 'Crear nuevo'}
-          </button>
+          />
         </div>
       </div>
     </div>,
