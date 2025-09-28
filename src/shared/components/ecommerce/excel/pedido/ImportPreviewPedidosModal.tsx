@@ -171,8 +171,6 @@ export default function ImportPreviewPedidosModal({
   const patchGroup = (idx: number, patch: Partial<PreviewGroupDTO>) =>
     setGroups((prev) => prev.map((g, i) => (i === idx ? { ...g, ...patch } : g)));
 
-  const totalValidos = useMemo(() => groups.filter((g) => g.valido).length, [groups]);
-
   const hasInvalid = useMemo(() => {
     if (!allowMultiCourier && typeof courierId !== 'number') return true;
     for (const g of groups) {
