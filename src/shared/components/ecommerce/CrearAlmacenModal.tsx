@@ -139,9 +139,6 @@ export default function CrearAlmacenModal({
     }
   };
 
-  // 🎨 Estilos normalizados para inputs/select
-  const labelClass = "block text-gray-700 font-medium mb-1";
-
   return (
     <div className="fixed inset-0 bg-backgroundModal z-50 flex justify-end">
       {/* Drawer angosto + layout columna (footer fijo), padding 20px y 20px vertical entre bloques */}
