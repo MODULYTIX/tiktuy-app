@@ -40,7 +40,7 @@ const CuadreSaldoPage: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<ResumenDia[]>([]);
-  const [selected, setSelected] = useState<string[]>([]); // fechas seleccionadas
+  const [selected, setSelected] = useState<string[]>([]);
 
   // modal ver pedidos
   const [openVer, setOpenVer] = useState(false);
@@ -64,6 +64,7 @@ const CuadreSaldoPage: React.FC = () => {
     if (!token || courierId === "") return;
     setLoading(true);
     try {
+      // 🔑 ahora lista tanto "Por Validar" como "Validado"
       const data = await getResumen(token, {
         courierId: Number(courierId),
         desde,
@@ -92,6 +93,7 @@ const CuadreSaldoPage: React.FC = () => {
     setOpenVer(true);
     setVerLoading(true);
     try {
+      // 🔑 igual aquí: lista los pedidos "Por Validar" y "Validado"
       const data = await getPedidosDia(token, Number(courierId), date, true);
       setVerRows(data);
     } catch (e) {
@@ -116,9 +118,11 @@ const CuadreSaldoPage: React.FC = () => {
 
   const confirmarValidacion = async () => {
     if (!token || courierId === "" || selected.length === 0) return;
-    // Optimistic UI
+    // Optimistic UI: marcamos como validado en el front
     setRows((prev) =>
-      prev.map((r) => (selected.includes(r.fecha) ? { ...r, estado: "Validado" } : r))
+      prev.map((r) =>
+        selected.includes(r.fecha) ? { ...r, estado: "Validado" } : r
+      )
     );
     try {
       await validarFechas(token, {
@@ -126,8 +130,7 @@ const CuadreSaldoPage: React.FC = () => {
         fechas: selected,
       });
       setSelected([]);
-      // refrescar por si acaso
-      await buscar();
+      await buscar(); // refrescar con datos reales
     } catch (e) {
       console.error(e);
     }
@@ -216,7 +219,9 @@ const CuadreSaldoPage: React.FC = () => {
       {/* Tabla */}
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm text-gray-600">
-          {selected.length > 0 ? `${selected.length} fecha(s) seleccionada(s)` : "—"}
+          {selected.length > 0
+            ? `${selected.length} fecha(s) seleccionada(s)`
+            : "—"}
         </div>
         <button
           disabled={selected.length === 0}
