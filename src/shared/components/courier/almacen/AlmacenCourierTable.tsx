@@ -1,5 +1,5 @@
 // shared/components/courier/almacen/AlmacenCourierTable.tsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import type { AlmacenamientoCourier } from "@/services/courier/almacen/almacenCourier.type";
 
@@ -7,7 +7,7 @@ type Props = {
   items: AlmacenamientoCourier[];
   loading: boolean;
   error?: string;
-  onView: (row: AlmacenamientoCourier) => void;
+  onView?: (row: AlmacenamientoCourier) => void;
   onEdit: (row: AlmacenamientoCourier) => void;
 };
 
@@ -33,6 +33,11 @@ export default function AlmacenCourierTable({
   onEdit,
 }: Props) {
   const [page, setPage] = useState(1);
+
+  // Si cambian los items, regresa a la primera página para evitar páginas “vacías”
+  useEffect(() => {
+    setPage(1);
+  }, [items]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(items.length / PAGE_SIZE)),
@@ -62,8 +67,14 @@ export default function AlmacenCourierTable({
       }
 
       for (let i = start; i <= end; i++) pages.push(i);
-      if (start > 1) { pages.unshift("..."); pages.unshift(1); }
-      if (end < totalPages) { pages.push("..."); pages.push(totalPages); }
+      if (start > 1) {
+        pages.unshift("...");
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push("...");
+        pages.push(totalPages);
+      }
     }
     return pages;
   }, [totalPages, page]);
@@ -126,11 +137,21 @@ export default function AlmacenCourierTable({
                   <>
                     {currentData.map((a) => (
                       <tr key={a.uuid} className="hover:bg-gray10 transition-colors">
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">{a.nombre_almacen}</td>
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">{a.departamento}</td>
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">{a.ciudad}</td>
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">{a.direccion}</td>
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">{formatDate(a.fecha_registro)}</td>
+                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
+                          {a.nombre_almacen}
+                        </td>
+                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
+                          {a.departamento}
+                        </td>
+                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
+                          {a.ciudad}
+                        </td>
+                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
+                          {a.direccion}
+                        </td>
+                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
+                          {formatDate(a.fecha_registro)}
+                        </td>
                         <td className="h-12 px-4 py-3">
                           <div className="flex items-center justify-center gap-3">
                             <button
@@ -146,10 +167,14 @@ export default function AlmacenCourierTable({
                     ))}
 
                     {/* Relleno hasta 5 filas con misma altura */}
-                    {Array.from({ length: Math.max(0, PAGE_SIZE - currentData.length) }).map((_, idx) => (
+                    {Array.from({
+                      length: Math.max(0, PAGE_SIZE - currentData.length),
+                    }).map((_, idx) => (
                       <tr key={`empty-${idx}`} className="hover:bg-transparent">
                         {Array.from({ length: 6 }).map((__, i) => (
-                          <td key={i} className="h-12 px-4 py-3">&nbsp;</td>
+                          <td key={i} className="h-12 px-4 py-3">
+                            &nbsp;
+                          </td>
                         ))}
                       </tr>
                     ))}
@@ -174,6 +199,7 @@ export default function AlmacenCourierTable({
               onClick={() => goToPage(page - 1)}
               disabled={page === 1}
               className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+              aria-label="Página anterior"
             >
               &lt;
             </button>
@@ -204,6 +230,7 @@ export default function AlmacenCourierTable({
               onClick={() => goToPage(page + 1)}
               disabled={page === totalPages}
               className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+              aria-label="Página siguiente"
             >
               &gt;
             </button>
