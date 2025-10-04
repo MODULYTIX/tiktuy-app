@@ -44,7 +44,6 @@ export default function AsignarRepartidor({
   onClose,
   token,
   selectedIds,
-  selectedPedido = null,
   onAssigned,
 }: Props) {
   const [loading, setLoading] = useState(false);

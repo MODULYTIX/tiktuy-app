@@ -45,7 +45,6 @@ export default function PedidosPage() {
 
   // ahora recibe id
   const handleVerDetalle = (id: number) => {
-    console.log('[Repartidor] Ver detalle pedido', id);
 
     // 🔹 Aquí puedes buscar el pedido en tu store/lista ya cargada
     // Ejemplo temporal: simulamos un pedido

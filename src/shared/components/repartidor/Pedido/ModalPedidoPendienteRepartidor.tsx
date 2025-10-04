@@ -9,6 +9,7 @@ type ConfirmPayload =
   | {
       pedidoId: number;
       resultado: 'RECHAZADO';
+      observacion?: string; // <-- se envía al backend como observacion_estado
     }
   | {
       pedidoId: number;
@@ -26,7 +27,7 @@ type Props = {
   onConfirm?: (data: ConfirmPayload) => Promise<void> | void;
 };
 
-type Paso = 'resultado' | 'pago' | 'evidencia';
+type Paso = 'resultado' | 'pago' | 'evidencia' | 'rechazo'; // <-- nuevo paso
 
 export default function ModalEntregaRepartidor({
   isOpen,
@@ -53,6 +54,9 @@ export default function ModalEntregaRepartidor({
     return local.toISOString().slice(0, 16);
   });
 
+  // cuando RECHAZADO
+  const [obsRechazo, setObsRechazo] = useState<string>(''); // <-- observación rechazo
+
   const resumen = useMemo(() => {
     if (!pedido) return null;
     const fechaProg = pedido.fecha_entrega_programada || pedido.fecha_entrega_real;
@@ -73,6 +77,7 @@ export default function ModalEntregaRepartidor({
     setResultado(null);
     setMetodo(null);
     setObservacion('');
+    setObsRechazo(''); // reset rechazo
     setEvidenciaFile(undefined);
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -92,6 +97,7 @@ export default function ModalEntregaRepartidor({
 
   function handleNextFromResultado() {
     if (resultado === 'ENTREGADO') setPaso('pago');
+    if (resultado === 'RECHAZADO') setPaso('rechazo'); // <-- ir al paso de observación
   }
 
   function requiresEvidencia(m: MetodoPagoUI | null): boolean {
@@ -127,9 +133,11 @@ export default function ModalEntregaRepartidor({
       setSubmitting(true);
 
       if (resultado === 'RECHAZADO') {
+        const obs = obsRechazo.trim() || undefined; // <-- enviar si hay
         await onConfirm?.({
           pedidoId: pid,
           resultado: 'RECHAZADO',
+          observacion: obs,
         });
         closeAll();
         return;
@@ -140,7 +148,7 @@ export default function ModalEntregaRepartidor({
       if (requiresEvidencia(metodo) && !evidenciaFile) return;
 
       const fechaIso = metodo === 'EFECTIVO' ? toIsoFromLocalDatetime(fechaEntregaReal) : undefined;
-      const obs = metodo === 'EFECTIVO' ? (observacion.trim() || undefined) : undefined; // <- SOLO EFECTIVO
+      const obs = metodo === 'EFECTIVO' ? (observacion.trim() || undefined) : undefined;
 
       await onConfirm?.({
         pedidoId: pid,
@@ -339,7 +347,27 @@ export default function ModalEntregaRepartidor({
                     />
                   </div>
                 )}
-                {/* IMPORTANTE: sin observación aquí para Billetera/Directo */}
+                {/* Sin observación aquí para Billetera/Directo */}
+              </div>
+            </section>
+          )}
+
+          {/* Paso: Rechazo (observación) */}
+          {paso === 'rechazo' && (
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+                ¿POR QUÉ EL PEDIDO FUE RECHAZADO?
+              </h3>
+              <p className="text-xs text-gray-500">Escribe la observación</p>
+
+              <div className="mt-3">
+                <label className="text-xs text-gray-600">Observación</label>
+                <textarea
+                  className="w-full border rounded-xl px-3 py-2 text-sm min-h-[110px] resize-y focus:outline-none focus:ring-2 focus:ring-red-300"
+                  placeholder="Escribe aquí"
+                  value={obsRechazo}
+                  onChange={(e) => setObsRechazo(e.target.value)}
+                />
               </div>
             </section>
           )}
@@ -354,6 +382,7 @@ export default function ModalEntregaRepartidor({
               onClick={() => {
                 if (paso === 'pago') setPaso('resultado');
                 else if (paso === 'evidencia') setPaso('pago');
+                else if (paso === 'rechazo') setPaso('resultado');
               }}
               disabled={submitting}
             >
@@ -380,23 +409,17 @@ export default function ModalEntregaRepartidor({
           )}
 
           {/* Acción principal derecha */}
-          {paso === 'resultado' && resultado === 'ENTREGADO' && (
+          {paso === 'resultado' && resultado && (
             <button
-              className="ml-auto rounded-xl py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              className={`ml-auto rounded-xl py-2 px-4 text-white ${
+                resultado === 'RECHAZADO'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } disabled:opacity-50`}
               onClick={handleNextFromResultado}
               disabled={!resultado || submitting}
             >
               Siguiente →
-            </button>
-          )}
-
-          {paso === 'resultado' && resultado === 'RECHAZADO' && (
-            <button
-              className="ml-auto rounded-xl py-2 px-4 text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
-              onClick={handleConfirm}
-              disabled={!resultado || submitting}
-            >
-              {submitting ? 'Guardando...' : 'Confirmar'}
             </button>
           )}
 
@@ -421,6 +444,16 @@ export default function ModalEntregaRepartidor({
               className="ml-auto rounded-xl py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
               onClick={handleConfirm}
               disabled={submitting || !evidenciaFile}
+            >
+              {submitting ? 'Guardando...' : 'Confirmar'}
+            </button>
+          )}
+
+          {paso === 'rechazo' && (
+            <button
+              className="ml-auto rounded-xl py-2 px-4 text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+              onClick={handleConfirm}
+              disabled={submitting /* || !obsRechazo.trim()  <- hazla obligatoria si quieres */}
             >
               {submitting ? 'Guardando...' : 'Confirmar'}
             </button>
