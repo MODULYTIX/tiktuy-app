@@ -143,21 +143,44 @@ export async function getEcommercePedidosDia(
   })) as unknown as PedidoDiaItem[];
 }
 
-/** PUT /courier/cuadre-saldo/ecommerce/abonar  (abono por FECHAS) */
+/** PUT /courier/cuadre-saldo/ecommerce/abonar (abono por FECHAS, con soporte para archivo) */
 export async function abonarEcommerceFechas(
   token: string,
-  payload: AbonarEcommerceFechasPayload
+  payload: AbonarEcommerceFechasPayload | FormData,
+  isFormData = false
 ): Promise<AbonarEcommerceFechasResp> {
   const url = `${BASE_URL}/courier/cuadre-saldo/ecommerce/abonar`;
+
+  // ✅ Si es FormData, no forzamos Content-Type
+  if (isFormData || payload instanceof FormData) {
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: payload as FormData,
+    });
+
+    if (!res.ok) {
+      const msg = await res.text();
+      throw new Error(msg || "Error al abonar (FormData)");
+    }
+    return res.json();
+  }
+
+  // ✅ Si no es FormData, asumimos JSON estándar
+  const jsonPayload = payload as AbonarEcommerceFechasPayload;
+
   const body: AbonarEcommerceFechasPayload = {
-    ecommerceId: payload.ecommerceId,
-    estado: payload.estado ?? "Por Validar",
-    ...(payload.fechas?.length
-      ? { fechas: payload.fechas }
-      : payload.fecha
-      ? { fecha: payload.fecha }
+    ecommerceId: jsonPayload.ecommerceId,
+    estado: jsonPayload.estado ?? "Por Validar",
+    ...(jsonPayload.fechas?.length
+      ? { fechas: jsonPayload.fechas }
+      : jsonPayload.fecha
+      ? { fecha: jsonPayload.fecha }
       : {}),
   };
+
   return request<AbonarEcommerceFechasResp>(url, {
     method: "PUT",
     headers: authHeaders(token, "json"),
