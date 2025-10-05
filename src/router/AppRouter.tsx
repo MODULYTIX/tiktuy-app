@@ -29,7 +29,7 @@ export default function AppRouter() {
       <Route path="/crear-password" element={<CrearPasswordPage />} />
       <Route path="/crear-password-motorizado" element={<CrearPasswordPage />} />
 
-      {/* ✅ Alias para links que envía el backend */}
+      {/*  Alias para links que envía el backend */}
       <Route path="/crear-password-repartidor" element={<CrearPasswordPage />} />
       <Route path="/registro-invitacion-motorizado" element={<RegistroInvitacionPage />} />
 

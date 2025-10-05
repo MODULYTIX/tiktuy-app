@@ -9,7 +9,7 @@ type ConfirmPayload =
   | {
       pedidoId: number;
       resultado: 'RECHAZADO';
-      observacion?: string; // <-- se envía al backend como observacion_estado
+      observacion?: string;
     }
   | {
       pedidoId: number;
@@ -17,7 +17,7 @@ type ConfirmPayload =
       metodo: MetodoPagoUI;
       observacion?: string;
       evidenciaFile?: File;
-      fecha_entrega_real?: string; // ISO
+      fecha_entrega_real?: string;
     };
 
 type Props = {
@@ -27,7 +27,7 @@ type Props = {
   onConfirm?: (data: ConfirmPayload) => Promise<void> | void;
 };
 
-type Paso = 'resultado' | 'pago' | 'evidencia' | 'rechazo'; // <-- nuevo paso
+type Paso = 'resultado' | 'pago' | 'evidencia' | 'rechazo';
 
 export default function ModalEntregaRepartidor({
   isOpen,
@@ -43,10 +43,12 @@ export default function ModalEntregaRepartidor({
 
   // cuando ENTREGADO
   const [metodo, setMetodo] = useState<MetodoPagoUI | null>(null);
-  const [observacion, setObservacion] = useState<string>('');
+
+  // (quedan, pero ya no se usan para EFECTIVO)
+  const [, setObservacion] = useState<string>('');
   const [evidenciaFile, setEvidenciaFile] = useState<File | undefined>(undefined);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [fechaEntregaReal, setFechaEntregaReal] = useState<string>(() => {
+  const [, setFechaEntregaReal] = useState<string>(() => {
     const d = new Date();
     d.setSeconds(0, 0);
     const off = d.getTimezoneOffset();
@@ -55,7 +57,7 @@ export default function ModalEntregaRepartidor({
   });
 
   // cuando RECHAZADO
-  const [obsRechazo, setObsRechazo] = useState<string>(''); // <-- observación rechazo
+  const [obsRechazo, setObsRechazo] = useState<string>('');
 
   const resumen = useMemo(() => {
     if (!pedido) return null;
@@ -77,7 +79,7 @@ export default function ModalEntregaRepartidor({
     setResultado(null);
     setMetodo(null);
     setObservacion('');
-    setObsRechazo(''); // reset rechazo
+    setObsRechazo('');
     setEvidenciaFile(undefined);
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -97,7 +99,7 @@ export default function ModalEntregaRepartidor({
 
   function handleNextFromResultado() {
     if (resultado === 'ENTREGADO') setPaso('pago');
-    if (resultado === 'RECHAZADO') setPaso('rechazo'); // <-- ir al paso de observación
+    if (resultado === 'RECHAZADO') setPaso('rechazo');
   }
 
   function requiresEvidencia(m: MetodoPagoUI | null): boolean {
@@ -106,22 +108,15 @@ export default function ModalEntregaRepartidor({
 
   function handleMetodo(m: MetodoPagoUI) {
     setMetodo(m);
+    // EFECTIVO: se queda en "pago" y no muestra más campos (solo Confirmar)
     if (requiresEvidencia(m)) setPaso('evidencia');
+    else setPaso('pago');
   }
 
   function onFilePicked(file?: File) {
     setEvidenciaFile(file);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(file ? URL.createObjectURL(file) : null);
-  }
-
-  function toIsoFromLocalDatetime(dtLocal: string): string | undefined {
-    if (!dtLocal) return undefined;
-    const [date, time] = dtLocal.split('T');
-    const [y, m, d] = date.split('-').map(Number);
-    const [hh, mm] = time.split(':').map(Number);
-    const local = new Date(y, (m ?? 1) - 1, d ?? 1, hh ?? 0, mm ?? 0, 0, 0);
-    return local.toISOString();
   }
 
   async function handleConfirm() {
@@ -133,7 +128,7 @@ export default function ModalEntregaRepartidor({
       setSubmitting(true);
 
       if (resultado === 'RECHAZADO') {
-        const obs = obsRechazo.trim() || undefined; // <-- enviar si hay
+        const obs = obsRechazo.trim() || undefined;
         await onConfirm?.({
           pedidoId: pid,
           resultado: 'RECHAZADO',
@@ -147,8 +142,9 @@ export default function ModalEntregaRepartidor({
       if (!metodo) return;
       if (requiresEvidencia(metodo) && !evidenciaFile) return;
 
-      const fechaIso = metodo === 'EFECTIVO' ? toIsoFromLocalDatetime(fechaEntregaReal) : undefined;
-      const obs = metodo === 'EFECTIVO' ? (observacion.trim() || undefined) : undefined;
+      // Para EFECTIVO: no enviar fecha ni observación
+      const fechaIso = metodo === 'EFECTIVO' ? undefined : undefined;
+      const obs = metodo === 'EFECTIVO' ? undefined : undefined;
 
       await onConfirm?.({
         pedidoId: pid,
@@ -278,29 +274,7 @@ export default function ModalEntregaRepartidor({
                 />
               </div>
 
-              {/* Extras solo para EFECTIVO */}
-              {metodo === 'EFECTIVO' && (
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <label className="text-xs text-gray-600">Fecha de entrega</label>
-                    <input
-                      type="datetime-local"
-                      className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                      value={fechaEntregaReal}
-                      onChange={(e) => setFechaEntregaReal(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-600">Observación (opcional)</label>
-                    <textarea
-                      className="w-full border rounded-xl px-3 py-2 text-sm min-h-[84px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-300"
-                      placeholder="Escribe aquí"
-                      value={observacion}
-                      onChange={(e) => setObservacion(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
+              {/* EFECTIVO: ya no muestra fecha ni observación; solo Confirmar en el footer */}
             </section>
           )}
 
@@ -347,7 +321,6 @@ export default function ModalEntregaRepartidor({
                     />
                   </div>
                 )}
-                {/* Sin observación aquí para Billetera/Directo */}
               </div>
             </section>
           )}
@@ -453,7 +426,7 @@ export default function ModalEntregaRepartidor({
             <button
               className="ml-auto rounded-xl py-2 px-4 text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
               onClick={handleConfirm}
-              disabled={submitting /* || !obsRechazo.trim()  <- hazla obligatoria si quieres */}
+              disabled={submitting /* || !obsRechazo.trim() */}
             >
               {submitting ? 'Guardando...' : 'Confirmar'}
             </button>
@@ -515,9 +488,7 @@ function AccionCircular({
   );
 }
 
-/** Card con soporte de color y modo "fill" para verse como tus capturas.
- *  activeColor: 'blue' | 'red' | 'emerald' | 'yellow' | 'lime'
- */
+/** Card con soporte de color y modo "fill". */
 function OpcionCard({
   active,
   icon,

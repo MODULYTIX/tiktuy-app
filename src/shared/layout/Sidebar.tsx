@@ -162,7 +162,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     ],
     motorizado: [
       {
-        to: '/panel',
+        to: '/',
         label: 'Panel de Control',
         icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
       },

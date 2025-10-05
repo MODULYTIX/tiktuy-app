@@ -17,6 +17,7 @@ interface EcommerceRow {
   nombre_comercial: string;
   ruc: string;
   ciudad: string;
+  dni_ci: string;
   telefono: string;
   estado: EstadoTexto;
   fecha_asociacion: string;
@@ -63,6 +64,7 @@ function toRow(item: EcommerceCourier): EcommerceRow {
     nombre_comercial: e?.nombre_comercial ?? "-",
     ruc: e?.ruc ?? "-",
     ciudad: e?.ciudad ?? "-",
+    dni_ci: u?.dni?? u?.DNI_CI?? "-",
     telefono: u?.telefono ?? "-",
     estado,
     fecha_asociacion: formatDateLikeDDMMYYYY(fecha),
@@ -111,7 +113,7 @@ function DetalleEcommerceModal({
 
   const nombres = u?.nombres ?? "-";
   const apellidos = u?.apellidos ?? "-";
-  const dni = u?.DNI ?? u?.dni ?? "-";
+  const dni_ci = u?.DNI_CI ?? u?.dni ?? "-";
   const correo = u?.correo ?? u?.email ?? "-";
 
   const telefonoRaw: string = (u?.telefono ?? "").toString();
@@ -190,7 +192,7 @@ function DetalleEcommerceModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="flex flex-col gap-2">
               <label className="text-gray80 font-medium">DNI / CI</label>
-              <input value={dni} disabled className={inputClass} />
+              <input value={dni_ci} disabled className={inputClass} />
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-gray80 font-medium">Correo</label>
