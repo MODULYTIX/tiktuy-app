@@ -1,4 +1,4 @@
-// src/services/ecommerce/cuadre_saldo/cuadreSaldoC.api.ts
+// src/services/ecommerce/cuadreSaldo/cuadreSaldoC.api.ts
 import type {
   CourierItem,
   ResumenQuery,
@@ -117,7 +117,7 @@ export async function getResumen(
 export async function getPedidosDia(
   token: string,
   courierId: number,
-  fecha: string,                 // YYYY-MM-DD
+  fecha: string, // YYYY-MM-DD
   soloPorValidar?: boolean
 ): Promise<PedidoDiaItem[]> {
   const url = withQuery(
@@ -131,7 +131,7 @@ export async function getPedidosDia(
       id: number;
       cliente: string;
       metodoPago?: string | null;
-      metodo_pago?: string | null;   // compat
+      metodo_pago?: string | null; // compat
       monto: number;
       servicioCourier: number;
       servicioRepartidor: number;
@@ -140,13 +140,15 @@ export async function getPedidosDia(
     }>
   >(url, { headers: authHeaders(token) });
 
-  // Normalizamos metodoPago y añadimos servicioTotal + evidencia
+  // Normalizamos el método de pago y devolvemos la propiedad esperada por el tipo: metodo_pago
   return raw.map((r) => {
-    const metodoPago = (r as any).metodoPago ?? (r as any).metodo_pago ?? null;
+    const metodo_pago: string | null =
+      (r as any).metodo_pago ?? (r as any).metodoPago ?? null;
+
     return {
       id: r.id,
       cliente: r.cliente,
-      metodoPago,
+      metodo_pago, // ← clave requerida por PedidoDiaItem
       monto: Number(r.monto ?? 0),
       servicioCourier: Number(r.servicioCourier ?? 0),
       servicioRepartidor: Number(r.servicioRepartidor ?? 0),
