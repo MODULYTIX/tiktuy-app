@@ -20,8 +20,6 @@ import {
 } from '@/services/courier/pedidos/pedidos.api';
 
 import DetallePedidoDrawer from './DetallePedidoDrawer';
-import Paginator from '../../Paginator';
-
 
 type View = 'asignados' | 'pendientes' | 'terminados';
 
@@ -159,6 +157,41 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
   }, [someSelected]);
 
   const totalPages = data?.totalPages ?? 1;
+
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  // Paginador: páginas a mostrar
+  const pagerItems = useMemo<(number | string)[]>(() => {
+    const maxButtons = 5;
+    const pages: (number | string)[] = [];
+    if (!totalPages || totalPages <= 1) return pages;
+
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, page - 2);
+      let end = Math.min(totalPages, page + 2);
+
+      if (page <= 3) {
+        start = 1;
+        end = maxButtons;
+      } else if (page >= totalPages - 2) {
+        start = totalPages - (maxButtons - 1);
+        end = totalPages;
+      }
+
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (start > 1) {
+        pages.unshift('…');
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push('…');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  }, [page, totalPages]);
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   const goToPage = (p: number) => {
     if (!totalPages) return;
