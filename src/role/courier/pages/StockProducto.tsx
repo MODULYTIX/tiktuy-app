@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 export type StockFilters = {
   almacenId: string;
   categoriaId: string;
+  nombre: string;
   estado: string;
   stockBajo: boolean;
   precioOrden: '' | 'asc' | 'desc';
@@ -21,6 +22,7 @@ export default function StockPage() {
   const [filters, setFilters] = useState<StockFilters>({
     almacenId: '',
     categoriaId: '',
+    nombre: '',
     estado: '',
     stockBajo: false,
     precioOrden: '',

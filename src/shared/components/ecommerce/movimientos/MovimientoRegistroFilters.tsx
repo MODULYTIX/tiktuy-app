@@ -12,6 +12,7 @@ export interface Filters {
   almacenamiento_id: string;
   categoria_id: string;
   estado: string;
+  nombre: string;
   stock_bajo: boolean;
   precio_bajo: boolean;
   precio_alto: boolean;
@@ -32,6 +33,7 @@ export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovim
     categoria_id: '',
     estado: '',
     stock_bajo: false,
+    nombre: '',
     precio_bajo: false,
     precio_alto: false,
     search: '',
@@ -61,6 +63,7 @@ export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovim
       almacenamiento_id: '',
       categoria_id: '',
       estado: '',
+      nombre: '',
       stock_bajo: false,
       precio_bajo: false,
       precio_alto: false,
@@ -101,7 +104,7 @@ export default function MovimientoRegistroFilters({ onFilterChange, onNuevoMovim
         >
           {categorias.map((c) => (
             <option key={c.id} value={String(c.id)}>
-              {c.descripcion}
+              {c.nombre }
             </option>
           ))}
         </Selectx>

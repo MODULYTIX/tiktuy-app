@@ -84,7 +84,6 @@ export default function ZonasPage() {
       {/* Crear */}
       <NewZonaTarifariaDrawer
         open={drawerOpen}
-        defaultEstadoId={1}
         zonasOpciones={["1", "2", "3", "4", "5", "6"]}
         onClose={() => setDrawerOpen(false)}
         onCreated={() => setRefreshKey((k) => k + 1)}

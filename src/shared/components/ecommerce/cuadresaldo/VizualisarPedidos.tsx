@@ -1,5 +1,5 @@
 // src/shared/components/ecommerce/cuadreSaldo/VizualisarPedidos.tsx
-import React, { useMemo, useState } from "react";
+import  { useMemo, useState } from "react";
 import type { PedidoDiaItem } from "@/services/ecommerce/cuadreSaldo/cuadreSaldoC.types";
 
 type Row = PedidoDiaItem & {

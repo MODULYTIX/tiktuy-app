@@ -142,7 +142,7 @@ export default function AlmacenCourierEditarModal({ isOpen, onClose, almacen, on
 
     const uuid = form.uuid || almacen?.uuid || "";
     if (!uuid) {
-      console.warn("Falta el identificador del almacén");
+      console.warn("Falta el identificador del sede");
       return;
     }
 
@@ -182,19 +182,19 @@ export default function AlmacenCourierEditarModal({ isOpen, onClose, almacen, on
         <div className="p-5 border-b border-gray20">
           <div className="flex items-center gap-2 mb-5">
             <Icon icon="mdi:warehouse" width={22} className="text-primaryDark" />
-            <h2 className="text-xl font-bold uppercase text-[#1A253D]">Editar almacén</h2>
+            <h2 className="text-xl font-bold uppercase text-[#1A253D]">Editar Sede</h2>
           </div>
-          <p className="text-sm text-gray-600">Actualice la información del almacén y guarde los cambios.</p>
+          <p className="text-sm text-gray-600">Actualice la información de lla sede y guarde los cambios.</p>
         </div>
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-5 space-y-5 text-sm">
           <div>
-            <label className={labelClass}>Nombre de Almacén</label>
+            <label className={labelClass}>Nombre de Sede</label>
             <input
               type="text"
               name="nombre_almacen"
-              placeholder="Ejem. Almacén secundario"
+              placeholder="Ejem. Sede secundario"
               value={form.nombre_almacen}
               onChange={handleChange}
               className={fieldClass}

@@ -195,15 +195,17 @@ export default function TableZonaMine({
       </table>
 
       {totalPages > 1 && (
-        <div className="border-t p-4">
-          <Paginator
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={(page) => {
-              if (page >= 1 && page <= totalPages) setCurrentPage(page);
-            }}
-          />
-        </div>
+        <Paginator
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => {
+            if (page >= 1 && page <= totalPages) setCurrentPage(page);
+          }}
+          /** —— estilos “como el otro” —— */
+          appearance="grayRounded"
+          showArrows
+          containerClassName="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3"
+        />
       )}
     </div>
   );
