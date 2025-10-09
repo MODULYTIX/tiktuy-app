@@ -8,6 +8,7 @@ export type StockFilters = {
   almacenId: string;
   categoriaId: string;
   estado: string;
+  nombre:string;
   stockBajo: boolean;
   precioOrden: '' | 'asc' | 'desc';
   q: string;
@@ -42,6 +43,7 @@ const DEFAULT_FILTERS: StockFilters = {
   almacenId: '',
   categoriaId: '',
   estado: '',
+  nombre: '',
   stockBajo: false,
   precioOrden: '',
   q: '',

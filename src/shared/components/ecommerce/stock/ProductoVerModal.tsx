@@ -131,7 +131,7 @@ export default function ProductoVerModal({ open, onClose, data }: Props) {
             />
             <Inputx
               name="almacen"
-              label="Almacén"
+              label="Cede"
               value={almacenLabel}
               readOnly
               disabled

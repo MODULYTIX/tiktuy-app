@@ -101,7 +101,7 @@ export default function AlmacenCourierTable({
 
               <thead className="bg-[#E5E7EB]">
                 <tr className="text-gray70 font-roboto font-medium">
-                  <th className="px-4 py-3 text-left">Nom. Almacén</th>
+                  <th className="px-4 py-3 text-left">Nom. Cede</th>
                   <th className="px-4 py-3 text-left">Departamento</th>
                   <th className="px-4 py-3 text-left">Ciudad</th>
                   <th className="px-4 py-3 text-left">Dirección</th>
@@ -185,7 +185,7 @@ export default function AlmacenCourierTable({
                       colSpan={6}
                       className="px-4 py-4 text-center text-gray70 italic"
                     >
-                      No hay almacenes.
+                      No hay cedes.
                     </td>
                   </tr>
                 )}

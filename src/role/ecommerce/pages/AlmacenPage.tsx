@@ -160,12 +160,12 @@ export default function AlmacenPage() {
     <section className="mt-8">
       <div className="flex justify-between items-end mb-4">
         <Tittlex
-          title="Almacén"
-          description="Visualice su almacén y sus movimientos"
+          title="Cede"
+          description="Visualice su cede y sus movimientos"
         />
 
         <Buttonx
-          label="Nuevo Almacén"
+          label="Nueva Cede"
           icon="solar:garage-linear"
           variant="secondary"
           onClick={() => { setAlmacenEditando(null); setShowModal(true); }}
@@ -188,7 +188,7 @@ export default function AlmacenPage() {
 
               <thead className="bg-[#E5E7EB]">
                 <tr className="text-gray70 font-roboto font-medium">
-                  <th className="px-4 py-3 text-left">Nom. Almacén</th>
+                  <th className="px-4 py-3 text-left">Nom. Cede</th>
                   <th className="px-4 py-3 text-left">Departamento</th>
                   <th className="px-4 py-3 text-left">Ciudad</th>
                   <th className="px-4 py-3 text-left">Dirección</th>
@@ -209,7 +209,7 @@ export default function AlmacenPage() {
                 ) : dataPaginada.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-4 text-center text-gray70 italic">
-                      No hay almacenes registrados
+                      No hay cedes registradas
                     </td>
                   </tr>
                 ) : (

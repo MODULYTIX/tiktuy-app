@@ -74,8 +74,8 @@ export default function AlmacenPage() {
     <section className="mt-8 flex flex-col gap-5">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl text-primary font-bold">Almacén</h1>
-          <p className="text-gray-500">Visualice su almacén y sus movimientos</p>
+          <h1 className="text-3xl text-primary font-bold">Cede</h1>
+          <p className="text-gray-500">Visualice su cede y sus movimientos</p>
         </div>
         <div>
           <button
@@ -83,7 +83,7 @@ export default function AlmacenPage() {
             className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition"
           >
             <PiGarageLight size={18} />
-            <span>Nuevo Almacén</span>
+            <span>Nueva Cede</span>
           </button>
         </div>
       </div>
