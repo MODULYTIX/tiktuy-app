@@ -4,6 +4,8 @@ import { Icon } from '@iconify/react';
 import TablePedidoCourier from '@/shared/components/courier/pedido/TablePedidoCourier';
 import { useAuth } from '@/auth/context';
 import AsignarRepartidor from '@/shared/components/courier/pedido/AsignarRepartidor';
+import ReasignarRepartidorModal from '@/shared/components/courier/pedido/ReasignarRepartidorModal';
+import type { PedidoListItem } from '@/services/courier/pedidos/pedidos.types';
 
 type Vista = 'asignados' | 'pendientes' | 'terminados';
 
@@ -16,58 +18,58 @@ export default function PedidosPage() {
     return saved ?? 'asignados';
   });
 
-  // forzar recarga de la tabla después de asignar
+  // forzar recarga de la tabla después de asignar / reasignar
   const [reloadKey, setReloadKey] = useState(0);
 
-  // modal asignación
+  // modal asignación (en lote)
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  // modal REASIGNAR (individual)
+  const [modalReasignarOpen, setModalReasignarOpen] = useState(false);
+  const [pedidoAReasignar, setPedidoAReasignar] = useState<PedidoListItem | null>(null);
 
   useEffect(() => {
     localStorage.setItem('courier_vista_pedidos', vista);
   }, [vista]);
 
-  const handleVerDetalle = (id: number) => {
-    // aquí podrías abrir un modal de detalle
-    console.log('Ver detalle pedido', id);
-  };
-
-  // recibe los IDs seleccionados desde la tabla y abre el modal
+  // ---- Asignar (en lote) ----
   const handleAbrirAsignar = (ids: number[]) => {
     setSelectedIds(ids);
     setModalOpen(true);
   };
-
-  const handleCerrarModal = () => {
+  const handleCerrarAsignar = () => {
     setModalOpen(false);
     setSelectedIds([]);
   };
+  const handleAssigned = () => setReloadKey((k) => k + 1);
 
-  const handleAssigned = () => {
-    // refresca la tabla tras asignar
-    setReloadKey((k) => k + 1);
+  // ---- Reasignar (individual) ----
+  const handleAbrirReasignar = (pedido: PedidoListItem) => {
+    setPedidoAReasignar(pedido);
+    setModalReasignarOpen(true);
   };
+  const handleCerrarReasignar = () => {
+    setModalReasignarOpen(false);
+    setPedidoAReasignar(null);
+  };
+  const handleReassigned = () => setReloadKey((k) => k + 1);
 
   return (
     <section className="mt-8 flex flex-col gap-[1.25rem]">
-      {/* Header con tabs (modelo base) */}
+      {/* Header con tabs */}
       <div className="flex justify-between items-end pb-5 border-b border-gray30">
         <div className="flex flex-col gap-1">
           <h1 className="text-[1.75rem] font-bold text-primary">Gestión de Pedidos</h1>
-          <p className="text-gray60">
-            Administra y visualiza el estado de tus pedidos en cada etapa del proceso
-          </p>
+          <p className="text-gray60">Administra y visualiza el estado de tus pedidos en cada etapa del proceso</p>
         </div>
 
-        {/* Tabs: Asignados / Pendientes / Terminados */}
         <div className="flex gap-3 items-center">
           <button
             onClick={() => setVista('asignados')}
             className={[
               'flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium',
-              vista === 'asignados'
-                ? 'bg-primaryDark text-white'
-                : 'bg-gray20 text-primaryDark hover:shadow-default',
+              vista === 'asignados' ? 'bg-primaryDark text-white' : 'bg-gray20 text-primaryDark hover:shadow-default',
             ].join(' ')}
           >
             <Icon icon="solar:bill-list-broken" width={18} height={18} />
@@ -80,9 +82,7 @@ export default function PedidosPage() {
             onClick={() => setVista('pendientes')}
             className={[
               'flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium',
-              vista === 'pendientes'
-                ? 'bg-primaryDark text-white'
-                : 'bg-gray20 text-primaryDark hover:shadow-default',
+              vista === 'pendientes' ? 'bg-primaryDark text-white' : 'bg-gray20 text-primaryDark hover:shadow-default',
             ].join(' ')}
           >
             <Icon icon="mdi:clock-outline" width={18} height={18} />
@@ -95,9 +95,7 @@ export default function PedidosPage() {
             onClick={() => setVista('terminados')}
             className={[
               'flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium',
-              vista === 'terminados'
-                ? 'bg-primaryDark text-white'
-                : 'bg-gray20 text-primaryDark hover:shadow-default',
+              vista === 'terminados' ? 'bg-primaryDark text-white' : 'bg-gray20 text-primaryDark hover:shadow-default',
             ].join(' ')}
           >
             <Icon icon="mdi:clipboard-check-outline" width={18} height={18} />
@@ -112,19 +110,32 @@ export default function PedidosPage() {
           key={reloadKey}
           view={vista}
           token={token ?? ''}
-          onVerDetalle={handleVerDetalle}
           onAsignar={handleAbrirAsignar}
+          // 👇 IMPORTANTÍSIMO: pásale este callback para abrir el modal y NO usar window.prompt
+          onReasignar={handleAbrirReasignar}
         />
       </div>
 
-      {/* Modal Asignar Repartidor */}
+      {/* Modal Asignar Repartidor (lote) */}
       <AsignarRepartidor
         open={modalOpen}
-        onClose={handleCerrarModal}
+        onClose={handleCerrarAsignar}
         token={token ?? ''}
         selectedIds={selectedIds}
         onAssigned={handleAssigned}
       />
+
+      {/* Modal Reasignar Repartidor (uno) */}
+      {pedidoAReasignar && (
+        <ReasignarRepartidorModal
+          open={modalReasignarOpen}
+          token={token ?? ''}
+          pedido={pedidoAReasignar}
+          motorizados={[]}              // opcional; si tu modal los carga solo, deja []
+          onClose={handleCerrarReasignar}
+          onSuccess={handleReassigned}
+        />
+      )}
     </section>
   );
 }
