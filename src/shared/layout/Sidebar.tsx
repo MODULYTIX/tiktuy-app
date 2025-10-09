@@ -39,7 +39,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     admin: [
       { to: '/', label: 'Panel de Control', icon: <MdDashboard /> },
       { to: '/ventas', label: 'Ventas', icon: <FaCashRegister /> },
-      { to: '/almacen', label: 'Stock / Almacén', icon: <FaBoxes /> },
+      { to: '/almacen', label: 'Stock / Cede', icon: <FaBoxes /> },
       {
         to: '/saldos',
         label: 'Cuadre de Saldos',
@@ -57,7 +57,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       },
       {
         to: '/almacen',
-        label: 'Almacén',
+        label: 'Cede',
         icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />,
         modulo: 'stock',
       },
@@ -111,7 +111,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       },
       {
         to: '/almacen',
-        label: 'Almacén',
+        label: 'Cede',
         icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />,
         modulo: 'pedidos',
       },
@@ -199,7 +199,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       },
       {
         to: '/almacen',
-        label: 'Almacén',
+        label: 'Cede',
         icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />,
         modulo: 'stock',
       },
