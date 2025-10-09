@@ -160,9 +160,9 @@ export default function AlmacenCourierCrearModal({ isOpen, onClose, onSubmit }: 
         <div className="p-5 border-b border-gray20">
           <div className="flex items-center gap-2 mb-5">
             <Icon icon="mdi:warehouse" width={22} className="text-primaryDark" />
-            <h2 className="text-xl font-bold uppercase text-[#1A253D]">Registrar nuevo almacén</h2>
+            <h2 className="text-xl font-bold uppercase text-[#1A253D]">Registrar nuevo Sede</h2>
           </div>
-          <p className="text-sm text-gray-600">Complete la información para registrar un nuevo almacén.</p>
+          <p className="text-sm text-gray-600">Complete la información para registrar un nuevo sede.</p>
         </div>
 
         {/* Body */}
