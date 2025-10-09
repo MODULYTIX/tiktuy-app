@@ -147,11 +147,11 @@ export default function CrearAlmacenModal({
         <Tittlex
           variant="modal"
           icon="hugeicons:warehouse" // pon aquí el nombre del ícono de Iconify que prefieras
-          title={modo === "editar" ? "Editar Sede" : "Registrar Nuevo Sede"}
+          title={modo === "editar" ? "Editar Sede" : "Registrar Nueva Sede"}
           description={
             modo === "editar"
-              ? "Edite el sede y cambie el punto de origen o destino en sus operaciones logísticas."
-              : "Complete la información para registrar un nuevo sede y habilitarlo como punto de origen o destino en sus operaciones logísticas."
+              ? "Edite la sede y cambie el punto de origen o destino en sus operaciones logísticas."
+              : "Complete la información para registrar una nueva sede y habilitarlo como punto de origen o destino en sus operaciones logísticas."
           }
         />
 

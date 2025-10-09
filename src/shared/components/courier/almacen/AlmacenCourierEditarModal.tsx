@@ -184,7 +184,7 @@ export default function AlmacenCourierEditarModal({ isOpen, onClose, almacen, on
             <Icon icon="mdi:warehouse" width={22} className="text-primaryDark" />
             <h2 className="text-xl font-bold uppercase text-[#1A253D]">Editar Sede</h2>
           </div>
-          <p className="text-sm text-gray-600">Actualice la información del sede y guarde los cambios.</p>
+          <p className="text-sm text-gray-600">Actualice la información de lla sede y guarde los cambios.</p>
         </div>
 
         {/* Body */}
