@@ -232,12 +232,12 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
             </Selectx>
 
             <Selectx
-              label="Cede"
+              label="Sede"
               name="almacenamiento_id"
               labelVariant="left"
               value={form.almacenamiento_id}
               onChange={handleChange}
-              placeholder="Seleccionar cede"
+              placeholder="Seleccionar sede"
               required
               disabled={saving}
             >

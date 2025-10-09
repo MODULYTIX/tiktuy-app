@@ -159,8 +159,8 @@ export default function CrearAlmacenModal({
         <div className="flex flex-col gap-5 flex-1 overflow-auto">
           {/* Nombre de Almacén */}
           <Inputx
-            label="Nombre de Almacén"
-            placeholder="Ejem. Almacén secundario"
+            label="Nombre de Sede"
+            placeholder="Ejem. sede secundario"
             type="text"
             name="nombre_almacen"
             value={form.nombre_almacen}

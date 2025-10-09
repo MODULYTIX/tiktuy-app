@@ -160,12 +160,12 @@ export default function AlmacenPage() {
     <section className="mt-8">
       <div className="flex justify-between items-end mb-4">
         <Tittlex
-          title="Cede"
-          description="Visualice su cede y sus movimientos"
+          title="Sede"
+          description="Visualice su sede y sus movimientos"
         />
 
         <Buttonx
-          label="Nueva Cede"
+          label="Nueva sede"
           icon="solar:garage-linear"
           variant="secondary"
           onClick={() => { setAlmacenEditando(null); setShowModal(true); }}
@@ -188,7 +188,7 @@ export default function AlmacenPage() {
 
               <thead className="bg-[#E5E7EB]">
                 <tr className="text-gray70 font-roboto font-medium">
-                  <th className="px-4 py-3 text-left">Nom. Cede</th>
+                  <th className="px-4 py-3 text-left">Nom. Sede</th>
                   <th className="px-4 py-3 text-left">Departamento</th>
                   <th className="px-4 py-3 text-left">Ciudad</th>
                   <th className="px-4 py-3 text-left">Dirección</th>

@@ -101,7 +101,7 @@ export default function AlmacenCourierTable({
 
               <thead className="bg-[#E5E7EB]">
                 <tr className="text-gray70 font-roboto font-medium">
-                  <th className="px-4 py-3 text-left">Nom. Cede</th>
+                  <th className="px-4 py-3 text-left">Nom. Sede</th>
                   <th className="px-4 py-3 text-left">Departamento</th>
                   <th className="px-4 py-3 text-left">Ciudad</th>
                   <th className="px-4 py-3 text-left">Dirección</th>
