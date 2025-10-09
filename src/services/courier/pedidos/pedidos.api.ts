@@ -46,7 +46,11 @@ function toQueryEstado(q: ListByEstadoQuery = {}): string {
 }
 
 function hasMessage(v: unknown): v is { message: string } {
-  return typeof v === 'object' && v !== null && typeof (v as { message?: unknown }).message === 'string';
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    typeof (v as { message?: unknown }).message === 'string'
+  );
 }
 
 async function handle<T>(res: Response, fallbackMsg: string): Promise<T> {
@@ -68,6 +72,35 @@ async function handle<T>(res: Response, fallbackMsg: string): Promise<T> {
 }
 
 /* --------------------------
+   Normalizador de paginación
+---------------------------*/
+function normalizePaginated<T>(raw: any): Paginated<T> {
+  const totalItems =
+    Number(raw?.totalItems) ||
+    Number(raw?.total) ||
+    Number(raw?.count) ||
+    0;
+
+  const perPage = Number(raw?.perPage) || Number(raw?.limit) || 20;
+  const page = Number(raw?.page) || Number(raw?.currentPage) || 1;
+
+  const totalPages =
+    Number(raw?.totalPages) ||
+    Number(raw?.total_pages) ||
+    Number(raw?.pages) ||
+    Number(raw?.lastPage) ||
+    (totalItems && perPage ? Math.ceil(totalItems / perPage) : 1);
+
+  return {
+    items: Array.isArray(raw?.items) ? raw.items : [],
+    page,
+    perPage,
+    totalItems,
+    totalPages,
+  };
+}
+
+/* --------------------------
    GET: ASIGNADOS (solo estado Asignado)
    Endpoint esperado: GET /courier-pedidos/hoy
 ---------------------------*/
@@ -80,7 +113,8 @@ export async function fetchPedidosAsignadosHoy(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos asignados de hoy');
+  const data = await handle<any>(res, 'Error al obtener pedidos asignados de hoy');
+  return normalizePaginated<PedidoListItem>(data);
 }
 
 /* --------------------------
@@ -96,7 +130,8 @@ export async function fetchPedidosPendientes(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos pendientes');
+  const data = await handle<any>(res, 'Error al obtener pedidos pendientes');
+  return normalizePaginated<PedidoListItem>(data);
 }
 
 /* --------------------------
@@ -112,7 +147,8 @@ export async function fetchPedidosEntregados(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos entregados');
+  const data = await handle<any>(res, 'Error al obtener pedidos entregados');
+  return normalizePaginated<PedidoListItem>(data);
 }
 
 /* --------------------------
@@ -165,11 +201,11 @@ export async function reassignPedido(
   }
   return handle<ReassignPedidoResponse>(res, 'Error al reasignar pedido');
 }
+
 /* --------------------------
    GET: DETALLE DE PEDIDO (ojito 👁️)
    Endpoint esperado: GET /courier-pedidos/:id/detalle
 ---------------------------*/
-
 export async function fetchPedidoDetalle(
   token: string,
   pedidoId: number,

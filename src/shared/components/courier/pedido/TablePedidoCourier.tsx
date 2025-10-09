@@ -19,6 +19,8 @@ import {
 } from '@/services/courier/pedidos/pedidos.api';
 
 import DetallePedidoDrawer from './DetallePedidoDrawer';
+import Paginator from '../../Paginator';
+
 
 type View = 'asignados' | 'pendientes' | 'terminados';
 
@@ -40,7 +42,7 @@ const two = (n: number) => String(n).padStart(2, '0');
 export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
   /* paginación (server-side) */
   const [page, setPage] = useState(1);
-  const [perPage] = useState(20);
+  const [perPage] = useState(6);
 
   /* filtros (client-side, visuales) */
   const [filtroDistrito, setFiltroDistrito] = useState('');
@@ -171,39 +173,6 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
   }, [someSelected]);
 
   const totalPages = data?.totalPages ?? 1;
-
-  // paginador
-  const pagerItems = useMemo(() => {
-    const maxButtons = 5;
-    const pages: (number | string)[] = [];
-    if (!totalPages || totalPages <= 1) return pages;
-
-    if (totalPages <= maxButtons) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      let start = Math.max(1, page - 2);
-      let end = Math.min(totalPages, page + 2);
-
-      if (page <= 3) {
-        start = 1;
-        end = maxButtons;
-      } else if (page >= totalPages - 2) {
-        start = totalPages - (maxButtons - 1);
-        end = totalPages;
-      }
-
-      for (let i = start; i <= end; i++) pages.push(i);
-      if (start > 1) {
-        pages.unshift('…');
-        pages.unshift(1);
-      }
-      if (end < totalPages) {
-        pages.push('…');
-        pages.push(totalPages);
-      }
-    }
-    return pages;
-  }, [page, totalPages]);
 
   const goToPage = (p: number) => {
     if (!totalPages) return;
@@ -398,8 +367,7 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
 
                     const cantidad =
                       p.items_total_cantidad ??
-                      p.items?.reduce((s, it) => s + it.cantidad, 0) ??
-                      0;
+                      p.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0;
                     const direccion = p.cliente?.direccion ?? '';
                     const montoNumber = Number(p.monto_recaudar || 0);
 
@@ -473,47 +441,16 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
               </table>
             </div>
 
-            {/* Paginador */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
-                <button
-                  onClick={() => goToPage(page - 1)}
-                  disabled={page === 1 || loading}
-                  className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-                  aria-label="Página anterior">
-                  &lt;
-                </button>
-
-                {pagerItems.map((p, i) =>
-                  typeof p === 'string' ? (
-                    <span key={`dots-${i}`} className="px-2 text-gray70">
-                      {p}
-                    </span>
-                  ) : (
-                    <button
-                      key={p}
-                      onClick={() => goToPage(p)}
-                      aria-current={page === p ? 'page' : undefined}
-                      className={[
-                        'w-8 h-8 flex items-center justify-center rounded',
-                        page === p
-                          ? 'bg-gray90 text-white'
-                          : 'bg-gray10 text-gray70 hover:bg-gray20',
-                      ].join(' ')}
-                      disabled={loading}>
-                      {p}
-                    </button>
-                  )
-                )}
-
-                <button
-                  onClick={() => goToPage(page + 1)}
-                  disabled={page === totalPages || loading}
-                  className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-                  aria-label="Página siguiente">
-                  &gt;
-                </button>
-              </div>
+              <Paginator
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+                /** Estas props NO afectan a otras tablas donde ya lo usas */
+                appearance="grayRounded"
+                showArrows
+                containerClassName="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2"
+              />
             )}
           </div>
         </>
