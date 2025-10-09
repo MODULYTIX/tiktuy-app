@@ -149,7 +149,7 @@ export default function StockTable({
                 </th>
                 <th className="px-4 py-3 text-left">Código</th>
                 <th className="px-4 py-3 text-left">Producto</th>
-                <th className="px-4 py-3 text-left">Cede</th>
+                <th className="px-4 py-3 text-left">Sede</th>
                 <th className="px-4 py-3 text-left">Stock</th>
                 <th className="px-4 py-3 text-right">Precio</th>
                 <th className="px-4 py-3 text-center">Estado</th>

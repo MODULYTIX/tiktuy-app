@@ -125,7 +125,7 @@ export default function ProductoDetalleModal({ isOpen, onClose, producto }: Prop
 
             {/* Campos como inputs read-only (sin Selectx) */}
             <Field label="Categoría" value={categoria} placeholder="-" />
-            <Field label="Almacén" value={almacen} placeholder="-" />
+            <Field label="Sede" value={almacen} placeholder="-" />
 
             <Field label="Precio" value={precio} placeholder="0.00" />
             <Field label="Cantidad" value={cantidad} placeholder="0" />

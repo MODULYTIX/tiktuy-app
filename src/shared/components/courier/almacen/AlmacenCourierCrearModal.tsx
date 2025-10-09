@@ -168,11 +168,11 @@ export default function AlmacenCourierCrearModal({ isOpen, onClose, onSubmit }: 
         {/* Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-5 space-y-5 text-sm">
           <div>
-            <label className={labelClass}>Nombre de Almacén</label>
+            <label className={labelClass}>Nombre de Sede</label>
             <input
               type="text"
               name="nombre_almacen"
-              placeholder="Ejem. Almacén secundario"
+              placeholder="Ejem. Sede secundario"
               value={form.nombre_almacen}
               onChange={handleChange}
               className={fieldClass}

@@ -145,7 +145,7 @@ export default function TableStockProductoCourier({
                 <tr className="text-gray70 font-roboto font-medium">
                   <th className="px-4 py-3 text-left">Código</th>
                   <th className="px-4 py-3 text-left">Producto</th>
-                  <th className="px-4 py-3 text-left">Almacén</th>
+                  <th className="px-4 py-3 text-left">Sede</th>
                   <th className="px-4 py-3 text-left">Stock</th>
                   <th className="px-4 py-3 text-right">Precio</th>
                   <th className="px-4 py-3 text-center">Estado</th>

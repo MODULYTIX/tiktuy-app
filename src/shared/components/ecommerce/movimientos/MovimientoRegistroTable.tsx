@@ -150,7 +150,7 @@ export default function MovimientoRegistroTable({
               <col className="w-[4%]" />   {/* checkbox */}
               <col className="w-[12%]" />  {/* Código */}
               <col className="w-[30%]" />  {/* Producto */}
-              <col className="w-[16%]" />  {/* Almacén */}
+              <col className="w-[16%]" />  {/* Sedes */}
               <col className="w-[12%]" />  {/* Stock */}
               <col className="w-[10%]" />  {/* Precio */}
               <col className="w-[8%]" />   {/* Estado */}
@@ -162,7 +162,7 @@ export default function MovimientoRegistroTable({
                 <th className="px-4 py-3 text-left">#</th>
                 <th className="px-4 py-3 text-left">Código</th>
                 <th className="px-4 py-3 text-left">Producto</th>
-                <th className="px-4 py-3 text-left">Almacén</th>
+                <th className="px-4 py-3 text-left">Sedes</th>
                 <th className="px-4 py-3 text-left">Stock</th>
                 <th className="px-4 py-3 text-right">Precio</th>
                 <th className="px-4 py-3 text-center">Estado</th>

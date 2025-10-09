@@ -76,9 +76,9 @@ export default function CrearMovimientoModal({
         ? almacenesProductos.every((id) => id === almacenesProductos[0])
         : false;
 
-    if (!todosIguales) return notify('Todos los productos deben pertenecer al mismo almacén de origen.', 'error');
+    if (!todosIguales) return notify('Todos los productos deben pertenecer al mismo sede de origen.', 'error');
     if (!almacenOrigen || !almacenDestino || almacenOrigen === almacenDestino)
-      return notify('Selecciona almacenes válidos.', 'error');
+      return notify('Selecciona sede válidos.', 'error');
 
     const productosMov = selectedProducts
       .filter((uuid) => (cantidades[uuid] ?? 0) > 0)
@@ -199,7 +199,7 @@ export default function CrearMovimientoModal({
         <div className="flex-1 flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-5">
             <Inputx
-              label="Almacén Origen"
+              label="Sede Origen"
               name="almacen_origen"
               value={origenNombre}
               readOnly
@@ -207,12 +207,12 @@ export default function CrearMovimientoModal({
               type="text"
             />
             <Selectx
-              label="Almacén Destino"
+              label="Sede Destino"
               name="almacen_destino"
               labelVariant="left"
               value={almacenDestino ?? ''}
               onChange={(e) => setAlmacenDestino(e.target.value)}
-              placeholder="Seleccionar almacén"
+              placeholder="Seleccionar sede"
             >
               {almacenesDestino.map((a) => (
                 <option key={a.id} value={String(a.id)}>
