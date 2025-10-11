@@ -198,25 +198,6 @@ function DetalleEcommerceModal({
           </div>
 
           {/* fila 2 */}
-<<<<<<< HEAD
-          <div className="w-full flex flex-col-2 gap-5">
-            <Inputx
-              name="dni"
-              label="DNI / CI"
-              value={dni}
-              readOnly
-              disabled
-              type="text"
-            />
-            <Inputx
-              name="correo"
-              label="Correo"
-              value={correo}
-              readOnly
-              disabled
-              type="text"
-            />
-=======
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="flex flex-col gap-2">
               <label className="text-gray80 font-medium">DNI / CI</label>
@@ -226,7 +207,6 @@ function DetalleEcommerceModal({
               <label className="text-gray80 font-medium">Correo</label>
               <input value={correo} disabled className={inputClass} />
             </div>
->>>>>>> 3f8fb2e9a0b00d977079b46cea9e5a03b65a230a
           </div>
 
           {/* fila 3 */}

@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-import { useEffect, useState, useRef } from 'react';
-=======
 // src/shared/components/courier/movimiento/DetallesMovimientoCourierModal.tsx
 import { useEffect, useRef, useState } from 'react';
->>>>>>> 3f8fb2e9a0b00d977079b46cea9e5a03b65a230a
 import { createPortal } from 'react-dom';
 import { HiClock, HiX } from 'react-icons/hi';
 import { Icon } from '@iconify/react/dist/iconify.js';
@@ -358,15 +354,7 @@ export default function DetallesMovimientoCourierModal({
             </div>
           </div>
 
-<<<<<<< HEAD
-        {/* Footer */}
-        <div className="sticky  bg-white px-6 py-4 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border rounded hover:bg-gray-100">
-            Cancelar
-          </button>
-=======
           {/* Footer (sólo si validar) */}
->>>>>>> 3f8fb2e9a0b00d977079b46cea9e5a03b65a230a
           {canValidate && (
             <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-2">
               <button onClick={onClose} className="px-4 py-2 border rounded hover:bg-gray-100">

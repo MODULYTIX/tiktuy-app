@@ -198,15 +198,10 @@ export default function CrearMovimientoModal({
         {/* Datos adicionales */}
         <div className="flex-1 flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-5">
-<<<<<<< HEAD
-            <Selectx
-              label="Almacén Origen"
-=======
             <Inputx
               label="Sede Origen"
->>>>>>> 3f8fb2e9a0b00d977079b46cea9e5a03b65a230a
               name="almacen_origen"
-              labelVariant="left"
+              // labelVariant="left"
               value={almacenOrigen} // Este es el valor que se selecciona
               onChange={(e) => setAlmacenOrigen(e.target.value)} // Actualiza el valor seleccionado
               placeholder="Seleccionar almacén"
@@ -216,7 +211,7 @@ export default function CrearMovimientoModal({
                   {almacen.nombre_almacen}
                 </option>
               ))}
-            </Selectx>
+            </Inputx>
 
             <Selectx
               label="Sede Destino"
