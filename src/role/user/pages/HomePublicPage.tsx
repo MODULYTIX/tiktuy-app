@@ -4,7 +4,7 @@ export default function HomePublicPage() {
   return (
     <div>
       {/* <h1>Home</h1> */}
-      <section>
+      <section className="flex justify-center">
         <Solicitud />
       </section>
     </div>
