@@ -109,10 +109,20 @@ export interface ReassignPedidoPayload {
   motorizado_id: number;
   observacion?: string;
 }
-export interface ReassignPedidoResponse {
+
+export interface ReassignPedidoResultCore {
   pedido_id: number;
   motorizado_anterior_id: number;
   motorizado_nuevo_id: number;
+  nuevo_pedido_id: number;
+  codigo_pedido_nuevo: string;
+}
+
+/** Lo que responde tu controller: { ok, message, data } */
+export interface ReassignPedidoApiResponse {
+  ok: boolean;
+  message: string;
+  data: ReassignPedidoResultCore;
 }
 /* ----- Detalle de pedido (para el ojito 👁️) ----- */
 export interface PedidoDetalle {

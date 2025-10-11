@@ -176,8 +176,8 @@ export default function EditZonaTarifariaDrawer({
       <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Icon icon="ph:user-gear-duotone" className="text-primaryDark" width={26} />
-            <h2 className="text-xl font-extrabold text-[#1A237E]">{titulo}</h2>
+          <Icon icon="solar:point-on-map-broken" width="24" height="24" className='text-primary' />
+          <h2 className="text-xl font-extrabold text-[#1A237E]">{titulo}</h2>
           </div>
           <button
             onClick={onClose}
@@ -264,7 +264,7 @@ export default function EditZonaTarifariaDrawer({
         {/* Acciones */}
         <div className="mt-6 flex items-center gap-3">
           <button
-            className="px-4 py-2 rounded bg-[#1A237E] text-white text-sm disabled:opacity-60"
+            className="px-4 py-2 rounded bg-[#1F2937] text-white text-sm disabled:opacity-60"
             onClick={handleUpdate}
             disabled={saving}
           >

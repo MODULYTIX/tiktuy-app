@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { assignPedidos } from '@/services/courier/pedidos/pedidos.api';
 import type { PedidoListItem } from '@/services/courier/pedidos/pedidos.types';
@@ -7,9 +7,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   token: string;
-  /** IDs seleccionados desde la tabla */
   selectedIds: number[];
-  /** Opcional: si pasas el pedido seleccionado podrás renderizar su resumen sin volver a pedirlo */
   selectedPedido?: PedidoListItem | null;
   onAssigned?: () => void;
 };
@@ -33,20 +31,19 @@ type PedidoDetalleMin = {
   cliente: { nombre: string };
   direccion_envio: string | null;
   fecha_entrega_programada: string | null;
-  monto_recaudar: string; // viene como string en tu listado
-  items?: { nombre: string; cantidad: number }[];
+  monto_recaudar: string;
+  items?: { nombre: string; cantidad: number; marca?: string }[];
   items_total_cantidad?: number;
 };
 
 const API_URL = import.meta.env.VITE_API_URL as string;
-const ESTADO_ID_DISPONIBLE = 18; // Disponible
+const ESTADO_ID_DISPONIBLE = 18;
 
 export default function AsignarRepartidor({
   open,
   onClose,
   token,
   selectedIds,
-  selectedPedido = null,
   onAssigned,
 }: Props) {
   const [loading, setLoading] = useState(false);
@@ -54,11 +51,12 @@ export default function AsignarRepartidor({
   const [error, setError] = useState('');
   const [motorizados, setMotorizados] = useState<MotorizadoOption[]>([]);
   const [motorizadoId, setMotorizadoId] = useState<number | ''>('');
-  const [detalle, setDetalle] = useState<PedidoDetalleMin | null>(null);
+  const [detalles, setDetalles] = useState<PedidoDetalleMin[]>([]);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const isMulti = selectedIds.length > 1;
 
-  // Cargar motorizados del courier autenticado (SOLO DISPONIBLES)
+  // Cargar motorizados disponibles
   useEffect(() => {
     if (!open) return;
     const ac = new AbortController();
@@ -67,7 +65,6 @@ export default function AsignarRepartidor({
       setMotosLoading(true);
       setError('');
       try {
-        // Si tienes un endpoint dedicado: `${API_URL}/motorizado/disponibles`
         const res = await fetch(`${API_URL}/motorizado`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: ac.signal,
@@ -81,17 +78,15 @@ export default function AsignarRepartidor({
             (m.estado?.nombre && m.estado.nombre.toLowerCase() === 'disponible')
         );
 
-        const opts: MotorizadoOption[] = soloDisponibles.map((m) => ({
-          id: m.id,
-          nombres: m.usuario?.nombres ?? '',
-          apellidos: m.usuario?.apellidos ?? '',
-        }));
-
-        setMotorizados(opts);
+        setMotorizados(
+          soloDisponibles.map((m) => ({
+            id: m.id,
+            nombres: m.usuario?.nombres ?? '',
+            apellidos: m.usuario?.apellidos ?? '',
+          }))
+        );
       } catch (e) {
-        if ((e as Error).name !== 'AbortError') {
-          setError((e as Error).message);
-        }
+        if ((e as Error).name !== 'AbortError') setError((e as Error).message);
       } finally {
         setMotosLoading(false);
       }
@@ -101,85 +96,50 @@ export default function AsignarRepartidor({
     return () => ac.abort();
   }, [open, token]);
 
-  // Si es selección única, intenta mostrar resumen del pedido
+  // Cargar detalles pedidos seleccionados
   useEffect(() => {
     if (!open) return;
-    if (isMulti) {
-      setDetalle(null);
-      return;
-    }
-    // Si ya viene desde el padre, úsalo directo
-    if (selectedPedido) {
-      setDetalle({
-        id: selectedPedido.id,
-        codigo_pedido: selectedPedido.codigo_pedido,
-        cliente: { nombre: selectedPedido.cliente.nombre },
-        direccion_envio: selectedPedido.direccion_envio ?? null,
-        fecha_entrega_programada: selectedPedido.fecha_entrega_programada,
-        monto_recaudar: selectedPedido.monto_recaudar,
-        items: selectedPedido.items ?? [],
-        items_total_cantidad: selectedPedido.items_total_cantidad,
-      });
-      return;
-    }
-    // Si no viene, pide el detalle al backend
-    const ac = new AbortController();
-    async function loadDetalle() {
+
+    async function loadDetalles() {
+      setError('');
       try {
-        const id = selectedIds[0];
-        const res = await fetch(`${API_URL}/pedido/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: ac.signal,
-        });
-        if (!res.ok) throw new Error('Error al cargar detalle del pedido');
-        const p = await res.json();
-        const items: { nombre: string; cantidad: number }[] =
-          p.detalles?.map((d: any) => ({
-            nombre: d.producto?.nombre_producto ?? 'Producto',
-            cantidad: d.cantidad ?? 0,
-          })) ?? [];
+        const results: PedidoDetalleMin[] = [];
+        for (const id of selectedIds) {
+          const res = await fetch(`${API_URL}/pedido/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) continue;
+          const p = await res.json();
+          const items =
+            p.detalles?.map((d: any) => ({
+              nombre: d.producto?.nombre_producto ?? 'Producto',
+              cantidad: d.cantidad ?? 0,
+              marca: d.producto?.marca ?? '',
+            })) ?? [];
 
-        const cantCalc =
-          p.items_total_cantidad ??
-          items.reduce((s: number, it: { cantidad: number }) => s + (it.cantidad || 0), 0);
+          const cantCalc =
+            p.items_total_cantidad ??
+            items.reduce((s: number, it: { cantidad: number }) => s + (it.cantidad || 0), 0);
 
-        const det: PedidoDetalleMin = {
-          id: p.id,
-          codigo_pedido: p.codigo_pedido,
-          cliente: { nombre: p.nombre_cliente },
-          direccion_envio: p.direccion_envio ?? null,
-          fecha_entrega_programada: p.fecha_entrega_programada ?? null,
-          monto_recaudar: String(p.monto_recaudar ?? '0'),
-          items,
-          items_total_cantidad: cantCalc,
-        };
-        setDetalle(det);
-      } catch (e) {
-        if ((e as Error).name !== 'AbortError') {
-          setError((e as Error).message);
+          results.push({
+            id: p.id,
+            codigo_pedido: p.codigo_pedido,
+            cliente: { nombre: p.nombre_cliente },
+            direccion_envio: p.direccion_envio ?? null,
+            fecha_entrega_programada: p.fecha_entrega_programada ?? null,
+            monto_recaudar: String(p.monto_recaudar ?? '0'),
+            items,
+            items_total_cantidad: cantCalc,
+          });
         }
+        setDetalles(results);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Error al cargar detalles');
       }
     }
-    loadDetalle();
-    return () => ac.abort();
-  }, [open, isMulti, selectedIds, selectedPedido, token]);
 
-  const tituloCodigo = useMemo(() => {
-    if (isMulti) return `(${selectedIds.length} pedidos seleccionados)`;
-    return detalle?.codigo_pedido ? `Cód. Pedido : ${detalle.codigo_pedido}` : '';
-  }, [isMulti, selectedIds.length, detalle?.codigo_pedido]);
-
-  const totalItems = useMemo(() => {
-    if (isMulti) return selectedIds.length;
-    return detalle?.items_total_cantidad ?? 0;
-  }, [isMulti, selectedIds.length, detalle?.items_total_cantidad]);
-
-  const monto = useMemo(() => {
-    if (isMulti) return '—';
-    return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(
-      Number(detalle?.monto_recaudar || 0)
-    );
-  }, [isMulti, detalle?.monto_recaudar]);
+    loadDetalles();
+  }, [open, selectedIds, token]);
 
   async function handleAsignar() {
     if (!motorizadoId) return;
@@ -199,19 +159,27 @@ export default function AsignarRepartidor({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40">
-      <div className="w-[680px] max-w-[94vw] bg-white rounded-lg shadow-xl">
+    <div className="fixed inset-0 z-[70] flex justify-end bg-black/40">
+      <div className="h-full w-[480px] max-w-[90vw] bg-white rounded-l-lg shadow-xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <Icon icon="mdi:cart" className="text-primary" width={20} height={20} />
             <h3 className="text-lg font-semibold text-primaryDark">ASIGNAR REPARTIDOR</h3>
           </div>
-          {tituloCodigo && <span className="text-xs text-gray-500">{tituloCodigo}</span>}
+          {isMulti ? (
+            <span className="text-xs text-gray-500">
+              {selectedIds.length} pedidos seleccionados
+            </span>
+          ) : (
+            <span className="text-xs text-gray-500">
+              {detalles[0]?.codigo_pedido ? `Cód. Pedido : ${detalles[0]?.codigo_pedido}` : ''}
+            </span>
+          )}
         </div>
 
-        {/* Body */}
-        <div className="p-4 space-y-4">
+        {/* Body con scroll */}
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto">
           {error && (
             <div className="px-3 py-2 rounded bg-red-50 text-red-700 text-sm border border-red-200">
               {error}
@@ -219,77 +187,31 @@ export default function AsignarRepartidor({
           )}
 
           {/* Resumen */}
-          <div className="border rounded p-3">
-            <h4 className="font-semibold mb-3">Resumen</h4>
-
-            {/* fila 1 */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex gap-2">
-                <span className="text-gray-500 min-w-[80px]">Cliente:</span>
-                <span className="font-medium">
-                  {isMulti ? '—' : detalle?.cliente?.nombre ?? '—'}
-                </span>
-              </div>
-              <div className="flex gap-2 justify-end">
-                <span className="text-gray-500">Monto:</span>
-                <span className="font-medium">{monto}</span>
-              </div>
-            </div>
-
-            {/* fila 2 */}
-            <div className="mt-2 flex gap-2 text-sm">
-              <span className="text-gray-500 min-w-[130px]">Dirección de Entrega:</span>
-              <span className="font-medium">
-                {isMulti ? '—' : detalle?.direccion_envio ?? '—'}
-              </span>
-            </div>
-
-            {/* fila 3 */}
-            <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
-              <div className="flex gap-2">
-                <span className="text-gray-500 min-w-[80px]">F. Entrega:</span>
-                <span className="font-medium">
-                  {isMulti
-                    ? '—'
-                    : detalle?.fecha_entrega_programada
-                    ? new Date(detalle.fecha_entrega_programada).toLocaleDateString('es-PE')
-                    : '—'}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <span className="text-gray-500 min-w-[130px]">Cant. de Productos:</span>
-                <span className="font-medium">{String(totalItems).padStart(2, '0')}</span>
-              </div>
-            </div>
-
-            {/* Lista de productos (solo selección única) */}
-            {!isMulti && (
-              <div className="mt-3 border rounded">
-                <div className="px-3 py-2 text-xs uppercase text-gray-600 bg-gray-50 grid grid-cols-[1fr_80px]">
-                  <span>Producto</span>
-                  <span className="text-right">Cant.</span>
-                </div>
-                <div>
-                  {(detalle?.items ?? []).map((it, idx) => (
-                    <div
-                      key={`${it.nombre}-${idx}`}
-                      className="px-3 py-2 text-sm grid grid-cols-[1fr_80px] border-t"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium">{it.nombre}</span>
-                      </div>
-                      <div className="text-right">{String(it.cantidad).padStart(2, '0')}</div>
-                    </div>
-                  ))}
-                  {!detalle?.items?.length && (
-                    <div className="px-3 py-4 text-center text-gray-500 text-sm border-t">
-                      Sin items para mostrar.
+          {!isMulti ? (
+            detalles[0] && <PedidoCard pedido={detalles[0]} />
+          ) : (
+            <div className="space-y-2">
+              {detalles.map((p) => (
+                <div key={p.id} className="border rounded">
+                  <button
+                    onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                    className="w-full flex justify-between items-center px-3 py-2 bg-gray-50 text-sm font-medium"
+                  >
+                    <span>{p.codigo_pedido}</span>
+                    <Icon
+                      icon={expandedId === p.id ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+                      className="text-gray-500"
+                    />
+                  </button>
+                  {expandedId === p.id && (
+                    <div className="p-3">
+                      <PedidoCard pedido={p} />
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Select repartidor */}
           <div className="space-y-1">
@@ -342,6 +264,64 @@ export default function AsignarRepartidor({
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* Componente auxiliar para mostrar pedido */
+function PedidoCard({ pedido }: { pedido: PedidoDetalleMin }) {
+  return (
+    <div className="border rounded p-3 text-sm">
+      {/* Encabezado */}
+      <div className="grid grid-cols-2 gap-4 mb-2">
+        <div>
+          <span className="text-gray-500">Cliente:</span> {pedido.cliente.nombre}
+        </div>
+        <div className="text-right">
+          <span className="text-gray-500">Monto:</span>{' '}
+          {new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(
+            Number(pedido.monto_recaudar || 0)
+          )}
+        </div>
+      </div>
+
+      <div className="mb-2">
+        <span className="text-gray-500">Dirección de Entrega:</span>{' '}
+        {pedido.direccion_envio ?? '—'}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-2">
+        <div>
+          <span className="text-gray-500">F. Entrega:</span>{' '}
+          {pedido.fecha_entrega_programada
+            ? new Date(pedido.fecha_entrega_programada).toLocaleDateString('es-PE')
+            : '—'}
+        </div>
+        <div>
+          <span className="text-gray-500">Cant. de Productos:</span>{' '}
+          {String(pedido.items_total_cantidad ?? 0).padStart(2, '0')}
+        </div>
+      </div>
+
+      {/* Lista de productos */}
+      <div className="mt-2 border rounded">
+        <div className="px-3 py-1 text-xs uppercase text-gray-600 bg-gray-50 grid grid-cols-[1fr_60px]">
+          <span>Producto</span>
+          <span className="text-right">Cant.</span>
+        </div>
+        {(pedido.items ?? []).map((it, idx) => (
+          <div
+            key={idx}
+            className="px-3 py-2 grid grid-cols-[1fr_60px] border-t text-sm"
+          >
+            <div className="flex flex-col">
+              <span className="font-medium">{it.nombre}</span>
+              {it.marca && <span className="text-xs text-gray-500">Marca: {it.marca}</span>}
+            </div>
+            <span className="text-right">{String(it.cantidad).padStart(2, '0')}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

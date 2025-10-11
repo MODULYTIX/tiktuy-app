@@ -49,10 +49,11 @@ export interface CrearZonaTarifariaPayload {
   courier_id: number;
   distrito: string;
   zona_tarifario: string;
-  tarifa_cliente: number;     // en payload enviamos number desde el front
-  pago_motorizado: number;    // idem
-  estado_id: number;
+  tarifa_cliente: number;
+  pago_motorizado: number;
+  estado_id?: number; // <-- opcional
 }
+
 
 /** Payload para crear para el usuario autenticado (sin courier_id) */
 export type CrearZonaTarifariaParaMiUsuarioPayload =

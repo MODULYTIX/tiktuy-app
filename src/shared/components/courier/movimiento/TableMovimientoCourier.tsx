@@ -1,16 +1,17 @@
-// src/shared/components/courier/movimiento/TableMovimientoCourier.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { FaEye, FaCheck } from 'react-icons/fa';
 import { useAuth } from '@/auth/context';
-import {
-  fetchCourierMovimientos,
-} from '@/services/courier/movimiento/movimientoCourier.api';
+import { fetchCourierMovimientos } from '@/services/courier/movimiento/movimientoCourier.api';
 import type {
   CourierMovimientoItem,
   CourierMovimientosResponse,
 } from '@/services/courier/movimiento/movimientoCourier.type';
 import type { MovimientoCourierFilters } from '../../movimiento/MovimientoFilterCourier';
-import MovimientoCourierModal from './MovimientoCourierModal';
+
+// Modal para validar (nuevo)
+import ValidarMovimientoCourierModal from './ValidarMovimientoCourierModal';
+import DetallesMovimientoCourierModal from './MovimientoCourierModal';
+// Modal para ver detalle (usa el que ya tengas disponible)
 
 interface Props {
   filters: MovimientoCourierFilters;
@@ -60,14 +61,10 @@ export default function TableMovimientoCourier({ filters }: Props) {
     const estadoSel = filters.estado.trim().toLowerCase();
 
     return items.filter((it) => {
-      const byEstado = estadoSel
-        ? (it.estado?.nombre || '').toLowerCase() === estadoSel
-        : true;
-
+      const byEstado = estadoSel ? (it.estado?.nombre || '').toLowerCase() === estadoSel : true;
       const byFecha = fechaStr
         ? new Date(it.fecha_movimiento).toISOString().slice(0, 10) === fechaStr
         : true;
-
       const textHaystack = [
         it.descripcion || '',
         it.almacen_origen?.nombre_almacen || '',
@@ -75,9 +72,7 @@ export default function TableMovimientoCourier({ filters }: Props) {
       ]
         .join(' ')
         .toLowerCase();
-
       const byQ = q ? textHaystack.includes(q) : true;
-
       return byEstado && byFecha && byQ;
     });
   }, [items, filters]);
@@ -87,26 +82,21 @@ export default function TableMovimientoCourier({ filters }: Props) {
   const indexOfFirst = indexOfLast - itemsPerPage;
   const currentMovimientos = filtered.slice(indexOfFirst, indexOfLast);
 
-  // ---------- estilos del badge de estado (sin cambiar tu mapeo)
+  // estado badge
   const renderEstado = (estado?: string) => {
     const name = (estado || '').toLowerCase();
     const base =
       'inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm';
-    if (name === 'validado') {
-      return <span className={`${base} bg-green-100 text-green-700`}>Validado</span>;
-    }
-    if (name === 'proceso' || name === 'en proceso') {
+    if (name === 'validado') return <span className={`${base} bg-green-100 text-green-700`}>Validado</span>;
+    if (name === 'proceso' || name === 'en proceso')
       return <span className={`${base} bg-yellow-100 text-yellow-700`}>Proceso</span>;
-    }
-    if (name === 'observado') {
-      return <span className={`${base} bg-red-100 text-red-700`}>Observado</span>;
-    }
+    if (name === 'observado') return <span className={`${base} bg-red-100 text-red-700`}>Observado</span>;
     return <span className={`${base} bg-blue-100 text-blue-700`}>{estado || '-'}</span>;
   };
 
   const fmtFecha = (iso: string) =>
     new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(
-      new Date(iso)
+      new Date(iso),
     );
 
   const codigoFromUuid = (uuid: string) => (uuid ? uuid.slice(0, 8).toUpperCase() : '-');
@@ -123,7 +113,7 @@ export default function TableMovimientoCourier({ filters }: Props) {
     setOpenModal(true);
   };
 
-  // ---------- paginador estilo base (5 botones con elipsis)
+  // paginador
   const pagerItems = useMemo(() => {
     const maxButtons = 5;
     const pages: (number | string)[] = [];
@@ -140,20 +130,24 @@ export default function TableMovimientoCourier({ filters }: Props) {
         end = totalPages;
       }
       for (let i = start; i <= end; i++) pages.push(i);
-      if (start > 1) { pages.unshift('...'); pages.unshift(1); }
-      if (end < totalPages) { pages.push('...'); pages.push(totalPages); }
+      if (start > 1) {
+        pages.unshift('...');
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push('...');
+        pages.push(totalPages);
+      }
     }
     return pages;
   }, [currentPage, totalPages]);
 
-  // iguala la altura total: si no hay filas visibles, la fila de mensaje cuenta como 1
   const visibleCount = Math.max(1, currentMovimientos.length);
   const emptyRows = Math.max(0, itemsPerPage - visibleCount);
 
   return (
     <>
       <div className="bg-white rounded-md overflow-hidden shadow-default">
-        {/* Mensajes */}
         {loading && <div className="px-4 py-3 text-sm text-gray-500">Cargando movimientos…</div>}
         {error && !loading && <div className="px-4 py-3 text-sm text-red-600">{error}</div>}
 
@@ -161,15 +155,14 @@ export default function TableMovimientoCourier({ filters }: Props) {
           <section className="flex-1 overflow-auto">
             <div className="overflow-x-auto bg-white">
               <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-                {/* Porcentajes por columna (suman 100%) */}
                 <colgroup>
-                  <col className="w-[12%]" /> {/* Código */}
-                  <col className="w-[18%]" /> {/* Desde */}
-                  <col className="w-[18%]" /> {/* Hacia */}
-                  <col className="w-[28%]" /> {/* Descripción */}
-                  <col className="w-[12%]" /> {/* Fec. Generación */}
-                  <col className="w-[6%]" />  {/* Estado */}
-                  <col className="w-[6%]" />  {/* Acciones */}
+                  <col className="w-[12%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[28%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[6%]" />
                 </colgroup>
 
                 <thead className="bg-[#E5E7EB]">
@@ -187,24 +180,12 @@ export default function TableMovimientoCourier({ filters }: Props) {
                 <tbody className="divide-y divide-gray20">
                   {currentMovimientos.map((mov) => (
                     <tr key={mov.id} className="hover:bg-gray10 transition-colors">
-                      <td className="px-4 py-3 text-gray70 font-[400]">
-                        {codigoFromUuid(mov.uuid)}
-                      </td>
-                      <td className="px-4 py-3 text-gray70 font-[400]">
-                        {mov.almacen_origen?.nombre_almacen || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-gray70 font-[400]">
-                        {mov.almacen_destino?.nombre_almacen || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-gray70 font-[400]">
-                        {mov.descripcion || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-gray70 font-[400]">
-                        {fmtFecha(mov.fecha_movimiento)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {renderEstado(mov.estado?.nombre)}
-                      </td>
+                      <td className="px-4 py-3 text-gray70 font-[400]">{codigoFromUuid(mov.uuid)}</td>
+                      <td className="px-4 py-3 text-gray70 font-[400]">{mov.almacen_origen?.nombre_almacen || '-'}</td>
+                      <td className="px-4 py-3 text-gray70 font-[400]">{mov.almacen_destino?.nombre_almacen || '-'}</td>
+                      <td className="px-4 py-3 text-gray70 font-[400]">{mov.descripcion || '-'}</td>
+                      <td className="px-4 py-3 text-gray70 font-[400]">{fmtFecha(mov.fecha_movimiento)}</td>
+                      <td className="px-4 py-3 text-center">{renderEstado(mov.estado?.nombre)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-3">
                           {(mov.estado?.nombre || '').toLowerCase() === 'proceso' && (
@@ -230,17 +211,17 @@ export default function TableMovimientoCourier({ filters }: Props) {
                     </tr>
                   ))}
 
-                  {/* Relleno para altura constante */}
                   {emptyRows > 0 &&
                     Array.from({ length: emptyRows }).map((_, idx) => (
                       <tr key={`empty-${idx}`} className="hover:bg-transparent">
                         {Array.from({ length: 7 }).map((__, i) => (
-                          <td key={i} className="px-4 py-3">&nbsp;</td>
+                          <td key={i} className="px-4 py-3">
+                            &nbsp;
+                          </td>
                         ))}
                       </tr>
                     ))}
 
-                  {/* Empty state (ocupa 1 fila cuando no hay visibles) */}
                   {currentMovimientos.length === 0 && (
                     <tr>
                       <td className="px-4 py-6 text-center text-gray70 italic" colSpan={7}>
@@ -252,7 +233,6 @@ export default function TableMovimientoCourier({ filters }: Props) {
               </table>
             </div>
 
-            {/* Paginador estilo base — SIEMPRE que haya datos (aunque sea 1 página) */}
             {filtered.length > 0 && (
               <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
                 <button
@@ -275,14 +255,12 @@ export default function TableMovimientoCourier({ filters }: Props) {
                       aria-current={currentPage === p ? 'page' : undefined}
                       className={[
                         'w-8 h-8 flex items-center justify-center rounded',
-                        currentPage === p
-                          ? 'bg-gray90 text-white'
-                          : 'bg-gray10 text-gray70 hover:bg-gray20',
+                        currentPage === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
                       ].join(' ')}
                     >
                       {p}
                     </button>
-                  )
+                  ),
                 )}
 
                 <button
@@ -298,17 +276,24 @@ export default function TableMovimientoCourier({ filters }: Props) {
         )}
       </div>
 
-      {/* Modal de detalle/validación */}
-      {openModal && modalUuid && (
-        <MovimientoCourierModal
+      {/* Modales */}
+      {openModal && modalUuid && modalMode === 'validar' && (
+        <ValidarMovimientoCourierModal
           open={openModal}
           uuid={modalUuid}
-          mode={modalMode}
           onClose={() => setOpenModal(false)}
           onValidated={() => {
             setOpenModal(false);
-            load(); // refrescar la lista tras validar
+            load();
           }}
+        />
+      )}
+
+      {openModal && modalUuid && modalMode === 'ver' && (
+        <DetallesMovimientoCourierModal
+          open={openModal}
+          uuid={modalUuid}
+          onClose={() => setOpenModal(false)}
         />
       )}
     </>

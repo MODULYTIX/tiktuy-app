@@ -16,6 +16,7 @@ import {
   fetchPedidosPendientes,
   fetchPedidosEntregados,
   fetchPedidoDetalle,
+  reassignPedido, // fallback si NO se pasa onReasignar
 } from '@/services/courier/pedidos/pedidos.api';
 
 import DetallePedidoDrawer from './DetallePedidoDrawer';
@@ -25,8 +26,10 @@ type View = 'asignados' | 'pendientes' | 'terminados';
 interface Props {
   view: View;
   token: string;
-  onVerDetalle? : (id: number) => void;
+  onVerDetalle?: (id: number) => void;
   onAsignar?: (ids: number[]) => void;
+  /** Si se provee, abre tu modal y NO se usa window.prompt */
+  onReasignar?: (pedido: PedidoListItem) => void;
 }
 
 /* ---- utilidades de formato ---- */
@@ -37,10 +40,10 @@ const PEN = new Intl.NumberFormat('es-PE', {
 });
 const two = (n: number) => String(n).padStart(2, '0');
 
-export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
+export default function TablePedidoCourier({ view, token, onAsignar, onReasignar }: Props) {
   /* paginación (server-side) */
   const [page, setPage] = useState(1);
-  const [perPage] = useState(20);
+  const [perPage] = useState(6);
 
   /* filtros (client-side, visuales) */
   const [filtroDistrito, setFiltroDistrito] = useState('');
@@ -59,6 +62,9 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
   const [detalle, setDetalle] = useState<PedidoDetalle | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  /* trigger para refetch luego de reasignar */
+  const [reloadTick, setReloadTick] = useState(0);
+
   // reset cuando cambia la vista
   useEffect(() => {
     setPage(1);
@@ -69,10 +75,7 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
   }, [view]);
 
   // querys para backend
-  const qHoy: ListPedidosHoyQuery = useMemo(
-    () => ({ page, perPage }),
-    [page, perPage]
-  );
+  const qHoy: ListPedidosHoyQuery = useMemo(() => ({ page, perPage }), [page, perPage]);
   const qEstado: ListByEstadoQuery = useMemo(
     () => ({ page, perPage, sortBy: 'programada', order: 'asc' }),
     [page, perPage]
@@ -93,17 +96,11 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
       try {
         let resp: Paginated<PedidoListItem>;
         if (view === 'asignados') {
-          resp = await fetchPedidosAsignadosHoy(token, qHoy, {
-            signal: ac.signal,
-          });
+          resp = await fetchPedidosAsignadosHoy(token, qHoy, { signal: ac.signal });
         } else if (view === 'pendientes') {
-          resp = await fetchPedidosPendientes(token, qEstado, {
-            signal: ac.signal,
-          });
+          resp = await fetchPedidosPendientes(token, qEstado, { signal: ac.signal });
         } else {
-          resp = await fetchPedidosEntregados(token, qEstado, {
-            signal: ac.signal,
-          });
+          resp = await fetchPedidosEntregados(token, qEstado, { signal: ac.signal });
         }
         setData(resp);
       } catch (e) {
@@ -117,16 +114,13 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
 
     load();
     return () => ac.abort();
-  }, [token, view, qHoy, qEstado]);
+  }, [token, view, qHoy, qEstado, reloadTick]);
 
   const itemsBase = data?.items ?? [];
 
   // distritos únicos para el filtro
   const distritos = useMemo(
-    () =>
-      Array.from(
-        new Set(itemsBase.map((x) => x.cliente?.distrito).filter(Boolean))
-      ).sort(),
+    () => Array.from(new Set(itemsBase.map((x) => x.cliente?.distrito).filter(Boolean))).sort(),
     [itemsBase]
   );
 
@@ -140,16 +134,12 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
     if (filtroCantidad) {
       const cant = Number(filtroCantidad);
       const cantidadDeItems = (x: PedidoListItem) =>
-        x.items_total_cantidad ??
-        x.items?.reduce((s, it) => s + it.cantidad, 0) ??
-        0;
+        x.items_total_cantidad ?? x.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0;
       arr = arr.filter((x) => cantidadDeItems(x) === cant);
     }
     if (searchProducto.trim()) {
       const q = searchProducto.trim().toLowerCase();
-      arr = arr.filter((x) =>
-        (x.items ?? []).some((it) => it.nombre.toLowerCase().includes(q))
-      );
+      arr = arr.filter((x) => (x.items ?? []).some((it) => it.nombre.toLowerCase().includes(q)));
     }
 
     return arr;
@@ -157,23 +147,20 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
 
   // selección de items visibles
   const pageIds = itemsFiltrados.map((p) => p.id);
-  const allSelected =
-    pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
-  const someSelected =
-    !allSelected && pageIds.some((id) => selectedIds.includes(id));
+  const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+  const someSelected = !allSelected && pageIds.some((id) => selectedIds.includes(id));
 
   // header checkbox indeterminate
   const headerCbRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (headerCbRef.current) {
-      headerCbRef.current.indeterminate = someSelected;
-    }
+    if (headerCbRef.current) headerCbRef.current.indeterminate = someSelected;
   }, [someSelected]);
 
   const totalPages = data?.totalPages ?? 1;
 
-  // paginador
-  const pagerItems = useMemo(() => {
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  // Paginador: páginas a mostrar
+  const pagerItems = useMemo<(number | string)[]>(() => {
     const maxButtons = 5;
     const pages: (number | string)[] = [];
     if (!totalPages || totalPages <= 1) return pages;
@@ -204,6 +191,7 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
     }
     return pages;
   }, [page, totalPages]);
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   const goToPage = (p: number) => {
     if (!totalPages) return;
@@ -211,7 +199,7 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
     setPage(p);
   };
 
-  // manejar click en el ojito 👁️
+  // 👁️ Ver detalle
   const handleVerDetalle = async (pedidoId: number) => {
     try {
       const data = await fetchPedidoDetalle(token, pedidoId);
@@ -219,6 +207,34 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
       setDrawerOpen(true);
     } catch (err) {
       console.error('❌ Error al cargar detalle:', err);
+    }
+  };
+
+  // 🔁 Reasignar
+  const handleReasignar = async (p: PedidoListItem) => {
+    // Si el padre pasó un modal, úsalo:
+    if (onReasignar) return onReasignar(p);
+
+    // Fallback (prompt) solo si NO hay modal conectado:
+    try {
+      const raw = window.prompt(
+        `Reasignar pedido ${p.codigo_pedido}\n\nIngrese el ID del nuevo repartidor:`,
+        ''
+      );
+      if (!raw) return;
+      const nuevoId = Number(raw);
+      if (!Number.isFinite(nuevoId) || nuevoId <= 0) {
+        setError('ID de repartidor inválido');
+        return;
+      }
+      setLoading(true);
+      setError('');
+      await reassignPedido(token, { pedido_id: p.id, motorizado_id: nuevoId });
+      setReloadTick((t) => t + 1); // fuerza recarga
+    } catch (e: any) {
+      setError(e?.message ?? 'Error al reasignar pedido');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -233,12 +249,9 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
             {view === 'terminados' && 'Pedidos Terminados'}
           </h2>
           <p className="text-sm text-gray-600">
-            {view === 'asignados' &&
-              'Selecciona y asigna pedidos a un repartidor.'}
-            {view === 'pendientes' &&
-              'Pedidos en gestión con el cliente (contacto, reprogramación, etc.).'}
-            {view === 'terminados' &&
-              'Pedidos completados (mostrar método de pago y evidencia si corresponde).'}
+            {view === 'asignados' && 'Selecciona y asigna pedidos a un repartidor.'}
+            {view === 'pendientes' && 'Pedidos en gestión con el cliente (contacto, reprogramación, etc.).'}
+            {view === 'terminados' && 'Pedidos completados (mostrar método de pago y evidencia si corresponde).'}
           </p>
         </div>
 
@@ -246,11 +259,8 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
           onClick={() => onAsignar?.(selectedIds)}
           className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           disabled={!selectedIds.length || loading || view !== 'asignados'}
-          title={
-            view !== 'asignados'
-              ? 'Solo disponible en Asignados'
-              : 'Asignar Repartidor'
-          }>
+          title={view !== 'asignados' ? 'Solo disponible en Asignados' : 'Asignar Repartidor'}
+        >
           Asignar Repartidor
         </button>
       </div>
@@ -260,14 +270,13 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
         <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
           {/* Distrito */}
           <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-            <label className="text-sm font-medium text-black block">
-              Distrito
-            </label>
+            <label className="text-sm font-medium text-black block">Distrito</label>
             <div className="relative">
               <select
                 className="w-full h-10 px-3 pr-9 rounded-md border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors appearance-none"
                 value={filtroDistrito}
-                onChange={(e) => setFiltroDistrito(e.target.value)}>
+                onChange={(e) => setFiltroDistrito(e.target.value)}
+              >
                 <option value="">Seleccionar distrito</option>
                 {distritos.map((d) => (
                   <option key={d} value={d}>
@@ -281,14 +290,13 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
 
           {/* Cantidad */}
           <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-            <label className="text-sm font-medium text-black block">
-              Cantidad
-            </label>
+            <label className="text-sm font-medium text-black block">Cantidad</label>
             <div className="relative">
               <select
                 className="w-full h-10 px-3 pr-9 rounded-md border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors appearance-none"
                 value={filtroCantidad}
-                onChange={(e) => setFiltroCantidad(e.target.value)}>
+                onChange={(e) => setFiltroCantidad(e.target.value)}
+              >
                 <option value="">Seleccionar cantidad</option>
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                   <option key={n} value={n}>
@@ -302,9 +310,7 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
 
           {/* Búsqueda */}
           <div className="flex-1 min-w-[240px] flex flex-col gap-[10px]">
-            <label className="text-sm font-medium text-black block">
-              Buscar productos por nombre
-            </label>
+            <label className="text-sm font-medium text-black block">Buscar productos por nombre</label>
             <input
               className="w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors"
               placeholder="Buscar productos por nombre..."
@@ -320,7 +326,8 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
               setFiltroDistrito('');
               setFiltroCantidad('');
               setSearchProducto('');
-            }}>
+            }}
+          >
             <Icon icon="mynaui:delete" width={20} height={20} />
             Limpiar Filtros
           </button>
@@ -328,12 +335,8 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
       </div>
 
       {/* Estados */}
-      {loading && (
-        <div className="py-10 text-center text-gray-500">Cargando...</div>
-      )}
-      {!loading && error && (
-        <div className="py-10 text-center text-red-600">{error}</div>
-      )}
+      {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
+      {!loading && error && <div className="py-10 text-center text-red-600">{error}</div>}
 
       {/* Tabla */}
       {!loading && !error && (
@@ -363,13 +366,9 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
                         onChange={(e) => {
                           if (view !== 'asignados') return;
                           if (e.target.checked) {
-                            setSelectedIds((prev) =>
-                              Array.from(new Set([...prev, ...pageIds]))
-                            );
+                            setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
                           } else {
-                            setSelectedIds((prev) =>
-                              prev.filter((id) => !pageIds.includes(id))
-                            );
+                            setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
                           }
                         }}
                         disabled={view !== 'asignados'}
@@ -378,12 +377,8 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
                     <th className="px-4 py-3 text-left">Fec. Entrega</th>
                     <th className="px-4 py-3 text-left">Ecommerce</th>
                     <th className="px-4 py-3 text-left">Cliente</th>
-                    <th className="px-4 py-3 text-left">
-                      Dirección de Entrega
-                    </th>
-                    <th className="px-4 py-3 text-center">
-                      Cant. de productos
-                    </th>
+                    <th className="px-4 py-3 text-left">Dirección de Entrega</th>
+                    <th className="px-4 py-3 text-center">Cant. de productos</th>
                     <th className="px-4 py-3 text-left">Monto</th>
                     <th className="px-4 py-3 text-center">Acciones</th>
                   </tr>
@@ -397,16 +392,12 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
                         : p.fecha_entrega_programada;
 
                     const cantidad =
-                      p.items_total_cantidad ??
-                      p.items?.reduce((s, it) => s + it.cantidad, 0) ??
-                      0;
+                      p.items_total_cantidad ?? p.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0;
                     const direccion = p.cliente?.direccion ?? '';
                     const montoNumber = Number(p.monto_recaudar || 0);
 
                     return (
-                      <tr
-                        key={p.id}
-                        className="hover:bg-gray10 transition-colors">
+                      <tr key={p.id} className="hover:bg-gray10 transition-colors">
                         <td className="h-12 px-4 py-3">
                           <input
                             type="checkbox"
@@ -415,45 +406,45 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
                             onChange={(e) => {
                               if (view !== 'asignados') return;
                               setSelectedIds((prev) =>
-                                e.target.checked
-                                  ? [...prev, p.id]
-                                  : prev.filter((x) => x !== p.id)
+                                e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id)
                               );
                             }}
                             disabled={view !== 'asignados'}
                           />
                         </td>
                         <td className="h-12 px-4 py-3 text-gray70">
-                          {fecha
-                            ? new Date(fecha).toLocaleDateString('es-PE')
-                            : '—'}
+                          {fecha ? new Date(fecha).toLocaleDateString('es-PE') : '—'}
                         </td>
                         <td className="h-12 px-4 py-3 text-gray70">
                           {p.ecommerce?.nombre_comercial ?? '—'}
                         </td>
-                        <td className="h-12 px-4 py-3 text-gray70">
-                          {p.cliente?.nombre ?? '—'}
-                        </td>
-                        <td
-                          className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]"
-                          title={direccion}>
+                        <td className="h-12 px-4 py-3 text-gray70">{p.cliente?.nombre ?? '—'}</td>
+                        <td className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]" title={direccion}>
                           {direccion || '—'}
                         </td>
-                        <td className="h-12 px-4 py-3 text-center text-gray70">
-                          {two(cantidad)}
-                        </td>
-                        <td className="h-12 px-4 py-3 text-gray70">
-                          {PEN.format(montoNumber)}
-                        </td>
+                        <td className="h-12 px-4 py-3 text-center text-gray70">{two(cantidad)}</td>
+                        <td className="h-12 px-4 py-3 text-gray70">{PEN.format(montoNumber)}</td>
                         <td className="h-12 px-4 py-3">
                           <div className="flex items-center justify-center gap-3">
                             <button
                               className="text-blue-600 hover:text-blue-800 transition-colors"
                               onClick={() => handleVerDetalle(p.id)}
                               title="Ver detalle"
-                              aria-label={`Ver ${p.id}`}>
+                              aria-label={`Ver ${p.id}`}
+                            >
                               <FaEye />
                             </button>
+
+                            {view === 'pendientes' && (
+                              <button
+                                className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                                onClick={() => handleReasignar(p)}
+                                title="Reasignar pedido"
+                                aria-label={`Reasignar ${p.id}`}
+                              >
+                                <Icon icon="mdi:swap-horizontal" width={18} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -462,9 +453,7 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
 
                   {!itemsFiltrados.length && (
                     <tr className="hover:bg-transparent">
-                      <td
-                        colSpan={8}
-                        className="px-4 py-8 text-center text-gray70 italic">
+                      <td colSpan={8} className="px-4 py-8 text-center text-gray70 italic">
                         No hay pedidos para esta etapa.
                       </td>
                     </tr>
@@ -473,14 +462,14 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
               </table>
             </div>
 
-            {/* Paginador */}
             {totalPages > 1 && (
               <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
                 <button
                   onClick={() => goToPage(page - 1)}
                   disabled={page === 1 || loading}
                   className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-                  aria-label="Página anterior">
+                  aria-label="Página anterior"
+                >
                   &lt;
                 </button>
 
@@ -496,11 +485,10 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
                       aria-current={page === p ? 'page' : undefined}
                       className={[
                         'w-8 h-8 flex items-center justify-center rounded',
-                        page === p
-                          ? 'bg-gray90 text-white'
-                          : 'bg-gray10 text-gray70 hover:bg-gray20',
+                        page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
                       ].join(' ')}
-                      disabled={loading}>
+                      disabled={loading}
+                    >
                       {p}
                     </button>
                   )
@@ -510,7 +498,8 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
                   onClick={() => goToPage(page + 1)}
                   disabled={page === totalPages || loading}
                   className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-                  aria-label="Página siguiente">
+                  aria-label="Página siguiente"
+                >
                   &gt;
                 </button>
               </div>
@@ -520,11 +509,7 @@ export default function TablePedidoCourier({ view, token, onAsignar }: Props) {
       )}
 
       {/* Drawer del detalle */}
-      <DetallePedidoDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        detalle={detalle}
-      />
+      <DetallePedidoDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} detalle={detalle} />
     </div>
   );
 }

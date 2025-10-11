@@ -36,6 +36,7 @@ export default function StockPage() {
     almacenamiento_id: '',
     categoria_id: '',
     estado: '',
+    nombre: '',
     stock_bajo: false,
     precio_bajo: false,
     precio_alto: false,

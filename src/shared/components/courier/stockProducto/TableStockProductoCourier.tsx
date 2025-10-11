@@ -23,11 +23,13 @@ export default function TableStockProductoCourier({
   filters,
   loading,
   error,
+  onView, // 👈 NUEVO (opcional)
 }: {
   data: Producto[];
   filters: StockFilters;
   loading?: boolean;
   error?: string | null;
+  onView?: (row: Producto) => void; // 👈 NUEVO (opcional)
 }) {
   const [page, setPage] = useState(1);
 
@@ -143,7 +145,7 @@ export default function TableStockProductoCourier({
                 <tr className="text-gray70 font-roboto font-medium">
                   <th className="px-4 py-3 text-left">Código</th>
                   <th className="px-4 py-3 text-left">Producto</th>
-                  <th className="px-4 py-3 text-left">Almacén</th>
+                  <th className="px-4 py-3 text-left">Sede</th>
                   <th className="px-4 py-3 text-left">Stock</th>
                   <th className="px-4 py-3 text-right">Precio</th>
                   <th className="px-4 py-3 text-center">Estado</th>
@@ -204,7 +206,7 @@ export default function TableStockProductoCourier({
                             <div className="flex items-center justify-center">
                               <button
                                 className="text-blue-600 hover:text-blue-800"
-                                onClick={() => console.log('ver', p.uuid)}
+                                onClick={() => (typeof onView === 'function' ? onView(p) : console.log('ver', p.uuid))}
                                 aria-label={`Ver ${p.nombre_producto}`}
                               >
                                 <FaEye size={16} />

@@ -1,5 +1,4 @@
-// src/role/courier/pages/ZonasPage.tsx
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Icon } from "@iconify/react";
 
 import TableZonaMine from "@/shared/components/courier/zona/TableZonaMine";
@@ -13,6 +12,26 @@ export default function ZonasPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedZona, setSelectedZona] = useState<ZonaTarifaria | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Estado del filtro (controlado aquí)
+  const [distrito, setDistrito] = useState<string>("");
+  const [zona, setZona] = useState<string>("");
+
+  // Opciones dinámicas derivadas de los datos reales
+  const [distritosOptions, setDistritosOptions] = useState<string[]>([]);
+  const [zonasOptions, setZonasOptions] = useState<string[]>([]);
+
+  const handleLoadedMeta = useCallback(
+    (meta: { distritos: string[]; zonas: string[] }) => {
+      setDistritosOptions(meta.distritos);
+      setZonasOptions(meta.zonas);
+      // Mantener selección actual si sigue existiendo en las nuevas opciones;
+      // si no existe, limpiamos ese filtro para evitar estados inválidos.
+      setDistrito((prev) => (meta.distritos.includes(prev) ? prev : ""));
+      setZona((prev) => (meta.zonas.includes(prev) ? prev : ""));
+    },
+    []
+  );
 
   return (
     <section className="mt-8">
@@ -34,12 +53,27 @@ export default function ZonasPage() {
       </div>
 
       <div className="my-8">
-        <ZonaFilterCourier />
+        <ZonaFilterCourier
+          distrito={distrito}
+          zona={zona}
+          distritosOptions={distritosOptions}
+          zonasOptions={zonasOptions}
+          onChange={({ distrito: d, zona: z }) => {
+            setDistrito(d);
+            setZona(z);
+          }}
+          onClear={() => {
+            setDistrito("");
+            setZona("");
+          }}
+        />
       </div>
 
       <div>
         <TableZonaMine
-          key={refreshKey}
+          key={refreshKey} // se mantiene tu patrón
+          filters={{ distrito, zona }}
+          onLoadedMeta={handleLoadedMeta}
           onEdit={(z) => {
             setSelectedZona(z);
             setEditOpen(true);
@@ -50,7 +84,6 @@ export default function ZonasPage() {
       {/* Crear */}
       <NewZonaTarifariaDrawer
         open={drawerOpen}
-        defaultEstadoId={1}
         zonasOpciones={["1", "2", "3", "4", "5", "6"]}
         onClose={() => setDrawerOpen(false)}
         onCreated={() => setRefreshKey((k) => k + 1)}

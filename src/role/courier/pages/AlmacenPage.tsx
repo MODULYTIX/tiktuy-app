@@ -1,22 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
 import { PiGarageLight } from "react-icons/pi";
 import AlmacenCourierTable from "@/shared/components/courier/almacen/AlmacenCourierTable";
-import AlmacenFormModal from "@/shared/components/courier/almacen/AlmacenCourierFormModal";
+
+import AlmacenCourierCrearModal from "@/shared/components/courier/almacen/AlmacenCourierCrearModal";
+import AlmacenCourierEditarModal from "@/shared/components/courier/almacen/AlmacenCourierEditarModal";
+
 import {
   fetchAlmacenesCourier,
   createAlmacenCourier,
   updateAlmacenCourier,
 } from "@/services/courier/almacen/almacenCourier.api";
-import type { AlmacenamientoCourier, AlmacenCourierCreateDTO } from "@/services/courier/almacen/almacenCourier.type";
+
+import type {
+  AlmacenamientoCourier,
+  AlmacenCourierCreateDTO,
+} from "@/services/courier/almacen/almacenCourier.type";
 
 export default function AlmacenPage() {
   const [items, setItems] = useState<AlmacenamientoCourier[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  // 👇 Solo dos modos
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modo, setModo] = useState<"editar" | "registrar">("registrar");
+  const [modalCrearOpen, setModalCrearOpen] = useState(false);
+  const [modalEditarOpen, setModalEditarOpen] = useState(false);
   const [seleccionado, setSeleccionado] = useState<AlmacenamientoCourier | null>(null);
 
   const token = useMemo(() => localStorage.getItem("token") ?? "", []);
@@ -40,81 +46,82 @@ export default function AlmacenPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const openNew = () => {
-    setModo("registrar");
-    setSeleccionado(null);
-    setModalOpen(true);
-  };
+  const openCrear = () => setModalCrearOpen(true);
+  const closeCrear = () => setModalCrearOpen(false);
 
-
-  const onEdit = (row: AlmacenamientoCourier) => {
-    setModo("editar");
+  const openEditar = (row: AlmacenamientoCourier) => {
     setSeleccionado(row);
-    setModalOpen(true);
+    setModalEditarOpen(true);
   };
-
-  const onClose = () => {
-    setModalOpen(false);
+  const closeEditar = () => {
+    setModalEditarOpen(false);
     setSeleccionado(null);
   };
 
-  // Submit del modal: crea o edita y refresca
-  const onSubmit = async (form: AlmacenCourierCreateDTO) => {
-    if (modo === "registrar") {
-      await createAlmacenCourier(form, token);
-    } else if (modo === "editar" && seleccionado?.uuid) {
-      await updateAlmacenCourier(seleccionado.uuid, form, token);
-    }
+  const onCreate = async (form: AlmacenCourierCreateDTO) => {
+    await createAlmacenCourier(form, token);
     await loadData();
+    // el modal se cierra desde dentro del componente tras éxito
+  };
+
+  const onUpdate = async (uuid: string, form: AlmacenCourierCreateDTO) => {
+    await updateAlmacenCourier(uuid, form, token);
+    await loadData();
+    // el modal se cierra desde dentro del componente tras éxito
   };
 
   return (
     <section className="mt-8 flex flex-col gap-5">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl text-primary font-bold">Almacén</h1>
-          <p className="text-gray-500">Visualice su almacén y sus movimientos</p>
+          <h1 className="text-3xl text-primary font-bold">Sede</h1>
+          <p className="text-gray-500">Visualice su sede y sus movimientos</p>
         </div>
         <div>
           <button
-            onClick={openNew}
+            onClick={openCrear}
             className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition"
           >
             <PiGarageLight size={18} />
-            <span>Nuevo Almacén</span>
+            <span>Nueva Sede</span>
           </button>
         </div>
       </div>
 
-      <div className="">
+      <div>
         <AlmacenCourierTable
           items={items}
           loading={loading}
           error={error}
-          onView={() => { /* ya no se usa ver detalle */ }}
-          onEdit={onEdit}
+          onView={() => {}}
+          onEdit={openEditar}
         />
       </div>
 
-      <AlmacenFormModal
-        isOpen={modalOpen}
-        onClose={onClose}
-        modo={modo}                   
+      {/* Crear */}
+      <AlmacenCourierCrearModal
+        isOpen={modalCrearOpen}
+        onClose={closeCrear}
+        onSubmit={onCreate}
+      />
+
+      {/* Editar */}
+      <AlmacenCourierEditarModal
+        isOpen={modalEditarOpen}
+        onClose={closeEditar}
         almacen={
           seleccionado
             ? {
                 uuid: seleccionado.uuid,
                 nombre_almacen: seleccionado.nombre_almacen,
                 departamento: seleccionado.departamento,
-                // provincia opcional si la tienes:
-                // provincia: (seleccionado as any).provincia,
-                ciudad: seleccionado.ciudad,
+                distrito: seleccionado.ciudad,
                 direccion: seleccionado.direccion,
                 fecha_registro: seleccionado.fecha_registro,
               }
             : null
         }
-        onSubmit={onSubmit}
+        onSubmit={onUpdate}
       />
     </section>
   );

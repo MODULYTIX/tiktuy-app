@@ -1,3 +1,5 @@
+// pedidos.types.ts
+
 export interface ProductoInfo {
   id: number;
   nombre_producto: string;
@@ -31,7 +33,7 @@ export interface MotorizadoInfo {
 export interface Pedido {
   id: number;
   codigo_pedido: string;
-  estado_pedido: string; // 'Generado' | 'Asignado' | 'Entregado' (texto desde backend)
+  estado_pedido: string; // 'Generado' | 'Asignado' | 'Entregado'
   nombre_cliente: string;
   numero_cliente: string;
   celular_cliente: string;

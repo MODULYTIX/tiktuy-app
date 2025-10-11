@@ -4,7 +4,7 @@ import {
   listEcommercesCourier,
   getEcommerceResumen,
   getEcommercePedidosDia,
-  abonarEcommerceFechas, // abona por FECHAS -> estado "Por Validar"
+  abonarEcommerceFechas,
 } from "@/services/courier/cuadre_saldo/cuadreSaldoE.api";
 import type {
   EcommerceItem,
@@ -12,6 +12,9 @@ import type {
   PedidoDiaItem,
   AbonoEstado,
 } from "@/services/courier/cuadre_saldo/cuadreSaldoE.types";
+
+import ConfirmAbonoModal from "./ConfirmAbonoModal";
+import EcommerceDetalleModal from "./EcommerceDetalleModal";
 
 /* ================= helpers ================= */
 const formatPEN = (v: number) =>
@@ -27,7 +30,11 @@ const toYMD = (d: Date) =>
 const toDMY = (ymd: string) => {
   const [y, m, d] = ymd.split("-").map(Number);
   const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
-  return dt.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return dt.toLocaleDateString("es-PE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 };
 
 function defaultMonthRange() {
@@ -37,20 +44,29 @@ function defaultMonthRange() {
   return { desde: toYMD(first), hasta: toYMD(last) };
 }
 
-/** Normalizadores (defensivos) */
+/** Normalizadores */
 const montoDe = (i: any) => Number(i?.monto ?? i?.monto_recaudar ?? 0);
 const servicioDe = (i: any) => {
-  const sc = Number(i?.servicioCourier ?? i?.servicio_courier ?? i?.servicioCourierEfectivo ?? 0);
-  const sr = Number(i?.servicioRepartidor ?? i?.servicio_repartidor ?? i?.servicioRepartidorEfectivo ?? 0);
+  const sc = Number(
+    i?.servicioCourier ??
+      i?.servicio_courier ??
+      i?.servicioCourierEfectivo ??
+      0
+  );
+  const sr = Number(
+    i?.servicioRepartidor ??
+      i?.servicio_repartidor ??
+      i?.servicioRepartidorEfectivo ??
+      0
+  );
   if (sc || sr) return sc + sr;
   if (i?.servicioTotal != null) return Number(i.servicioTotal);
   if (i?.servicio_total != null) return Number(i.servicio_total);
   return 0;
 };
 
-/* ================= overrides en localStorage ================= */
-// Guardamos fechas recientemente abonadas (Por Validar) por ecommerceId
-type AbonoOverrides = Record<string /*ecommerceId*/, string[] /*YYYY-MM-DD*/>;
+/* ================= overrides ================= */
+type AbonoOverrides = Record<string, string[]>;
 const LS_KEY = "csE_abono_overrides";
 
 function readOverrides(): AbonoOverrides {
@@ -66,9 +82,7 @@ function readOverrides(): AbonoOverrides {
 function writeOverrides(data: AbonoOverrides) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(data));
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 }
 function addOverrides(ecommerceId: number, fechas: string[]) {
   const all = readOverrides();
@@ -87,103 +101,6 @@ function removeOverrides(ecommerceId: number, fechas: string[]) {
   all[key] = Array.from(set);
   writeOverrides(all);
 }
-
-/* ================= Modal Confirmar ================= */
-type ConfirmAbonoModalProps = {
-  open: boolean;
-  ecommerceNombre: string;
-  ciudad?: string | null;
-  fechas?: string[];
-  pedidosCount: number;
-  cobradoTotal: number;
-  servicioTotal: number;
-  onCancel: () => void;
-  onConfirm: () => void;
-};
-
-const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
-  open,
-  ecommerceNombre,
-  ciudad,
-  fechas = [],
-  pedidosCount,
-  cobradoTotal,
-  servicioTotal,
-  onCancel,
-  onConfirm,
-}) => {
-  const [checked, setChecked] = useState(false);
-  useEffect(() => { if (open) setChecked(false); }, [open]);
-  if (!open) return null;
-
-  const neto = Math.max(0, Number(cobradoTotal) - Number(servicioTotal));
-  const fechasLabel = (() => {
-    if (!fechas.length) return "—";
-    const list = fechas.slice().sort().map(toDMY);
-    return list.length <= 3 ? list.join(", ") : `${list.slice(0, 3).join(", ")} (+${list.length - 3} más)`;
-  })();
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl">
-        <div className="flex flex-col items-center gap-2 px-6 pt-7">
-          <div className="rounded-full bg-emerald-50 p-4">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-              <path d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z" fill="#22c55e" opacity="0.12" />
-              <path d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z" stroke="#22c55e" strokeWidth="1.6" />
-              <path d="M8.3 12.7l2.3 2.3 5-5" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <h3 className="text-center text-2xl font-semibold tracking-wide">CONFIRMAR ABONO</h3>
-          <p className="mb-2 -mt-1 text-center text-[13px] text-gray-600">
-            Valida el abono al ecommerce y registra el ingreso en el sistema
-          </p>
-        </div>
-
-        <div className="mx-6 mt-2 rounded-xl border">
-          <div className="border-b px-5 py-3 text-sm font-semibold text-gray-700">Resumen</div>
-          <div className="grid grid-cols-2 items-center gap-2 px-5 py-4 text-sm">
-            <div className="text-gray-600">Ecommerce</div>
-            <div className="text-right font-medium">{ecommerceNombre}</div>
-
-            <div className="text-gray-600">{fechas.length <= 1 ? "Fecha" : "Fechas"}</div>
-            <div className="text-right">{fechasLabel}</div>
-
-            {ciudad && (<><div className="text-gray-600">Ciudad</div><div className="text-right">{ciudad}</div></>)}
-
-            <div className="text-gray-600">Pedidos seleccionados</div>
-            <div className="text-right font-medium">{pedidosCount}</div>
-
-            <div className="text-gray-600">Cobrado total</div>
-            <div className="text-right">{formatPEN(cobradoTotal)}</div>
-
-            <div className="text-gray-600">Servicio total (courier + motorizado)</div>
-            <div className="text-right">{formatPEN(servicioTotal)}</div>
-
-            <div className="text-gray-600 font-semibold">Neto a abonar</div>
-            <div className="text-right text-lg font-semibold">{formatPEN(neto)}</div>
-          </div>
-        </div>
-
-        <label className="mx-6 mt-4 flex items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} className="h-4 w-4" />
-          Confirmo que verifiqué e hice la transferencia
-        </label>
-
-        <div className="mt-5 flex items-center justify-end gap-2 border-t px-6 py-4">
-          <button onClick={onCancel} className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50">Cancelar</button>
-          <button
-            onClick={onConfirm}
-            disabled={!checked}
-            className={["rounded-md px-4 py-2 text-sm font-medium", checked ? "bg-emerald-600 text-white hover:opacity-90" : "bg-emerald-200 text-white cursor-not-allowed"].join(" ")}
-          >
-            ✓ Confirmar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 /* ================= Tabla ================= */
 type Props = { token: string };
@@ -214,7 +131,8 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   const [confirmCount, setConfirmCount] = useState(0);
 
   const ecommerce = useMemo(
-    () => ecommerces.find((e) => e.id === (typeof ecoId === "number" ? ecoId : -1)),
+    () =>
+      ecommerces.find((e) => e.id === (typeof ecoId === "number" ? ecoId : -1)),
     [ecoId, ecommerces]
   );
 
@@ -224,15 +142,16 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       try {
         const list = await listEcommercesCourier(token);
         setEcommerces(list);
-        if (!ecoId && list.length) setEcoId(list[0].id);
+        if (list.length) {
+          setEcoId((prev) => (prev === "" ? list[0].id : prev));
+        }
       } catch (e: any) {
         setError(e?.message ?? "No se pudo cargar ecommerces");
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  /* cargar resumen + aplicar overrides locales */
+  /* cargar resumen */
   const loadResumen = async () => {
     if (!ecoId || typeof ecoId !== "number") {
       setRows([]);
@@ -241,16 +160,18 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getEcommerceResumen(token, { ecommerceId: ecoId, desde, hasta });
+      const data = await getEcommerceResumen(token, {
+        ecommerceId: ecoId,
+        desde,
+        hasta,
+      });
       const baseRows: ResumenRow[] = (data ?? []) as ResumenRow[];
 
-      // aplica overrides locales: si abonaste hace un momento y el BE aún no refleja, mantenemos "Por Validar"
       const overrides = readOverrides()[String(ecoId)] ?? [];
       const overrideSet = new Set(overrides);
 
       const merged = baseRows.map((r) => {
         if (r.estado === "Validado") {
-          // si el backend ya validó, limpiamos override
           if (overrideSet.has(r.fecha)) {
             removeOverrides(ecoId, [r.fecha]);
             overrideSet.delete(r.fecha);
@@ -274,19 +195,20 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
   useEffect(() => {
     void loadResumen();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ecoId, desde, hasta]);
 
-  /* selección resumen */
   const toggleFecha = (fecha: string) =>
-    setSelectedFechas((prev) => (prev.includes(fecha) ? prev.filter((f) => f !== fecha) : [...prev, fecha]));
+    setSelectedFechas((prev) =>
+      prev.includes(fecha)
+        ? prev.filter((f) => f !== fecha)
+        : [...prev, fecha]
+    );
 
   const toggleAllFechas = () => {
     if (selectedFechas.length === rows.length) setSelectedFechas([]);
     else setSelectedFechas(rows.map((r) => r.fecha));
   };
 
-  /* abrir detalle */
   const openDia = async (fecha: string) => {
     if (!ecoId || typeof ecoId !== "number") return;
     setDetalleFecha(fecha);
@@ -304,9 +226,9 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     }
   };
 
-  /* preparar abono (multi-fecha) */
   const prepararAbonoMultiFecha = async () => {
-    if (!ecoId || typeof ecoId !== "number" || selectedFechas.length === 0) return;
+    if (!ecoId || typeof ecoId !== "number" || selectedFechas.length === 0)
+      return;
     try {
       setLoading(true);
       const porFecha = await Promise.all(
@@ -329,7 +251,6 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     }
   };
 
-  /* preparar abono desde detalle: abona el DÍA completo */
   const totalDetalleServicio = useMemo(
     () => detalleItems.reduce((acc, i) => acc + servicioDe(i), 0),
     [detalleItems]
@@ -344,39 +265,58 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     setOpenConfirm(true);
   };
 
-  /* confirmar abono -> Por Validar (optimista + override en LS) */
-  const confirmarAbono = async () => {
+  const confirmarAbono = async (voucherFile: File | null) => {
     try {
+      if (!ecoId || typeof ecoId !== "number" || isNaN(ecoId)) {
+        alert("Selecciona un ecommerce válido antes de confirmar el abono.");
+        return;
+      }
+      if (!confirmFechas.length) {
+        alert("Debes seleccionar al menos una fecha para abonar.");
+        return;
+      }
+      if (!voucherFile) {
+        alert("Debes subir una imagen del voucher antes de confirmar.");
+        return;
+      }
+
       setLoading(true);
-      if (!ecoId || typeof ecoId !== "number") return;
-      if (!confirmFechas.length) return;
 
-      const resp = await abonarEcommerceFechas(token, {
-        ecommerceId: ecoId,
-        fechas: confirmFechas,
-        estado: "Por Validar",
-      });
+      const formData = new FormData();
+      formData.append("ecommerceId", String(ecoId));
+      confirmFechas.forEach((f) => formData.append("fechas[]", f));
+      formData.append("estado", "Por Validar");
+      formData.append("voucher", voucherFile, voucherFile.name);
 
-      const fechasMarcadas = (resp?.fechas ?? confirmFechas).map((f) => f.slice(0, 10));
+      console.log("✅ Enviando abono con ecommerceId:", ecoId);
 
-      // 1) update optimista en la tabla
+      const resp = await abonarEcommerceFechas(token, formData, true);
+
+      const fechasMarcadas = (resp?.fechas ?? confirmFechas).map((f) =>
+        f.slice(0, 10)
+      );
+
       setRows((prev) =>
         prev.map((r) =>
-          fechasMarcadas.includes(r.fecha) ? { ...r, estado: "Por Validar" as AbonoEstado } : r
+          fechasMarcadas.includes(r.fecha)
+            ? { ...r, estado: "Por Validar" as AbonoEstado }
+            : r
         )
       );
 
-      // 2) persistimos override para sobrevivir a F5
       addOverrides(ecoId, fechasMarcadas);
 
-      // 3) cerrar modal
       setOpenConfirm(false);
       setConfirmFechas([]);
       setConfirmCobrado(0);
       setConfirmServicio(0);
       setConfirmCount(0);
+
+      alert("✅ Abono enviado correctamente con voucher.");
+      await loadResumen(); // 🔄 recarga tabla actualizada
     } catch (e: any) {
-      alert(e?.message ?? "No se pudo procesar el abono");
+      console.error("Error al confirmar abono:", e);
+      alert(e?.message ?? "No se pudo procesar el abono.");
     } finally {
       setLoading(false);
     }
@@ -398,7 +338,13 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
           ].join(" ")}
           title="Abonar Ecommerce (fechas seleccionadas)"
         >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M12 8v8M8 12h8" />
           </svg>
           Abonar Ecommerce
@@ -408,11 +354,16 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       {/* filtros */}
       <div className="grid grid-cols-1 gap-4 px-4 pb-4 pt-3 md:grid-cols-4">
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">Ecommerce</label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Ecommerce
+          </label>
           <select
+            name="ecommerceSelect" // ✅ agregado
             className="w-full rounded-xl border px-3 py-2 outline-none"
             value={ecoId}
-            onChange={(e) => setEcoId(e.target.value === "" ? "" : Number(e.target.value))}
+            onChange={(e) =>
+              setEcoId(e.target.value === "" ? "" : Number(e.target.value))
+            }
           >
             {ecommerces.length === 0 && <option value="">—</option>}
             {ecommerces.map((e) => (
@@ -424,7 +375,9 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">Fecha Inicio</label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Fecha Inicio
+          </label>
           <input
             type="date"
             value={desde}
@@ -434,7 +387,9 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">Fecha Fin</label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Fecha Fin
+          </label>
           <input
             type="date"
             value={hasta}
@@ -469,7 +424,9 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
               <th className="p-4">
                 <input
                   type="checkbox"
-                  checked={rows.length > 0 && selectedFechas.length === rows.length}
+                  checked={
+                    rows.length > 0 && selectedFechas.length === rows.length
+                  }
                   onChange={toggleAllFechas}
                   aria-label="Seleccionar todo"
                 />
@@ -514,7 +471,9 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                     <td className="p-4">{formatPEN(r.servicio)}</td>
                     <td className="p-4">{formatPEN(r.neto)}</td>
                     <td className="p-4">
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold inline-block ${pillCls}`}>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold inline-block ${pillCls}`}
+                      >
                         {estado}
                       </span>
                     </td>
@@ -525,7 +484,13 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                           className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
                           title="Ver pedidos del día"
                         >
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <svg
+                            className="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                          >
                             <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" />
                             <circle cx="12" cy="12" r="3" />
                           </svg>
@@ -541,77 +506,18 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         </table>
       </div>
 
-      {/* modal detalle */}
-      {openDetalle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
-          <div className="w-[960px] max-w-[96vw] rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <div className="text-sm">
-                <div className="font-semibold">Pedidos del día • {toDMY(detalleFecha)}</div>
-                <div className="text-gray-500">
-                  Ecommerce: <b>{ecommerce?.nombre ?? ""}</b>
-                </div>
-              </div>
-              <button onClick={() => setOpenDetalle(false)} className="p-1 text-gray-500 hover:text-black">✕</button>
-            </div>
+      {/* modales */}
+      <EcommerceDetalleModal
+        open={openDetalle}
+        fecha={detalleFecha}
+        ecommerceNombre={ecommerce?.nombre ?? ""}
+        items={detalleItems}
+        loading={detalleLoading}
+        onClose={() => setOpenDetalle(false)}
+        onAbonarDia={abrirConfirmDetalle}
+        totalServicio={totalDetalleServicio}
+      />
 
-            <div className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  Pedidos del día: <b>{detalleItems.length}</b> · Servicio total del día:{" "}
-                  <b>{formatPEN(totalDetalleServicio)}</b>
-                </div>
-                <button
-                  className={[
-                    "rounded-md px-4 py-2 text-sm font-medium",
-                    detalleLoading ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-blue-600 text-white hover:opacity-90",
-                  ].join(" ")}
-                  disabled={detalleLoading}
-                  onClick={abrirConfirmDetalle}
-                  title="Abonar todo el día (Por Validar)"
-                >
-                  Abonar día completo
-                </button>
-              </div>
-
-              <div className="relative">
-                {detalleLoading && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 text-sm">
-                    Cargando...
-                  </div>
-                )}
-
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50 text-left text-gray-600">
-                    <tr>
-                      <th className="px-4 py-2">Cliente</th>
-                      <th className="px-4 py-2">Método de pago</th>
-                      <th className="px-4 py-2">Monto</th>
-                      <th className="px-4 py-2">Servicio (total)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detalleItems.length === 0 ? (
-                      <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">Sin pedidos</td></tr>
-                    ) : (
-                      detalleItems.map((it: any) => (
-                        <tr key={it.id} className="border-t hover:bg-gray-50">
-                          <td className="px-4 py-2">{it.cliente}</td>
-                          <td className="px-4 py-2">{it.metodoPago ?? "-"}</td>
-                          <td className="px-4 py-2">{formatPEN(montoDe(it))}</td>
-                          <td className="px-4 py-2">{formatPEN(servicioDe(it))}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* modal confirmar */}
       <ConfirmAbonoModal
         open={openConfirm}
         ecommerceNombre={ecommerce?.nombre ?? ""}

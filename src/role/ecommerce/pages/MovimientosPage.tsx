@@ -31,6 +31,7 @@ export default function RegistroMovimientoPage() {
     almacenamiento_id: '',
     categoria_id: '',
     estado: '',
+    nombre: '',
     stock_bajo: false,
     precio_bajo: false,
     precio_alto: false,
@@ -58,7 +59,7 @@ export default function RegistroMovimientoPage() {
 
     if (almacenes.length > 1) {
       notify(
-        'No puedes seleccionar productos de diferentes almacenes para un mismo movimiento.',
+        'No puedes seleccionar productos de diferentes sedes para un mismo movimiento.',
         'error'
       );
       return;

@@ -13,6 +13,7 @@ interface Filters {
   almacenamiento_id: string;
   categoria_id: string;
   estado: string;
+  nombre: string; 
   stock_bajo: boolean;
   precio_bajo: boolean;
   precio_alto: boolean;
@@ -35,6 +36,7 @@ export default function StockFilters({ onFilterChange }: Props) {
     almacenamiento_id: '',
     categoria_id: '',
     estado: '',
+    nombre: '',
     stock_bajo: false,
     precio_bajo: false,
     precio_alto: false,
@@ -65,6 +67,7 @@ export default function StockFilters({ onFilterChange }: Props) {
       almacenamiento_id: '',
       categoria_id: '',
       estado: '',
+      nombre: '',
       stock_bajo: false,
       precio_bajo: false,
       precio_alto: false,
@@ -106,7 +109,7 @@ export default function StockFilters({ onFilterChange }: Props) {
         >
           {categorias.map((c) => (
             <option key={c.id} value={String(c.id)}>
-              {c.descripcion}
+              {c.nombre}
             </option>
           ))}
         </Selectx>

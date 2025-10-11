@@ -35,6 +35,7 @@ type CreateProductoDto = {
   stock: number;
   stock_minimo: number;
   peso: number;
+  nombre: string;
   codigo_identificacion: string;
   nombre_producto: string;
   descripcion: string;
@@ -62,6 +63,7 @@ type FormState = {
   descripcion: string;
   categoria_id: string;
   almacenamiento_id: string;
+  nombre:string;
   precio: string;
   stock: string;
   stock_minimo: string;
@@ -76,6 +78,7 @@ const getInitialForm = (): FormState => ({
   descripcion: '',
   categoria_id: '',
   almacenamiento_id: '',
+  nombre: '',
   precio: '',
   stock: '',
   stock_minimo: '',
@@ -139,6 +142,7 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
       almacenamiento_id: Number(form.almacenamiento_id),
       precio,
       stock,
+      nombre: form.nombre,
       stock_minimo,
       peso,
       codigo_identificacion: form.codigo_identificacion.trim(),
@@ -222,18 +226,18 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
             >
               {categorias.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.descripcion}
+                  {c.nombre}
                 </option>
               ))}
             </Selectx>
 
             <Selectx
-              label="Almacén"
+              label="Sede"
               name="almacenamiento_id"
               labelVariant="left"
               value={form.almacenamiento_id}
               onChange={handleChange}
-              placeholder="Seleccionar almacén"
+              placeholder="Seleccionar sede"
               required
               disabled={saving}
             >

@@ -1,3 +1,4 @@
+// src/services/ecommerce/cuadreSaldo/cuadreSaldoC.api.ts
 import type {
   CourierItem,
   ResumenQuery,
@@ -8,7 +9,7 @@ import type {
   AbonoEstado,
 } from "./cuadreSaldoC.types";
 
-/* ================== Config / Helpers (igual a tu ejemplo) ================== */
+/* ================== Config / Helpers ================== */
 const BASE_URL = `${import.meta.env.VITE_API_URL ?? "http://localhost:4000"}`.replace(/\/$/, "");
 
 function authHeaders(token: string, contentType?: "json") {
@@ -81,18 +82,20 @@ export async function getResumen(
     courierId: q.courierId,
     desde: q.desde,
     hasta: q.hasta,
-    soloPorValidar: q.soloPorValidar ?? true,
+    // Solo filtra si lo mandas explícitamente
+    soloPorValidar: q.soloPorValidar,
   });
 
-  // BE -> [{ fecha(Date), totalPedidos, totalCobrado, totalServTotal, totalNeto, abonoEstado }]
+  // BE -> [{ fecha, totalPedidos, totalCobrado, totalServicioCourier, totalNeto, abonoEstado, evidencia }]
   const raw = await request<
     Array<{
       fecha: string | Date;
       totalPedidos: number;
       totalCobrado: number;
-      totalServicioCourier: number; // courier(efectivo) + motorizado
+      totalServicioCourier: number;
       totalNeto: number;
       abonoEstado: AbonoEstado;
+      evidencia?: string | null;
     }>
   >(url, { headers: authHeaders(token) });
 
@@ -105,6 +108,7 @@ export async function getResumen(
       servicio: Number(r.totalServicioCourier ?? 0),
       neto: Number(r.totalNeto ?? 0),
       estado: (r.abonoEstado ?? "Sin Validar") as AbonoEstado,
+      evidencia: r.evidencia ?? null,
     };
   });
 }
@@ -113,40 +117,44 @@ export async function getResumen(
 export async function getPedidosDia(
   token: string,
   courierId: number,
-  fecha: string,                 // YYYY-MM-DD
-  soloPorValidar = true
+  fecha: string, // YYYY-MM-DD
+  soloPorValidar?: boolean
 ): Promise<PedidoDiaItem[]> {
   const url = withQuery(
     `/ecommerce/cuadre-saldo/courier/${courierId}/dia/${fecha}/pedidos`,
     { soloPorValidar }
   );
 
-  // BE -> [{ id, fechaEntrega, nombre_cliente, metodo_pago, monto_recaudar, serv_courier_efectivo, servicio_repartidor, abonado }]
+  // BE -> [{ id, cliente, metodoPago|metodo_pago, monto, servicioCourier, servicioRepartidor, abonado, evidencia }]
   const raw = await request<
     Array<{
       id: number;
       cliente: string;
-      metodoPago?: string | null; // por si llega camelCase
-      metodo_pago?: string | null;
+      metodoPago?: string | null;
+      metodo_pago?: string | null; // compat
       monto: number;
       servicioCourier: number;
       servicioRepartidor: number;
       abonado: boolean;
+      evidencia?: string | null;
     }>
   >(url, { headers: authHeaders(token) });
 
-  // Normalizamos a snake_case `metodo_pago` y añadimos servicioTotal
+  // Normalizamos el método de pago y devolvemos la propiedad esperada por el tipo: metodo_pago
   return raw.map((r) => {
-    const metodo_pago = (r as any).metodo_pago ?? r.metodoPago ?? null;
+    const metodo_pago: string | null =
+      (r as any).metodo_pago ?? (r as any).metodoPago ?? null;
+
     return {
       id: r.id,
       cliente: r.cliente,
-      metodo_pago,
+      metodo_pago, // ← clave requerida por PedidoDiaItem
       monto: Number(r.monto ?? 0),
       servicioCourier: Number(r.servicioCourier ?? 0),
       servicioRepartidor: Number(r.servicioRepartidor ?? 0),
       servicioTotal: Number(r.servicioCourier ?? 0) + Number(r.servicioRepartidor ?? 0),
       abonado: Boolean(r.abonado),
+      evidencia: r.evidencia ?? null,
     };
   });
 }

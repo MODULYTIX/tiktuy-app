@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { useAuth } from '@/auth/context/useAuth';
 import {
@@ -20,10 +20,11 @@ interface Props {
 
 export default function Sidebar({ isOpen, toggle }: Props) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/';
+    navigate('/');
   };
 
   const linksByRole: Record<
@@ -38,55 +39,214 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     admin: [
       { to: '/', label: 'Panel de Control', icon: <MdDashboard /> },
       { to: '/ventas', label: 'Ventas', icon: <FaCashRegister /> },
-      { to: '/almacen', label: 'Stock / Almacén', icon: <FaBoxes /> },
-      { to: '/saldos', label: 'Cuadre de Saldos', icon: <RiMoneyDollarCircleLine /> },
+      { to: '/almacen', label: 'Stock / Sede', icon: <FaBoxes /> },
+      {
+        to: '/saldos',
+        label: 'Cuadre de Saldos',
+        icon: <RiMoneyDollarCircleLine />,
+      },
       { to: '/perfiles', label: 'Perfiles', icon: <FaUsersCog /> },
       { to: '/reportes', label: 'Reportes', icon: <RiFileChartLine /> },
       { to: '/configuracion', label: 'Configuración', icon: <MdSettings /> },
     ],
     ecommerce: [
-      { to: '/', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
-      { to: '/almacen', label: 'Almacén', icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />, modulo: 'stock' },
-      { to: '/stock', label: 'Stock de productos', icon: <Icon icon="vaadin:stock" width="24" height="24" />, modulo: 'stock' },
-      { to: '/movimientos', label: 'Movimientos', icon: <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />, modulo: 'movimiento' },
-      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />, modulo: 'pedidos' },
-      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
-      { to: '/perfiles', label: 'Perfiles', icon: <Icon icon="hugeicons:access" width="24" height="24" /> },
-      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
+      {
+        to: '/',
+        label: 'Panel de Control',
+        icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
+      },
+      {
+        to: '/almacen',
+        label: 'Sede',
+        icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />,
+        modulo: 'stock',
+      },
+      {
+        to: '/stock',
+        label: 'Stock de productos',
+        icon: <Icon icon="vaadin:stock" width="24" height="24" />,
+        modulo: 'stock',
+      },
+      {
+        to: '/movimientos',
+        label: 'Movimientos',
+        icon: (
+          <Icon
+            icon="icon-park-outline:cycle-movement"
+            width="24"
+            height="24"
+          />
+        ),
+        modulo: 'movimiento',
+      },
+      {
+        to: '/pedidos',
+        label: 'Gestión de Pedidos',
+        icon: (
+          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
+        ),
+        modulo: 'pedidos',
+      },
+      {
+        to: '/saldos',
+        label: 'Cuadre de Saldos',
+        icon: <Icon icon="prime:wallet" width="24" height="24" />,
+      },
+      {
+        to: '/perfiles',
+        label: 'Perfiles',
+        icon: <Icon icon="hugeicons:access" width="24" height="24" />,
+      },
+      {
+        to: '/reportes',
+        label: 'Reportes',
+        icon: <Icon icon="carbon:report-data" width="24" height="24" />,
+      },
     ],
     courier: [
-      { to: '/', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
-      { to: '/almacen', label: 'Almacén', icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />, modulo: 'pedidos' },
-      { to: '/stock', label: 'Stock de Productos', icon: <Icon icon="vaadin:stock" width="24" height="24" />, modulo: 'stock' },
-      { to: '/movimientos', label: 'Movimientos', icon: <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" /> },
-      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" /> },
-      { to: '/zonas', label: 'Zonas / Tarifas', icon: <Icon icon="solar:point-on-map-broken" width="24" height="24" /> },
-      { to: '/cuadresaldo', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
-      { to: '/perfiles', label: 'Perfiles', icon: <Icon icon="hugeicons:access" width="24" height="24" /> },
-      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
+      {
+        to: '/',
+        label: 'Panel de Control',
+        icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
+      },
+      {
+        to: '/almacen',
+        label: 'Sede',
+        icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />,
+        modulo: 'pedidos',
+      },
+      {
+        to: '/stock',
+        label: 'Stock de Productos',
+        icon: <Icon icon="vaadin:stock" width="24" height="24" />,
+        modulo: 'stock',
+      },
+      {
+        to: '/movimientos',
+        label: 'Movimientos',
+        icon: (
+          <Icon
+            icon="icon-park-outline:cycle-movement"
+            width="24"
+            height="24"
+          />
+        ),
+      },
+      {
+        to: '/pedidos',
+        label: 'Gestión de Pedidos',
+        icon: (
+          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
+        ),
+      },
+      {
+        to: '/zonas',
+        label: 'Zonas / Tarifas',
+        icon: <Icon icon="solar:point-on-map-broken" width="24" height="24" />,
+      },
+      {
+        to: '/cuadresaldo',
+        label: 'Cuadre de Saldos',
+        icon: <Icon icon="prime:wallet" width="24" height="24" />,
+      },
+      {
+        to: '/perfiles',
+        label: 'Perfiles',
+        icon: <Icon icon="hugeicons:access" width="24" height="24" />,
+      },
+      {
+        to: '/reportes',
+        label: 'Reportes',
+        icon: <Icon icon="carbon:report-data" width="24" height="24" />,
+      },
     ],
     motorizado: [
-      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
-      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" /> },
-      { to: '/cuadreSaldo', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" /> },
-      { to: '/reportes', label: 'Reporte', icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
+      {
+        to: '/',
+        label: 'Panel de Control',
+        icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
+      },
+      {
+        to: '/pedidos',
+        label: 'Gestión de Pedidos',
+        icon: (
+          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
+        ),
+      },
+      {
+        to: '/cuadreSaldo',
+        label: 'Cuadre de Saldos',
+        icon: <Icon icon="prime:wallet" width="24" height="24" />,
+      },
+      {
+        to: '/reportes',
+        label: 'Reporte',
+        icon: <Icon icon="carbon:report-data" width="24" height="24" />,
+      },
     ],
   };
 
   const basePath = user?.rol?.nombre ? `/${user.rol.nombre}` : '';
-  let links: typeof linksByRole[keyof typeof linksByRole] = [];
+  let links: (typeof linksByRole)[keyof typeof linksByRole] = [];
 
   if (user?.rol?.nombre === 'trabajador') {
     // Links base para trabajador
     links = [
-      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" /> },
-      { to: '/almacen', label: 'Almacén', icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />, modulo: 'stock' },
-      { to: '/stock', label: 'Stock de productos', icon: <Icon icon="vaadin:stock" width="24" height="24" />, modulo: 'stock' },
-      { to: '/movimientos', label: 'Movimientos', icon: <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />, modulo: 'movimiento' },
-      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />, modulo: 'pedidos' },
-      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="24" height="24" />, modulo: 'saldos' },
-      { to: '/perfiles', label: 'Perfiles', icon: <Icon icon="hugeicons:access" width="24" height="24" />, modulo: 'perfiles' },
-      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="24" height="24" />, modulo: 'reportes' },
+      {
+        to: '/panel',
+        label: 'Panel de Control',
+        icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
+      },
+      {
+        to: '/almacen',
+        label: 'Sede',
+        icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />,
+        modulo: 'stock',
+      },
+      {
+        to: '/stock',
+        label: 'Stock de productos',
+        icon: <Icon icon="vaadin:stock" width="24" height="24" />,
+        modulo: 'stock',
+      },
+      {
+        to: '/movimientos',
+        label: 'Movimientos',
+        icon: (
+          <Icon
+            icon="icon-park-outline:cycle-movement"
+            width="24"
+            height="24"
+          />
+        ),
+        modulo: 'movimiento',
+      },
+      {
+        to: '/pedidos',
+        label: 'Gestión de Pedidos',
+        icon: (
+          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
+        ),
+        modulo: 'pedidos',
+      },
+      {
+        to: '/saldos',
+        label: 'Cuadre de Saldos',
+        icon: <Icon icon="prime:wallet" width="24" height="24" />,
+        modulo: 'saldos',
+      },
+      {
+        to: '/perfiles',
+        label: 'Perfiles',
+        icon: <Icon icon="hugeicons:access" width="24" height="24" />,
+        modulo: 'perfiles',
+      },
+      {
+        to: '/reportes',
+        label: 'Reportes',
+        icon: <Icon icon="carbon:report-data" width="24" height="24" />,
+        modulo: 'reportes',
+      },
     ];
 
     const modulosAsignados = user?.perfil_trabajador?.modulo_asignado
@@ -94,7 +254,9 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       .map((m) => m.trim());
 
     if (modulosAsignados) {
-      links = links.filter((link) => modulosAsignados.includes(link.modulo ?? ''));
+      links = links.filter((link) =>
+        modulosAsignados.includes(link.modulo ?? '')
+      );
     } else {
       links = [];
     }
@@ -139,11 +301,12 @@ export default function Sidebar({ isOpen, toggle }: Props) {
             <NavLink
               key={to}
               to={to}
+              end={to.endsWith('/') || to.endsWith('/panel')}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300 text-sm font-medium
-                hover:bg-[#f0f3ff] hover:text-primary ${
-                  isActive ? 'bg-[#EEf4FF] text-primary' : 'text-primary'
-                }`
+        hover:bg-[#f0f3ff] hover:text-primary ${
+          isActive ? 'bg-[#EEf4FF] text-primary' : 'text-primary'
+        }`
               }>
               <span className="text-lg">{icon}</span>
               <span
