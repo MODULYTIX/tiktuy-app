@@ -17,7 +17,7 @@ export default function Header() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,#1B3D8F_0%,#00163F_80%)] opacity-70 z-0" />
       <div className="absolute inset-0 bg-black/40 z-0" />
 
-      <nav className="relative z-10 flex items-center justify-between px-10 py-4 bg-[#0E1630]/60 backdrop-blur-md">
+      <nav className="relative z-10 flex items-center justify-between px-10 py-4 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <img src={logoTiktuy} alt="Tiktuy logo" className="h-6" />
         </div>
