@@ -1,5 +1,5 @@
 // src/components/almacenamiento/CrearMovimientoModal.tsx
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect,  useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   fetchAlmacenes,
@@ -57,13 +57,6 @@ export default function CrearMovimientoModal({
     const safe = Math.min(Math.max(0, value || 0), stock);
     setCantidades((prev) => ({ ...prev, [productoId]: safe }));
   };
-
-  const origenNombre = useMemo(() => {
-    const v = almacenOrigen as any;
-    if (v && typeof v === 'object') return v.nombre_almacen ?? '';
-    const match = almacenesOrigen.find((a) => String(a.id) === String(v));
-    return match?.nombre_almacen ?? '';
-  }, [almacenOrigen, almacenesOrigen]);
 
   const handleSubmit = async () => {
     const almacenesProductos = productos

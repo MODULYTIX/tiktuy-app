@@ -71,10 +71,6 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
       ? Number((data as any).peso).toFixed(3)
       : "";
 
-  const fechaStr = (data as any).fecha_registro
-    ? new Date((data as any).fecha_registro).toLocaleString("es-PE")
-    : "";
-
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/40" onClick={onClose} />

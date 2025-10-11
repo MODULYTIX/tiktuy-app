@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Icon } from "@iconify/react";
 import Tittlex from "@/shared/common/Tittlex";
 import { Inputx } from "@/shared/common/Inputx";
 import { Selectx } from "@/shared/common/Selectx";
@@ -133,12 +132,6 @@ export default function AlmacenFormModal({
 
   const provincias = provinciasPorDepartamento[formData.departamento] ?? [];
   const ciudades = ciudadesPorProvincia[`${formData.departamento}|${formData.provincia}`] ?? [];
-
-  // 🎨 Estilos normalizados (como tu figma)
-  const fieldClass =
-    "w-full h-11 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 " +
-    "placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors";
-  const labelClass = "block text-gray-700 font-medium mb-1";
 
   return !isOpen ? null : (
     <div

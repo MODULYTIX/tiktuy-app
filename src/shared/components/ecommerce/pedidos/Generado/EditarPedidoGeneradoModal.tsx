@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { FiX } from 'react-icons/fi';
-import { BsBoxSeam } from 'react-icons/bs';
 import { useAuth } from '@/auth/context';
 import { fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
 import { actualizarPedidoGenerado, type UpdatePedidoGeneradoPayload } from '@/services/ecommerce/pedidos/pedidos.api';
@@ -34,7 +32,7 @@ export default function EditarPedidoGeneradoModal({
   const [productos, setProductos] = useState<Producto[]>([]);
 
   const [courierOptions, setCourierOptions] = useState<{ id: string; nombre: string }[]>([]);
-  const [distritoOptions, setDistritoOptions] = useState<string[]>([]);
+  const [, setDistritoOptions] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     nombre_cliente: '',

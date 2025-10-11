@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FiPlus } from 'react-icons/fi';
 
 import PedidosGenerado from '@/shared/components/ecommerce/pedidos/PedidosGenerado';
 import PedidosAsignado from '@/shared/components/ecommerce/pedidos/PedidosAsignado';

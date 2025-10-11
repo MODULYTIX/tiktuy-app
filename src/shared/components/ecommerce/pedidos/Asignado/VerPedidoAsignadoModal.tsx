@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
 import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
 import { useAuth } from '@/auth/context';
-import { FiX } from 'react-icons/fi';
-import { BsBoxSeam } from 'react-icons/bs';
 import FieldX from '@/shared/common/FieldX';
 
 interface Props {

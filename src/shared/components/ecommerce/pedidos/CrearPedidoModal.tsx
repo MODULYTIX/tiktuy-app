@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { crearPedido, fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
 import { useAuth } from '@/auth/context/AuthContext';
-import { FiX } from 'react-icons/fi';
-import { BsBoxSeam } from 'react-icons/bs';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
 import { fetchZonasByCourierPrivado } from '@/services/courier/zonaTarifaria/zonaTarifaria.api';
 import { Selectx } from '@/shared/common/Selectx';
 import { Inputx, InputxPhone, InputxNumber } from '@/shared/common/Inputx';
 import Tittlex from '@/shared/common/Tittlex';
+import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
+import type { Producto } from '@/services/courier/producto/productoCourier.type';
 
 // DTO local para creación/edición (lo que realmente envía el frontend al backend)
 type CreatePedidoDto = {
@@ -69,7 +69,6 @@ export default function CrearPedidoModal({
     precio_unitario: '',
   });
 
-  const isReadOnly = modo === 'ver';
 
   const handleClickOutside = (e: MouseEvent) => {
     if (submitting) return; // 🚫 no cerrar mientras se envía
