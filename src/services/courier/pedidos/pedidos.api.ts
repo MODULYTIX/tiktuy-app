@@ -7,7 +7,7 @@ import type {
   AssignPedidosPayload,
   AssignPedidosResponse,
   ReassignPedidoPayload,
-  ReassignPedidoResponse,
+  ReassignPedidoApiResponse, // 👈 usamos este
   PedidoDetalle,
 } from './pedidos.types';
 
@@ -179,27 +179,39 @@ export async function assignPedidos(
 
 /* --------------------------
    POST: Reasignar uno
+   IMPORTANTE: NO pasar signal para evitar "signal is aborted without reason"
+   cuando el modal se desmonta o cambia la vista.
 ---------------------------*/
 export async function reassignPedido(
   token: string,
   payload: ReassignPedidoPayload,
-  opts?: { signal?: AbortSignal }
-): Promise<ReassignPedidoResponse> {
-  const res = await fetch(`${BASE_URL}/reasignar`, {
-    method: 'POST',
-    headers: {
-      ...authHeaders(token),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-    signal: opts?.signal,
-  });
+  _opts?: { signal?: AbortSignal } // mantenemos la firma por compatibilidad
+): Promise<ReassignPedidoApiResponse> {
+  void _opts; // 👈 evita el warning de no-used-vars sin usarlo realmente
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/reasignar`, {
+      method: 'POST',
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      // NO pasar "signal" aquí
+    });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new Error('La operación fue cancelada. Vuelve a intentarlo.');
+    }
+    throw err;
+  }
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({ message: 'Sin cuerpo de error' }));
     console.error('❌ Error al reasignar pedido - backend:', errBody);
   }
-  return handle<ReassignPedidoResponse>(res, 'Error al reasignar pedido');
+  return handle<ReassignPedidoApiResponse>(res, 'Error al reasignar pedido');
 }
 
 /* --------------------------
@@ -216,4 +228,17 @@ export async function fetchPedidoDetalle(
     signal: opts?.signal,
   });
   return handle<PedidoDetalle>(res, 'Error al obtener detalle del pedido');
+}
+
+/* (opcional) Si usas una ruta /terminados distinta a /entregados */
+export async function fetchPedidosTerminados(
+  token: string,
+  query: ListByEstadoQuery = {},
+  opts?: { signal?: AbortSignal }
+): Promise<Paginated<PedidoListItem>> {
+  const res = await fetch(`${BASE_URL}/terminados${toQueryEstado(query)}`, {
+    headers: authHeaders(token),
+    signal: opts?.signal,
+  });
+  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos terminados');
 }
