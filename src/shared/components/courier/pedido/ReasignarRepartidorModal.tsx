@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import  { useEffect, useMemo, useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { fetchPedidoDetalle, reassignPedido } from '@/services/courier/pedidos/pedidos.api';
 import type { PedidoListItem, PedidoDetalle } from '@/services/courier/pedidos/pedidos.types';

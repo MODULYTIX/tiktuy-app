@@ -1,5 +1,5 @@
 // src/components/almacenamiento/CrearMovimientoModal.tsx
-import { useEffect, useState } from 'react';
+import { useEffect,  useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   fetchAlmacenes,
@@ -14,7 +14,7 @@ import { useNotification } from '@/shared/context/notificacionesDeskop/useNotifi
 import { Selectx } from '@/shared/common/Selectx';
 import Buttonx from '@/shared/common/Buttonx';
 import Tittlex from '@/shared/common/Tittlex';
-import { InputxTextarea } from '@/shared/common/Inputx';
+import { Inputx, InputxTextarea } from '@/shared/common/Inputx';
 
 interface Props {
   open: boolean;
@@ -191,10 +191,10 @@ export default function CrearMovimientoModal({
         {/* Datos adicionales */}
         <div className="flex-1 flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-5">
-            <Selectx
+            <Inputx
               label="Sede Origen"
               name="almacen_origen"
-              labelVariant="left"
+              // labelVariant="left"
               value={almacenOrigen} // Este es el valor que se selecciona
               onChange={(e) => setAlmacenOrigen(e.target.value)} // Actualiza el valor seleccionado
               placeholder="Seleccionar almacén"
@@ -204,7 +204,7 @@ export default function CrearMovimientoModal({
                   {almacen.nombre_almacen}
                 </option>
               ))}
-            </Selectx>
+            </Inputx>
 
             <Selectx
               label="Sede Destino"

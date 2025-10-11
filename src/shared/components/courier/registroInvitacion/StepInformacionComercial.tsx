@@ -1,7 +1,6 @@
 import Buttonx from "@/shared/common/Buttonx";
 import { Inputx } from "@/shared/common/Inputx";
 import { Selectx } from "@/shared/common/Selectx";
-import { div } from "framer-motion/client";
 
 interface Props {
   values: {

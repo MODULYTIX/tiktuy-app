@@ -1,20 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { crearPedido, fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
 import { useAuth } from '@/auth/context/AuthContext';
-import { FiX } from 'react-icons/fi';
-import { BsBoxSeam } from 'react-icons/bs';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
 import { fetchZonasByCourierPrivado } from '@/services/courier/zonaTarifaria/zonaTarifaria.api';
 import { Selectx } from '@/shared/common/Selectx';
 import { Inputx, InputxPhone, InputxNumber } from '@/shared/common/Inputx';
 import Tittlex from '@/shared/common/Tittlex';
+import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
+// ⛔️ Elimina el import del Producto de courier para evitar conflicto de tipos
+// import type { Producto } from '@/services/courier/producto/productoCourier.type';
+
+// ✅ Tipo local desacoplado de los servicios (lo mínimo que usa el componente)
+type ProductoUI = {
+  id: number;
+  nombre_producto: string;
+  precio: number; // normalizamos a number
+};
 
 // DTO local para creación/edición (lo que realmente envía el frontend al backend)
 type CreatePedidoDto = {
   codigo_pedido?: string;
-  ecommerce_id?: number;           // backend lo resuelve por token
-  courier_id?: number;             // opcional: si viene -> estado "Asignado"
+  ecommerce_id?: number;
+  courier_id?: number;
   nombre_cliente: string;
   numero_cliente?: string;
   celular_cliente: string;
@@ -48,7 +56,7 @@ export default function CrearPedidoModal({
   const { token, user } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
 
-  const [productos, setProductos] = useState<Producto[]>([]);
+  const [productos, setProductos] = useState<ProductoUI[]>([]);
   const [couriers, setCouriers] = useState<CourierAsociado[]>([]);
   const [zonas, setZonas] = useState<{ distrito: string }[]>([]);
 
@@ -69,24 +77,41 @@ export default function CrearPedidoModal({
     precio_unitario: '',
   });
 
-  const isReadOnly = modo === 'ver';
-
   const handleClickOutside = (e: MouseEvent) => {
-    if (submitting) return; // 🚫 no cerrar mientras se envía
+    if (submitting) return;
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
       onClose();
     }
   };
 
   const handleEsc = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !submitting) onClose(); // 🚫 no cerrar mientras se envía
+    if (e.key === 'Escape' && !submitting) onClose();
   };
 
-  // Fetch productos y couriers al abrir modal
+  // Fetch productos y couriers al abrir modal (normaliza productos a ProductoUI)
   useEffect(() => {
     if (!isOpen || !token) return;
-    fetchProductos(token).then(setProductos).catch(console.error);
-    fetchCouriersAsociados(token).then(setCouriers).catch(console.error);
+
+    (async () => {
+      try {
+        const [prodsRaw, cours] = await Promise.all([
+          fetchProductos(token),          // puede devolver precio: number | string según el servicio
+          fetchCouriersAsociados(token),
+        ]);
+
+        // 🔧 Normalización a ProductoUI (precio siempre number)
+        const prodsUI: ProductoUI[] = (prodsRaw as any[]).map((p) => ({
+          id: Number(p.id),
+          nombre_producto: String(p.nombre_producto ?? ''),
+          precio: Number(p.precio ?? 0),
+        }));
+
+        setProductos(prodsUI);
+        setCouriers(cours as CourierAsociado[]);
+      } catch (err) {
+        console.error(err);
+      }
+    })();
   }, [isOpen, token]);
 
   // Click fuera + escape
@@ -182,9 +207,8 @@ export default function CrearPedidoModal({
 
   const handleSubmit = async () => {
     if (!token || !user) return;
-    if (submitting) return; // ⛔️ evita clics repetidos
+    if (submitting) return;
 
-    // Validaciones mínimas
     const courierId = Number(form.courier_id); // opcional
     const productoId = Number(form.producto_id);
     const cantidad = Number(form.cantidad);
@@ -196,7 +220,6 @@ export default function CrearPedidoModal({
       return;
     }
 
-    // Normalizar fecha a ISO (solo fecha sin hora -> 00:00 local)
     const fechaISO = form.fecha_entrega_programada
       ? new Date(form.fecha_entrega_programada + 'T00:00:00').toISOString()
       : new Date().toISOString();
@@ -240,7 +263,7 @@ export default function CrearPedidoModal({
       <div
         ref={modalRef}
         className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right flex flex-col gap-5"
-        aria-busy={submitting} // accesibilidad
+        aria-busy={submitting}
       >
         <Tittlex
           variant="modal"

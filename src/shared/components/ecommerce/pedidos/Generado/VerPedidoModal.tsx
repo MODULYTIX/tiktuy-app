@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { FiX } from 'react-icons/fi';
-import { BsBoxSeam } from 'react-icons/bs';
 import { useAuth } from '@/auth/context';
 import { fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
 import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
 import Tittlex from '@/shared/common/Tittlex';
 import { Inputx, InputxPhone, InputxNumber } from '@/shared/common/Inputx';
-import { Selectx } from '@/shared/common/Selectx';
 
 type Props = {
   open: boolean;

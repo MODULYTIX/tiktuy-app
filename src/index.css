@@ -50,3 +50,12 @@
   height: 100vh; /* Asegura que el div ocupe toda la altura de la ventana */
   width: 100%; /* Hace que el div ocupe todo el ancho disponible */
 }
+
+/* Oculta scrollbars (Firefox + WebKit) */
+html, body {
+  scrollbar-width: none;        /* Firefox */
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;                /* Chrome, Edge, Safari */
+}
