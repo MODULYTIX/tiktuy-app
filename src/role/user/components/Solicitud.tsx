@@ -3,6 +3,7 @@ import TittleX from '../common/TittleX';
 import { AiOutlineMail } from 'react-icons/ai';
 import { GiCube } from 'react-icons/gi';
 import { BsSendArrowUp } from 'react-icons/bs';
+import { Icon } from '@iconify/react/dist/iconify.js';
 
 export default function Solicitud() {
   return (
@@ -21,14 +22,15 @@ export default function Solicitud() {
               </span>
             </h1>
             <p className="text-gray-600">
-              ¿Listo para llevar su logística al siguiente nivel? Contáctenos hoy mismo para
-              descubrir cómo nuestras soluciones personalizadas y nuestra experiencia en el sector
-              pueden transformar su cadena de suministro.
+              ¿Listo para llevar su logística al siguiente nivel? Contáctenos
+              hoy mismo para descubrir cómo nuestras soluciones personalizadas y
+              nuestra experiencia en el sector pueden transformar su cadena de
+              suministro.
             </p>
           </div>
 
           {/* Cards de contacto */}
-          <div className="flex flex-wrap gap-4 text-[#0057A3] mt-40">
+          <div className="flex flex-wrap gap-4 text-[#0057A3] mt-">
             <div className="px-6 py-4 border rounded-xl border-[#99BCDA] min-w-[260px] flex-1">
               <div className="flex gap-2 items-center mb-2">
                 <span className="p-2 rounded-full bg-[#E6EEF6]">
@@ -83,14 +85,18 @@ export default function Solicitud() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">Apellido Paterno</label>
+                <label className="text-sm text-gray-700">
+                  Apellido Paterno
+                </label>
                 <input
                   className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
                   placeholder="Ingrese su apellido paterno"
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">Apellido Materno</label>
+                <label className="text-sm text-gray-700">
+                  Apellido Materno
+                </label>
                 <input
                   className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
                   placeholder="Ingrese su apellido materno"
@@ -117,9 +123,12 @@ export default function Solicitud() {
               <div className="flex flex-col gap-1">
                 <label className="text-sm text-gray-700">Teléfono</label>
                 <div className="h-10 rounded-md border border-[#99BCDA] flex overflow-hidden">
-                  <span className="px-3 flex items-center border-r border-[#99BCDA] text-sm">🇵🇪 (+51)</span>
+                  <span className="px-1 flex items-center border-r border-[#99BCDA] text-[12px] text-[#525252] gap-0.5">
+                    <Icon icon="openmoji:flag-peru" width="14" height="14" />
+                    (+51)
+                  </span>
                   <input
-                    className="flex-1 px-3 text-sm outline-none"
+                    className="flex-1 px-1 text-sm outline-none"
                     placeholder="Ingrese su teléfono"
                   />
                 </div>
@@ -138,7 +147,9 @@ export default function Solicitud() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">Nombre Comercial</label>
+                <label className="text-sm text-gray-700">
+                  Nombre Comercial
+                </label>
                 <input
                   className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
                   placeholder="Ingrese su nombre comercial"
@@ -188,8 +199,7 @@ export default function Solicitud() {
                 flex items-center gap-2 bg-[#0057A3] text-white px-6 py-2 rounded-md
                 font-semibold shadow-sm hover:brightness-95 active:scale-[0.99]
                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#99BCDA]
-              "
-            >
+              ">
               Enviar solicitud
               <BsSendArrowUp className="text-lg" />
             </button>
