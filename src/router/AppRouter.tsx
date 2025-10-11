@@ -1,3 +1,4 @@
+// src/router/AppRouter.tsx
 import { Navigate, Route, Routes } from 'react-router-dom';
 import LoginPage from '@/auth/pages/LoginPage';
 import PrivateRoute from './PrivateRoute';
@@ -11,25 +12,43 @@ import { motorizadoRoutes } from '@/role/motorizado/routes';
 
 import PrivateLayout from '@/shared/layout/PrivateLayout';
 import RegistroInvitacionPage from '@/role/courier/pages/RegistroInvitacionPage';
-import CrearPasswordPage from "@/role/courier/pages/CrearPasswordPage";
+import CrearPasswordPage from '@/role/courier/pages/CrearPasswordPage';
+
+// rutas publicas 
+import PublicLayout from '@/role/user/layout/PublicLayout';
+import HomePublicPage from '@/role/user/pages/HomePublicPage';
+
+
 
 export default function AppRouter() {
   return (
     <Routes>
-      {/* Página de login */}
+      {/* Pública: Landing en / */}
       <Route
         path="/"
+        element={
+          <PublicLayout>
+            <HomePublicPage />
+          </PublicLayout>
+        }
+      />
+
+      {/* Login ahora vive en /login */}
+      <Route
+        path="/login"
         element={
           <AuthGuard>
             <LoginPage />
           </AuthGuard>
         }
       />
+
+      {/* Flujos abiertos que ya tenías */}
       <Route path="/registro-invitacion" element={<RegistroInvitacionPage />} />
       <Route path="/crear-password" element={<CrearPasswordPage />} />
       <Route path="/crear-password-motorizado" element={<CrearPasswordPage />} />
 
-      {/*  Alias para links que envía el backend */}
+      {/* Alias backend */}
       <Route path="/crear-password-repartidor" element={<CrearPasswordPage />} />
       <Route path="/registro-invitacion-motorizado" element={<RegistroInvitacionPage />} />
 
@@ -85,7 +104,7 @@ export default function AppRouter() {
         ))}
       </Route>
 
-      {/* Trabajador - Mismos módulos que ecommerce */}
+      {/* Trabajador */}
       <Route
         path="/trabajador"
         element={

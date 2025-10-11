@@ -27,7 +27,7 @@ export default function AuthGuard({ children }: Props) {
   useEffect(() => {
     if (user && !redirected) {
       const role = user.rol?.nombre;
-  
+
       if (
         role === 'admin' ||
         role === 'ecommerce' ||
@@ -38,11 +38,11 @@ export default function AuthGuard({ children }: Props) {
         setRedirected(true);
         return;
       }
-  
+
       if (role === 'trabajador') {
         const modulos = user.perfil_trabajador?.modulo_asignado?.split(',') || [];
         const primerModulo = modulos[0]?.trim();
-  
+
         const rutaModulo = moduloRutaMap[primerModulo || ''];
         if (rutaModulo) {
           navigate(rutaModulo, { replace: true });
@@ -52,9 +52,8 @@ export default function AuthGuard({ children }: Props) {
       }
     }
   }, [user, redirected, navigate]);
-  
 
-  if (loading) return <div className=""> <LoadingBouncing /> </div>;
+  if (loading) return <div className=""><LoadingBouncing /></div>;
 
   if (redirected) return null;
 
