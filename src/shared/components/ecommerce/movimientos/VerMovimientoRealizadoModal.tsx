@@ -240,90 +240,70 @@ export default function VerMovimientoRealizadoModal(props: Props) {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Izquierda: Tarjeta Desde/Hacia */}
               <div className="lg:col-span-5">
-                <div className="border rounded-sm bg-white border-gray-400">
-                  <div className="p-5">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* DESDE */}
-                      <div className="text-center">
-                        <div className="text-slate-500 font-semibold mb-2">
-                          Desde
-                        </div>
-                        <div className="mx-auto w-28 h-28 ">
-                          <img src={AlmacenDesde} alt="Almacen desde" className='object-contain' />
-                        </div>                        <div className="mt-2 text-lg font-semibold text-slate-800">
-                          {nombreAlmacen(data.almacen_origen) ||
-                            'Almacén Origen'}
-                        </div>
-                        <div className="mt-3 inline-flex items-center gap-2 rounded-sm bg-sky-50 px-3 py-1">
-                          <span className="text-sky-700 text-xs font-semibold">
-                            Fecha de Generación
-                          </span>
-                        </div>
-                        <div className="mt-2 text-slate-600 text-sm">
-                          {fechaGeneracion}
-                        </div>
-                      </div>
+                <div className="border rounded-lg bg-white shadow-lg p-5">
+  <div className="flex justify-between items-center mb-4">
+    {/* Sección Desde */}
+    <div className="flex flex-col items-center">
+      <div className="text-slate-500 font-semibold mb-2">Desde</div>
+      <div className="w-20 h-20">
+        <img
+          src={AlmacenDesde} // Ruta de la imagen
+          alt="Almacen Desde"
+          className="object-contain"
+        />
+      </div>
+      <div className="mt-2 text-lg font-semibold text-slate-800">
+        {nombreAlmacen(data.almacen_origen) || 'Almacén Origen'}
+      </div>
+      <div className="mt-3 inline-flex items-center gap-2 rounded-sm bg-sky-50 px-3 py-1">
+        <span className="text-sky-700 text-xs font-semibold">
+          Fecha de Generación
+        </span>
+      </div>
+      <div className="mt-2 text-slate-600 text-sm">{fechaGeneracion}</div>
+    </div>
 
-                      {/* HACIA */}
-                      <div className="text-center">
-                        <div className="text-slate-500 font-semibold mb-2">
-                          Hacia
-                        </div>
-                        <div className="mx-auto w-28 h-28 ">
-                          <img src={AlmacenHacia} alt="Almacen hacia" className='object-contain' />
-                        </div>
-                        <div className="mt-2 text-lg font-semibold text-slate-800">
-                          {nombreAlmacen(data.almacen_destino) ||
-                            'Almacén Destino'}
-                        </div>
-                        <div className="mt-3 inline-flex items-center gap-2 rounded-sm bg-amber-50 px-3 py-1">
-                          <span className="text-amber-700 text-xs font-semibold">
-                            Fecha de Validación
-                          </span>
-                        </div>
-                        <div className="mt-2 text-slate-600 text-sm">
-                          {fechaValidacion}
-                        </div>
-                      </div>
-                    </div>
+    {/* Línea con camión y tiempo transcurrido */}
+    <div className="relative flex flex-col justify-center items-center mt-6 mx-4">
+      <div className="h-0.5 bg-slate-300 mx-4 absolute top-1/3 left-0 right-0" />
+      <div className="absolute top-0">
+        <video
+          src={truckLoop} // Animación o gif
+          className="w-12 h-12 rounded-md"
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
+      </div>
+      <div className="text-xs text-slate-500">Tiempo transcurrido</div>
+      <div className="flex items-center gap-1 text-xs text-slate-700 mt-1">
+        <HiClock className="w-4 h-4" />
+        {diasTranscurridos && `${diasTranscurridos} día${diasTranscurridos !== '1' ? 's' : ''}`}
+      </div>
+    </div>
 
-                    {/* Línea con camión y tiempo transcurrido */}
-                    {/* Línea con animación y tiempo transcurrido */}
-                    <div className="relative my-5">
-                      <div className="h-0.5 bg-slate-300 mx-4" />
+    {/* Sección Hacia */}
+    <div className="flex flex-col items-center">
+      <div className="text-slate-500 font-semibold mb-2">Hacia</div>
+      <div className="w-20 h-20">
+        <img
+          src={AlmacenHacia} // Ruta de la imagen
+          alt="Almacen Hacia"
+          className="object-contain"
+        />
+      </div>
+      <div className="mt-2 text-lg font-semibold text-slate-800">
+        {nombreAlmacen(data.almacen_destino) || 'Almacén Destino'}
+      </div>
+      <div className="mt-3 inline-flex items-center gap-2 rounded-sm bg-amber-50 px-3 py-1">
+        <span className="text-amber-700 text-xs font-semibold">Fecha de Validación</span>
+      </div>
+      <div className="mt-2 text-slate-600 text-sm">{fechaValidacion}</div>
+    </div>
+  </div>
+</div>
 
-                      {/* Contenido centrado sobre la línea */}
-                      <div className="absolute inset-x-0 -top-20 flex flex-col items-center justify-center gap-4">
-                        {/* Animación arriba (mp4 o gif) */}
-                        <video
-                          src={truckLoop}
-                          className="w-12 h-12 rounded-md"
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          preload="auto"
-                        />
-                        {/* Si prefieres GIF, cambia por: */}
-                        {/* <img src={truckLoop} className="w-12 h-12 rounded-md" alt="Animación" /> */}
-
-                        {/* Texto y tiempo (tus estilos originales) */}
-                        <div className="flex items-center gap-3">
-                          <div className="text-xs text-slate-500">
-                            Tiempo transcurrido
-                          </div>
-                          {diasTranscurridos && (
-                            <div className="flex items-center gap-1 text-xs text-slate-700">
-                              <HiClock className="w-4 h-4" />
-                              {diasTranscurridos} día
-                              {diasTranscurridos === '01' ? '' : 's'}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Tarjeta inferior vacía */}
                 <div className="mt-6 mb-4 border rounded-sm bg-white border-gray-400">

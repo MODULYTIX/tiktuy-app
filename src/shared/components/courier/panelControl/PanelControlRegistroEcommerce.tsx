@@ -104,7 +104,7 @@
 
     return (
       // Contenedor padre: padding 20 y separación 20 entre bloques
-      <div className="w-full h-full max-w-[720px] flex flex-col p-5 gap-5 text-[12px]">
+      <div className=" w-full h-full max-w-[720px] flex flex-col p-5 gap-5 text-[12px]">
         {/* Header */}
         <div className="grid gap-2">
           <div className="flex items-center gap-2 text-primaryDark">

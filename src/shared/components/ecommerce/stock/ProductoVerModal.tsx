@@ -119,25 +119,23 @@ export default function ProductoVerModal({ open, onClose, data }: Props) {
             maxRows={8}
           />
 
-          {/* Reemplazo de Selects por Inputs */}
-          <div className="grid grid-cols-2 gap-5">
-            <Inputx
-              name="categoria"
-              label="Categoría"
-              value={categoriaLabel}
-              readOnly
-              disabled
-              type="text"
-            />
-            <Inputx
-              name="almacen"
-              label="Almacén"
-              value={almacenLabel}
-              readOnly
-              disabled
-              type="text"
-            />
-          </div>
+          <Inputx
+            name="categoria"
+            label="Categoría"
+            value={categoriaLabel}
+            readOnly
+            disabled
+            type="text"
+          />
+
+          <Inputx
+            name="almacen"
+            label="Almacén"
+            value={almacenLabel}
+            readOnly
+            disabled
+            type="text"
+          />
 
           <div className="grid grid-cols-2 gap-5">
             <InputxNumber

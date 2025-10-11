@@ -180,9 +180,9 @@ export default function CrearMovimientoModal({
                           handleCantidadChange(prod.uuid, Number(e.target.value), prod.stock)
                         }
                         className="w-[64px] h-9 rounded-lg border border-gray-300 px-2
-                                   text-center text-sm shadow-sm
-                                   focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
-                                   appearance-auto"
+                                  text-center text-sm shadow-sm
+                                  focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
+                                  appearance-auto"
                       />
                       <span className="text-sm text-gray-600 whitespace-nowrap">
                         / {prod.stock}
@@ -198,14 +198,21 @@ export default function CrearMovimientoModal({
         {/* Datos adicionales */}
         <div className="flex-1 flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-5">
-            <Inputx
+            <Selectx
               label="Almacén Origen"
               name="almacen_origen"
-              value={origenNombre}
-              readOnly
-              disabled
-              type="text"
-            />
+              labelVariant="left"
+              value={almacenOrigen} // Este es el valor que se selecciona
+              onChange={(e) => setAlmacenOrigen(e.target.value)} // Actualiza el valor seleccionado
+              placeholder="Seleccionar almacén"
+            >
+              {almacenesOrigen.map((almacen) => (
+                <option key={almacen.id} value={almacen.id}>
+                  {almacen.nombre_almacen}
+                </option>
+              ))}
+            </Selectx>
+
             <Selectx
               label="Almacén Destino"
               name="almacen_destino"

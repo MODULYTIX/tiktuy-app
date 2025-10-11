@@ -9,6 +9,7 @@ import type { EcommerceCourier } from "@/services/courier/panel_control/panel_co
 
 //  Importa el modal de invitación (renombrado a Ecommer)
 import PanelControlInviteEcommer from "@/shared/components/courier/panelControl/PanelControlInviteEcommer";
+import { Inputx, InputxNumber } from "@/shared/common/Inputx";
 
 type EstadoTexto = "activo" | "pendiente";
 
@@ -20,7 +21,7 @@ interface EcommerceRow {
   telefono: string;
   estado: EstadoTexto;
   fecha_asociacion: string;
-  hasWhatsapp: boolean;     
+  hasWhatsapp: boolean;
   _raw: EcommerceCourier;
 }
 
@@ -175,80 +176,106 @@ function DetalleEcommerceModal({
         {/* Body */}
         <div className="p-5 grid gap-5">
           {/* fila 1 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">Nombre</label>
-              <input value={nombres} disabled className={inputClass} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">Apellido</label>
-              <input value={apellidos} disabled className={inputClass} />
-            </div>
+          <div className="w-full flex flex-col-2 gap-5">
+            <Inputx
+              name="nombre"
+              label="Nombre"
+              value={nombres}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="apellido"
+              label="Apellido"
+              value={apellidos}
+              readOnly
+              disabled
+              type="text"
+            />
           </div>
 
           {/* fila 2 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">DNI / CI</label>
-              <input value={dni} disabled className={inputClass} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">Correo</label>
-              <input value={correo} disabled className={inputClass} />
-            </div>
+          <div className="w-full flex flex-col-2 gap-5">
+            <Inputx
+              name="dni"
+              label="DNI / CI"
+              value={dni}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="correo"
+              label="Correo"
+              value={correo}
+              readOnly
+              disabled
+              type="text"
+            />
           </div>
 
           {/* fila 3 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">Teléfono</label>
-              <div
-                className={[
-                  "flex items-center h-10 rounded-md overflow-hidden border bg-white",
-                  "border-gray30",
-                ].join(" ")}
-              >
-                <span className="w-[56px] shrink-0 grid place-items-center text-gray70 text-[12px] border-r border-gray30">
-                  + 51
-                </span>
-                <input
-                  value={phoneLocal}
-                  disabled
-                  className="flex-1 h-full px-3 bg-transparent text-gray90 text-[12px] outline-none"
-                />
-              </div>
-            </div>
+          <div className="w-full flex flex-col-2 gap-5">
+            <InputxNumber
+              label="Teléfono"
+              name="telefono"
+              value={phoneLocal}
+              readOnly
+              disabled
+              decimals={0}  // Asumiendo que el teléfono no necesita decimales
+              step={1}      // Teléfonos normalmente no tienen fracciones
+              placeholder="Ingrese el número"
+            />
 
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">
-                Nombre Comercial
-              </label>
-              <input value={nombreComercial} disabled className={inputClass} />
-            </div>
+            <Inputx
+              name="nombreComercial"
+              label="Nombre Comercial"
+              value={nombreComercial}
+              readOnly
+              disabled
+              type="text"
+            />
           </div>
 
           {/* fila 4 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">RUC</label>
-              <input value={ruc} disabled className={inputClass} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">Ciudad</label>
-              <input value={ciudad} disabled className={inputClass} />
-            </div>
+          <div className="w-full flex flex-col-2 gap-5">
+            <Inputx
+              name="ruc"
+              label="RUC"
+              value={ruc}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="ciudad"
+              label="Ciudad"
+              value={ciudad}
+              readOnly
+              disabled
+              type="text"
+            />
           </div>
 
           {/* fila 5 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">Dirección</label>
-              <input value={direccion} disabled className={inputClass} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">Rubro</label>
-              <input value={rubro} disabled className={inputClass} />
-            </div>
+          <div className="w-full flex flex-col-2 gap-5">
+            <Inputx
+              name="direccion"
+              label="Dirección"
+              value={direccion}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="rubro"
+              label="Rubro"
+              value={rubro}
+              readOnly
+              disabled
+              type="text"
+            />
           </div>
         </div>
       </div>
@@ -456,11 +483,10 @@ export default function PanelControlTable() {
                         {/* ESTADO */}
                         <td className="px-4 py-3 text-center">
                           <span
-                            className={`inline-flex items-center justify-center h-7 px-3 rounded-[10px] text-[12px] font-medium shadow-sm ${
-                              entry.estado === "activo"
-                                ? "bg-gray90 text-white"
-                                : "bg-gray30 text-gray80"
-                            }`}
+                            className={`inline-flex items-center justify-center h-7 px-3 rounded-[10px] text-[12px] font-medium shadow-sm ${entry.estado === "activo"
+                              ? "bg-gray90 text-white"
+                              : "bg-gray30 text-gray80"
+                              }`}
                           >
                             {entry.estado}
                           </span>
@@ -569,11 +595,10 @@ export default function PanelControlTable() {
       {/* Snackbar flotante */}
       <div
         aria-live="polite"
-        className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 transition-all duration-300 ${
-          snackbar.open
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 translate-y-3 pointer-events-none"
-        }`}
+        className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 transition-all duration-300 ${snackbar.open
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 translate-y-3 pointer-events-none"
+          }`}
       >
         <div className="rounded-full px-4 py-2 bg-gray90 text-white shadow-lg text-[12px]">
           {snackbar.message}

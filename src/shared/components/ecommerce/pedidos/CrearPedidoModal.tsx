@@ -5,9 +5,10 @@ import { FiX } from 'react-icons/fi';
 import { BsBoxSeam } from 'react-icons/bs';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
-import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import { fetchZonasByCourierPrivado } from '@/services/courier/zonaTarifaria/zonaTarifaria.api';
-import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
+import { Selectx } from '@/shared/common/Selectx';
+import { Inputx, InputxPhone, InputxNumber } from '@/shared/common/Inputx';
+import Tittlex from '@/shared/common/Tittlex';
 
 // DTO local para creación/edición (lo que realmente envía el frontend al backend)
 type CreatePedidoDto = {
@@ -238,252 +239,138 @@ export default function CrearPedidoModal({
     <div className="fixed inset-0 z-50 bg-black/20 bg-opacity-40 flex justify-end">
       <div
         ref={modalRef}
-        className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right"
+        className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right flex flex-col gap-5"
         aria-busy={submitting} // accesibilidad
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold flex items-center gap-2 text-gray-700">
-            <BsBoxSeam className="text-primary text-2xl" />
-            {modo === 'ver'
-              ? 'DETALLES DEL PEDIDO'
-              : modo === 'editar'
-              ? 'EDITAR PEDIDO'
-              : 'REGISTRAR NUEVO PEDIDO'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
-            disabled={submitting} // no cerrar mientras se envía
-            aria-disabled={submitting}
-          >
-            <FiX className="w-6 h-6" />
-          </button>
-        </div>
+        <Tittlex
+          variant="modal"
+          icon="lsicon:shopping-cart-filled"
+          title="REGISTRAR NUEVO PEDIDO"
+          description="Complete los datos del cliente, el producto y la información de entrega para registrar un nuevo pedido en el sistema."
+        />
 
-        <p className="text-sm text-gray-500 mb-6">
-          Complete los datos del cliente, el producto y la información de entrega para{' '}
-          {modo === 'crear'
-            ? 'registrar un nuevo pedido'
-            : modo === 'editar'
-            ? 'editar el pedido'
-            : 'visualizar el pedido'}
-          .
-        </p>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Courier</label>
-            <select
+        <div className="flex flex-col gap-5 h-full">
+          <div className='flex flex-row gap-5 w-full'>
+            <Selectx
+              label="Courier"
               name="courier_id"
-              disabled={isReadOnly || submitting}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-              onChange={handleChange}
               value={form.courier_id}
+              onChange={handleChange}
+              labelVariant="left"
+              placeholder="Seleccionar Courier"
             >
-              <option value="">Seleccionar courier</option>
-              {couriers.length === 0 && (
-                <option disabled value="">
-                  No hay couriers asociados
-                </option>
-              )}
               {couriers.map((courier) => (
                 <option key={courier.id} value={courier.id}>
                   {courier.nombre_comercial}
                 </option>
               ))}
-            </select>
-          </div>
+            </Selectx>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-            <input
+            <Inputx
+              label="Nombre"
               name="nombre_cliente"
               value={form.nombre_cliente}
-              disabled={isReadOnly || submitting}
-              placeholder="Ejem. Alvaro"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={handleChange}
+              placeholder="Ejem. Alvaro"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-            <div className="flex border border-gray-300 rounded overflow-hidden">
-              <span className="px-3 py-2 text-sm bg-gray-100 text-gray-700">+51</span>
-              <input
-                type="text"
-                name="celular_cliente"
-                value={form.celular_cliente}
-                disabled={isReadOnly || submitting}
-                placeholder="987654321"
-                className="flex-1 px-3 py-2 text-sm outline-none"
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
-            <select
-              name="distrito"
-              disabled={isReadOnly || submitting}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+          <div className='flex flex-row gap-5 w-full'>
+            <InputxPhone
+              label="Teléfono"
+              countryCode="+51"
+              name="celular_cliente"
+              value={form.celular_cliente}
               onChange={handleChange}
+              placeholder="987654321"
+            />
+
+            <Selectx
+              label="Distrito"
+              name="distrito"
               value={form.distrito}
+              onChange={handleChange}
+              labelVariant="left"
+              placeholder="Seleccionar Distrito"
             >
-              <option value="">Seleccionar Distrito</option>
               {zonas.map((zona, idx) => (
                 <option key={idx} value={zona.distrito}>
                   {zona.distrito}
                 </option>
               ))}
-            </select>
+            </Selectx>
           </div>
 
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-            <input
-              name="direccion_envio"
-              value={form.direccion_envio}
-              disabled={isReadOnly || submitting}
-              placeholder="Av. Grau J 499"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-              onChange={handleChange}
-            />
-          </div>
+          <Inputx
+            label="Dirección"
+            name="direccion_envio"
+            value={form.direccion_envio}
+            onChange={handleChange}
+            placeholder="Av. Grau J 499"
+          />
 
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Referencia</label>
-            <input
-              name="referencia_direccion"
-              value={form.referencia_direccion}
-              disabled={isReadOnly || submitting}
-              placeholder="Al lado del supermercado UNO"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-              onChange={handleChange}
-            />
-          </div>
+          <Inputx
+            label="Referencia"
+            name="referencia_direccion"
+            value={form.referencia_direccion}
+            onChange={handleChange}
+            placeholder="Al lado del supermercado UNO"
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Producto</label>
-            <select
+          <div className='flex flex-row gap-5 w-full'>
+            <Selectx
+              label="Producto"
               name="producto_id"
-              disabled={isReadOnly || submitting}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-              onChange={(e) => {
-                handleChange(e);
-                const selected = productos.find((p) => p.id === Number(e.target.value));
-                if (selected) {
-                  setForm((prev) => ({
-                    ...prev,
-                    precio_unitario: String(selected.precio ?? ''),
-                    cantidad: '',
-                    monto_recaudar: '',
-                  }));
-                }
-              }}
               value={form.producto_id}
+              onChange={handleChange}
+              labelVariant="left"
+              placeholder="Seleccionar Producto"
             >
               <option value="">Seleccionar producto</option>
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre_producto}
+              {productos.map((producto) => (
+                <option key={producto.id} value={producto.id}>
+                  {producto.nombre_producto}
                 </option>
               ))}
-            </select>
-          </div>
+            </Selectx>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cantidad{' '}
-              {form.producto_id && (
-                <span className="text-xs text-gray-500">
-                  /{productos.find((p) => p.id === Number(form.producto_id))?.stock ?? 0} disponibles
-                </span>
-              )}
-            </label>
-            <input
+            <InputxNumber
+              label="Cantidad"
               name="cantidad"
               value={form.cantidad}
-              disabled={isReadOnly || submitting}
+              onChange={handleChange}
               placeholder="50"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-              onChange={(e) => {
-                handleChange(e);
-                const cantidad = Number(e.target.value);
-                const precio = Number(form.precio_unitario);
-                if (!isNaN(cantidad) && !isNaN(precio)) {
-                  setForm((prev) => ({
-                    ...prev,
-                    monto_recaudar: String(cantidad * precio),
-                  }));
-                }
-              }}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
-            <input
+          <div className='flex flex-row gap-5 w-full'>
+            <InputxNumber
+              label="Monto"
               name="monto_recaudar"
               value={form.monto_recaudar}
-              disabled={isReadOnly || submitting}
-              placeholder="S/. 00.00"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={handleChange}
+              placeholder="S/. 0.00"
             />
-            {form.precio_unitario && (
-              <p className="text-xs text-gray-500 mt-1">Precio unitario: S/. {form.precio_unitario}</p>
-            )}
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Entrega</label>
-            <input
-              type="date"
+            <Inputx
+              label="Fecha Entrega"
               name="fecha_entrega_programada"
               value={form.fecha_entrega_programada}
-              disabled={isReadOnly || submitting}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               onChange={handleChange}
+              type="date"
             />
           </div>
         </div>
 
-        {modo !== 'ver' && (
-          <div className="flex justify-end gap-2 mt-6">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border rounded text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              disabled={submitting}
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="bg-gray-900 text-white px-4 py-2 rounded text-sm hover:bg-gray-800 disabled:opacity-60 inline-flex items-center gap-2"
-              disabled={submitting}
-            >
-              {submitting && (
-                <svg
-                  className="animate-spin h-4 w-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  ></path>
-                </svg>
-              )}
-              {modo === 'editar' ? (submitting ? 'Guardando…' : 'Guardar cambios') : (submitting ? 'Creando…' : 'Crear nuevo')}
-            </button>
-          </div>
-        )}
+        <div className="flex justify-start gap-5 items-end">
+          <button onClick={handleSubmit} className="bg-gray-900 text-white px-4 py-2 rounded text-sm hover:bg-gray-800 disabled:opacity-60" disabled={submitting}>
+            {submitting ? 'Guardando…' : 'Guardar cambios'}
+          </button>
+          <button onClick={onClose} className="px-4 py-2 border rounded text-sm text-gray-700 hover:bg-gray-50" disabled={submitting}>
+            Cancelar
+          </button>
+        </div>
+        
       </div>
     </div>
   );

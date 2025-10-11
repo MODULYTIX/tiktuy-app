@@ -1,8 +1,10 @@
-import { IoClose } from 'react-icons/io5';
 import { useEffect, useRef, useState } from 'react';
-import { GrUserAdmin } from 'react-icons/gr';
-import { FiChevronDown } from 'react-icons/fi';
 import { registerTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
+import { Inputx, InputxPhone } from '@/shared/common/Inputx';
+import { Selectx } from '@/shared/common/Selectx';
+import Buttonx from '@/shared/common/Buttonx';
+import Tittlex from '@/shared/common/Tittlex';
+import { Icon } from '@iconify/react';
 
 interface Props {
   isOpen: boolean;
@@ -22,9 +24,20 @@ const moduloLabelMap: Record<string, string> = {
   stock: 'Stock de Productos',
   movimiento: 'Movimientos',
   pedidos: 'Pedidos',
-  saldos: 'Saldos',
+  saldos: 'Cuadre de Saldos',
   perfiles: 'Perfiles',
   reportes: 'Reportes',
+};
+
+const moduloIconMap: Record<string, string> = {
+  panel: 'mdi:view-dashboard-outline',
+  almacen: 'mdi:warehouse',
+  stock: 'mdi:package-variant-closed',
+  movimiento: 'mdi:swap-horizontal',
+  pedidos: 'mdi:cart-outline',
+  saldos: 'mdi:wallet-outline',
+  perfiles: 'mdi:account-cog-outline',
+  reportes: 'mdi:chart-box-outline',
 };
 
 export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
@@ -38,19 +51,18 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
     confirmarPassword: '',
     rol_perfil_id: '',
   });
+
   const [modulos, setModulos] = useState<string[]>([]);
-  const [selectModulo, setSelectModulo] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // Reset selección de módulos cuando cambia el rol
   useEffect(() => {
-    const posibles = rolModuloMap[form.rol_perfil_id] || [];
-    setModulos(posibles.length ? [posibles[0]] : []);
-    setSelectModulo('');
+    setModulos([]);
   }, [form.rol_perfil_id]);
 
+  // Cerrar al hacer click fuera
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) onClose();
@@ -64,20 +76,29 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddModulo = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    if (value && !modulos.includes(value)) setModulos((prev) => [...prev, value]);
-    setSelectModulo('');
+  const modulosDisponibles = rolModuloMap[form.rol_perfil_id] || [];
+
+  const toggleModulo = (mod: string) => {
+    setModulos((prev) =>
+      prev.includes(mod) ? prev.filter((m) => m !== mod) : [...prev, mod]
+    );
   };
 
-  const handleRemoveModulo = (modulo: string) => {
-    setModulos((prev) => prev.filter((m) => m !== modulo));
+  const selectAll = () => {
+    if (modulosDisponibles.length) setModulos(modulosDisponibles);
   };
+
+  const clearAll = () => setModulos([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (form.password !== form.confirmarPassword) {
       setError('Las contraseñas no coinciden.');
+      return;
+    }
+    if (!form.rol_perfil_id) {
+      setError('Debe seleccionar un rol.');
       return;
     }
     if (modulos.length === 0) {
@@ -114,196 +135,195 @@ export default function PerfilFormModal({ isOpen, onClose, onCreated }: Props) {
 
   if (!isOpen) return null;
 
-  const modulosDisponibles = rolModuloMap[form.rol_perfil_id] || [];
-  const modulosFiltrados = modulosDisponibles.filter((m) => !modulos.includes(m));
-
-  // 🎨 Modelo base de estilos
-  const fieldClass =
-    "w-full h-11 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 " +
-    "placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors";
-  const labelClass = "block text-gray-700 font-medium mb-1";
-  const selectBaseClass = `${fieldClass} appearance-none pr-9`;
-  const selectWrapperClass = "relative";
-  const selectChevronClass =
-    "absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400";
-  const btnPrimary =
-    "bg-[#1A253D] text-white px-4 py-0 rounded flex items-center gap-2 disabled:opacity-70 h-auto";
-  const btnSecondary = "px-4 py-2 text-sm border rounded hover:bg-gray-100";
+  const moduloBtnBase =
+    'inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm transition border focus:outline-none focus:ring-2 focus:ring-gray-300';
+  const moduloBtnActive = 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800';
+  const moduloBtnInactive =
+    'bg-gray-100 text-gray-700 border-transparent hover:bg-gray-200';
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex justify-end">
-      <div ref={modalRef} className="bg-white p-6 rounded-l-md w-full max-w-md h-full overflow-auto shadow-lg">
+      <div
+        ref={modalRef}
+        className="w-full max-w-md bg-white shadow-lg h-full flex flex-col gap-5 px-5 py-5"
+      >
         {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-primary flex gap-2 items-center">
-            <GrUserAdmin size={18} />
-            <span>REGISTRAR NUEVO PERFIL</span>
-          </h2>
-          <button onClick={onClose} className="text-gray-600 hover:text-black">
-            <IoClose size={24} />
-          </button>
-        </div>
-        <p className="text-sm text-gray-500 mb-6">
-          Crea un nuevo perfil completando la información personal, datos de contacto, rol y módulo asignado.
-        </p>
+        <Tittlex
+          variant="modal"
+          icon="hugeicons:access"
+          title="REGISTRAR NUEVO PERFIL"
+          description="Crea un nuevo perfil completando la información personal, datos de contacto, rol y módulo asignado."
+        />
 
         {/* Formulario */}
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <label className={labelClass}>Nombre</label>
-            <input
-              name="nombre"
-              placeholder="Nombre"
-              className={fieldClass}
-              value={form.nombre}
-              onChange={handleChange}
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 h-full">
+          <div className="h-full flex flex-col gap-5">
+            {/* Nombre / Apellido */}
+            <div className="flex items-center gap-5">
+              <Inputx
+                label="Nombre"
+                name="nombre"
+                placeholder="Ejem. Alvaro"
+                value={form.nombre}
+                onChange={handleChange}
+                required
+              />
+              <Inputx
+                label="Apellido"
+                name="apellido"
+                placeholder="Ejem. Maguiña"
+                value={form.apellido}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-          <div>
-            <label className={labelClass}>Apellido</label>
-            <input
-              name="apellido"
-              placeholder="Apellido"
-              className={fieldClass}
-              value={form.apellido}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>DNI / CI</label>
-            <input
-              name="dni"
-              placeholder="DNI / CI"
-              className={fieldClass}
-              value={form.dni}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>Teléfono</label>
-            <div className={`${fieldClass} flex items-center gap-2`}>
-              <span className="text-gray-500 text-sm">+51</span>
-              <input
+            {/* DNI / Teléfono */}
+            <div className="flex items-center gap-5">
+              <Inputx
+                label="DNI / CI"
+                name="dni"
+                placeholder="Ejem. 48324487"
+                value={form.dni}
+                onChange={handleChange}
+                required
+              />
+              <InputxPhone
+                label="Teléfono"
+                countryCode="+51"
                 name="telefono"
-                placeholder="987654321"
-                className="bg-transparent outline-none w-full h-full"
+                placeholder="Ejem. 987654321"
                 value={form.telefono}
                 onChange={handleChange}
                 required
               />
             </div>
-          </div>
 
-          <div>
-            <label className={labelClass}>Correo</label>
-            <input
-              name="correo"
-              placeholder="correo@gmail.com"
-              className={fieldClass}
-              value={form.correo}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>Rol Perfil</label>
-            <div className={selectWrapperClass}>
-              <select
+            {/* Correo / Rol */}
+            <div className="flex items-center gap-5">
+              <Inputx
+                label="Correo"
+                name="correo"
+                placeholder="Ejem. correo@gmail.com"
+                value={form.correo}
+                onChange={handleChange}
+                required
+              />
+              <Selectx
+                label="Rol Perfil"
+                labelVariant="left"
                 name="rol_perfil_id"
-                className={selectBaseClass}
                 value={form.rol_perfil_id}
                 onChange={handleChange}
+                placeholder="Seleccionar rol"
                 required
               >
                 <option value="">Seleccionar rol</option>
                 <option value="1">Almacenero</option>
                 <option value="2">Vendedor</option>
                 <option value="3">Ecommerce asistente</option>
-              </select>
-              <FiChevronDown className={selectChevronClass} />
-            </div>
-          </div>
-
-          <div>
-            <label className={labelClass}>Contraseña</label>
-            <input
-              name="password"
-              type="password"
-              placeholder="Escribir aquí"
-              className={fieldClass}
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>Repetir Contraseña</label>
-            <input
-              name="confirmarPassword"
-              type="password"
-              placeholder="Escribir aquí"
-              className={fieldClass}
-              value={form.confirmarPassword}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="col-span-2">
-            <label className={labelClass}>Módulo</label>
-            <div className={selectWrapperClass}>
-              <select
-                onChange={handleAddModulo}
-                className={selectBaseClass}
-                value={selectModulo}
-              >
-                <option value="">Seleccionar módulo</option>
-                {modulosFiltrados.map((mod) => (
-                  <option key={mod} value={mod}>
-                    {moduloLabelMap[mod] || mod}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown className={selectChevronClass} />
+              </Selectx>
             </div>
 
-            <div className="mt-2 flex flex-wrap gap-2">
-              {modulos.map((mod) => (
-                <div
-                  key={mod}
-                  className="bg-gray-100 text-sm text-gray-700 px-3 py-1 rounded-full flex items-center gap-2"
-                >
-                  {moduloLabelMap[mod] || mod}
+            {/* Contraseñas */}
+            <div className="flex items-center gap-5">
+              <Inputx
+                label="Contraseña"
+                type="password"
+                name="password"
+                placeholder="Escribir aquí"
+                value={form.password}
+                onChange={handleChange}
+                required
+              />
+              <Inputx
+                label="Repetir Contraseña"
+                type="password"
+                name="confirmarPassword"
+                placeholder="Escribir aquí"
+                value={form.confirmarPassword}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {/* Acceso a Módulos */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <label className="text-base font-medium text-black">Acceso a Modulos</label>
+                <div className="flex items-center gap-4">
                   <button
                     type="button"
-                    onClick={() => handleRemoveModulo(mod)}
-                    className="text-red-500 hover:text-red-700"
-                    aria-label={`Quitar ${moduloLabelMap[mod] || mod}`}
+                    onClick={selectAll}
+                    disabled={!modulosDisponibles.length}
+                    title="Seleccionar todos"
+                    className="disabled:opacity-40"
+                    aria-label="Seleccionar todos los módulos"
                   >
-                    &times;
+                    <Icon icon="mdi:check-bold" className="text-2xl text-green-600" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    disabled={!modulosDisponibles.length}
+                    title="Deseleccionar todos"
+                    className="disabled:opacity-40"
+                    aria-label="Deseleccionar todos los módulos"
+                  >
+                    <Icon icon="mdi:close-thick" className="text-2xl text-red-500" />
                   </button>
                 </div>
-              ))}
+              </div>
+
+              {modulosDisponibles.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  Selecciona un rol para ver los módulos disponibles.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {modulosDisponibles.map((mod) => {
+                    const active = modulos.includes(mod);
+                    return (
+                      <button
+                        key={mod}
+                        type="button"
+                        onClick={() => toggleModulo(mod)}
+                        className={`${moduloBtnBase} ${active ? moduloBtnActive : moduloBtnInactive}`}
+                        title={moduloLabelMap[mod] || mod}
+                        aria-pressed={active}
+                        aria-label={`${
+                          active ? 'Quitar acceso a' : 'Dar acceso a'
+                        } ${moduloLabelMap[mod] || mod}`}
+                      >
+                        <Icon icon={moduloIconMap[mod]} className="text-lg" />
+                        <span>{moduloLabelMap[mod] || mod}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
-          {error && <div className="col-span-2 text-sm text-red-600 mt-2">{error}</div>}
+          {error && <div className="text-sm text-red-600">{error}</div>}
 
-          <div className="col-span-2 flex justify-end gap-3 mt-screen h-full">
-            <button type="submit" disabled={loading} className={btnPrimary}>
-              {loading ? 'Creando...' : 'Crear nuevo'}
-            </button>
-            <button type="button" onClick={onClose} className={btnSecondary}>
-              Cancelar
-            </button>
+          <div className="flex items-center gap-5">
+            <Buttonx
+              variant="quartery"
+              disabled={loading}
+              onClick={() => {}}
+              label={loading ? 'Creando...' : 'Crear nuevo'}
+              icon={loading ? 'line-md:loading-twotone-loop' : undefined}
+              className={`px-4 text-sm ${loading ? '[&_svg]:animate-spin' : ''}`}
+            />
+
+            <Buttonx
+              variant="outlined"
+              onClick={onClose}
+              label="Cancelar"
+              className="px-4 text-sm border"
+              disabled={loading}
+            />
           </div>
         </form>
       </div>

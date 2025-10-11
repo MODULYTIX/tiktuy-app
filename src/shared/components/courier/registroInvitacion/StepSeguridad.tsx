@@ -1,3 +1,6 @@
+import Buttonx from "@/shared/common/Buttonx";
+import { Inputx } from "@/shared/common/Inputx";
+
 interface Props {
   password: string;
   confirm: string;
@@ -24,27 +27,23 @@ export default function StepSeguridad({
         Crea una contraseña segura para acceder a la plataforma
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Contraseña</label>
-          <input
-            type="password"
-            className="w-full border rounded px-3 py-2 text-sm"
-            placeholder="Escriba aquí"
-            value={password}
-            onChange={(e) => onChangePassword(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Confirmar Contraseña</label>
-          <input
-            type="password"
-            className="w-full border rounded px-3 py-2 text-sm"
-            placeholder="Escriba aquí"
-            value={confirm}
-            onChange={(e) => onChangeConfirm(e.target.value)}
-          />
-        </div>
+      <div className="w-full flex flex-col-2 justify-center items-center gap-5">
+        <Inputx
+          type="password"
+          label="Confirmar Contraseña"
+          placeholder="Escriba aquí"
+          value={confirm}
+          onChange={(e) => onChangePassword(e.target.value)}
+          required
+        />
+        <Inputx
+          type="password"
+          label="Confirmar Contraseña"
+          placeholder="Escriba aquí"
+          value={confirm}
+          onChange={(e) => onChangeConfirm(e.target.value)}
+          required
+        />
       </div>
 
       {/* Mensaje de error si las contraseñas no coinciden */}
@@ -52,20 +51,21 @@ export default function StepSeguridad({
         <p className="text-red-600 text-sm mt-2">Las contraseñas no coinciden</p>
       )}
 
-      <div className="mt-6 flex justify-between">
-        <button
+      <div className="flex justify-center items-center gap-5">
+        <Buttonx
+          label="Volver"
+          icon="majesticons:arrow-left-line"
+          variant="outlinedw"
           onClick={onBack}
-          className="border px-4 py-2 rounded text-sm hover:bg-gray-100"
-        >
-          ← Volver
-        </button>
-        <button
+        />
+        <Buttonx
+          label={loading ? "Registrando..." : "Registrarme"}
+          icon="majesticons:arrow-right-line"
+          iconPosition="right"
+          variant="quartery"
           onClick={onSubmit}
-          disabled={loading || !canSubmit || !passwordsMatch} // Deshabilitar si las contraseñas no coinciden
-          className="bg-[#1A237E] text-white px-4 py-2 rounded text-sm hover:bg-[#0d174f] disabled:opacity-60"
-        >
-          {loading ? "Registrando..." : "Registrarme"}
-        </button>
+          disabled={loading || !canSubmit || !passwordsMatch}
+        />
       </div>
     </>
   );

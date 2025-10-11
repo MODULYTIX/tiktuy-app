@@ -85,7 +85,6 @@ export default function VerPedidoCompletadoModal({
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-start gap-2">
-            <BsBoxSeam className="text-primary text-2xl mt-1" />
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-semibold text-[#0B3C6F]">
@@ -106,12 +105,6 @@ export default function VerPedidoCompletadoModal({
               </p>
             </div>
           </div>
-
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700">
-            <FiX className="w-6 h-6" />
-          </button>
         </div>
 
         {loading ? (

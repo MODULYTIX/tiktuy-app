@@ -1,3 +1,8 @@
+import Buttonx from "@/shared/common/Buttonx";
+import { Inputx } from "@/shared/common/Inputx";
+import { Selectx } from "@/shared/common/Selectx";
+import { div } from "framer-motion/client";
+
 interface Props {
   values: {
     nombre_comercial: string;
@@ -18,11 +23,11 @@ export default function StepInformacionComercial({
 }: Props) {
   const set =
     (k: keyof Props["values"]) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      onChange({ [k]: e.target.value });
+      (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+        onChange({ [k]: e.target.value });
 
   return (
-    <>
+    <div className="flex flex-col items-center gap-5">
       <h2 className="text-2xl font-bold text-center text-[#1A237E] mb-1">
         Información Comercial
       </h2>
@@ -30,53 +35,70 @@ export default function StepInformacionComercial({
         Cuéntanos sobre tu ecommerce para configurar tu perfil comercial
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Nombre Comercial</label>
-          <input className="w-full border rounded px-3 py-2 text-sm"
-                 placeholder="Ejem. Electrosur"
-                 value={values.nombre_comercial} onChange={set("nombre_comercial")} />
+      <div className="w-full flex flex-col justify-center items-center gap-5">
+        <div className="w-full flex flex-col-3 items-center gap-5">
+          <Inputx
+            label="Nombre Comercial"
+            placeholder="Ejem. Electrosur"
+            value={values.nombre_comercial}
+            onChange={set("nombre_comercial")}
+            required
+          />
+          <Inputx
+            label="RUC"
+            placeholder="Ejem. 10234567891"
+            value={values.ruc}
+            onChange={set("ruc")}
+            required
+          />
+          <Inputx
+            label="Rubro"
+            placeholder="Ejem. Electricidad"
+            value={values.rubro}
+            onChange={set("rubro")}
+            required
+          />
         </div>
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">RUC</label>
-          <input className="w-full border rounded px-3 py-2 text-sm"
-                 placeholder="Ejem. 10234567891"
-                 value={values.ruc} onChange={set("ruc")} />
-        </div>
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Rubro</label>
-          <input className="w-full border rounded px-3 py-2 text-sm"
-                 placeholder="Ejem. Electricidad"
-                 value={values.rubro} onChange={set("rubro")} />
-        </div>
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Ciudad</label>
-          <select className="w-full border rounded px-3 py-2 text-sm"
-                  value={values.ciudad} onChange={set("ciudad")}>
-            <option value="">Seleccionar ciudad</option>
+        <div className="flex flex-col-2 items-center gap-5">
+          <Selectx
+            label="Ciudad"
+            labelVariant="left"
+            value={values.ciudad}
+            onChange={set("ciudad")}
+            placeholder="Seleccionar ciudad"
+            required
+          >
             {CITIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>
+                {c}
+                </option>
             ))}
-          </select>
-        </div>
-        <div className="md:col-span-2">
-          <label className="text-sm text-gray-700 mb-1 block">Dirección</label>
-          <input className="w-full border rounded px-3 py-2 text-sm"
-                 placeholder="Ejem. Av. Belgrano"
-                 value={values.direccion} onChange={set("direccion")} />
+          </Selectx>
+          <Inputx
+            label="Dirección"
+            placeholder="Ejem. Av. Belgrano"
+            value={values.direccion}
+            onChange={set("direccion")}
+            required
+          />
         </div>
       </div>
 
-      <div className="mt-6 flex justify-between">
-        <button onClick={onBack}
-                className="border px-4 py-2 rounded text-sm hover:bg-gray-100">
-          ← Volver
-        </button>
-        <button onClick={onNext}
-                className="bg-[#1A237E] text-white px-4 py-2 rounded text-sm hover:bg-[#0d174f]">
-          Siguiente →
-        </button>
+      <div className="flex justify-center items-center gap-5">
+        <Buttonx
+          label="Volver"
+          icon="majesticons:arrow-left-line"
+          variant="outlinedw"
+          onClick={onBack}
+        />
+        <Buttonx
+          label="Siguiente"
+          icon="majesticons:arrow-right-line"
+          iconPosition="right"
+          variant="quartery"
+          onClick={onNext}
+        />
       </div>
-    </>
+    </div>
   );
 }

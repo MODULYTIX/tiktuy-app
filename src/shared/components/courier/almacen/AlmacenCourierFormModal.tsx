@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
+import Tittlex from "@/shared/common/Tittlex";
+import { Inputx } from "@/shared/common/Inputx";
+import { Selectx } from "@/shared/common/Selectx";
+import Buttonx from "@/shared/common/Buttonx";
 
 type FormData = {
   uuid?: string;
@@ -143,109 +147,85 @@ export default function AlmacenFormModal({
       className="fixed inset-0 bg-backgroundModal bg-opacity-50 z-50 flex justify-end"
     >
       {/* Drawer: ancho reducido + padding y separaciones de 20px; footer anclado */}
-      <div className="w-[480px] max-w-[92vw] h-full bg-white rounded-l-md shadow-lg flex flex-col">
+      <div className="w-[480px] max-w-[92vw] h-full bg-white rounded-l-md shadow-lg flex flex-col gap-5 p-5">
         {/* Header */}
-        <div className="p-5 border-b border-gray20">
-          <div className="flex items-center gap-2 mb-5">
-            <Icon icon="mdi:warehouse" width={22} className="text-primaryDark" />
-            <h2 className="text-xl font-bold uppercase text-[#1A253D]">
-              {isCreateMode ? "Registrar nuevo almacén" : "Editar almacén"}
-            </h2>
-          </div>
-
-          <p className="text-sm text-gray-600">
-            {isCreateMode
+        <Tittlex
+          variant="modal"
+          icon="hugeicons:warehouse"  // Puedes cambiar el ícono de Iconify aquí
+          title={isCreateMode ? "Registrar nuevo almacén" : "Editar almacén"}
+          description={
+            isCreateMode
               ? "Complete la información para registrar un nuevo almacén y habilitarlo como punto de origen o destino en sus operaciones logísticas."
-              : "Actualice la información del almacén y guarde los cambios."}
-          </p>
-        </div>
+              : "Actualice la información del almacén y guarde los cambios."
+          }
+        />
 
         {/* Body (scroll) */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-5 space-y-5 text-sm">
-          <div>
-            <label className={labelClass}>Nombre de Almacén</label>
-            <input
-              type="text"
-              name="nombre_almacen"
-              placeholder="Ejem. Almacén secundario"
-              value={formData.nombre_almacen}
-              onChange={handleChange}
-              className={fieldClass}
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-auto space-y-5 text-sm">
+          <Inputx
+            label="Nombre de Almacén"
+            name="nombre_almacen"
+            placeholder="Ejem. Almacén secundario"
+            value={formData.nombre_almacen}
+            onChange={handleChange}
+            required
+          />
 
-          <div>
-            <label className={labelClass}>Departamento</label>
-            <div className="relative">
-              <select
-                name="departamento"
-                value={formData.departamento}
-                onChange={handleChange}
-                className={`${fieldClass} appearance-none pr-9`}
-                required
-              >
-                <option value="">Seleccionar departamento</option>
-                {departamentos.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-              <Icon icon="mdi:chevron-down" width={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
+          <Selectx
+            label="Departamento"
+            name="departamento"
+            labelVariant="left"
+            value={formData.departamento}
+            onChange={handleChange}
+            placeholder="Seleccionar departamento"
+            required
+          >
+            <option value="">Seleccionar departamento</option>
+            {departamentos.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </Selectx>
 
-          <div>
-            <label className={labelClass}>Provincia</label>
-            <div className="relative">
-              <select
-                name="provincia"
-                value={formData.provincia}
-                onChange={handleChange}
-                className={`${fieldClass} appearance-none pr-9 disabled:opacity-50 disabled:cursor-not-allowed`}
-                disabled={!provincias.length}
-                required
-              >
-                <option value="">Seleccionar provincia</option>
-                {provincias.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-              <Icon icon="mdi:chevron-down" width={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
+          <Selectx
+            label="Provincia"
+            name="provincia"
+            labelVariant="left"
+            value={formData.provincia}
+            onChange={handleChange}
+            placeholder="Seleccionar provincia"
+            required
+            disabled={!provincias.length}
+          >
+            <option value="">Seleccionar provincia</option>
+            {provincias.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </Selectx>
 
-          <div>
-            <label className={labelClass}>Ciudad</label>
-            <div className="relative">
-              <select
-                name="ciudad"
-                value={formData.ciudad}
-                onChange={handleChange}
-                className={`${fieldClass} appearance-none pr-9 disabled:opacity-50 disabled:cursor-not-allowed`}
-                disabled={!formData.departamento || !formData.provincia}
-                required
-              >
-                <option value="">Seleccionar ciudad</option>
-                {ciudades.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <Icon icon="mdi:chevron-down" width={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
+          <Selectx
+            label="Ciudad"
+            name="ciudad"
+            labelVariant="left"
+            value={formData.ciudad}
+            onChange={handleChange}
+            placeholder="Seleccionar ciudad"
+            required
+            disabled={!formData.departamento || !formData.provincia}
+          >
+            <option value="">Seleccionar ciudad</option>
+            {ciudades.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </Selectx>
 
-          <div>
-            <label className={labelClass}>Dirección</label>
-            <input
-              type="text"
-              name="direccion"
-              placeholder="Av. Los Próceres 1234, Urb. Santa Catalina, La Victoria, Lima"
-              value={formData.direccion}
-              onChange={handleChange}
-              className={fieldClass}
-              required
-            />
-          </div>
+          <Inputx
+            label="Dirección"
+            name="direccion"
+            placeholder="Av. Los Próceres 1234, Urb. Santa Catalina, La Victoria, Lima"
+            value={formData.direccion}
+            onChange={handleChange}
+            required
+          />
 
           {formData.fecha_registro && (
             <div>
@@ -258,25 +238,26 @@ export default function AlmacenFormModal({
         </form>
 
         {/* Footer (botones abajo a la izquierda) */}
-        <div className="p-5 border-t border-gray20 flex items-center gap-2">
-          <button
-            type="submit"
-            form="__no-id__" // no es necesario; el form submit es via onSubmit del form superior
-            onClick={(e) => {
-              // envía el form del body
-              (e.currentTarget.closest("div")?.previousElementSibling as HTMLFormElement)?.requestSubmit();
-            }}
-            className="bg-[#1A253D] text-white px-4 py-2 rounded hover:opacity-95"
-          >
-            {isCreateMode ? "Crear nuevo" : "Actualizar"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm border rounded hover:bg-gray-100"
-          >
-            Cancelar
-          </button>
+        <div className="border-t border-gray20 flex items-center gap-5">
+
+          <div className=" border-gray20 flex items-center gap-2">
+            <Buttonx
+              variant="quartery"
+              onClick={(e) => {
+                // envía el form del body
+                (e.currentTarget.closest("div")?.previousElementSibling as HTMLFormElement)?.requestSubmit();
+              }}
+              label={isCreateMode ? "Crear nuevo" : "Actualizar"}
+              className="px-4 py-2 text-white bg-[#1A253D] hover:opacity-95"
+            />
+
+            <Buttonx
+              variant="outlinedw"
+              onClick={onClose}
+              label="Cancelar"
+              className="px-4 py-2 text-sm border rounded hover:bg-gray-100"
+            />
+          </div>
         </div>
       </div>
     </div>

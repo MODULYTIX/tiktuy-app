@@ -7,6 +7,9 @@ import { actualizarPedidoGenerado, type UpdatePedidoGeneradoPayload } from '@/se
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
+import Tittlex from '@/shared/common/Tittlex';
+import { Inputx, InputxPhone, InputxNumber } from '@/shared/common/Inputx';
+import { Selectx } from '@/shared/common/Selectx';
 
 type Props = {
   open: boolean;
@@ -15,7 +18,12 @@ type Props = {
   onUpdated?: () => void;
 };
 
-export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onUpdated }: Props) {
+export default function EditarPedidoGeneradoModal({
+  open,
+  onClose,
+  pedidoId,
+  onUpdated,
+}: Props) {
   const { token } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -25,7 +33,6 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
 
-  // Catálogos visuales (si no tienes endpoints, mostramos valores actuales)
   const [courierOptions, setCourierOptions] = useState<{ id: string; nombre: string }[]>([]);
   const [distritoOptions, setDistritoOptions] = useState<string[]>([]);
 
@@ -41,7 +48,6 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
     cantidad: '',
     precio_unitario: '',
     monto_recaudar: '',
-    // NOTA: no se envía en payload para no cambiar tu lógica
     courier_id: '',
   });
 
@@ -58,7 +64,6 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
           setPedido(p);
           const det = p.detalles?.[0];
 
-          // Opciones visuales (si no hay más, solo actual)
           const cId = ((p as any).courier_id ?? p.courier?.id) ?? '';
           const cName = p.courier?.nombre_comercial ?? '';
           const couriers = cId && cName ? [{ id: String(cId), nombre: cName }] : [];
@@ -89,7 +94,6 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
     }
   }, [open, pedidoId, token]);
 
-  // Autorecalcular precio unitario desde producto elegido
   useEffect(() => {
     const sel = productos.find((p) => p.id === Number(form.producto_id));
     if (sel) {
@@ -97,7 +101,6 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
     }
   }, [form.producto_id, productos]);
 
-  // Autorecalcular monto
   useEffect(() => {
     const cantidad = Number(form.cantidad);
     const precio = Number(form.precio_unitario);
@@ -106,7 +109,6 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
     }
   }, [form.cantidad, form.precio_unitario]);
 
-  // Cerrar al click fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) onClose();
@@ -163,25 +165,17 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
     <div className="fixed inset-0 z-50 bg-black/20 bg-opacity-40 flex justify-end">
       <div
         ref={modalRef}
-        className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right"
-      >
-        {/* Header como la imagen */}
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-start gap-2">
-            <BsBoxSeam className="text-primary text-2xl mt-1" />
-            <div>
-              <h2 className="text-xl font-semibold text-[#0B3C6F]">EDITAR PEDIDO</h2>
-              <p className="text-sm text-gray-600 -mt-0.5">
-                Modifique los datos del cliente, el producto o la información de entrega y guarde los cambios en el pedido.
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <FiX className="w-6 h-6" />
-          </button>
-        </div>
+        className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right flex flex-col gap-5">
+        {/* Header */}
+        <Tittlex
+          variant="modal"
+          icon="lsicon:shopping-cart-filled"
+          title="EDITAR PEDIDO"
+          description="Modifique los datos del cliente, el producto o la información de entrega y guarde los cambios en el pedido."
+        />
 
-        {(!pedidoId || !token) ? (
+        {/* Loading / Empty */}
+        {!pedidoId || !token ? (
           <p className="text-sm text-gray-600">Seleccione un pedido.</p>
         ) : loading ? (
           <div className="space-y-3">
@@ -193,170 +187,109 @@ export default function EditarPedidoGeneradoModal({ open, onClose, pedidoId, onU
           <p className="text-sm text-gray-600">No se encontró el pedido.</p>
         ) : (
           <>
-            {/* Grid como la imagen */}
+            {/* Grid */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Courier (visual) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Courier</label>
-                <select
-                  name="courier_id"
-                  value={form.courier_id}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                >
-                  <option value="">{pedido.courier?.nombre_comercial ?? 'Seleccionar'}</option>
-                  {courierOptions.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                  ))}
-                </select>
-              </div>
+              <Selectx
+                label="Courier"
+                name="courier_id"
+                labelVariant="left"
+                value={form.courier_id}
+                onChange={handleChange}
+                placeholder="Seleccionar Courier"
+              >
+                {courierOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </Selectx>
 
-              {/* Nombre */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                <input
-                  name="nombre_cliente"
-                  value={form.nombre_cliente}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  onChange={handleChange}
-                  placeholder="Alvaro"
-                />
-              </div>
+              <Inputx
+                label="Nombre"
+                name="nombre_cliente"
+                value={form.nombre_cliente}
+                onChange={handleChange}
+                placeholder="Alvaro"
+              />
 
-              {/* Teléfono */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                <div className="flex border border-gray-300 rounded overflow-hidden">
-                  <span className="px-3 py-2 text-sm bg-gray-100 text-gray-700">+ 51</span>
-                  <input
-                    name="numero_cliente"
-                    value={form.numero_cliente}
-                    className="flex-1 px-3 py-2 text-sm outline-none"
-                    onChange={handleChange}
-                    placeholder="(opcional)"
-                  />
-                </div>
-              </div>
+              <InputxPhone
+                label="Teléfono"
+                name="celular_cliente"
+                countryCode="+51"
+                value={form.celular_cliente}
+                onChange={handleChange}
+                placeholder="987654321"
+              />
 
-              {/* Distrito (visual select, mantiene tu lógica usando form.distrito) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
-                <select
-                  name="distrito"
-                  value={form.distrito}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                >
-                  {form.distrito ? <option value={form.distrito}>{form.distrito}</option> : <option value="">Seleccionar</option>}
-                  {distritoOptions
-                    .filter((d) => d && d !== form.distrito)
-                    .map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                </select>
-              </div>
+              <Inputx
+                label="Distrito"
+                name="distrito"
+                value={form.distrito}
+                onChange={handleChange}
+                placeholder="Distrito"
+              />
 
-              {/* Dirección (full) */}
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                <input
+                <Inputx
+                  label="Dirección"
                   name="direccion_envio"
                   value={form.direccion_envio}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                   onChange={handleChange}
                   placeholder="Av. Grau J 499"
                 />
               </div>
 
-              {/* Referencia (full) */}
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Referencia</label>
-                <input
+                <Inputx
+                  label="Referencia"
                   name="referencia_direccion"
                   value={form.referencia_direccion}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                   onChange={handleChange}
-                  placeholder="Al lado del supermercado UNO"
+                  placeholder="(opcional)"
                 />
               </div>
 
-              {/* Producto */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Producto</label>
-                <select
-                  name="producto_id"
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  onChange={(e) => {
-                    handleChange(e);
-                    const sel = productos.find((p) => p.id === Number(e.target.value));
-                    if (sel) {
-                      setForm((prev) => ({
-                        ...prev,
-                        precio_unitario: String(sel.precio ?? ''),
-                        cantidad: '',
-                        monto_recaudar: '',
-                      }));
-                    }
-                  }}
-                  value={form.producto_id}
-                >
-                  <option value="">{pedido.detalles?.[0]?.producto?.nombre_producto ?? 'Seleccionar producto'}</option>
-                  {productos.map((p) => (
-                    <option key={p.id} value={p.id}>{p.nombre_producto}</option>
-                  ))}
-                </select>
-              </div>
+              <Selectx
+              labelVariant="left"
+                label="Producto"
+                name="producto_id"
+                value={form.producto_id}
+                onChange={handleChange}
+                placeholder="Seleccionar Producto"
+              >
+                {productos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre_producto}
+                  </option>
+                ))}
+              </Selectx>
 
-              {/* Cantidad */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
-                <input
-                  name="cantidad"
-                  value={form.cantidad}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  onChange={(e) => {
-                    handleChange(e);
-                    const cantidad = Number(e.target.value);
-                    const precio = Number(form.precio_unitario);
-                    if (!isNaN(cantidad) && !isNaN(precio)) {
-                      setForm((prev) => ({ ...prev, monto_recaudar: String(cantidad * precio) }));
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
+              <InputxNumber
+                label="Cantidad"
+                name="cantidad"
+                value={form.cantidad}
+                onChange={handleChange}
+                placeholder="0"
+              />
 
-              {/* Monto */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
-                <input
-                  name="monto_recaudar"
-                  value={form.monto_recaudar}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  onChange={handleChange}
-                  placeholder="S/. 0.00"
-                />
-                {form.precio_unitario && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Precio unitario: S/. {form.precio_unitario}
-                  </p>
-                )}
-              </div>
+              <InputxNumber
+                label="Monto"
+                name="monto_recaudar"
+                value={form.monto_recaudar}
+                onChange={handleChange}
+                placeholder="S/. 0.00"
+              />
 
-              {/* Fecha Entrega */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Entrega</label>
-                <input
-                  type="date"
-                  name="fecha_entrega_programada"
-                  value={form.fecha_entrega_programada}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                  onChange={handleChange}
-                />
-              </div>
+              <Inputx
+                label="Fecha Entrega"
+                name="fecha_entrega_programada"
+                type="date"
+                value={form.fecha_entrega_programada}
+                onChange={handleChange}
+              />
             </div>
 
-            {/* Footer: acciones abajo a la izquierda (justify-start) */}
+            {/* Footer */}
             <div className="flex justify-start gap-3 mt-6 items-end">
               <button
                 onClick={handleSubmit}

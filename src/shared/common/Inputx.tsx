@@ -32,6 +32,46 @@ export function Inputx({
     );
 }
 
+/* =========================
+   InputxPhone (variante para número telefónico)
+   ========================= */
+interface InputPhoneProps extends React.InputHTMLAttributes<HTMLInputElement> {
+    label: string;
+    placeholder?: string;
+    countryCode: string; // Código del país, por ejemplo '+51'
+}
+
+export function InputxPhone({
+    label,
+    countryCode,
+    placeholder = "Escribe tu número",
+    className,
+    ...props
+}: InputPhoneProps) {
+    return (
+        <div className="w-full flex flex-col gap-1.5">
+            <label className="block text-base font-normal text-gray-900 text-left">
+                {label}
+            </label>
+
+            <div className="relative">
+                {/* Código de país */}
+                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">{countryCode}</span>
+                
+                {/* Campo para el número de teléfono */}
+                <input
+                    {...props}
+                    placeholder={placeholder}
+                    type="tel" // Tipo de campo de teléfono
+                    inputMode="tel" // Para dispositivos móviles
+                    pattern="[0-9]*" // Solo números
+                    className={`w-full h-10 pl-12 pr-4 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 outline-none font-roboto text-sm ${className ?? ""}`}
+                />
+            </div>
+        </div>
+    );
+}
+
 /* ==========================================================
    InputxNumber (numérico con flechas solo en focus)
    - Sin spinner nativo
@@ -291,7 +331,7 @@ export function InputxTextarea({
                 onInput={resize}
                 {...props}
                 className={`w-full px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 outline-none font-roboto text-sm
-          resize-none overflow-x-hidden ${className ?? ""}`}
+                resize-none overflow-x-hidden ${className ?? ""}`}
             />
         </div>
     );

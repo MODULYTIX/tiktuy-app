@@ -41,3 +41,12 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.fondo-imagen {
+  background-image: url('./src/shared/components/ecommerce/ui/fondor.jpg');
+    background-size: cover; /* Hace que la imagen cubra todo el contenedor */
+  background-position: center; /* Centra la imagen */
+  background-repeat: no-repeat; /* Evita que la imagen se repita */
+  height: 100vh; /* Asegura que el div ocupe toda la altura de la ventana */
+  width: 100%; /* Hace que el div ocupe todo el ancho disponible */
+}

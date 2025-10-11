@@ -4,9 +4,10 @@ import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamien
 import { useAuth } from '@/auth/context';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
-import { Selectx } from '@/shared/common/Selectx';
+
 import Buttonx from '@/shared/common/Buttonx';
 import { SearchInputx } from '@/shared/common/SearchInputx';
+import { Selectx } from '@/shared/common/Selectx';
 
 interface Filters {
   almacenamiento_id: string;
@@ -83,7 +84,6 @@ export default function StockFilters({ onFilterChange }: Props) {
             setFilters((prev) => ({ ...prev, almacenamiento_id: e.target.value }))
           }
           placeholder="Seleccionar ecommerce"
-          className="w-full"
           id="f-ecommerce"
         >
           {almacenes.map((a) => (
@@ -171,14 +171,14 @@ export default function StockFilters({ onFilterChange }: Props) {
             placeholder="Buscar productos por nombre, " // Aquí defines el texto del placeholder
             className="w-full"
           />
-          
+
           <Buttonx
-              label="Limpiar Filtros"
-              icon="mynaui:delete"
-              variant="outlined" // Si deseas el fondo azul, usa la variante "primary"
-              onClick={handleReset} // Asegúrate de que esto sea una función válida
-              disabled={false}
-            />
+            label="Limpiar Filtros"
+            icon="mynaui:delete"
+            variant="outlined" // Si deseas el fondo azul, usa la variante "primary"
+            onClick={handleReset} // Asegúrate de que esto sea una función válida
+            disabled={false}
+          />
 
 
         </div>

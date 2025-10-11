@@ -1,4 +1,3 @@
-// src/shared/components/courier/movimiento/MovimientoCourierModal.tsx
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/auth/context';
@@ -252,7 +251,7 @@ export default function MovimientoCourierModal({
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-2">
+        <div className="sticky  bg-white px-6 py-4 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 border rounded hover:bg-gray-100">
             Cancelar
           </button>

@@ -93,7 +93,7 @@ export function SelectxDate({
 
   return (
     <div className="w-full flex flex-col gap-1.5">
-      <label className="block text-base font-medium text-black text-center">
+      <label className="block text-base font-normal text-black text-center">
         {label}
       </label>
 

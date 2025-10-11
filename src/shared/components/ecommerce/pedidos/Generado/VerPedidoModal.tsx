@@ -4,7 +4,9 @@ import { BsBoxSeam } from 'react-icons/bs';
 import { useAuth } from '@/auth/context';
 import { fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
 import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
-import FieldX from '@/shared/common/FieldX';
+import Tittlex from '@/shared/common/Tittlex';
+import { Inputx, InputxPhone, InputxNumber } from '@/shared/common/Inputx';
+import { Selectx } from '@/shared/common/Selectx';
 
 type Props = {
   open: boolean;
@@ -13,7 +15,12 @@ type Props = {
   onEditar?: (pedidoId: number) => void;
 };
 
-export default function VerPedidoGeneradoModal({ open, onClose, pedidoId, onEditar }: Props) {
+export default function VerPedidoGeneradoModal({
+  open,
+  onClose,
+  pedidoId,
+  onEditar,
+}: Props) {
   const { token } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -58,23 +65,14 @@ export default function VerPedidoGeneradoModal({ open, onClose, pedidoId, onEdit
     <div className="fixed inset-0 z-50 bg-black/20 bg-opacity-40 flex justify-end">
       <div
         ref={modalRef}
-        className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right"
-      >
+        className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right flex flex-col gap-5">
         {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-start gap-2">
-            <BsBoxSeam className="text-primary text-2xl mt-1" />
-            <div>
-              <h2 className="text-xl font-semibold text-[#0B3C6F]">DETALLE DEL PEDIDO</h2>
-              <p className="text-sm text-gray-600 -mt-0.5">
-                Consulta toda la información registrada de este pedido, incluyendo los datos del cliente, el producto y la entrega.
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <FiX className="w-6 h-6" />
-          </button>
-        </div>
+        <Tittlex
+          variant="modal"
+          icon="lsicon:shopping-cart-filled"
+          title="DETALLE DEL PEDIDO"
+          description="Consulta toda la información registrada de este pedido, incluyendo los datos del cliente, el producto y la entrega."
+        />
 
         {/* Loading / Empty */}
         {!pedidoId || !token ? (
@@ -90,34 +88,95 @@ export default function VerPedidoGeneradoModal({ open, onClose, pedidoId, onEdit
         ) : (
           <>
             {/* Campos (2 columnas) */}
-            <div className="grid grid-cols-2 gap-4">
-              <FieldX label="Courier" value={pedido.courier?.nombre_comercial ?? ''} placeholder="—" />
-              <FieldX label="Nombre" value={pedido.nombre_cliente} placeholder="Nombre del cliente" />
+            <div className="flex flex-col gap-5 h-full">
+              <div className='flex flex-row gap-5 w-full'>
+                <Inputx
+                  label="Courier"
+                  value={pedido.courier?.nombre_comercial ?? ''}
+                  placeholder="—"
+                  readOnly
+                />
+                <Inputx
+                  label="Nombre"
+                  value={pedido.nombre_cliente}
+                  placeholder="Nombre del cliente"
+                  readOnly
+                />
+              </div>
 
-              <FieldX label="Teléfono" prefix="+ 51" value={pedido.celular_cliente} placeholder="987654321" />
-              <FieldX label="Distrito" value={pedido.distrito} placeholder="Distrito" />
-
-              <div className="col-span-2">
-                <FieldX label="Dirección" value={pedido.direccion_envio} placeholder="Av. Grau J 499" />
+              <div className='flex flex-row gap-5 w-full'>
+                <InputxPhone
+                  label="Teléfono"
+                  countryCode="+51"
+                  value={pedido.celular_cliente}
+                  placeholder="987654321"
+                  readOnly
+                />
+                <Inputx
+                  label="Distrito"
+                  value={pedido.distrito}
+                  placeholder="Distrito"
+                  readOnly
+                />
               </div>
 
               <div className="col-span-2">
-                <FieldX label="Referencia" value={pedido.referencia_direccion} placeholder="(opcional)" />
+                <Inputx
+                  label="Dirección"
+                  value={pedido.direccion_envio}
+                  placeholder="Av. Grau J 499"
+                  readOnly
+                />
               </div>
 
-              <FieldX label="Producto" value={det?.producto?.nombre_producto} placeholder="Producto" />
-              <FieldX label="Cantidad" value={det?.cantidad != null ? String(det.cantidad) : ''} placeholder="0" />
+              <div className="col-span-2">
+                <Inputx
+                  label="Referencia"
+                  value={pedido.referencia_direccion}
+                  placeholder="(opcional)"
+                  readOnly
+                />
+              </div>
 
-              <FieldX
-                label="Monto"
-                value={monto ? `S/. ${Number(monto).toLocaleString('es-PE', { minimumFractionDigits: 2 })}` : ''}
-                placeholder="S/. 0.00"
-              />
-              <FieldX label="Fecha Entrega" value={fechaEntregaStr} placeholder="dd/mm/aaaa" />
+              <div className='flex flex-row gap-5 w-full'>
+                <Inputx
+                  label="Producto"
+                  value={det?.producto?.nombre_producto}
+                  placeholder="Producto"
+                  readOnly
+                />
+                <InputxNumber
+                  label="Cantidad"
+                  value={det?.cantidad != null ? String(det.cantidad) : ''}
+                  placeholder="0"
+                  readOnly
+                  min={0}
+                  max={10000}
+                />
+              </div>
+
+              <div className='flex flex-row gap-5 w-full'>
+                <InputxNumber
+                  label="Monto"
+                  value={
+                    monto ? `S/. ${Number(monto).toLocaleString('es-PE', { minimumFractionDigits: 2 })}` : ''
+                  }
+                  placeholder="S/. 0.00"
+                  readOnly
+                  min={0}
+                  max={100000}
+                />
+                <Inputx
+                  label="Fecha Entrega"
+                  value={fechaEntregaStr}
+                  placeholder="dd/mm/aaaa"
+                  readOnly
+                />
+              </div>
             </div>
 
             {/* Footer: botón a la derecha */}
-            <div className="flex justify-end mt-6">
+            <div className="flex justify-start">
               <button
                 onClick={() => { if (pedidoId && onEditar) onEditar(pedidoId); }}
                 className="bg-gray-900 text-white px-4 py-2 rounded text-sm hover:bg-gray-800"

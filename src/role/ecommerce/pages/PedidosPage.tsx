@@ -173,8 +173,8 @@ export default function PedidosPage() {
             {vista === 'generado'
               ? 'Pedidos Generados'
               : vista === 'asignado'
-              ? 'Pedidos Asignados'
-              : 'Pedidos Completados'}
+                ? 'Pedidos Asignados'
+                : 'Pedidos Completados'}
           </h2>
           <p className="text-sm text-black font-regular">
             {descripcionVista[vista]}
@@ -195,13 +195,14 @@ export default function PedidosPage() {
               </ImportExcelPedidosFlow>
             </div>
 
-            <button
+
+            <Buttonx
+              label="Nuevo Pedido"
+              icon="iconoir:new-tab"
+              variant="primary"
               onClick={handleNuevoPedido}
-              className="h-10 px-3 rounded-sm text-sm bg-primaryLight text-white flex items-center gap-2 hover:bg-blue-700"
-            >
-              <FiPlus className="w-4 h-4" />
-              <span>Nuevo Pedido</span>
-            </button>
+              className='font-light'
+            />
           </div>
         )}
       </div>
@@ -283,8 +284,8 @@ export default function PedidosPage() {
         <PedidosAsignado
           key={`asi-${refreshKey}`}
           filtros={filtros}
-          onVer={() => {}}
-          onEditar={() => {}}
+          onVer={() => { }}
+          onEditar={() => { }}
         />
       )}
 
