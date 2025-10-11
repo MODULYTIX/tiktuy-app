@@ -1,5 +1,5 @@
 // src/components/almacenamiento/CrearMovimientoModal.tsx
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   fetchAlmacenes,
@@ -12,9 +12,9 @@ import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacen
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
 import { Selectx } from '@/shared/common/Selectx';
-import { Inputx, InputxTextarea } from '@/shared/common/Inputx';
 import Buttonx from '@/shared/common/Buttonx';
 import Tittlex from '@/shared/common/Tittlex';
+import { InputxTextarea } from '@/shared/common/Inputx';
 
 interface Props {
   open: boolean;
@@ -57,13 +57,6 @@ export default function CrearMovimientoModal({
     const safe = Math.min(Math.max(0, value || 0), stock);
     setCantidades((prev) => ({ ...prev, [productoId]: safe }));
   };
-
-  const origenNombre = useMemo(() => {
-    const v = almacenOrigen as any;
-    if (v && typeof v === 'object') return v.nombre_almacen ?? '';
-    const match = almacenesOrigen.find((a) => String(a.id) === String(v));
-    return match?.nombre_almacen ?? '';
-  }, [almacenOrigen, almacenesOrigen]);
 
   const handleSubmit = async () => {
     const almacenesProductos = productos
@@ -198,13 +191,8 @@ export default function CrearMovimientoModal({
         {/* Datos adicionales */}
         <div className="flex-1 flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-5">
-<<<<<<< HEAD
             <Selectx
-              label="Almacén Origen"
-=======
-            <Inputx
               label="Sede Origen"
->>>>>>> 3f8fb2e9a0b00d977079b46cea9e5a03b65a230a
               name="almacen_origen"
               labelVariant="left"
               value={almacenOrigen} // Este es el valor que se selecciona
