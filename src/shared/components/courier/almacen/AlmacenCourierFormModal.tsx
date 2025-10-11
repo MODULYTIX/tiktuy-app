@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type React from "react"; // <-- para usar React.MouseEvent en el handler del overlay
 import Tittlex from "@/shared/common/Tittlex";
 import { Inputx } from "@/shared/common/Inputx";
 import { Selectx } from "@/shared/common/Selectx";
@@ -17,7 +18,7 @@ type FormData = {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  modo: "editar" | "registrar"; // 👈 solo 2 modos
+  modo: "editar" | "registrar";
   almacen: Partial<FormData> | null;
   onSubmit: (payload: Omit<FormData, "uuid" | "fecha_registro">) => Promise<void> | void;
 }
@@ -36,6 +37,8 @@ export default function AlmacenFormModal({
     ciudad: "",
     direccion: "",
   });
+
+  const formRef = useRef<HTMLFormElement | null>(null); // <-- ref al form
 
   const isEditMode = modo === "editar";
   const isCreateMode = modo === "registrar";
@@ -86,7 +89,9 @@ export default function AlmacenFormModal({
   // Cerrar con ESC
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
@@ -144,7 +149,7 @@ export default function AlmacenFormModal({
         {/* Header */}
         <Tittlex
           variant="modal"
-          icon="hugeicons:warehouse"  // Puedes cambiar el ícono de Iconify aquí
+          icon="hugeicons:warehouse"
           title={isCreateMode ? "Registrar nuevo almacén" : "Editar almacén"}
           description={
             isCreateMode
@@ -154,7 +159,7 @@ export default function AlmacenFormModal({
         />
 
         {/* Body (scroll) */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-auto space-y-5 text-sm">
+        <form ref={formRef} onSubmit={handleSubmit} className="flex-1 overflow-auto space-y-5 text-sm">
           <Inputx
             label="Nombre de Almacén"
             name="nombre_almacen"
@@ -232,13 +237,12 @@ export default function AlmacenFormModal({
 
         {/* Footer (botones abajo a la izquierda) */}
         <div className="border-t border-gray20 flex items-center gap-5">
-
-          <div className=" border-gray20 flex items-center gap-2">
+          <div className="border-gray20 flex items-center gap-2">
             <Buttonx
               variant="quartery"
-              onClick={(e) => {
-                // envía el form del body
-                (e.currentTarget.closest("div")?.previousElementSibling as HTMLFormElement)?.requestSubmit();
+              onClick={() => {
+                // Envía el form del body sin usar 'e' para respetar la firma () => void
+                formRef.current?.requestSubmit();
               }}
               label={isCreateMode ? "Crear nuevo" : "Actualizar"}
               className="px-4 py-2 text-white bg-[#1A253D] hover:opacity-95"
