@@ -7,24 +7,26 @@ import Solicitud from '../components/Solicitud';
 
 export default function HomePublicPage() {
   return (
-    <div>
-      {/* <h1>Home</h1> */}
-      <section className="">
-        <Header />
-      </section>
-      <section className="flex justify-center">
+    <div className="scroll-smooth">
+      <Header />
+
+      <section id="que-es" className="flex justify-center scroll-mt-24">
         <QueEs />
       </section>
-      <section className="flex justify-center">
+
+      <section id="beneficios" className="flex justify-center scroll-mt-24">
         <PorqueElegir />
       </section>
-      <section className="flex justify-center">
+
+      <section id="clientes" className="flex justify-center scroll-mt-24">
         <NuestrosClientes />
       </section>
-      <section className="flex justify-center w-screen h-screen">
+
+      <section id="quienes" className="flex justify-center w-screen scroll-mt-24">
         <QuienesParticipan />
       </section>
-      <section className="flex justify-center w-screen h-screen">
+
+      <section id="solicitar" className="flex justify-center w-screen scroll-mt-24">
         <Solicitud />
       </section>
     </div>
