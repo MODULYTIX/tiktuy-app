@@ -38,8 +38,8 @@ export default function Sidebar({ isOpen, toggle }: Props) {
   > = {
     admin: [
       { to: '/', label: 'Panel de Control', icon: <MdDashboard /> },
-      { to: '/ventas', label: 'Ventas', icon: <FaCashRegister /> },
-      { to: '/almacen', label: 'Stock / Sede', icon: <FaBoxes /> },
+      { to: '/usuarios', label: 'Ventas', icon: <FaCashRegister /> },
+      { to: '/reportes', label: 'Stock / Sede', icon: <FaBoxes /> },
       {
         to: '/saldos',
         label: 'Cuadre de Saldos',

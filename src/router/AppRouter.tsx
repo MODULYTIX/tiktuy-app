@@ -17,6 +17,7 @@ import CrearPasswordPage from '@/role/courier/pages/CrearPasswordPage';
 // rutas publicas 
 import PublicLayout from '@/role/user/layout/PublicLayout';
 import HomePublicPage from '@/role/user/pages/HomePublicPage';
+import RegistroInvitacionCourier from '@/role/admin/pages/RegistroInvitacionCourier';
 
 
 
@@ -51,6 +52,8 @@ export default function AppRouter() {
       {/* Alias backend */}
       <Route path="/crear-password-repartidor" element={<CrearPasswordPage />} />
       <Route path="/registro-invitacion-motorizado" element={<RegistroInvitacionPage />} />
+      {/* Courier */}
+      <Route path="/registro-invitacion-courier" element={<RegistroInvitacionCourier />} />
 
       {/* Admin */}
       <Route
