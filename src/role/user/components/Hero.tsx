@@ -17,12 +17,12 @@ export default function Hero() {
       {/* Mockup pegado abajo, ancho completo y ratio constante */}
       <div className="mt-auto w-full">
         {/* 👇 sin padding lateral para no sumar ancho; centra con mx-auto */}
-        <div className="mx-auto w-full max-w-screen-2xl">
+        <div className="mx-auto w-full max-w-screen-2xl border border-white/40 shadow-[0_0_25px_4px_rgba(255,255,255,0.6)] rounded-t-2xl">
           <div className="relative w-full overflow-hidden rounded-lg shadow-2xl aspect-[32/9]">
             <img
               src={heroImg}
               alt="Panel de control TIKTUY"
-              className="absolute inset-0 w-full h-full object-contain object-bottom"
+              className="absolute inset-0 w-full h-auto object-contain object-bottom"
             />
           </div>
         </div>

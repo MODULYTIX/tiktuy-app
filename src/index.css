@@ -1,17 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;200;300;400;500;600;700;800;900&display=swap');
-
 @import "tailwindcss";
 
+/* ---------- Theme tokens ---------- */
 @theme {
-
-  /* Colors */
   --color-primary: #1E3A8A;
   --color-primaryLight: #0044FF;
   --color-primaryDark: #111827;
-  
-  --color-backgroundModal: rgba(0, 0, 0, 0.5) ;
-  
-  /* Color gray */
+
+  --color-backgroundModal: rgba(0, 0, 0, 0.5);
+
   --color-gray90: #111827;
   --color-gray80: #1F2937;
   --color-gray70: #374151;
@@ -22,40 +19,51 @@
   --color-gray10: #F3F4F6;
 
   --shadow-default: 0 0 4px 0 rgba(0, 0, 0, 0.3);
-
-  /* Fonts */
-  
 }
 
+/* Utilidad opcional para contenedores con scroll propio */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Base */
 :root {
   font-family: 'Roboto', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Fondo de ejemplo */
 .fondo-imagen {
   background-image: url('./src/shared/components/ecommerce/ui/fondor.jpg');
-    background-size: cover; /* Hace que la imagen cubra todo el contenedor */
-  background-position: center; /* Centra la imagen */
-  background-repeat: no-repeat; /* Evita que la imagen se repita */
-  height: 100vh; /* Asegura que el div ocupe toda la altura de la ventana */
-  width: 100%; /* Hace que el div ocupe todo el ancho disponible */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 100vh;
+  width: 100%;
 }
 
-/* Oculta scrollbars (Firefox + WebKit) */
+/* ------------ Scrollbars ocultas (pero scroll activo) ------------ */
+html, body, #root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;          /* evita barra horizontal por filtros/sombras/pintura */
+}
+@supports not (overflow-x: clip) {
+  html, body, #root { overflow-x: hidden; }
+}
+
+/* Oculta barra vertical visual (mantiene desplazamiento) */
 html, body {
-  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;     /* Firefox */
 }
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
-  display: none;                /* Chrome, Edge, Safari */
+  width: 0 !important;
+  height: 0 !important;
+  display: none;
 }
