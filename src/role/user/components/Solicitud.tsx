@@ -164,11 +164,12 @@ export default function Solicitud() {
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-15 my-15">
+      {/* Título principal con subrayado corto (usa tu TittleX) */}
       <TittleX className="text-5xl">Solicitar</TittleX>
 
-      <div className="mt-6 flex flex-col lg:flex-row gap-8">
-        {/* Columna izquierda (igual) */}
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Columna izquierda */}
         <div className="flex-1 max-w-[600px] space-y-6">
           <div className="space-y-3">
             <h1 className="leading-tight">

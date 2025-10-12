@@ -23,7 +23,13 @@ export interface SolicitudCourier {
   departamento: string;
   ciudad: string;
   direccion: string;
+  dni_ci : string;
+  correo: string;
+  apellido_paterno: string;
+  apellido_materno: string;
+  nombres: string;
   courier: string; // nombre comercial
+  nombre_comercial: string;
   telefono: string | null;
   estado: string | null; // Asociado | No asociado
   tiene_password?: boolean;

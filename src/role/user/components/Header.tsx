@@ -2,6 +2,7 @@ import Hero from "./Hero";
 import logoTiktuy from "@/assets/logos/LOGO-TIKTUY.svg";
 import heroBg from "@/assets/images/hbg.png";
 import React from "react";
+import { Link } from 'react-router';
 
 const linkStyle =
   "transition duration-300 hover:text-white hover:[text-shadow:0_0_6px_#ffffff,0_0_12px_#ffffff,0_0_24px_#ffffff]";
@@ -44,16 +45,16 @@ export default function Header() {
             <li><a href="#beneficios" onClick={goTo("beneficios")} className={linkStyle}>Beneficios</a></li>
             <li><a href="#clientes" onClick={goTo("clientes")} className={linkStyle}>Nuestros clientes</a></li>
             <li><a href="#quienes" onClick={goTo("quienes")} className={linkStyle}>¿Quiénes participan?</a></li>
+            <li><a href="#solicitar" onClick={goTo("solicitar")} className={linkStyle}>Solicitar</a></li>
           </ul>
 
           <div className="w-[280px] flex items-center justify-end gap-4">
-            <a
-              href="#solicitar"
-              onClick={goTo("solicitar")}
+            <Link
+              to="/login"
               className="bg-[#0070CE] hover:bg-[#005fae] text-white px-10 py-2 rounded-md text-lg transition"
             >
-              Solicitar
-            </a>
+              Iniciar sesión
+            </Link>
           </div>
         </nav>
 

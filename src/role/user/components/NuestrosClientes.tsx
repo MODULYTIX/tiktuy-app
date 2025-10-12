@@ -4,31 +4,27 @@ import logoHycon from '@/assets/logos/logo_hycon.webp';
 
 export default function NuestrosClientes() {
   return (
-    <section className="w-full bg-[#3F3F3F] text-white py-10">
-      <div className="mx-auto max-w-6xl px-4 text-center">
+    <section className="w-full bg-[#1B1B1B] text-white py-16">
+      <div className="max-w-6xl mx-auto px-6 text-center">
         {/* Título */}
-        <h2 className="text-3xl font-semibold">Nuestros clientes</h2>
-        <div className="w-12 h-1.5 bg-[#3B82F6] mx-auto mt-2 rounded-full" />
+        <header className="mb-10">
+          <h2 className="text-3xl font-semibold tracking-tight">Nuestros clientes</h2>
+          <div className="w-12 h-1.5 bg-[#3B82F6] mx-auto mt-3 rounded-full" />
+        </header>
 
         {/* Logos */}
-        <div className="mt-8 flex flex-wrap justify-between items-center">
-          <img
-            src={logoA}
-            alt="Cliente 1"
-            className="h-10 object-contain opacity-90 hover:opacity-100 transition"
-          />
-          <img
-            src={logoShopify}
-            alt="Shopify"
-            className="h-10 object-contain opacity-90 hover:opacity-100 transition"
-          />
-          <img
-            src={logoHycon}
-            alt="Hycon"
-            className="h-10 object-contain opacity-90 hover:opacity-100 transition"
-          />
+        <div className="flex flex-wrap justify-center md:justify-between items-center gap-10 md:gap-16 opacity-90 hover:opacity-100 transition-opacity duration-300">
+          {[logoA, logoShopify, logoHycon].map((logo, i) => (
+            <img
+              key={i}
+              src={logo}
+              alt={`Logo ${i + 1}`}
+              className="h-10 md:h-12 object-contain"
+            />
+          ))}
         </div>
       </div>
     </section>
+
   );
 }

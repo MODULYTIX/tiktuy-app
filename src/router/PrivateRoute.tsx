@@ -21,7 +21,7 @@ export default function PrivateRoute({
   if (loading) return <LoadingBouncing />;
 
   //  Rutas públicas que SÍ pueden renderizarse aunque no haya sesión
-  const PUBLIC_WITHIN_PRIVATE = ['/registro-invitacion', '/crear-password', '/crear-password-motorizado'];
+  const PUBLIC_WITHIN_PRIVATE = ['/registro-invitacion', '/crear-password', '/crear-password-motorizado', '/registro-invitacion-courier'];
   if (PUBLIC_WITHIN_PRIVATE.some(p => location.pathname.startsWith(p))) {
     return children;
   }
