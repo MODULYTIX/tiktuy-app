@@ -2,6 +2,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import BackgroundImage from '@/assets/images/login-background.webp';
+import { confirmarPasswordInvitacion } from '@/services/admin/panel/admin-invite.api';
+
 
 export default function RegistroInvitacionCourier() {
   const navigate = useNavigate();
@@ -19,7 +21,10 @@ export default function RegistroInvitacionCourier() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const canSubmit = useMemo(() => password.length >= 6 && password === confirm, [password, confirm]);
+  const canSubmit = useMemo(
+    () => password.length >= 6 && password === confirm,
+    [password, confirm]
+  );
 
   const onSubmit = useCallback(async () => {
     setErrorMsg(null);
@@ -36,32 +41,21 @@ export default function RegistroInvitacionCourier() {
     try {
       setLoading(true);
 
-      const res = await fetch('/admin/solicitudes/courier/confirmar-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token,
-          contrasena: password,
-          confirmar_contrasena: confirm,
-        }),
+      const json = await confirmarPasswordInvitacion({
+        token,
+        contrasena: password,
+        confirmar_contrasena: confirm,
       });
 
-      let json: any = null;
-      try {
-        json = await res.json();
-      } catch {
-        /* respuesta vacía o no-JSON */
-      }
-
-      if (!res.ok || !json?.ok) {
-        setErrorMsg(json?.error || json?.message || 'No se pudo crear la contraseña.');
+      if (!json?.ok) {
+        setErrorMsg(json?.message || 'No se pudo crear la contraseña.');
         return;
       }
 
-      // ✅ Éxito: redirigir directamente al login
+      // Éxito: redirigir directamente al login
       navigate('/login', { replace: true });
-    } catch {
-      setErrorMsg('Ocurrió un error inesperado.');
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Ocurrió un error inesperado.');
     } finally {
       setLoading(false);
     }
