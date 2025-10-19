@@ -340,7 +340,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
 
       {/* Tabla */}
       {!loading && !error && (
-        <>
+        
           <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
             <div className="overflow-x-auto bg-white">
               <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
@@ -505,7 +505,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
               </div>
             )}
           </div>
-        </>
+        
       )}
 
       {/* Drawer del detalle */}

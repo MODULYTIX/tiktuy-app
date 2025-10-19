@@ -71,20 +71,14 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         to: '/movimientos',
         label: 'Movimientos',
         icon: (
-          <Icon
-            icon="icon-park-outline:cycle-movement"
-            width="24"
-            height="24"
-          />
+          <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />
         ),
         modulo: 'movimiento',
       },
       {
         to: '/pedidos',
         label: 'Gestión de Pedidos',
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
+        icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />,
         modulo: 'pedidos',
       },
       {
@@ -125,19 +119,13 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         to: '/movimientos',
         label: 'Movimientos',
         icon: (
-          <Icon
-            icon="icon-park-outline:cycle-movement"
-            width="24"
-            height="24"
-          />
+          <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />
         ),
       },
       {
         to: '/pedidos',
         label: 'Gestión de Pedidos',
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
+        icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />,
       },
       {
         to: '/zonas',
@@ -169,9 +157,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       {
         to: '/pedidos',
         label: 'Gestión de Pedidos',
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
+        icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />,
       },
       {
         to: '/cuadreSaldo',
@@ -186,11 +172,19 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     ],
   };
 
-  const basePath = user?.rol?.nombre ? `/${user.rol.nombre}` : '';
+  // BasePath: para REPRESENTANTE usamos /ecommerce (comparte área)
+  const roleName = user?.rol?.nombre;
+  const basePath =
+    roleName === 'representante'
+      ? '/ecommerce'
+      : roleName
+      ? `/${roleName}`
+      : '';
+
   let links: (typeof linksByRole)[keyof typeof linksByRole] = [];
 
   if (user?.rol?.nombre === 'trabajador') {
-    // Links base para trabajador
+    // Links base para trabajador (tal como lo tenías)
     links = [
       {
         to: '/panel',
@@ -213,20 +207,14 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         to: '/movimientos',
         label: 'Movimientos',
         icon: (
-          <Icon
-            icon="icon-park-outline:cycle-movement"
-            width="24"
-            height="24"
-          />
+          <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />
         ),
         modulo: 'movimiento',
       },
       {
         to: '/pedidos',
         label: 'Gestión de Pedidos',
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
+        icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />,
         modulo: 'pedidos',
       },
       {
@@ -260,8 +248,13 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     } else {
       links = [];
     }
-  } else if (user?.rol?.nombre && user.rol.nombre in linksByRole) {
-    links = linksByRole[user.rol.nombre];
+  } else if (roleName === 'representante') {
+    // 👇 Representante = menú ecommerce SIN "Sede"
+    links = (linksByRole['ecommerce'] || []).filter(
+      (link) => link.to !== '/almacen' && link.label.toLowerCase() !== 'sede'
+    );
+  } else if (roleName && roleName in linksByRole) {
+    links = linksByRole[roleName];
   }
 
   // Aplica basePath a todos los enlaces
