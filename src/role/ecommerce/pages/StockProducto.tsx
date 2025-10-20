@@ -13,7 +13,6 @@ import ProductoEditarModal from '@/shared/components/ecommerce/stock/ProductoEdi
 import Buttonx from '@/shared/common/Buttonx';
 import Tittlex from '@/shared/common/Tittlex';
 
-// ⬇️ NUEVO: API para descargar la plantilla de productos
 import {
   downloadProductosTemplate,
   triggerBrowserDownload,

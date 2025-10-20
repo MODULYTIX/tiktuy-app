@@ -6,8 +6,8 @@ export interface Producto {
   uuid: string;
   codigo_identificacion: string;
   nombre_producto: string;
-  descripcion?: string;
-  categoria_id: number;
+  descripcion?: string | null;
+  categoria_id?: number;               
   almacenamiento_id: number;
   precio: number;
   stock: number;
@@ -18,7 +18,7 @@ export interface Producto {
   created_at: string;
   updated_at: string;
 
-  categoria: Categoria;
+  categoria?: Categoria;              
   almacenamiento: Almacenamiento;
 
   estado: {
@@ -26,4 +26,3 @@ export interface Producto {
     nombre: string;
   };
 }
-  
