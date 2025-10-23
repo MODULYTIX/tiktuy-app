@@ -28,7 +28,7 @@ export function Selectx({
     (typeof props.value === "string" && props.value === "") ||
     (Array.isArray(props.value) && props.value.length === 0 && !props.multiple);
 
-  const textColorClass = isPlaceholder ? "text-gray-500" : "text-gray90";
+  const textColorClass = isPlaceholder ? "text-gray-400" : "text-gray90";
 
   return (
     <div className="w-full flex flex-col gap-1.5">

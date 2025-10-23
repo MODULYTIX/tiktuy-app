@@ -1,52 +1,40 @@
 // shared/components/courier/pedido/SockPedidoCourierFilter.tsx
-import { FiSearch, FiX } from 'react-icons/fi';
-import { Select } from '@/shared/components/Select';
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from "react";
+import { Selectx } from "@/shared/common/Selectx";
+import { SearchInputx } from "@/shared/common/SearchInputx";
+import Buttonx from "@/shared/common/Buttonx";
 
-/** Tipos de filtros que usa la página de Stock */
 export type StockFilters = {
   almacenId: string;
   categoriaId: string;
   estado: string;
-  nombre:string;
+  nombre: string;
   stockBajo: boolean;
-  precioOrden: '' | 'asc' | 'desc';
+  precioOrden: "" | "asc" | "desc";
   q: string;
 };
 
 type Option = { value: string; label: string };
 
 type Props = {
-  /** Estado completo de filtros controlado por el padre (ahora opcional) */
   filters?: StockFilters;
-  /** setState del padre (ahora opcional) */
   onChange?: Dispatch<SetStateAction<StockFilters>>;
-  /** Listas para selects (opcional con defaults seguros) */
   options?: {
     almacenes: Option[];
     categorias: Option[];
     estados: Option[];
   };
-  /** Loading opcional (default false) */
   loading?: boolean;
 };
 
-/** Intenta extraer string tanto si el Select entrega event, string o {value,label} */
-function getValue(e: any): string {
-  if (typeof e === 'string') return e;
-  if (e && typeof e.value === 'string') return e.value;
-  if (e && e.target && typeof e.target.value === 'string') return e.target.value;
-  return '';
-}
-
 const DEFAULT_FILTERS: StockFilters = {
-  almacenId: '',
-  categoriaId: '',
-  estado: '',
-  nombre: '',
+  almacenId: "",
+  categoriaId: "",
+  estado: "",
+  nombre: "",
   stockBajo: false,
-  precioOrden: '',
-  q: '',
+  precioOrden: "",
+  q: "",
 };
 
 export default function StockPedidoFilterCourier({
@@ -63,143 +51,144 @@ export default function StockPedidoFilterCourier({
 
   // setter que escribe en el padre si existe; si no, al interno
   const set = (patch: Partial<StockFilters>) => {
-    if (onChange) {
-      onChange((prev) => ({ ...(prev ?? DEFAULT_FILTERS), ...patch }));
-    } else {
-      setInternal((prev) => ({ ...prev, ...patch }));
-    }
+    if (onChange) onChange((prev) => ({ ...(prev ?? DEFAULT_FILTERS), ...patch }));
+    else setInternal((prev) => ({ ...prev, ...patch }));
   };
 
-  // input styling (igual que el otro filtro)
-  const field =
-    'w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 ' +
-    'placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors';
+  const handleClear = () =>
+    set({
+      almacenId: "",
+      categoriaId: "",
+      estado: "",
+      stockBajo: false,
+      precioOrden: "",
+      q: "",
+    });
 
   return (
-    <div className="bg-white p-5 rounded-md shadow-default border border-gray30">
-      {/* xs: 1 col, sm: 2, lg: 1fr 1fr 1fr auto */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm">
-
-        {/* Almacén */}
-        <div>
-          <div className="text-center font-medium text-gray-700 mb-2">Ecommerce</div>
-          <div className="relative w-full">
-            <Select
+    <div className="px-0 py-0 mb-5">
+      <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90">
+        {/* Layout responsive */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm items-end">
+          {/* Ecommerce */}
+          <div className="flex-1 min-w-[200px]">
+            <Selectx
+              label="Ecommerce"
+              name="almacenId"
               value={view.almacenId}
-              onChange={(e) => set({ almacenId: getValue(e) })}
-              options={[{ value: '', label: 'Seleccionar ecommerce' }, ...options.almacenes]}
+              onChange={(e) => set({ almacenId: e.target.value })}
               placeholder="Seleccionar ecommerce"
               disabled={loading}
-            />
+              // sin labelVariant (como pediste) y conservando estilos
+            >
+              {options.almacenes.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Selectx>
           </div>
-        </div>
 
-        {/* Categorías */}
-        <div>
-          <div className="text-center font-medium text-gray-700 mb-2">Categorías</div>
-          <div className="relative w-full">
-            <Select
+          {/* Categorías */}
+          <div className="flex-1 min-w-[200px]">
+            <Selectx
+              label="Categorías"
+              name="categoriaId"
               value={view.categoriaId}
-              onChange={(e) => set({ categoriaId: getValue(e) })}
-              options={[{ value: '', label: 'Seleccionar categoría' }, ...options.categorias]}
+              onChange={(e) => set({ categoriaId: e.target.value })}
               placeholder="Seleccionar categoría"
               disabled={loading}
-            />
+            >
+              {options.categorias.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Selectx>
           </div>
-        </div>
 
-        {/* Estado */}
-        <div>
-          <div className="text-center font-medium text-gray-700 mb-2">Estado</div>
-          <div className="relative w-full">
-            <Select
+          {/* Estado */}
+          <div className="flex-1 min-w-[200px]">
+            <Selectx
+              label="Estado"
+              name="estado"
               value={view.estado}
-              onChange={(e) => set({ estado: getValue(e) })}
-              options={[{ value: '', label: 'Seleccionar estado' }, ...options.estados]}
+              onChange={(e) => set({ estado: e.target.value })}
               placeholder="Seleccionar estado"
               disabled={loading}
-            />
+            >
+              {options.estados.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Selectx>
           </div>
-        </div>
 
-        {/* Filtros exclusivos */}
-        <div className="min-w-0">
-          <div className="text-center font-medium text-gray-700 mb-2">Filtros exclusivos</div>
+          {/* Filtros exclusivos */}
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-gray-700 mb-2 text-center">
+    Filtros exclusivos
+  </div>
+            <div className="h-10 flex items-center justify-center lg:justify-start gap-4">
+              {/* Stock bajo */}
+              <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                  checked={view.stockBajo}
+                  onChange={(e) => set({ stockBajo: e.target.checked })}
+                  disabled={loading}
+                />
+                <span>Stock bajo</span>
+              </label>
 
-          {/* altura alineada a los selects */}
-          <div className="h-10 flex items-center justify-center lg:justify-start gap-4">
-            {/* Stock bajo */}
-            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
-                checked={view.stockBajo}
-                onChange={(e) => set({ stockBajo: e.target.checked })}
-                disabled={loading}
-              />
-              <span>Stock bajo</span>
-            </label>
-
-            {/* Orden de precio (low/high) como radios mutuamente excluyentes */}
-            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
-              <input
-                type="radio"
-                name="precioOrden"
-                className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
-                checked={view.precioOrden === 'asc'}
-                onChange={() => set({ precioOrden: view.precioOrden === 'asc' ? '' : 'asc' })}
-                disabled={loading}
-              />
-              <span>Precios bajos</span>
-            </label>
-            <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
-              <input
-                type="radio"
-                name="precioOrden"
-                className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
-                checked={view.precioOrden === 'desc'}
-                onChange={() => set({ precioOrden: view.precioOrden === 'desc' ? '' : 'desc' })}
-                disabled={loading}
-              />
-              <span>Precios Altos</span>
-            </label>
+              {/* Orden de precio */}
+              <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
+                <input
+                  type="radio"
+                  name="precioOrden"
+                  className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                  checked={view.precioOrden === "asc"}
+                  onChange={() => set({ precioOrden: view.precioOrden === "asc" ? "" : "asc" })}
+                  disabled={loading}
+                />
+                <span>Precios bajos</span>
+              </label>
+              <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
+                <input
+                  type="radio"
+                  name="precioOrden"
+                  className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                  checked={view.precioOrden === "desc"}
+                  onChange={() => set({ precioOrden: view.precioOrden === "desc" ? "" : "desc" })}
+                  disabled={loading}
+                />
+                <span>Precios altos</span>
+              </label>
+            </div>
           </div>
-        </div>
 
-        {/* Buscador + limpiar */}
-        <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-          <div className="relative flex-1 border border-gray60 rounded">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              className={`${field} pl-10`}
-              type="text"
-              value={view.q}
-              onChange={(e) => set({ q: e.target.value })}
-              placeholder="Buscar productos por nombre, descripción ó código."
+          {/* Buscador + Limpiar */}
+          <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mt-2">
+            <SearchInputx
+                placeholder="Buscar productos por nombre, descripción ó código."
+                value={view.q}
+                onChange={(e) => set({ q: e.target.value })}
+                // respetando tus estilos base
+                />
+
+            <Buttonx
+              variant="outlined"
+              onClick={handleClear}
+              label="Limpiar Filtros"
+              icon="mynaui:delete"
+              className="flex items-center gap-3 text-gray-700 bg-gray10 border border-gray60 hover:bg-gray-100 px-4 py-2 rounded sm:w-auto"
               disabled={loading}
             />
           </div>
-
-          <button
-            type="button"
-            onClick={() =>
-              set({
-                almacenId: '',
-                categoriaId: '',
-                estado: '',
-                stockBajo: false,
-                precioOrden: '',
-                q: '',
-              })
-            }
-            className="flex items-center gap-3 text-gray-700 bg-gray10 border border-gray60 hover:bg-gray-100 px-4 py-2 rounded sm:w-auto"
-            disabled={loading}
-          >
-            <FiX />
-            <span>Limpiar Filtros</span>
-          </button>
         </div>
       </div>
-    </div>
-  );
+    </div>
+  );
 }

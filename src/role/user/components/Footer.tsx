@@ -1,4 +1,5 @@
 import React from "react";
+import Logo from "@/assets/logos/LOGO-TIKTUY.svg";
 
 export default function Footer() {
   return (
@@ -21,7 +22,11 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 sm:px-8">
         {/* Encabezado del footer: logo tipográfico + tagline */}
         <div className="border-b border-white/10 py-10">
-          <div className="text-3xl font-extrabold tracking-wide">TIKTUY</div>
+          <img
+              src={Logo}
+              alt="Panel de control TIKTUY"
+              className=""
+            />
           <p className="mt-1 text-sm text-gray-300">
             la plataforma que potencia tu logística
           </p>
@@ -44,10 +49,6 @@ export default function Footer() {
                 "Reportes",
               ].map((label) => (
                 <li key={label} className="flex items-center gap-2">
-                  <span
-                    className="h-[2px] w-4 bg-white/25"
-                    aria-hidden="true"
-                  />
                   <span>{label}</span>
                 </li>
               ))}
@@ -102,16 +103,6 @@ export default function Footer() {
                   className="rounded-sm transition hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                 >
                   Preguntas frecuentes
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://www.tiktuy.lat/login"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-sm transition hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                >
-                  Iniciar sesión
                 </a>
               </li>
             </ul>

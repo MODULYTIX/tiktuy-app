@@ -25,7 +25,7 @@ export function Inputx({
                 <input
                     {...props}
                     placeholder={placeholder}
-                    className={`w-full h-10 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 outline-none font-roboto text-sm ${className ?? ""}`}
+                    className={`w-full h-10 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 outline-none font-roboto text-sm ${className ?? ""}`}
                 />
             </div>
         </div>
@@ -65,7 +65,7 @@ export function InputxPhone({
                     type="tel" // Tipo de campo de teléfono
                     inputMode="tel" // Para dispositivos móviles
                     pattern="[0-9]*" // Solo números
-                    className={`w-full h-10 pl-12 pr-4 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 outline-none font-roboto text-sm ${className ?? ""}`}
+                    className={`w-full h-10 pl-12 pr-4 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 outline-none font-roboto text-sm ${className ?? ""}`}
                 />
             </div>
         </div>
@@ -217,7 +217,7 @@ export function InputxNumber({
                     onBlur={onBlurRound}
                     onWheel={(e) => e.preventDefault()} // no cambia por rueda
                     onKeyDown={onKeyDownFilter}
-                    className={`w-full h-10 pl-4 pr-10 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 outline-none font-roboto text-sm
+                    className={`w-full h-10 pl-4 pr-10 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 outline-none font-roboto text-sm
             [appearance:textfield]
             [&::-webkit-outer-spin-button]:appearance-none
             [&::-webkit-inner-spin-button]:appearance-none

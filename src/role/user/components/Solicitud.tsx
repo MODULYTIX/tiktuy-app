@@ -9,7 +9,7 @@ export default function Solicitud() {
   return (
     <div className="flex flex-col gap-15 my-15">
       {/* Título principal con subrayado corto (usa tu TittleX) */}
-      <TittleX className="text-5xl">Solicitar</TittleX>
+      <TittleX className="text-5xl">Únete a nosotros</TittleX>
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Columna izquierda */}

@@ -8,6 +8,10 @@ import {
 } from "@/services/courier/panel_control/panel_control.api";
 import type { Motorizado } from "@/services/courier/panel_control/panel_control.types";
 
+// 🧩 Tus componentes
+import Tittlex from "@/shared/common/Tittlex";
+import { Inputx, InputxNumber } from "@/shared/common/Inputx";
+
 type EstadoTexto = "activo" | "pendiente";
 
 interface MotorizadoRow {
@@ -395,147 +399,113 @@ export default function PanelControlRepartidorTable() {
         </div>
       </div>
 
-      {/* Drawer lateral derecho */}
+      {/* Drawer lateral derecho (DETALLE, usando tus componentes) */}
       {openDrawer && selected && (
         <div
           className="fixed inset-0 z-[60] bg-black/30"
-          onClick={closeDetails} // cerrar al click afuera
+          onClick={closeDetails}
           aria-modal="true"
           role="dialog"
         >
           {/* Panel */}
           <aside
             className="absolute right-0 top-0 h-full w-[520px] max-w-[92vw] bg-white shadow-2xl border-l border-gray30 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()} // impedir cierre al click dentro
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
+            {/* Header con Tittlex */}
             <div className="px-6 pt-6 pb-3 border-b border-gray20">
-              <div className="flex items-center gap-2 text-primaryDark">
-                <Icon
-                  icon="mdi:clipboard-account-outline"
-                  width={22}
-                  height={22}
-                />
-                <h2 className="text-[20px] font-bold">
-                  DETALLE DEL REPARTIDOR
-                </h2>
-              </div>
-              <p className="text-[12px] text-gray60 mt-2 leading-relaxed">
-                Consulta todos los datos registrados del repartidor, incluyendo
-                información personal, vehículo asignado y datos de contacto.
-                Verifica y mantén actualizada esta información para garantizar
-                una operación eficiente en las entregas.
-              </p>
+              <Tittlex
+                variant="modal"
+                icon="mdi:clipboard-account-outline"
+                title="DETALLE DEL REPARTIDOR"
+                description="Consulta todos los datos registrados del repartidor, incluyendo información personal, vehículo asignado y datos de contacto. Verifica esta información para garantizar una operación eficiente en las entregas."
+              />
             </div>
 
-            {/* Body: grid 2 columnas con base 12px */}
+            {/* Body en solo lectura con tus componentes */}
             <div className="px-6 py-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 text-[12px]">
               {/* Nombre */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[12px] text-gray80 font-medium">
-                  Nombre
-                </label>
-                <input
-                  className="h-10 px-3 rounded-md border border-gray30 bg-gray10 text-gray80 text-[12px]"
-                  disabled
-                  value={selected.nombres || ""}
-                />
-              </div>
+              <Inputx
+                label="Nombre"
+                name="nombre"
+                value={selected.nombres || ""}
+                readOnly
+                disabled
+                type="text"
+              />
 
               {/* Apellido */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[12px] text-gray80 font-medium">
-                  Apellido
-                </label>
-                <input
-                  className="h-10 px-3 rounded-md border border-gray30 bg-gray10 text-gray80 text-[12px]"
-                  disabled
-                  value={selected.apellidos || ""}
-                />
-              </div>
+              <Inputx
+                label="Apellido"
+                name="apellido"
+                value={selected.apellidos || ""}
+                readOnly
+                disabled
+                type="text"
+              />
 
               {/* Licencia */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[12px] text-gray80 font-medium">
-                  Licencia
-                </label>
-                <input
-                  className="h-10 px-3 rounded-md border border-gray30 bg-gray10 text-gray80 text-[12px]"
-                  disabled
-                  value={selected.licencia || "-"}
-                />
-              </div>
+              <Inputx
+                label="Licencia"
+                name="licencia"
+                value={selected.licencia || "-"}
+                readOnly
+                disabled
+                type="text"
+              />
 
               {/* DNI */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[12px] text-gray80 font-medium">
-                  DNI
-                </label>
-                <input
-                  className="h-10 px-3 rounded-md border border-gray30 bg-gray10 text-gray80 text-[12px]"
-                  disabled
-                  value={selected.dni_ci || ""}
-                />
-              </div>
+              <Inputx
+                label="DNI"
+                name="dni_ci"
+                value={selected.dni_ci || ""}
+                readOnly
+                disabled
+                type="text"
+              />
 
-              {/* Teléfono con prefijo */}
-              <div className="flex flex-col gap-2 md:col-span-1">
-                <label className="text-[12px] text-gray80 font-medium">
-                  Teléfono
-                </label>
-                <div className="flex items-center h-10 rounded-md border border-gray30 bg-gray10 overflow-hidden">
-                  <span className="px-3 text-gray70 text-[12px] border-r border-gray30">
-                    + 51
-                  </span>
-                  <input
-                    className="flex-1 h-full px-3 bg-transparent text-gray80 text-[12px]"
-                    disabled
-                    value={String(selected.telefono || "").replace(
-                      /^\+?51\s?/,
-                      ""
-                    )}
-                  />
-                </div>
-              </div>
+              {/* Teléfono (solo los 9 dígitos, sin +51) */}
+              <InputxNumber
+                label="Teléfono"
+                name="telefono"
+                value={String(selected.telefono || "").replace(/^\+?\s*51\s*/i, "")}
+                readOnly
+                disabled
+                decimals={0}
+                step={1}
+                placeholder="987654321"
+              />
 
               {/* Correo */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[12px] text-gray80 font-medium">
-                  Correo
-                </label>
-                <input
-                  className="h-10 px-3 rounded-md border border-gray30 bg-gray10 text-gray80 text-[12px]"
-                  disabled
-                  value={selected.correo || ""}
-                />
-              </div>
+              <Inputx
+                label="Correo"
+                name="correo"
+                value={selected.correo || ""}
+                readOnly
+                disabled
+                type="text"
+              />
 
-              {/* Tipo de Vehiculo */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[12px] text-gray80 font-medium">
-                  Tipo de Vehiculo
-                </label>
-                <input
-                  className="h-10 px-3 rounded-md border border-gray30 bg-gray10 text-gray80 text-[12px]"
-                  disabled
-                  value={selected.tipo_vehiculo || ""}
-                />
-              </div>
+              {/* Tipo de Vehículo */}
+              <Inputx
+                label="Tipo de Vehículo"
+                name="tipo_vehiculo"
+                value={selected.tipo_vehiculo || ""}
+                readOnly
+                disabled
+                type="text"
+              />
 
               {/* Placa */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[12px] text-gray80 font-medium">
-                  Placa
-                </label>
-                <input
-                  className="h-10 px-3 rounded-md border border-gray30 bg-gray10 text-gray80 text-[12px]"
-                  disabled
-                  value={selected.placa || ""}
-                />
-              </div>
+              <Inputx
+                label="Placa"
+                name="placa"
+                value={selected.placa || ""}
+                readOnly
+                disabled
+                type="text"
+              />
             </div>
-
-            <div className="h-4" />
           </aside>
         </div>
       )}

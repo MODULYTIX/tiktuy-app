@@ -1,5 +1,5 @@
+// src/shared/components/courier/zona-tarifaria/EditZonaTarifariaDrawer.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@iconify/react";
 import {
   actualizarZonaTarifaria,
   fetchMisZonas,
@@ -10,18 +10,24 @@ import type {
 } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
 
+// 🧩 Componentes base
+import { Selectx } from "@/shared/common/Selectx";
+import { InputxNumber } from "@/shared/common/Inputx";
+import Buttonx from "@/shared/common/Buttonx";
+import Tittlex from "@/shared/common/Tittlex";
+
 type Props = {
   open: boolean;
-  zona: ZonaTarifaria | null;        // zona seleccionada desde la tabla
-  zonasOpciones?: string[];          // ["1","2","3","4","5","6"] por defecto
+  zona: ZonaTarifaria | null;
+  zonasOpciones?: string[];
   onClose: () => void;
-  onUpdated?: () => void;            // refrescar la tabla
+  onUpdated?: () => void;
 };
 
 type EditForm = {
   distrito: string;
   zona_tarifario: string;
-  tarifa_cliente: string;   // inputs como string → parse a number
+  tarifa_cliente: string;   // mantengo como string y parseo al enviar
   pago_motorizado: string;
 };
 
@@ -51,7 +57,7 @@ export default function EditZonaTarifariaDrawer({
     pago_motorizado: "",
   });
 
-  // Precarga del formulario con la zona seleccionada
+  // Precarga con la zona seleccionada
   useEffect(() => {
     if (open && zona) {
       setErr(null);
@@ -63,7 +69,6 @@ export default function EditZonaTarifariaDrawer({
       });
     }
     if (!open) {
-      // reset suave al cerrar
       setErr(null);
       setForm({
         distrito: "",
@@ -74,7 +79,7 @@ export default function EditZonaTarifariaDrawer({
     }
   }, [open, zona]);
 
-  // Sugerencias de distritos (desde mis zonas)
+  // Cargar sugerencias de distritos (por si luego quieres autocompletar)
   useEffect(() => {
     let mounted = true;
     async function load() {
@@ -84,12 +89,12 @@ export default function EditZonaTarifariaDrawer({
         if (!token) return;
         const res: ApiResult<ZonaTarifaria[]> = await fetchMisZonas(token);
         if (!mounted || !res.ok) return;
-        const uniques = Array.from(new Set(res.data.map((z) => z.distrito.trim()))).sort((a, b) =>
-          a.localeCompare(b, "es", { sensitivity: "base" })
-        );
+        const uniques = Array.from(
+          new Set(res.data.map((z) => (z.distrito || "").trim()))
+        ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
         setSugerenciasDistritos(uniques);
       } catch {
-        /* opcional */
+        /* silent */
       }
     }
     load();
@@ -102,18 +107,26 @@ export default function EditZonaTarifariaDrawer({
     setForm((p) => ({ ...p, [k]: v }));
   }
 
-  // Construye payload solo con campos cambiados (opcional pero elegante)
+  // Solo envía campos modificados
   function buildUpdatePayload() {
     if (!zona) return {};
     const payload: Record<string, unknown> = {};
 
-    if (form.distrito.trim() !== (zona.distrito ?? "")) payload.distrito = form.distrito.trim();
+    if (form.distrito.trim() !== (zona.distrito ?? "")) {
+      payload.distrito = form.distrito.trim();
+    }
     if (form.zona_tarifario.trim() !== (zona.zona_tarifario ?? "")) {
       payload.zona_tarifario = form.zona_tarifario.trim();
     }
 
-    const tOld = typeof zona.tarifa_cliente === "string" ? parseFloat(zona.tarifa_cliente) : zona.tarifa_cliente;
-    const pOld = typeof zona.pago_motorizado === "string" ? parseFloat(zona.pago_motorizado) : zona.pago_motorizado;
+    const tOld =
+      typeof zona.tarifa_cliente === "string"
+        ? parseFloat(zona.tarifa_cliente)
+        : zona.tarifa_cliente;
+    const pOld =
+      typeof zona.pago_motorizado === "string"
+        ? parseFloat(zona.pago_motorizado)
+        : zona.pago_motorizado;
 
     const tNew = Number(form.tarifa_cliente);
     const pNew = Number(form.pago_motorizado);
@@ -132,12 +145,11 @@ export default function EditZonaTarifariaDrawer({
     if (!form.distrito.trim()) return setErr("El distrito es obligatorio.");
     if (!form.zona_tarifario.trim()) return setErr("La zona es obligatoria.");
 
-    // Asegura números válidos si cambiaron
     if (form.tarifa_cliente.trim() !== "" && Number.isNaN(Number(form.tarifa_cliente))) {
-      return setErr("Tarifario debe ser numérico válido.");
+      return setErr("Tarifa Cliente debe ser numérico válido.");
     }
     if (form.pago_motorizado.trim() !== "" && Number.isNaN(Number(form.pago_motorizado))) {
-      return setErr("Pago a motorizado debe ser numérico válido.");
+      return setErr("Pago a Motorizado debe ser numérico válido.");
     }
 
     const token = getAuthToken();
@@ -145,8 +157,7 @@ export default function EditZonaTarifariaDrawer({
 
     const payload = buildUpdatePayload();
     if (Object.keys(payload).length === 0) {
-      // Nada cambió
-      onClose();
+      onClose(); // nada cambió
       return;
     }
 
@@ -169,114 +180,111 @@ export default function EditZonaTarifariaDrawer({
 
   return (
     <div className="fixed inset-0 z-50">
-      {/* overlay */}
+      {/* Overlay */}
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
-      {/* panel */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl p-6 overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-          <Icon icon="solar:point-on-map-broken" width="24" height="24" className='text-primary' />
-          <h2 className="text-xl font-extrabold text-[#1A237E]">{titulo}</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-xl"
-            aria-label="Cerrar"
-          >
-            ×
-          </button>
-        </div>
-
-        <p className="text-sm text-gray-600 mb-6">
-          Actualiza los datos del distrito, su zona, tarifa y pago al motorizado según necesidades del servicio.
-        </p>
+      {/* Drawer derecho (misma estructura que “Nuevo”) */}
+      <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl p-5 flex flex-col gap-5 overflow-y-auto">
+        {/* Header con Tittlex (sin botón X) */}
+        <Tittlex
+          variant="modal"
+          icon="solar:point-on-map-broken"
+          title={titulo}
+          description="Actualiza los datos del distrito, su zona, tarifa y pago al motorizado según necesidades del servicio."
+        />
 
         {err && (
-          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+          <div className="mb-1 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
             {err}
           </div>
         )}
 
-        {/* Form */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Distrito con datalist (sugerencias desde “mis zonas”) */}
-          <div>
-            <label className="text-sm text-gray-700 mb-1 block">Distrito</label>
-            <input
-              list="distritosSugeridosEdit"
-              className="w-full border rounded px-3 py-2 text-sm"
+        {/* Formulario (gap-5) */}
+        <div className="h-full flex flex-col gap-5">
+          {/* Fila 1: Distrito / Zona */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Selectx
+              label="Distrito"
               placeholder="Seleccionar distrito"
               value={form.distrito}
-              onChange={(e) => handleChange("distrito", e.target.value)}
-            />
-            <datalist id="distritosSugeridosEdit">
-              {sugerenciasDistritos.map((d) => (
-                <option key={d} value={d} />
-              ))}
-            </datalist>
-          </div>
-
-          {/* Zona */}
-          <div>
-            <label className="text-sm text-gray-700 mb-1 block">Zona</label>
-            <select
-              className="w-full border rounded px-3 py-2 text-sm bg-white"
-              value={form.zona_tarifario}
-              onChange={(e) => handleChange("zona_tarifario", e.target.value)}
+              onChange={(e) => handleChange("distrito", (e.target as HTMLSelectElement).value)}
+              labelVariant="left"
             >
-              <option value="">Seleccionar zona</option>
+              {/* Si quieres usar sugerencias reales de tus zonas: */}
+              {sugerenciasDistritos.length > 0
+                ? sugerenciasDistritos.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))
+                : (zonasOpciones || []).map((z) => (
+                    <option key={z} value={z}>
+                      {z}
+                    </option>
+                  ))}
+            </Selectx>
+
+            <Selectx
+              label="Zona"
+              placeholder="Seleccionar zona"
+              value={form.zona_tarifario}
+              onChange={(e) => handleChange("zona_tarifario", (e.target as HTMLSelectElement).value)}
+              labelVariant="left"
+            >
               {(zonasOpciones || []).map((z) => (
                 <option key={z} value={z}>
                   {z}
                 </option>
               ))}
-            </select>
+            </Selectx>
           </div>
 
-          {/* Tarifario */}
-          <div>
-            <label className="text-sm text-gray-700 mb-1 block">Tarifario</label>
-            <input
-              type="number"
-              step="0.01"
-              className="w-full border rounded px-3 py-2 text-sm"
-              placeholder="10.00"
+          {/* Fila 2: Tarifas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <InputxNumber
+              name="tarifa_cliente"
+              label="Tarifa Cliente"
               value={form.tarifa_cliente}
-              onChange={(e) => handleChange("tarifa_cliente", e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                handleChange("tarifa_cliente", e.target.value)
+              }
+              placeholder="0.00"
+              decimals={2}
+              step={0.01}
+              inputMode="decimal"
             />
-          </div>
 
-          {/* Pago a Motorizado */}
-          <div>
-            <label className="text-sm text-gray-700 mb-1 block">Pago a Motorizado</label>
-            <input
-              type="number"
-              step="0.01"
-              className="w-full border rounded px-3 py-2 text-sm"
-              placeholder="8.00"
+            <InputxNumber
+              name="pago_motorizado"
+              label="Pago a Motorizado"
               value={form.pago_motorizado}
-              onChange={(e) => handleChange("pago_motorizado", e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                handleChange("pago_motorizado", e.target.value)
+              }
+              placeholder="0.00"
+              decimals={2}
+              step={0.01}
+              inputMode="decimal"
             />
           </div>
         </div>
 
         {/* Acciones */}
-        <div className="mt-6 flex items-center gap-3">
-          <button
-            className="px-4 py-2 rounded bg-[#1F2937] text-white text-sm disabled:opacity-60"
+        <div className="mt-2 flex gap-3">
+          <Buttonx
+            variant="secondary"
             onClick={handleUpdate}
+            label={saving ? "Actualizando..." : "Actualizar"}
+            className="px-4 text-sm"
             disabled={saving}
-          >
-            {saving ? "Actualizando..." : "Actualizar"}
-          </button>
-          <button
-            className="px-4 py-2 rounded border text-sm hover:bg-gray-100"
+          />
+          <Buttonx
+            variant="outlined"
             onClick={onClose}
+            label="Cancelar"
+            className="px-4 text-sm"
             disabled={saving}
-          >
-            Cancelar
-          </button>
+          />
         </div>
       </div>
     </div>

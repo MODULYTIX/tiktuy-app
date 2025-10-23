@@ -44,15 +44,17 @@ export default function Header() {
             <li><a href="#beneficios" onClick={goTo("beneficios")} className={linkStyle}>Beneficios</a></li>
             <li><a href="#clientes" onClick={goTo("clientes")} className={linkStyle}>Nuestros clientes</a></li>
             <li><a href="#quienes" onClick={goTo("quienes")} className={linkStyle}>¿Quiénes participan?</a></li>
+            <li><a href="#solicitar" onClick={goTo("solicitar")} className={linkStyle}>Únete a nosotros</a></li>
           </ul>
 
           <div className="w-[280px] flex items-center justify-end gap-4">
             <a
-              href="#solicitar"
-              onClick={goTo("solicitar")}
+              href="https://www.tiktuy.lat/login"
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-[#0070CE] hover:bg-[#005fae] text-white px-10 py-2 rounded-md text-lg transition"
             >
-              Solicitar
+              Iniciar sesión
             </a>
           </div>
         </nav>

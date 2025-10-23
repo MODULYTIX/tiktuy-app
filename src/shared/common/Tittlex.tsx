@@ -34,7 +34,7 @@ const Tittlex: React.FC<TittlexProps> = ({
                 </div>
 
                 {/* Descripción: Roboto, regular, 12px, color gray-60 */}
-                <p className="font-roboto text-gray60 text-gray60">{description}</p>
+                <p className="font-roboto text-sm text-gray60">{description}</p>
             </div>
         );
     }
