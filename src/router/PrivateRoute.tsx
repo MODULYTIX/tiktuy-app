@@ -28,6 +28,8 @@ export default function PrivateRoute({ children, allowedRoles, allowModulo }: Pr
   // Rutas públicas que deben poder renderizarse aunque haya PrivateRoute envolviendo
   const PUBLIC_WITHIN_PRIVATE = [
     '/registro-invitacion',
+    '/registro-invitacion-courier',
+    '/registro-invitacion-ecommerce',
     '/crear-password',
     '/crear-password-motorizado',
     '/invitar-sede',
