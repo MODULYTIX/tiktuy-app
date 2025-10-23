@@ -6,19 +6,14 @@ import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifar
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
 
 type Filters = {
-  distrito?: string; 
-  zona?: string;    
+  distrito?: string;
+  zona?: string;
 };
 
 type Props = {
   itemsPerPage?: number;
   onEdit?: (zona: ZonaTarifaria) => void;
-  /** Filtros controlados desde el padre */
   filters?: Filters;
-  /**
-   * Emite las opciones únicas (distritos y zonas) derivadas de los datos reales,
-   * para que el filtro las use dinámicamente.
-   */
   onLoadedMeta?: (meta: { distritos: string[]; zonas: string[] }) => void;
 };
 
@@ -52,19 +47,15 @@ export default function TableZonaMine({
         setZonas(data);
         setCurrentPage(1);
 
-        // Emitir opciones únicas para el filtro (distritos y zonas)
+        // meta para los filtros
         const distritos = Array.from(
           new Set(
-            data
-              .map((z) => (z.distrito ?? "").toString().trim())
-              .filter(Boolean)
+            data.map((z) => (z.distrito ?? "").toString().trim()).filter(Boolean)
           )
         ).sort((a, b) => a.localeCompare(b, "es"));
         const zonasVals = Array.from(
           new Set(
-            data
-              .map((z) => (z.zona_tarifario ?? "").toString().trim())
-              .filter(Boolean)
+            data.map((z) => (z.zona_tarifario ?? "").toString().trim()).filter(Boolean)
           )
         ).sort((a, b) => a.localeCompare(b, "es"));
         onLoadedMeta?.({ distritos, zonas: zonasVals });
@@ -81,7 +72,7 @@ export default function TableZonaMine({
     };
   }, [onLoadedMeta]);
 
-  // Aplicar filtros antes de paginar
+  // Filtros
   const filteredZonas = useMemo(() => {
     const d = (filters?.distrito ?? "").trim().toLowerCase();
     const zf = (filters?.zona ?? "").trim().toLowerCase();
@@ -96,7 +87,6 @@ export default function TableZonaMine({
     });
   }, [zonas, filters?.distrito, filters?.zona]);
 
-  // Cuando cambian los filtros, regresar a página 1
   useEffect(() => {
     setCurrentPage(1);
   }, [filters?.distrito, filters?.zona]);
@@ -126,87 +116,121 @@ export default function TableZonaMine({
       maximumFractionDigits: 2,
     });
   }
+
   function EstadoPill({ nombre }: { nombre?: string | null }) {
     const text = nombre ?? "—";
     const isActivo = (nombre || "").toLowerCase() === "activo";
+    const base =
+      "inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm";
     const cls = isActivo
-      ? "bg-green-100 text-green-800 border border-green-200"
-      : "bg-gray-100 text-gray-700 border border-gray-200";
-    return (
-      <span className={`px-2 py-0.5 rounded-full text-xs ${cls}`}>{text}</span>
-    );
+      ? "bg-green-100 text-green-700"
+      : "bg-gray-100 text-gray-700";
+    return <span className={`${base} ${cls}`}>{text}</span>;
   }
 
   if (loading)
     return (
-      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
+      <div className="w-full bg-white rounded-md shadow-default p-6 text-[12px] text-gray-600">
         Cargando zonas tarifarias…
       </div>
     );
   if (err)
     return (
-      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      <div className="w-full bg-white rounded-md shadow-default p-6 text-[12px] text-red-700">
         {err}
       </div>
     );
   if (zonas.length === 0)
     return (
-      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
+      <div className="w-full bg-white rounded-md shadow-default p-6 text-[12px] text-gray-600">
         No hay zonas tarifarias registradas.
       </div>
     );
 
   return (
-    <div className="w-full bg-white rounded-lg shadow overflow-hidden">
-      <table className="w-full text-sm text-left text-gray-600">
-        <thead className="bg-gray-100 text-gray-700 text-xs uppercase">
-          <tr>
-            <th className="px-4 py-3">Distrito</th>
-            <th className="px-4 py-3">Zona</th>
-            <th className="px-4 py-3">Tarifa Cliente</th>
-            <th className="px-4 py-3">Pago a Motorizado</th>
-            <th className="px-4 py-3">Estado</th>
-            <th className="px-4 py-3">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {currentZonas.map((z) => (
-            <tr key={z.id} className="border-b hover:bg-gray-50">
-              <td className="px-4 py-3">{z.distrito}</td>
-              <td className="px-4 py-3">{z.zona_tarifario}</td>
-              <td className="px-4 py-3">S/ {formatMoney(z.tarifa_cliente)}</td>
-              <td className="px-4 py-3">S/ {formatMoney(z.pago_motorizado)}</td>
-              <td className="px-4 py-3">
-                <EstadoPill nombre={z.estado?.nombre} />
-              </td>
-              <td className="px-4 py-3">
-                <button
-                  className="inline-flex items-center gap-1 text-orange-500 hover:text-orange-700"
-                  onClick={() => onEdit?.(z)}
-                  title="Editar zona"
-                >
-                  <FaRegEdit />
-                  <span className="sr-only">Editar</span>
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="bg-white rounded-md overflow-hidden shadow-default">
+      <section className="flex-1 overflow-auto">
+        <div className="overflow-x-auto bg-white">
+          <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+            <colgroup>
+              <col className="w-[28%]" />
+              <col className="w-[12%]" />
+              <col className="w-[18%]" />
+              <col className="w-[18%]" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+            </colgroup>
 
-      {totalPages > 1 && (
-        <Paginator
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={(page) => {
-            if (page >= 1 && page <= totalPages) setCurrentPage(page);
-          }}
-          /** —— estilos “como el otro” —— */
-          appearance="grayRounded"
-          showArrows
-          containerClassName="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3"
-        />
-      )}
+            <thead className="bg-[#E5E7EB]">
+              <tr className="text-gray70 font-roboto font-medium">
+                <th className="px-4 py-3 text-left">DISTRITO</th>
+                <th className="px-4 py-3 text-left">ZONA</th>
+                <th className="px-4 py-3 text-left">TARIFA CLIENTE</th>
+                <th className="px-4 py-3 text-left">PAGO MOTORIZADO</th>
+                <th className="px-4 py-3 text-center">ESTADO</th>
+                <th className="px-4 py-3 text-center">ACCIONES</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray20">
+              {currentZonas.map((z) => (
+                <tr key={z.id} className="hover:bg-gray10 transition-colors">
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    {z.distrito || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    {z.zona_tarifario || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    S/ {formatMoney(z.tarifa_cliente)}
+                  </td>
+                  <td className="px-4 py-3 text-gray70 font-[400]">
+                    S/ {formatMoney(z.pago_motorizado)}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <EstadoPill nombre={z.estado?.nombre} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center">
+                      <button
+                        className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-700"
+                        onClick={() => onEdit?.(z)}
+                        title="Editar zona"
+                        aria-label={`Editar ${z.distrito ?? ""} ${z.zona_tarifario ?? ""}`}
+                      >
+                        <FaRegEdit />
+                        <span className="sr-only">Editar</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {currentZonas.length === 0 && (
+                <tr>
+                  <td className="px-4 py-6 text-center text-gray70 italic" colSpan={6}>
+                    No hay resultados para los filtros aplicados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Barra inferior/paginación estilo guardado */}
+        {totalPages > 1 && (
+          <Paginator
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) => {
+              if (page >= 1 && page <= totalPages) setCurrentPage(page);
+            }}
+            appearance="grayRounded"
+            showArrows
+            containerClassName="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2"
+          />
+        )}
+      </section>
     </div>
   );
 }

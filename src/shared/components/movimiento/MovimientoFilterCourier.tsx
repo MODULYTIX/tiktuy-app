@@ -1,9 +1,10 @@
-import { FiSearch } from 'react-icons/fi';
-import { Icon } from '@iconify/react/dist/iconify.js';
-import { Select } from '@/shared/components/Select';
+// src/shared/components/courier/movimiento/MovimientoFilterCourier.tsx
+import { Selectx, SelectxDate } from "@/shared/common/Selectx";
+import { SearchInputx } from "@/shared/common/SearchInputx";
+import Buttonx from "@/shared/common/Buttonx";
 
 export interface MovimientoCourierFilters {
-  estado: string; // 'Activo' | 'Inactivo' | 'Proceso' | 'Observado' | ''
+  estado: string; // 'Activo' | 'Inactivo' | 'Proceso' | 'Observado' | 'Validado' | ''
   fecha: string;  // 'YYYY-MM-DD' | ''
   q: string;      // texto libre
 }
@@ -15,67 +16,54 @@ interface Props {
 }
 
 export default function MovimientoFilterCourier({ value, onChange, onClear }: Props) {
-  const field =
-    'w-full h-10 px-3 rounded-md border rounded border-gray40 bg-gray-20 text-gray-900 ' +
-    'placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors';
-
   return (
-    <div className="bg-white p-5 rounded-md shadow-default border border-gray30 flex flex-col md:flex-row md:items-end gap-4 text-sm">
-      {/* Estado */}
-      <div className="flex flex-col w-48">
-        <label className="block mb-1 font-medium text-gray-700">Estado</label>
-        <Select
-          id="f-estado"
-          value={value.estado}
-          onChange={(e) => onChange({ estado: e.target.value })}
-          options={[
-            { value: '', label: 'Todos' },
-            { value: 'Activo', label: 'Activo' },
-            { value: 'Proceso', label: 'Proceso' },
-            { value: 'Observado', label: 'Observado' },
-            { value: 'Inactivo', label: 'Inactivo' },
-            { value: 'Validado', label: 'Validado' },
-          ]}
-          placeholder="Seleccionar estado"
-        />
-      </div>
+    <div className="px-0 py-0 mb-5">
+      <div className="bg-white p-5 rounded shadow-default flex flex-wrap items-end gap-4 border-b-4 border-gray90">
+        {/* Estado */}
+        <div className="flex-1 min-w-[200px]">
+          <Selectx
+            label="Estado"
+            value={value.estado}
+            onChange={(e) => onChange({ estado: (e.target as HTMLSelectElement).value })}
+            placeholder="Seleccionar estado"
+          >
+            <option value="">Todos</option>
+            <option value="Activo">Activo</option>
+            <option value="Proceso">Proceso</option>
+            <option value="Observado">Observado</option>
+            <option value="Inactivo">Inactivo</option>
+            <option value="Validado">Validado</option>
+          </Selectx>
+        </div>
 
-      {/* Fecha generación */}
-      <div className="flex flex-col w-48 ">
-        <label className="block mb-1 font-medium text-gray-700 ">Fec. Generación</label>
-        <input
-          type="date"
-          value={value.fecha}
-          onChange={(e) => onChange({ fecha: e.target.value })}
-          className={field}
-        />
-      </div>
-
-      {/* Buscador */}
-      <div className="flex-1">
-        <label className="sr-only">Buscar</label>
-        <div className="relative border border-gray10 rounded">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={value.q}
-            onChange={(e) => onChange({ q: e.target.value })}
-            placeholder="Buscar por descripción u almacén"
-            className={`${field} pl-10`}
+        {/* Fecha generación */}
+        <div className="flex-1 min-w-[200px]">
+          <SelectxDate
+            label="Fec. Generación"
+            value={value.fecha}
+            onChange={(e) => onChange({ fecha: (e.target as HTMLInputElement).value })}
           />
         </div>
-      </div>
 
-      {/* Botón limpiar */}
-      <div>
-        <button
-          type="button"
-          onClick={onClear}
-          className="flex items-center gap-3 text-gray-700 bg-gray10 border border-gray60 hover:bg-gray-100 px-4 py-2 rounded sm:w-auto"
-        >
-          <Icon icon="mynaui:delete" width="20" height="20" color="gray60" />
-          <span>Limpiar Filtros</span>
-        </button>
+        {/* Buscador */}
+        <div className="flex-[1.4] min-w-[260px]">
+          <SearchInputx
+            placeholder="Buscar por descripción u almacén"
+            value={value.q}
+            onChange={(e) => onChange({ q: e.target.value })}
+          />
+        </div>
+
+        {/* Limpiar */}
+        <div className="shrink-0">
+          <Buttonx
+            variant="outlined"
+            icon="mynaui:delete"
+            label="Limpiar Filtros"
+            onClick={onClear}
+            className="px-4 text-sm border"
+          />
+        </div>
       </div>
     </div>
   );

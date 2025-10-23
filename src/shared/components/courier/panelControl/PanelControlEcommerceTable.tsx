@@ -10,6 +10,7 @@ import type { EcommerceCourier } from "@/services/courier/panel_control/panel_co
 //  Importa el modal de invitación (renombrado a Ecommer)
 import PanelControlInviteEcommer from "@/shared/components/courier/panelControl/PanelControlInviteEcommer";
 import { Inputx, InputxNumber } from "@/shared/common/Inputx";
+import Tittlex from "@/shared/common/Tittlex";
 
 type EstadoTexto = "activo" | "pendiente";
 
@@ -65,7 +66,7 @@ function toRow(item: EcommerceCourier): EcommerceRow {
     nombre_comercial: e?.nombre_comercial ?? "-",
     ruc: e?.ruc ?? "-",
     ciudad: e?.ciudad ?? "-",
-    dni_ci: u?.dni?? u?.DNI_CI?? "-",
+    dni_ci: u?.dni ?? u?.DNI_CI ?? "-",
     telefono: u?.telefono ?? "-",
     estado,
     fecha_asociacion: formatDateLikeDDMMYYYY(fecha),
@@ -130,9 +131,6 @@ function DetalleEcommerceModal({
       ? "pendiente"
       : "activo";
 
-  const inputClass =
-    "h-10 px-3 rounded-md border bg-white text-gray90 text-[12px] placeholder:text-gray50 border-gray30 focus:outline-none";
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-end bg-black/50 bg-opacity-30"
@@ -140,40 +138,42 @@ function DetalleEcommerceModal({
     >
       {/* Drawer derecho */}
       <div
-        className="w-[40%] max-w-[500px] h-full bg-white overflow-y-auto"
+        className=" max-w-[520px] h-full bg-white overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-5 border-b border-gray20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-primaryDark">
-              <Icon icon="mdi:store-outline" width={22} height={22} />
-              <h2 className="text-[20px] font-bold uppercase">
-                DETALLE DEL ECOMMERCE
-              </h2>
-            </div>
 
-            <div className="flex items-center gap-2 text-[12px]">
-              <span className="text-gray80">Estado :</span>
-              <span
-                className={[
-                  "inline-flex items-center h-7 px-3 rounded-[10px] text-[12px] font-medium",
-                  estado === "activo"
-                    ? "bg-gray90 text-white"
-                    : "bg-gray30 text-gray80",
-                ].join(" ")}
-              >
-                {estado === "activo" ? "Activo" : "Pendiente"}
-              </span>
+          <div className="flex flex-col gap-1 p-5">
+            {/* Fila superior: icono + título + estado alineados */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-primaryDark">
+                <Icon icon="lucide:layout-panel-top" width={22} height={22} color="#1E3A8A"/>
+                <h2 className="text-primary text-[20px] font-bold uppercase font-roboto">
+                  DETALLE DEL ECOMMERCE
+                </h2>
+              </div>
+              <div className="flex items-center gap-2 text-sm whitespace-nowrap">
+                <span className="text-gray60 leading-none">Estado:</span>
+                <span
+                  className={[
+                    "inline-flex items-center h-7 px-3 rounded-[4px] text-sm font-medium leading-none",
+                    estado === "activo"
+                      ? "bg-gray90 text-white"
+                      : "bg-gray30 text-gray80",
+                  ].join(" ")}
+                >
+                  {estado === "activo" ? "Activo" : "Pendiente"}
+                </span>
+              </div>
             </div>
+            {/* Descripción debajo */}
+            <p className="text-sm text-gray60 leading-relaxed mt-1">
+              Consulta toda la información registrada de este comercio electrónico,
+              incluyendo sus datos generales, ubicación, contacto comercial y rubro de
+              actividad.
+            </p>
           </div>
 
-          <p className="text-[12px] text-gray60 mt-2 leading-relaxed">
-            Consulta toda la información registrada de este comercio
-            electrónico, incluyendo sus datos generales, ubicación, contacto
-            comercial y rubro de actividad.
-          </p>
-        </div>
 
         {/* Body */}
         <div className="p-5 grid gap-5">
@@ -199,14 +199,23 @@ function DetalleEcommerceModal({
 
           {/* fila 2 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">DNI / CI</label>
-              <input value={dni_ci} disabled className={inputClass} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-gray80 font-medium">Correo</label>
-              <input value={correo} disabled className={inputClass} />
-            </div>
+
+            <Inputx
+              name="DNI / CI"
+              label="DNI / CI"
+              value={dni_ci}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="Correo"
+              label="Correo"
+              value={correo}
+              readOnly
+              disabled
+              type="text"
+            />
           </div>
 
           {/* fila 3 */}
