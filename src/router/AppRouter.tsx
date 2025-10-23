@@ -13,12 +13,12 @@ import { motorizadoRoutes } from '@/role/motorizado/routes';
 import PrivateLayout from '@/shared/layout/PrivateLayout';
 import RegistroInvitacionPage from '@/role/courier/pages/RegistroInvitacionPage';
 import CrearPasswordPage from '@/role/courier/pages/CrearPasswordPage';
+import AceptarInvitacionSedePage from '@/shared/components/ecommerce/CrearPasswordSedePage';
 
-// rutas publicas 
+// rutas publicas
 import PublicLayout from '@/role/user/layout/PublicLayout';
 import HomePublicPage from '@/role/user/pages/HomePublicPage';
-
-
+import RegistroInvitacionCourier from '@/role/admin/pages/RegistroInvitacionCourier';
 
 export default function AppRouter() {
   return (
@@ -33,7 +33,7 @@ export default function AppRouter() {
         }
       />
 
-      {/* Login ahora vive en /login */}
+      {/* Login */}
       <Route
         path="/login"
         element={
@@ -43,14 +43,18 @@ export default function AppRouter() {
         }
       />
 
+      {/* Público: aceptar invitación de sede */}
+      <Route path="/invitar-sede" element={<AceptarInvitacionSedePage />} />
+
       {/* Flujos abiertos que ya tenías */}
       <Route path="/registro-invitacion" element={<RegistroInvitacionPage />} />
       <Route path="/crear-password" element={<CrearPasswordPage />} />
       <Route path="/crear-password-motorizado" element={<CrearPasswordPage />} />
-
       {/* Alias backend */}
       <Route path="/crear-password-repartidor" element={<CrearPasswordPage />} />
       <Route path="/registro-invitacion-motorizado" element={<RegistroInvitacionPage />} />
+      {/* Courier */}
+      <Route path="/registro-invitacion-courier" element={<RegistroInvitacionCourier />} />
 
       {/* Admin */}
       <Route
@@ -65,11 +69,11 @@ export default function AppRouter() {
         ))}
       </Route>
 
-      {/* Ecommerce */}
+      {/* Ecommerce + Representante 👈 AQUI EL CAMBIO */}
       <Route
         path="/ecommerce"
         element={
-          <PrivateRoute allowedRoles={['ecommerce']}>
+          <PrivateRoute allowedRoles={['ecommerce', 'representante']}>
             <PrivateLayout />
           </PrivateRoute>
         }>
@@ -77,6 +81,9 @@ export default function AppRouter() {
           <Route key={i} path={route.path} element={route.element} />
         ))}
       </Route>
+
+      {/* Alias opcional para /representante */}
+      <Route path="/representante/*" element={<Navigate to="/ecommerce" replace />} />
 
       {/* Courier */}
       <Route

@@ -20,28 +20,47 @@ export default function AnimatedExcelMenu({
         setShow(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShow(false);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
+
+  const menuId = 'excel-actions-popover';
 
   return (
     <div className="relative flex items-end " ref={ref}>
       {/* Botones deslizantes */}
       <div
+        id={menuId}
+        role="menu"
+        aria-hidden={!show}
         className={`flex items-center gap-2 px-5 py-[0.625rem] transition-all duration-300 ${
           show
             ? 'opacity-100 translate-x-0'
             : 'opacity-0 translate-x-10 pointer-events-none'
-        }`}>
+        }`}
+      >
         <button
+          type="button"
           onClick={onTemplateClick}
-          className="flex items-center gap-1 px-5 py-[0.625rem] rounded text-sm bg-gray-100 hover:bg-gray-200 transition">
+          role="menuitem"
+          className="flex items-center gap-1 px-5 py-[0.625rem] rounded text-sm bg-gray-100 hover:bg-gray-200 transition"
+        >
           <HiOutlineDownload size={16} />
           Descargar plantilla
         </button>
         <button
+          type="button"
           onClick={onImportClick}
-          className="flex items-center gap-1 px-5 py-[0.625rem] rounded text-sm bg-green-600 text-white hover:bg-green-700 transition">
+          role="menuitem"
+          className="flex items-center gap-1 px-5 py-[0.625rem] rounded text-sm bg-green-600 text-white hover:bg-green-700 transition"
+        >
           <HiOutlineUpload size={16} />
           Importar archivo
         </button>
@@ -56,8 +75,14 @@ export default function AnimatedExcelMenu({
 
       {/* Botón Excel */}
       <button
+        type="button"
+        aria-label="Acciones de Excel"
+        aria-haspopup="menu"
+        aria-expanded={show}
+        aria-controls={menuId}
         onClick={() => setShow((prev) => !prev)}
-        className="border px-3 py-[6px] rounded hover:bg-gray-100 transition">
+        className="border px-3 py-[6px] rounded hover:bg-gray-100 transition"
+      >
         <PiMicrosoftExcelLogoFill size={22} />
       </button>
     </div>

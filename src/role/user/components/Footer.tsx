@@ -1,4 +1,3 @@
-import React from "react";
 import Logo from "@/assets/logos/LOGO-TIKTUY.svg";
 
 export default function Footer() {

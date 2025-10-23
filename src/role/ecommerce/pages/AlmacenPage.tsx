@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/auth/context/useAuth';
-import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
+import { fetchAlmacenes, reenviarInvitacionRepresentante } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 import CrearAlmacenModal from '@/shared/components/ecommerce/CrearAlmacenModal';
 import { FaEdit } from 'react-icons/fa';
@@ -20,7 +20,7 @@ function formatDate(iso?: string) {
 }
 
 /** ============================
- *  Modal que desliza desde la DERECHA (entrada y salida suave)
+ *  Modal que desliza desde la DERECHA
  *  ============================ */
 function ModalSlideRight({
   open,
@@ -37,18 +37,17 @@ function ModalSlideRight({
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    let r1 = 0, r2 = 0, t: ReturnType<typeof setTimeout> | undefined;
+    let r1 = 0, r2 = 0;
+    let t: ReturnType<typeof setTimeout> | undefined;
 
     if (open) {
       setMounted(true);
-      // Asegura un primer render con translate-x-full y luego activa la animación
       r1 = requestAnimationFrame(() => {
         r2 = requestAnimationFrame(() => setShow(true));
       });
     } else {
-      // Animación de salida
       setShow(false);
-      t = setTimeout(() => setMounted(false), 320); // ~ duration-300 + un pelín
+      t = setTimeout(() => setMounted(false), 320);
     }
 
     return () => {
@@ -58,7 +57,6 @@ function ModalSlideRight({
     };
   }, [open]);
 
-  // Cerrar con ESC
   useEffect(() => {
     if (!mounted) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -70,7 +68,6 @@ function ModalSlideRight({
 
   return (
     <div className="fixed inset-0 z-[100]">
-      {/* Overlay con fade suave */}
       <div
         className={[
           'absolute inset-0 bg-black/40 transition-opacity duration-300 ease-out',
@@ -79,7 +76,6 @@ function ModalSlideRight({
         onClick={onClose}
         aria-hidden="true"
       />
-      {/* Panel deslizante desde la derecha */}
       <div
         role="dialog"
         aria-modal="true"
@@ -105,25 +101,26 @@ export default function AlmacenPage() {
   const [showModal, setShowModal] = useState(false);
   const [almacenEditando, setAlmacenEditando] = useState<Almacenamiento | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reenviando, setReenviando] = useState<number | null>(null); // sedeId en reenvío
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!token) return;
     try {
       setLoading(true);
       const data = await fetchAlmacenes(token);
       setAlmacenes(data);
     } catch (err) {
-      console.error('Error al cargar almacenes:', err);
+      console.error('Error al cargar sedes:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     loadData();
-  }, [token]);
+  }, [loadData]);
 
-  // Paginación (modelo base)
+  // Paginación
   const totalPaginas = useMemo(
     () => Math.max(1, Math.ceil(almacenes.length / PAGE_SIZE)),
     [almacenes.length]
@@ -156,12 +153,26 @@ export default function AlmacenPage() {
     setPaginaActual(p);
   };
 
+  const handleReenviarInvitacion = async (sedeId: number) => {
+    if (!token) return;
+    try {
+      setReenviando(sedeId);
+      const res = await reenviarInvitacionRepresentante(sedeId, token);
+      // Puedes reemplazar alert por tu sistema de toasts
+      alert(`Invitación reenviada a ${res.invitacion.correo}.`);
+    } catch (e: any) {
+      alert(e?.message || 'No se pudo reenviar la invitación.');
+    } finally {
+      setReenviando(null);
+    }
+  };
+
   return (
     <section className="mt-8">
       <div className="flex justify-between items-end mb-4">
         <Tittlex
-          title="Sede"
-          description="Visualice su sede y sus movimientos"
+          title="Sedes"
+          description="Visualice sus sedes y sus movimientos"
         />
 
         <Buttonx
@@ -178,12 +189,12 @@ export default function AlmacenPage() {
           <div className="overflow-x-auto bg-white">
             <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
               <colgroup>
-                <col className="w-[20%]" />
+                <col className="w-[22%]" />
+                <col className="w-[14%]" />
                 <col className="w-[15%]" />
-                <col className="w-[15%]" />
-                <col className="w-[25%]" />
-                <col className="w-[15%]" />
-                <col className="w-[10%]" />
+                <col className="w-[21%]" />
+                <col className="w-[14%]" />
+                <col className="w-[14%]" />
               </colgroup>
 
               <thead className="bg-[#E5E7EB]">
@@ -192,7 +203,7 @@ export default function AlmacenPage() {
                   <th className="px-4 py-3 text-left">Departamento</th>
                   <th className="px-4 py-3 text-left">Ciudad</th>
                   <th className="px-4 py-3 text-left">Dirección</th>
-                  <th className="px-4 py-3 text-left">F. Creación</th>
+                  <th className="px-4 py-3 text-left">Representante</th>
                   <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
@@ -209,18 +220,51 @@ export default function AlmacenPage() {
                 ) : dataPaginada.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-4 text-center text-gray70 italic">
-                      No hay cedes registradas
+                      No hay sedes registradas
                     </td>
                   </tr>
                 ) : (
                   <>
                     {dataPaginada.map((alm) => (
                       <tr key={alm.uuid} className="hover:bg-gray10 transition-colors">
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">{alm.nombre_almacen}</td>
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">{alm.departamento}</td>
+                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
+                          <div className="flex items-center gap-2">
+                            <span>{alm.nombre_almacen}</span>
+                            {alm.es_principal ? (
+                              <span className="px-2 py-[2px] text-[10px] rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                Principal
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="text-[11px] text-gray-500 mt-0.5">
+                            Creado: {formatDate(alm.fecha_registro)}
+                          </div>
+                        </td>
+                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
+                          {alm.departamento ?? '-'}
+                        </td>
                         <td className="h-12 px-4 py-3 text-gray70 font-[400]">{alm.ciudad}</td>
                         <td className="h-12 px-4 py-3 text-gray70 font-[400]">{alm.direccion}</td>
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">{formatDate(alm.fecha_registro)}</td>
+                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
+                          {alm.representante_usuario_id ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-[2px] rounded-full text-[10px] bg-blue-100 text-blue-700 border border-blue-200">
+                              Asignado
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1 px-2 py-[2px] rounded-full text-[10px] bg-amber-100 text-amber-700 border border-amber-200">
+                                Pendiente
+                              </span>
+                              <button
+                                className="text-[11px] text-indigo-600 hover:text-indigo-800 underline disabled:opacity-50"
+                                onClick={() => handleReenviarInvitacion(alm.id)}
+                                disabled={reenviando === alm.id}
+                              >
+                                {reenviando === alm.id ? 'Reenviando…' : 'Reenviar invitación'}
+                              </button>
+                            </div>
+                          )}
+                        </td>
                         <td className="h-12 px-4 py-3">
                           <div className="flex items-center justify-center">
                             <FaEdit
@@ -246,7 +290,7 @@ export default function AlmacenPage() {
             </table>
           </div>
 
-          {/* Paginador (modelo base) */}
+          {/* Paginador */}
           <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
             <button
               onClick={() => goToPage(paginaActual - 1)}
@@ -291,7 +335,7 @@ export default function AlmacenPage() {
           open={showModal}
           onClose={() => { setShowModal(false); setAlmacenEditando(null); }}
           widthClass="w-[420px] max-w-[92vw]"
-        >b
+        >
           <CrearAlmacenModal
             token={token}
             almacen={almacenEditando}

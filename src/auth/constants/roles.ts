@@ -1,11 +1,22 @@
+// src/auth/constants/roles.ts
+
 // Roles funcionales del sistema
-export const validRoles = ['admin', 'ecommerce', 'courier', 'motorizado', 'trabajador'] as const;
+export const validRoles = [
+  'admin',
+  'ecommerce',
+  'representante', 
+  'courier',
+  'motorizado',
+  'trabajador',
+] as const;
+
 export type Role = (typeof validRoles)[number];
 
 // Rutas por defecto solo para roles principales
 export const roleDefaultPaths: Record<Role, string> = {
   admin: '/admin',
   ecommerce: '/ecommerce',
+  representante: '/ecommerce', 
   courier: '/courier',
   motorizado: '/motorizado',
   trabajador: '/trabajador',
@@ -15,9 +26,10 @@ export const roleDefaultPaths: Record<Role, string> = {
 export const roleLabels: Record<Role, string> = {
   admin: 'Administrador',
   ecommerce: 'Comercio',
+  representante: 'Representante', 
   courier: 'Courier',
   motorizado: 'Motorizado',
-  trabajador: 'Trabajador', 
+  trabajador: 'Trabajador',
 };
 
 // Módulos posibles que puede tener un trabajador (tipo de acceso por perfil)
