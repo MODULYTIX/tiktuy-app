@@ -10,7 +10,6 @@ import type { EcommerceCourier } from "@/services/courier/panel_control/panel_co
 //  Importa el modal de invitación (renombrado a Ecommer)
 import PanelControlInviteEcommer from "@/shared/components/courier/panelControl/PanelControlInviteEcommer";
 import { Inputx, InputxNumber } from "@/shared/common/Inputx";
-import Tittlex from "@/shared/common/Tittlex";
 
 type EstadoTexto = "activo" | "pendiente";
 

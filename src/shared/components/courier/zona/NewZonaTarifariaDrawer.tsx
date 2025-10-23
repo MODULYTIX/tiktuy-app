@@ -4,7 +4,7 @@ import { crearZonaTarifariaParaMiUsuario, fetchMisZonas } from "@/services/couri
 import type { ApiResult, ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
 
-// 🧩 Tus componentes
+//  Tus componentes
 import { Selectx } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import Tittlex from "@/shared/common/Tittlex";
@@ -38,7 +38,7 @@ export default function NewZonaTarifariaDrawer({
   onClose,
   onCreated,
 }: Props) {
-  const [sugerenciasDistritos, setSugerenciasDistritos] = useState<string[]>([]);
+  const [, setSugerenciasDistritos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
