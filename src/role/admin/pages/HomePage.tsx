@@ -108,13 +108,14 @@ export default function AdminHomePage() {
     if (tab === 'courier') {
       const r = await cambiarEstadoCourier(token, uuid, 'asociar');
       await load();
-      return r;
+      return r ? { passwordSetupUrl: r.passwordSetupUrl ?? undefined } : undefined;
     } else {
       const r = await cambiarEstadoEcommerce(token, uuid, 'asociar');
       await load();
-      return r;
+      return r ? { passwordSetupUrl: r.passwordSetupUrl ?? undefined } : undefined;
     }
   };
+  
 
   const onDesassociate = async (uuid: string) => {
     if (!token) return;
