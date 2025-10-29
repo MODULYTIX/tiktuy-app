@@ -2,13 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { PiGarageLight } from "react-icons/pi";
 import AlmacenCourierTable from "@/shared/components/courier/almacen/AlmacenCourierTable";
 
-import AlmacenCourierCrearModal from "@/shared/components/courier/almacen/AlmacenCourierCrearModal";
+// ⛳️ Mantén el modal de EDITAR (sigue funcionando con /almacenamientocourier/:uuid)
 import AlmacenCourierEditarModal from "@/shared/components/courier/almacen/AlmacenCourierEditarModal";
+
+// ✅ Usa el NUEVO modal de “sede + invitación”
+import AlmacenCourierCrearModalInvitacion from "@/shared/components/courier/almacen/AlmacenCourierCrearModal";
+import type { CrearSedeSecundariaCourierDTO } from "@/shared/components/courier/almacen/AlmacenCourierCrearModal";
 
 import {
   fetchAlmacenesCourier,
-  createAlmacenCourier,
-  updateAlmacenCourier,
+  updateAlmacenCourier, // para editar sigue igual
+  crearSedeSecundariaConInvitacion, // ✅ nueva API para crear sede + invitar
 } from "@/services/courier/almacen/almacenCourier.api";
 
 import type {
@@ -58,16 +62,17 @@ export default function AlmacenPage() {
     setSeleccionado(null);
   };
 
-  const onCreate = async (form: AlmacenCourierCreateDTO) => {
-    await createAlmacenCourier(form, token);
+  // ✅ Crear “sede + invitación” usando el endpoint /almacenamientocourier/sedes
+  const onCreate = async (form: CrearSedeSecundariaCourierDTO) => {
+    await crearSedeSecundariaConInvitacion(form, token);
     await loadData();
-    // el modal se cierra desde dentro del componente tras éxito
+    // el modal se cierra desde dentro tras éxito (o puedes cerrarlo aquí también)
   };
 
+  // 🛠 Editar almacén existente (sigue yendo al endpoint /almacenamientocourier/:uuid)
   const onUpdate = async (uuid: string, form: AlmacenCourierCreateDTO) => {
     await updateAlmacenCourier(uuid, form, token);
     await loadData();
-    // el modal se cierra desde dentro del componente tras éxito
   };
 
   return (
@@ -98,14 +103,14 @@ export default function AlmacenPage() {
         />
       </div>
 
-      {/* Crear */}
-      <AlmacenCourierCrearModal
+      {/* ✅ Crear sede + invitación */}
+      <AlmacenCourierCrearModalInvitacion
         isOpen={modalCrearOpen}
         onClose={closeCrear}
         onSubmit={onCreate}
       />
 
-      {/* Editar */}
+      {/* ✏️ Editar almacén existente */}
       <AlmacenCourierEditarModal
         isOpen={modalEditarOpen}
         onClose={closeEditar}
