@@ -1,4 +1,6 @@
-import { FiSearch } from "react-icons/fi";
+// src/shared/components/courier/zona/ZonaFilterCourier.tsx
+import { Selectx } from "@/shared/common/Selectx";
+import Buttonx from "@/shared/common/Buttonx";
 
 type Props = {
   distrito: string;
@@ -18,51 +20,68 @@ export default function ZonaFilterCourier({
   onClear,
 }: Props) {
   return (
-    <div className="bg-white p-3 rounded shadow-sm text-sm flex flex-col md:flex-row md:items-end gap-3">
-      {/* Distrito */}
-      <div className="flex flex-col">
-        <label className="block mb-1 font-medium">Distrito</label>
-        <select
-          className="w-56 border rounded px-3 py-2"
-          value={distrito}
-          onChange={(e) => onChange({ distrito: e.target.value, zona })}
-        >
-          <option value="">Seleccionar distrito</option>
-          {distritosOptions.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div
+      className="
+        relative bg-white p-5 rounded-md shadow-default border border-gray30
+        after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0
+        after:h-[6px] after:bg-gray90 after:rounded-b-md
+      "
+    >
+      {/* cols = Distrito | Zona | Botón, con buenas proporciones en desktop */}
+      <div className="flex gap-5 items-end">
+        {/* Distrito */}
+        <div className="w-[280px] sm:min-w-[140px] md:min-w-[140px]">
+          <Selectx
+            label="Distrito"
+            placeholder="Seleccionar distrito"
+            value={distrito}
+            onChange={(e) =>
+              onChange({
+                distrito: (e.target as HTMLSelectElement).value,
+                zona: "", // al cambiar distrito, limpiamos zona
+              })
+            }
+          >
+            {distritosOptions.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </Selectx>
+        </div>
 
-      {/* Zona */}
-      <div className="flex flex-col">
-        <label className="block mb-1 font-medium">Zona</label>
-        <select
-          className="w-56 border rounded px-3 py-2"
-          value={zona}
-          onChange={(e) => onChange({ distrito, zona: e.target.value })}
-        >
-          <option value="">Seleccionar zona</option>
-          {zonasOptions.map((z) => (
-            <option key={z} value={z}>
-              {z}
-            </option>
-          ))}
-        </select>
-      </div>
+        {/* Zona */}
+        <div className="w-[280px] sm:min-w-[140px] md:min-w-[140px]">
+          <Selectx
+            label="Zona"
+            placeholder="Seleccionar zona"
+            value={zona}
+            disabled={!distrito}
+            onChange={(e) =>
+              onChange({
+                distrito,
+                zona: (e.target as HTMLSelectElement).value,
+              })
+            }
+          >
+            {zonasOptions.map((z) => (
+              <option key={z} value={z}>
+                {z}
+              </option>
+            ))}
+          </Selectx>
+        </div>
 
-      {/* Botón limpiar */}
-      <div>
-        <button
-          type="button"
-          className="flex items-center gap-2 border px-4 py-2 rounded hover:bg-gray-100 text-sm whitespace-nowrap"
-          onClick={onClear}
-        >
-          <FiSearch size={14} />
-          Limpiar Filtros
-        </button>
+        {/* Limpiar filtros */}
+        <div className="flex sm:justify-start">
+          <Buttonx
+            variant="outlined"
+            icon="mynaui:delete"
+            label="Limpiar Filtros"
+            className="px-4 text-sm border"
+            onClick={onClear}
+          />
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import Navbar from './Navbar'; // 👈 ahora es el Navbar con lógica de roles
+import Navbar from './Navbar';
 import { Outlet } from 'react-router-dom';
 
 export default function PrivateLayout() {

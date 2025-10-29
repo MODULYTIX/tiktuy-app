@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FaEye } from 'react-icons/fa';
 import { Icon } from '@iconify/react';
-import { FiChevronDown } from 'react-icons/fi';
 
 import type {
   Paginated,
@@ -20,6 +19,9 @@ import {
 } from '@/services/courier/pedidos/pedidos.api';
 
 import DetallePedidoDrawer from './DetallePedidoDrawer';
+import { Selectx } from '@/shared/common/Selectx';
+import Buttonx from '@/shared/common/Buttonx';
+import { SearchInputx } from '@/shared/common/SearchInputx';
 
 type View = 'asignados' | 'pendientes' | 'terminados';
 
@@ -39,6 +41,9 @@ const PEN = new Intl.NumberFormat('es-PE', {
   minimumFractionDigits: 2,
 });
 const two = (n: number) => String(n).padStart(2, '0');
+
+
+
 
 export default function TablePedidoCourier({ view, token, onAsignar, onReasignar }: Props) {
   /* paginación (server-side) */
@@ -269,68 +274,62 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
       <div className="px-0 py-0 mb-5">
         <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
           {/* Distrito */}
-          <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-            <label className="text-sm font-medium text-black block">Distrito</label>
-            <div className="relative">
-              <select
-                className="w-full h-10 px-3 pr-9 rounded-md border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors appearance-none"
-                value={filtroDistrito}
-                onChange={(e) => setFiltroDistrito(e.target.value)}
-              >
-                <option value="">Seleccionar distrito</option>
-                {distritos.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
-            </div>
+          <div className="flex-1 min-w-[200px]">
+            <Selectx
+              label="Distrito"
+              name="filtro_distrito"
+              value={filtroDistrito}
+              onChange={(e) => setFiltroDistrito(e.target.value)}
+              placeholder="Seleccionar distrito"
+            /* Estilos originales conservados */
+            >
+              {distritos.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </Selectx>
           </div>
 
           {/* Cantidad */}
-          <div className="flex-1 min-w-[200px] flex flex-col gap-[10px]">
-            <label className="text-sm font-medium text-black block">Cantidad</label>
-            <div className="relative">
-              <select
-                className="w-full h-10 px-3 pr-9 rounded-md border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors appearance-none"
-                value={filtroCantidad}
-                onChange={(e) => setFiltroCantidad(e.target.value)}
-              >
-                <option value="">Seleccionar cantidad</option>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>
-                    {two(n)}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
-            </div>
+          <div className="flex-1 min-w-[200px]">
+            <Selectx
+              label="Cantidad"
+              name="filtro_cantidad"
+              value={filtroCantidad}
+              onChange={(e) => setFiltroCantidad(e.target.value)}
+              placeholder="Seleccionar cantidad"
+            /* Estilos originales conservados */
+            >
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {two(n)}
+                </option>
+              ))}
+            </Selectx>
           </div>
 
-          {/* Búsqueda */}
+          {/* Búsqueda (SearchInputx sin label interno → añadimos label externo como en tu UI) */}
           <div className="flex-1 min-w-[240px] flex flex-col gap-[10px]">
-            <label className="text-sm font-medium text-black block">Buscar productos por nombre</label>
-            <input
-              className="w-full h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors"
+            <label className="text-sm font-medium text-black block">
+              Buscar productos por nombre
+            </label>
+            <SearchInputx
               placeholder="Buscar productos por nombre..."
               value={searchProducto}
               onChange={(e) => setSearchProducto(e.target.value)}
+            /* Estilos originales conservados (override sobre los defaults del componente) */
             />
           </div>
 
-          {/* Limpiar */}
-          <button
-            className="flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100"
-            onClick={() => {
-              setFiltroDistrito('');
-              setFiltroCantidad('');
-              setSearchProducto('');
-            }}
-          >
-            <Icon icon="mynaui:delete" width={20} height={20} />
-            Limpiar Filtros
-          </button>
+          {/* Limpiar (tu botón por componente) */}
+          <Buttonx
+            variant="outlined"
+            onClick={() => { setFiltroDistrito(''); setFiltroCantidad(''); setSearchProducto(''); }}
+            label="Limpiar Filtros"
+            icon="mynaui:delete"
+          /* Mismo look & feel que tu botón previo */
+          />
         </div>
       </div>
 

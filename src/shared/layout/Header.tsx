@@ -13,7 +13,7 @@ export default function Header() {
   return (
     <header className="h-16 bg-white shadow flex items-center justify-end px-6 fixed top-0 left-0 w-full z-30 transition-all duration-300">
       <div className="flex items-center gap-6 text-primary justify-center content-center">
-        {/* 🔔 Campana outline gris; activa azul al abrir */}
+        {/*  Campana outline gris; activa azul al abrir */}
         <NotificationBellIcon
           baseColor="text-gray-600"
           activeColor="text-[#1E3A8A]"

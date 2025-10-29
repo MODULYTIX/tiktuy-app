@@ -1,4 +1,4 @@
-import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent, type FormEvent } from 'react';
 import { crearProducto } from '@/services/ecommerce/producto/producto.api';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
@@ -8,9 +8,9 @@ import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 import { Inputx, InputxNumber, InputxTextarea } from '@/shared/common/Inputx';
-import { Selectx } from '@/shared/common/Selectx';
 import Tittlex from '@/shared/common/Tittlex';
 import Buttonx from '@/shared/common/Buttonx';
+import { SelectxCreatable, type CreatableOption } from '@/shared/common/SelectxCreatable';
 
 type Props = {
   open: boolean;
@@ -28,21 +28,32 @@ const ESTADO_OPCIONES: EstadoOption[] = [
   { id: 'descontinuado', nombre: 'Descontinuado' },
 ];
 
-type CreateProductoDto = {
-  categoria_id: number;
+type CreateProductoPayload =
+  | ({
+      categoria_id: number;
+      categoria?: undefined;
+    } & BasePayload)
+  | ({
+      categoria?: {
+        nombre: string;
+        descripcion?: string | null;
+        es_global: true;
+      };
+      categoria_id?: undefined;
+    } & BasePayload);
+
+type BasePayload = {
   almacenamiento_id: number;
   precio: number;
   stock: number;
   stock_minimo: number;
   peso: number;
-  nombre: string;
   codigo_identificacion: string;
   nombre_producto: string;
   descripcion: string;
   estado: 'activo' | 'inactivo' | 'descontinuado';
-  fecha_registro: string; // ISO
+  fecha_registro: string;
 };
-
 
 // Genera un código amigable (hora + mes abreviado + año + char + minutos)
 function generarCodigoConFecha(): string {
@@ -50,7 +61,7 @@ function generarCodigoConFecha(): string {
   const hora = String(now.getHours()).padStart(2, '0');
   const minutos = String(now.getMinutes()).padStart(2, '0');
   const year = String(now.getFullYear()).slice(2);
-  const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+  const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
   const mesAbrev = meses[now.getMonth()];
   const charset = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789';
   const aleatorio = charset[Math.floor(Math.random() * charset.length)];
@@ -61,9 +72,9 @@ type FormState = {
   codigo_identificacion: string;
   nombre_producto: string;
   descripcion: string;
-  categoria_id: string;
+  categoriaInput: string;
+  categoriaSelectedId: string;
   almacenamiento_id: string;
-  nombre:string;
   precio: string;
   stock: string;
   stock_minimo: string;
@@ -76,9 +87,9 @@ const getInitialForm = (): FormState => ({
   codigo_identificacion: generarCodigoConFecha(),
   nombre_producto: '',
   descripcion: '',
-  categoria_id: '',
+  categoriaInput: '',
+  categoriaSelectedId: '',
   almacenamiento_id: '',
-  nombre: '',
   precio: '',
   stock: '',
   stock_minimo: '',
@@ -87,75 +98,117 @@ const getInitialForm = (): FormState => ({
   fecha_registro: new Date().toISOString(),
 });
 
-/* --------------------- Componente --------------------- */
+function canonical(s: string) {
+  return s.normalize('NFKC').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
 export default function ProductoCrearModal({ open, onClose, onCreated }: Props) {
   const { token } = useAuth();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
-
-  const [saving, setSaving] = useState(false); // para “Creando…”
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<FormState>(getInitialForm());
+  const formRef = useRef<HTMLFormElement | null>(null);
 
-  // Cargar cat/almacén al abrir y tener token
   useEffect(() => {
     if (!token || !open) return;
     fetchCategorias(token).then(setCategorias).catch(console.error);
     fetchAlmacenes(token).then(setAlmacenes).catch(console.error);
   }, [token, open]);
 
-  // Reset COMPLETO cada vez que se abre el modal
   useEffect(() => {
-    if (open) {
-      setForm(getInitialForm());
-    }
+    if (open) setForm(getInitialForm());
   }, [open]);
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleClose = () => {
-    // limpia al cerrar para no arrastrar valores al siguiente open
     setForm(getInitialForm());
     onClose();
   };
 
+  const catOptions: CreatableOption[] = categorias
+    .slice()
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
+    .map(c => ({ id: c.id, label: c.nombre }));
+
+  function onCategoriaInputChange(v: string) {
+    setForm(p => {
+      const match = catOptions.find(o => canonical(o.label) === canonical(v));
+      return { ...p, categoriaInput: v, categoriaSelectedId: match ? String(match.id) : '' };
+    });
+  }
+
+  function onCategoriaSelect(opt: CreatableOption) {
+    setForm(p => ({ ...p, categoriaInput: opt.label, categoriaSelectedId: String(opt.id) }));
+  }
+
+  function onCategoriaCreate(value: string) {
+    setForm(p => ({ ...p, categoriaInput: value, categoriaSelectedId: '' }));
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!token || saving) return;
+    if (!form.almacenamiento_id) return;
 
-    // Validaciones simples de selects
-    if (!form.categoria_id || !form.almacenamiento_id) return;
-    // Evitar NaN
     const precio = parseFloat(form.precio);
     const stock = parseInt(form.stock);
     const stock_minimo = parseInt(form.stock_minimo);
     const peso = parseFloat(form.peso);
-    if (Number.isNaN(precio) || Number.isNaN(stock) || Number.isNaN(stock_minimo) || Number.isNaN(peso)) return;
+    if ([precio, stock, stock_minimo, peso].some(n => Number.isNaN(n))) return;
+
+    let payload: CreateProductoPayload;
+
+    if (form.categoriaSelectedId) {
+      payload = {
+        categoria_id: Number(form.categoriaSelectedId),
+        almacenamiento_id: Number(form.almacenamiento_id),
+        precio,
+        stock,
+        stock_minimo,
+        peso,
+        codigo_identificacion: form.codigo_identificacion.trim(),
+        nombre_producto: form.nombre_producto.trim(),
+        descripcion: form.descripcion.trim(),
+        estado: form.estado,
+        fecha_registro: new Date(form.fecha_registro).toISOString(),
+      };
+    } else {
+      if (!form.categoriaInput.trim()) return;
+      payload = {
+        categoria: {
+          nombre: form.categoriaInput.trim(),
+          descripcion: null,
+          es_global: true as const,
+        },
+        almacenamiento_id: Number(form.almacenamiento_id),
+        precio,
+        stock,
+        stock_minimo,
+        peso,
+        codigo_identificacion: form.codigo_identificacion.trim(),
+        nombre_producto: form.nombre_producto.trim(),
+        descripcion: form.descripcion.trim(),
+        estado: form.estado,
+        fecha_registro: new Date(form.fecha_registro).toISOString(),
+      };
+    }
 
     setSaving(true);
-    const payload: CreateProductoDto = {
-      categoria_id: Number(form.categoria_id),
-      almacenamiento_id: Number(form.almacenamiento_id),
-      precio,
-      stock,
-      nombre: form.nombre,
-      stock_minimo,
-      peso,
-      codigo_identificacion: form.codigo_identificacion.trim(),
-      nombre_producto: form.nombre_producto.trim(),
-      descripcion: form.descripcion.trim(),
-      estado: form.estado,
-      fecha_registro: new Date(form.fecha_registro).toISOString(),
-    };
-
     try {
       const producto = await crearProducto(payload as unknown as Partial<Producto>, token);
-      onCreated?.(producto); // ← refresca tabla en el padre
-      // reset completo para la próxima apertura
+      if (!form.categoriaSelectedId && (producto as any)?.categoria) {
+        const nueva = (producto as any).categoria as Categoria;
+        setCategorias(prev => {
+          const dup = prev.some(c => canonical(c.nombre) === canonical(nueva.nombre));
+          return dup ? prev : [...prev, nueva];
+        });
+      }
+      onCreated?.(producto);
       setForm(getInitialForm());
       onClose();
     } catch (err) {
@@ -173,12 +226,12 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
       <div className="w-full max-w-md bg-white shadow-lg h-full flex flex-col gap-5 px-5 py-5">
         <Tittlex
           variant="modal"
-          icon="vaadin:stock" // pon aquí el nombre del ícono de Iconify que prefieras
+          icon="vaadin:stock"
           title="REGISTRAR NUEVO PRODUCTO"
           description="Registra un nuevo producto en tu inventario especificando su información básica, ubicación en almacén y condiciones de stock."
         />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 h-full">
+        <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-5 h-full">
           <div className="h-full flex flex-col gap-5">
             <div className="grid grid-cols-2 gap-5">
               <Inputx
@@ -189,7 +242,6 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
                 disabled={saving}
                 type="text"
               />
-
               <Inputx
                 name="nombre_producto"
                 label="Nombre del Producto"
@@ -214,59 +266,73 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
               maxRows={8}
             />
 
-            <Selectx
+            <SelectxCreatable
               label="Categoría"
-              name="categoria_id"
               labelVariant="left"
-              value={form.categoria_id}
-              onChange={handleChange}
-              placeholder="Seleccionar categoría"
+              placeholder="Escribe para buscar o crear…"
+              inputValue={form.categoriaInput}
+              selectedId={form.categoriaSelectedId}
+              options={catOptions}
+              disabled={saving}
               required
-              disabled={saving}
-            >
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </Selectx>
+              onInputChange={onCategoriaInputChange}
+              onSelectOption={onCategoriaSelect}
+              onCreateFromInput={onCategoriaCreate}
+            />
 
-            <Selectx
-              label="Sede"
-              name="almacenamiento_id"
-              labelVariant="left"
-              value={form.almacenamiento_id}
-              onChange={handleChange}
-              placeholder="Seleccionar sede"
-              required
-              disabled={saving}
-            >
-              {almacenes.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre_almacen}
-                </option>
-              ))}
-            </Selectx>
+            {/* ---- Sede ---- */}
+            <div>
+              <label className="block text-base font-normal text-gray90 text-left">Sede</label>
+              <div className="relative">
+                <select
+                  name="almacenamiento_id"
+                  value={form.almacenamiento_id}
+                  onChange={(e) =>
+                    setForm(p => ({ ...p, almacenamiento_id: e.target.value }))
+                  }
+                  className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
+                    ${!form.almacenamiento_id ? 'text-gray-500' : 'text-gray90'}
+                    placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
+                    focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
+                  required
+                  disabled={saving}>
+                  <option value="" disabled hidden>
+                    Seleccionar sede
+                  </option>
+                  {almacenes.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.nombre_almacen}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-            <Selectx
-              label="Estado"
-              labelVariant="left"
-              value={form.estado || ""} // 👈 "" para que se vea el placeholder si no hay selección
-              onChange={(e) =>
-                setForm((p) => ({ ...p, estado: e.target.value as EstadoId }))
-              }
-              placeholder="Seleccionar estado"
-              disabled={saving}
-            >
-              {ESTADO_OPCIONES.map((op) => (
-                <option key={op.id} value={op.id}>
-                  {op.nombre}
-                </option>
-              ))}
-            </Selectx>
+            {/* ---- Estado ---- */}
+            <div>
+              <label className="block text-base font-normal text-gray90 text-left">Estado</label>
+              <div className="relative">
+                <select
+                  value={form.estado}
+                  onChange={(e) =>
+                    setForm(p => ({ ...p, estado: e.target.value as EstadoId }))
+                  }
+                  className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
+                    ${!form.estado ? 'text-gray-500' : 'text-gray90'}
+                    placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
+                    focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
+                  disabled={saving}>
+                  {ESTADO_OPCIONES.map(op => (
+                    <option key={op.id} value={op.id}>
+                      {op.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
+            {/* ---- Números ---- */}
             <div className="flex flex-col-2 gap-5">
-              {/* Precio: 2 decimales */}
               <InputxNumber
                 label="Precio"
                 name="precio"
@@ -278,8 +344,6 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
                 placeholder="0.00"
                 disabled={saving}
               />
-
-              {/* Cantidad: entero */}
               <InputxNumber
                 label="Cantidad"
                 name="stock"
@@ -295,7 +359,6 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
             </div>
 
             <div className="flex flex-col-2 gap-5">
-              {/* Stock mínimo: entero */}
               <InputxNumber
                 label="Stock Mínimo"
                 name="stock_minimo"
@@ -308,8 +371,6 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
                 inputMode="numeric"
                 disabled={saving}
               />
-
-              {/* Peso: 3 decimales */}
               <InputxNumber
                 label="Peso (kg)"
                 name="peso"
@@ -324,22 +385,25 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
             </div>
           </div>
 
+          {/* ---- BOTONES ---- */}
           <div className="flex items-center gap-5">
             <Buttonx
+              type="submit"
               variant="quartery"
               disabled={saving}
-              onClick={() => { }} // mantiene el submit por estar dentro del <form>
-              label={saving ? "Creando…" : "Crear nuevo"}
-              icon={saving ? "line-md:loading-twotone-loop" : undefined}
-              className={`px-4 text-sm ${saving ? "[&_svg]:animate-spin" : ""}`}
+              label={saving ? 'Creando…' : 'Crear nuevo'}
+              icon={saving ? 'line-md:loading-twotone-loop' : 'tabler:cube-plus'}
+              className={`px-4 text-sm ${saving ? '[&_svg]:animate-spin' : ''}`}
             />
 
             <Buttonx
-              variant="outlinedw"
+              type="button"
+              variant="tertiary"
               onClick={handleClose}
-              label="Cancelar"
-              className="px-4 text-sm border"
               disabled={saving}
+              label="Salir"
+              icon=""
+              className="px-4 text-sm text-gray-600 bg-gray-200 "
             />
           </div>
         </form>

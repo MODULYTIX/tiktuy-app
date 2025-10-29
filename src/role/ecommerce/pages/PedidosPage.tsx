@@ -18,6 +18,12 @@ import { Selectx, SelectxDate } from '@/shared/common/Selectx';
 import Buttonx from '@/shared/common/Buttonx';
 import Tittlex from '@/shared/common/Tittlex';
 
+// ⬇️ NUEVO: API de exportación/plantilla de pedidos
+import {
+  downloadPedidosTemplate,
+  triggerBrowserDownload,
+} from '@/services/ecommerce/exportExcel/Pedido/exportPedidoExcel.api';
+
 type Vista = 'generado' | 'asignado' | 'completado';
 
 type Filtros = {
@@ -112,11 +118,15 @@ export default function PedidosPage() {
     setRefreshKey((k) => k + 1);
   };
 
-  const handleDescargarPlantilla = () => {
-    const a = document.createElement('a');
-    a.href = '../../../assets/template/template_ventas.xlsx';
-    a.download = 'plantilla-ventas.xlsx';
-    a.click();
+  // ⬇️ ACTUALIZADO: usa API en lugar de asset estático
+  const handleDescargarPlantilla = async () => {
+    try {
+      const res = await downloadPedidosTemplate();
+      triggerBrowserDownload(res);
+    } catch (err) {
+      console.error('Error al descargar plantilla de pedidos:', err);
+      // Si tienes toasts, dispara aquí uno. No cambio tu UI.
+    }
   };
 
   const descripcionVista = {
@@ -194,7 +204,6 @@ export default function PedidosPage() {
               </ImportExcelPedidosFlow>
             </div>
 
-
             <Buttonx
               label="Nuevo Pedido"
               icon="iconoir:new-tab"
@@ -212,7 +221,7 @@ export default function PedidosPage() {
           id="f-courier"
           label="Courier"
           value={filtros.courier}
-          onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value }))}
+          onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value })) }
           placeholder="Seleccionar courier"
           className="w-full"
         >
@@ -230,7 +239,7 @@ export default function PedidosPage() {
           id="f-producto"
           label="Producto"
           value={filtros.producto}
-          onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value }))}
+          onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value })) }
           placeholder="Seleccionar producto"
           className="w-full"
         >
@@ -248,7 +257,7 @@ export default function PedidosPage() {
           id="f-fecha-inicio"
           label="Fecha Inicio"
           value={filtros.fechaInicio}
-          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))}
+          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value })) }
           placeholder="dd/mm/aaaa"
           className="w-full"
         />
@@ -257,7 +266,7 @@ export default function PedidosPage() {
           id="f-fecha-fin"
           label="Fecha Fin"
           value={filtros.fechaFin}
-          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))}
+          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaFin: e.target.value })) }
           placeholder="dd/mm/aaaa"
           className="w-full"
         />

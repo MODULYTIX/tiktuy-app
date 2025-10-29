@@ -90,6 +90,7 @@ import type {
     listar: '/admin/solicitudes/couriers',
     cambiarEstado: (uuid: string) => `/admin/solicitudes/couriers/${uuid}/estado`,
     confirmarPassword: '/admin/solicitudes/courier/confirmar-password',
+    confirmarPasswordEcommerce: '/admin/solicitudes/ecommerce/confirmar-password',
   };
   
   // --------- Públicas ---------
@@ -101,7 +102,7 @@ import type {
       body: JSON.stringify(payload),
     });
   }
-  
+  // Courier 
   export function confirmarPasswordInvitacion(
     payload: ConfirmarPasswordPayload
   ): Promise<ConfirmarPasswordResponse> {
@@ -111,6 +112,16 @@ import type {
     });
   }
   
+// Ecommerce
+export function confirmarPasswordInvitacionEcommerce(
+  payload: ConfirmarPasswordPayload
+): Promise<ConfirmarPasswordResponse> {
+  return jsonFetch<ConfirmarPasswordResponse>(`${BASE}${R.confirmarPasswordEcommerce}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
   // --------- Admin (Bearer opcional según tu auth) ---------
   export function listarSolicitudesCouriers(
     token?: string | TokenProvider | null

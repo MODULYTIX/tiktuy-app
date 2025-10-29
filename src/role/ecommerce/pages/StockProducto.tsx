@@ -7,13 +7,16 @@ import { fetchProductosFiltrados } from '@/services/ecommerce/producto/producto.
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import ImportExcelFlow from '@/shared/components/ecommerce/excel/ImportExcelFlow';
 
-
 import ProductoCrearModal from '@/shared/components/ecommerce/stock/ProductoCrearModal';
 import ProductoVerModal from '@/shared/components/ecommerce/stock/ProductoVerModal';
 import ProductoEditarModal from '@/shared/components/ecommerce/stock/ProductoEditarModal';
 import Buttonx from '@/shared/common/Buttonx';
 import Tittlex from '@/shared/common/Tittlex';
 
+import {
+  downloadProductosTemplate,
+  triggerBrowserDownload,
+} from '@/services/ecommerce/exportExcel/Producto/exportProductoExcel.api';
 
 type UiFilters = StockFilterValue & {
   order?: 'new_first' | 'price_asc' | 'price_desc';
@@ -152,8 +155,15 @@ export default function StockPage() {
     setProductoSel(null);
   };
 
-  const handleDescargarPlantilla = () => {
-    console.log('Descargar plantilla');
+  // ⬇️ Actualizado: descarga de plantilla
+  const handleDescargarPlantilla = async () => {
+    try {
+      const res = await downloadProductosTemplate();
+      triggerBrowserDownload(res);
+    } catch (err) {
+      console.error('Error al descargar plantilla:', err);
+      // aquí puedes disparar un toast si ya usas uno
+    }
   };
 
   return (
@@ -174,12 +184,12 @@ export default function StockPage() {
             )}
           </ImportExcelFlow>
           <Buttonx
-          label="Nuevo Producto"
-          icon="tabler:cube-plus" // Aquí puedes poner el ícono que mejor se adapte
-          variant="secondary"
-          onClick={handleAbrirModalNuevo}
-          className='font-light'
-        />
+            label="Nuevo Producto"
+            icon="tabler:cube-plus" // Aquí puedes poner el ícono que mejor se adapte
+            variant="secondary"
+            onClick={handleAbrirModalNuevo}
+            className="font-light"
+          />
         </div>
       </div>
 

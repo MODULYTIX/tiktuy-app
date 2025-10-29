@@ -1,8 +1,12 @@
 // src/shared/components/courier/perfiles/PerfilesCourierModal.tsx
-import { IoClose } from 'react-icons/io5';
-import { useEffect, useRef, useState } from 'react';
-import { GrUserAdmin } from 'react-icons/gr';
-import { registerTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
+import { useEffect, useRef, useState } from "react";
+import { registerTrabajador } from "@/services/ecommerce/perfiles/perfilesTrabajador.api";
+
+// 🧩 Tus componentes base
+import { Inputx } from "@/shared/common/Inputx";
+import { Selectx } from "@/shared/common/Selectx";
+import Buttonx from "@/shared/common/Buttonx";
+import Tittlex from "@/shared/common/Tittlex";
 
 interface Props {
   isOpen: boolean;
@@ -12,50 +16,52 @@ interface Props {
 
 const rolModuloMap: Record<string, string[]> = {
   // courier roles (IDs según tu DB)
-  '4': ['almacen', 'stock', 'movimiento'], // AlmaceneroCourier
-  '5': ['panel', 'reportes', 'saldos', 'perfiles', 'almacen', 'pedidos'], // AsistenteCourier
-  '6': ['pedidos'], // RepartidorCourier
+  "4": ["almacen", "stock", "movimiento"], // AlmaceneroCourier
+  "5": ["panel", "reportes", "saldos", "perfiles", "almacen", "pedidos"], // AsistenteCourier
+  "6": ["pedidos"], // RepartidorCourier
 };
 
 const moduloLabelMap: Record<string, string> = {
-  panel: 'Panel de Control',
-  almacen: 'Almacén',
-  productos: 'Productos',
-  stock: 'Stock de Productos',
-  movimiento: 'Movimientos',
-  pedidos: 'Pedidos',
-  saldos: 'Saldos',
-  perfiles: 'Perfiles',
-  reportes: 'Reportes',
+  panel: "Panel de Control",
+  almacen: "Almacén",
+  productos: "Productos",
+  stock: "Stock de Productos",
+  movimiento: "Movimientos",
+  pedidos: "Pedidos",
+  saldos: "Saldos",
+  perfiles: "Perfiles",
+  reportes: "Reportes",
 };
 
 export default function PerfilesCourierModal({ isOpen, onClose, onCreated }: Props) {
   const [form, setForm] = useState({
-    nombre: '',
-    apellido: '',
-    dni: '',
-    telefono: '',
-    correo: '',
-    password: '',
-    confirmarPassword: '',
-    rol_perfil_id: '',
+    nombre: "",
+    apellido: "",
+    dni: "",
+    telefono: "",
+    correo: "",
+    password: "",
+    confirmarPassword: "",
+    rol_perfil_id: "",
   });
   const [modulos, setModulos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // Cuando cambia el rol, preselecciona el primer módulo recomendado
   useEffect(() => {
     const posibles = rolModuloMap[form.rol_perfil_id] || [];
     setModulos(posibles.length ? [posibles[0]] : []);
   }, [form.rol_perfil_id]);
 
+  // Cerrar al hacer click fuera
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) onClose();
     }
-    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen, onClose]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -75,18 +81,18 @@ export default function PerfilesCourierModal({ isOpen, onClose, onCreated }: Pro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.password !== form.confirmarPassword) {
-      setError('Las contraseñas no coinciden.');
+      setError("Las contraseñas no coinciden.");
       return;
     }
     if (modulos.length === 0) {
-      setError('Debe seleccionar al menos un módulo.');
+      setError("Debe seleccionar al menos un módulo.");
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
     try {
-      const token = localStorage.getItem('token') || '';
+      const token = localStorage.getItem("token") || "";
       await registerTrabajador(
         {
           nombres: form.nombre,
@@ -103,19 +109,19 @@ export default function PerfilesCourierModal({ isOpen, onClose, onCreated }: Pro
       onCreated?.();
       onClose();
       setForm({
-        nombre: '',
-        apellido: '',
-        dni: '',
-        telefono: '',
-        correo: '',
-        password: '',
-        confirmarPassword: '',
-        rol_perfil_id: '',
+        nombre: "",
+        apellido: "",
+        dni: "",
+        telefono: "",
+        correo: "",
+        password: "",
+        confirmarPassword: "",
+        rol_perfil_id: "",
       });
       setModulos([]);
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || 'Error al registrar trabajador');
+      setError(err?.message || "Error al registrar trabajador");
     } finally {
       setLoading(false);
     }
@@ -128,159 +134,162 @@ export default function PerfilesCourierModal({ isOpen, onClose, onCreated }: Pro
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex justify-end">
-      <div ref={modalRef} className="bg-white p-6 rounded-l-md w-full max-w-md h-full overflow-auto shadow-lg">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-primary flex gap-2 items-center">
-            <GrUserAdmin size={18} />
-            <span>REGISTRAR NUEVO PERFIL</span>
-          </h2>
-          <button onClick={onClose} className="text-gray-600 hover:text-black">
-            <IoClose size={24} />
-          </button>
-        </div>
-        <p className="text-sm text-gray-500 mb-6">
-          Crea un nuevo perfil completando la información personal, datos de contacto, rol y módulo asignado.
-        </p>
+      {/* Drawer */}
+      <div
+        ref={modalRef}
+        className="bg-white w-full max-w-xl h-full overflow-y-auto shadow-2xl p-5 flex flex-col gap-5"
+      >
+        {/* Header (sin botón X) */}
+        <Tittlex
+          variant="modal"
+          icon="mdi:account-plus-outline"
+          title="REGISTRAR NUEVO PERFIL"
+          description="Crea un nuevo perfil completando la información personal, datos de contacto, rol y los módulos que tendrá habilitados dentro del sistema."
+        />
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Nombre</label>
-            <input
-              name="nombre"
-              placeholder="Nombre"
-              className="w-full border rounded-lg px-4 py-2"
-              value={form.nombre}
-              onChange={handleChange}
-              required
-            />
+        {/* Error */}
+        {error && (
+          <div className="text-[12px] text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+            {error}
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Apellido</label>
-            <input
-              name="apellido"
-              placeholder="Apellido"
-              className="w-full border rounded-lg px-4 py-2"
-              value={form.apellido}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">DNI / CI</label>
-            <input
-              name="dni"
-              placeholder="DNI / CI"
-              className="w-full border rounded-lg px-4 py-2"
-              value={form.dni}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Teléfono</label>
-            <div className="flex items-center border rounded-lg px-4 py-2 gap-2">
-              <span className="text-gray-500 text-sm">+51</span>
-              <input
-                name="telefono"
-                placeholder="987654321"
-                className="w-full outline-none"
-                value={form.telefono}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Correo</label>
-            <input
-              name="correo"
-              placeholder="correo@gmail.com"
-              className="w-full border rounded-lg px-4 py-2"
-              value={form.correo}
-              onChange={handleChange}
-              required
-            />
-          </div>
+        )}
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Rol Perfil</label>
-            <select
-              name="rol_perfil_id"
-              className="w-full border rounded-lg px-4 py-2"
-              value={form.rol_perfil_id}
-              onChange={handleChange}
-              required
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Inputx
+            name="nombre"
+            label="Nombre"
+            placeholder="Nombre"
+            value={form.nombre}
+            onChange={handleChange}
+            required
+            type="text"
+          />
+          <Inputx
+            name="apellido"
+            label="Apellido"
+            placeholder="Apellido"
+            value={form.apellido}
+            onChange={handleChange}
+            required
+            type="text"
+          />
+
+          <Inputx
+            name="dni"
+            label="DNI / CI"
+            placeholder="DNI / CI"
+            value={form.dni}
+            onChange={handleChange}
+            required
+            type="text"
+          />
+          <Inputx
+            name="telefono"
+            label="Teléfono ( +51 )"
+            placeholder="987654321"
+            value={form.telefono}
+            onChange={handleChange}
+            required
+            type="tel"
+            inputMode="numeric"
+          />
+
+          <Inputx
+            name="correo"
+            label="Correo"
+            placeholder="correo@gmail.com"
+            value={form.correo}
+            onChange={handleChange}
+            required
+            type="email"
+          />
+          <Selectx
+            label="Rol Perfil"
+            labelVariant="left"
+            value={form.rol_perfil_id}
+            onChange={handleChange}
+            name="rol_perfil_id"
+            placeholder="Seleccionar rol"
+          >
+            <option value="4">AlmaceneroCourier</option>
+            <option value="5">AsistenteCourier</option>
+            <option value="6">RepartidorCourier</option>
+          </Selectx>
+
+          <Inputx
+            name="password"
+            label="Contraseña"
+            placeholder="Escribir aquí"
+            value={form.password}
+            onChange={handleChange}
+            required
+            type="password"
+          />
+          <Inputx
+            name="confirmarPassword"
+            label="Repetir Contraseña"
+            placeholder="Escribir aquí"
+            value={form.confirmarPassword}
+            onChange={handleChange}
+            required
+            type="password"
+          />
+
+          {/* Selector de Módulos + chips */}
+          <div className="md:col-span-2 flex flex-col gap-2">
+            <Selectx
+              label="Módulo"
+              labelVariant="left"
+              value=""
+              onChange={handleAddModulo}
+              placeholder="Seleccionar módulo"
             >
-              <option value="">Seleccionar rol</option>
-              <option value="4">AlmaceneroCourier</option>
-              <option value="5">AsistenteCourier</option>
-              <option value="6">RepartidorCourier</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Contraseña</label>
-            <input
-              name="password"
-              type="password"
-              placeholder="Escribir aquí"
-              className="w-full border rounded-lg px-4 py-2"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Repetir Contraseña</label>
-            <input
-              name="confirmarPassword"
-              type="password"
-              placeholder="Escribir aquí"
-              className="w-full border rounded-lg px-4 py-2"
-              value={form.confirmarPassword}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="col-span-2">
-            <label className="block text-sm font-medium mb-1">Módulo</label>
-            <select onChange={handleAddModulo} className="w-full border rounded-lg px-4 py-2" value="">
-              <option value="">Seleccionar módulo</option>
               {modulosFiltrados.map((mod) => (
                 <option key={mod} value={mod}>
                   {moduloLabelMap[mod] || mod}
                 </option>
               ))}
-            </select>
-            <div className="mt-2 flex flex-wrap gap-2">
+            </Selectx>
+
+            {/* Chips de módulos seleccionados */}
+            <div className="flex flex-wrap gap-2">
               {modulos.map((mod) => (
                 <div
                   key={mod}
-                  className="bg-gray-100 text-sm text-gray-700 px-3 py-1 rounded-full flex items-center gap-2"
+                  className="bg-gray-100 text-[12px] text-gray-700 px-3 py-1 rounded-full inline-flex items-center gap-2"
                 >
                   {moduloLabelMap[mod] || mod}
                   <button
                     type="button"
                     onClick={() => handleRemoveModulo(mod)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700"
+                    aria-label={`Quitar ${mod}`}
+                    title="Quitar"
                   >
-                    &times;
+                    ×
                   </button>
                 </div>
               ))}
             </div>
           </div>
 
-          {error && <div className="col-span-2 text-sm text-red-500 mt-2">{error}</div>}
-
-          <div className="col-span-2 flex justify-end gap-3 mt-4">
-            <button type="submit" disabled={loading} className="bg-primaryDark text-white px-5 py-2 rounded border">
-              {loading ? 'Creando...' : 'Crear nuevo'}
-            </button>
-            <button type="button" onClick={onClose} className="border px-5 py-2 rounded">
-              Cancelar
-            </button>
+          {/* Acciones */}
+          <div className="md:col-span-2 flex justify-end gap-3">
+            <Buttonx
+              variant="secondary"
+              label={loading ? "Creando..." : "Crear nuevo"}
+              className="px-4 text-sm"
+              onClick={"handleSubmit" as any}
+              disabled={loading}
+            />
+            <Buttonx
+              variant="outlined"
+              label="Cancelar"
+              className="px-4 text-sm"
+              onClick={onClose}
+              disabled={loading}
+            />
           </div>
         </form>
       </div>

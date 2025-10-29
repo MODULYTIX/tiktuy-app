@@ -19,6 +19,7 @@ import AceptarInvitacionSedePage from '@/shared/components/ecommerce/CrearPasswo
 import PublicLayout from '@/role/user/layout/PublicLayout';
 import HomePublicPage from '@/role/user/pages/HomePublicPage';
 import RegistroInvitacionCourier from '@/role/admin/pages/RegistroInvitacionCourier';
+import RegistroInvitacionEcommerce from '@/role/admin/pages/RegistroInvitacionEcommerce';
 
 export default function AppRouter() {
   return (
@@ -55,6 +56,8 @@ export default function AppRouter() {
       <Route path="/registro-invitacion-motorizado" element={<RegistroInvitacionPage />} />
       {/* Courier */}
       <Route path="/registro-invitacion-courier" element={<RegistroInvitacionCourier />} />
+      {/* Ecommmerce */}
+      <Route path="/registro-invitacion-ecommerce" element={<RegistroInvitacionEcommerce />} />
 
       {/* Admin */}
       <Route
