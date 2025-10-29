@@ -162,17 +162,36 @@ export default function Solicitud() {
     return null;
   }
 
-  // Validación (Ecommerce)
+  // Validación (Ecommerce) — personales obligatorios; empresa OPCIONAL
   function validateEcommerce(data: SolicitudEcommerceInput): string | null {
     if (!data.nombres.trim()) return 'Ingrese sus nombres';
     if (!data.correo.trim()) return 'Ingrese su E-mail';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.correo)) return 'E-mail inválido';
     if (!data.dni_ci.trim()) return 'Ingrese su DNI';
-    if (!data.nombre_comercial.trim()) return 'Ingrese el nombre comercial';
-    if (!data.ruc.trim()) return 'Ingrese el RUC';
-    if (!data.ciudad.trim()) return 'Ingrese la ciudad';
-    if (!data.direccion.trim()) return 'Ingrese la dirección';
-    if (!data.rubro.trim()) return 'Ingrese el rubro';
+
+    // Empresa opcional: si el usuario empieza a llenar algo de empresa,
+    // pedimos al menos nombre_comercial y ruc juntos; validamos formato básico si existen.
+    const anyEmpresa =
+      (data.nombre_comercial && data.nombre_comercial.trim().length > 0) ||
+      (data.ruc && data.ruc.trim().length > 0) ||
+      (data.ciudad && data.ciudad.trim().length > 0) ||
+      (data.direccion && data.direccion.trim().length > 0) ||
+      (data.rubro && data.rubro.trim().length > 0);
+
+    if (anyEmpresa) {
+      const hasNombre = !!data.nombre_comercial?.trim();
+      const hasRuc = !!data.ruc?.trim();
+
+      if (hasNombre && !hasRuc) return 'Ingrese el RUC o deje los datos de empresa vacíos';
+      if (!hasNombre && hasRuc) return 'Ingrese el nombre comercial o deje los datos de empresa vacíos';
+
+      if (hasRuc && !/^\d{8,}$/.test(data.ruc!)) return 'RUC inválido';
+      // ciudad/dirección/rubro siguen siendo opcionales: solo validamos si vienen
+      if (data.ciudad && !data.ciudad.trim()) return 'Ingrese una ciudad válida o deje el campo vacío';
+      if (data.direccion && !data.direccion.trim()) return 'Ingrese una dirección válida o deje el campo vacío';
+      if (data.rubro && !data.rubro.trim()) return 'Ingrese un rubro válido o deje el campo vacío';
+    }
+
     return null;
   }
 
@@ -484,7 +503,9 @@ export default function Solicitud() {
             <div className="border-b border-[#99BCDA] pb-3">
               <p className="flex items-center gap-2 text-gray-800 font-semibold">
                 <GiCube className="text-[#0057A3]" />
-                Datos de la empresa
+                {/*  Aqui podrias poner  que solo ecomer tenga el (Opcional), pero el courier no tenga esa opcion,sequeda haci*/}
+                {/* Hecho: solo Ecommerce muestra "(Opcional)" */}
+                Datos de la empresa{tipo === 'ecommerce' ? ' (Opcional)' : ''}
               </p>
             </div>
 
