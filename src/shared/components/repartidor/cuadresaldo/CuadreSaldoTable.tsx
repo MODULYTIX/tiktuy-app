@@ -32,8 +32,8 @@ const EstadoPill: React.FC<{ estado: Estado }> = ({ estado }) => {
   return (
     <span
       className={[
-        "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
-        ok ? "bg-gray-900 text-white" : "bg-gray-200 text-gray-900",
+        "inline-flex items-center justify-center rounded-full px-3 py-[6px] text-[12px] font-semibold shadow-sm",
+        ok ? "bg-gray90 text-white" : "bg-gray-200 text-gray-900",
       ].join(" ")}
     >
       {estado}
@@ -106,7 +106,7 @@ type Props = {
   token: string;
   /** Filtro desde la página (YYYY-MM-DD) */
   desde?: string;
-  /** Filtro desde la página (YYYY-MM-DD) */
+  /** Filtro hasta la página (YYYY-MM-DD) */
   hasta?: string;
   /** Señal desde el header para VALIDAR en lote los seleccionados */
   triggerValidate?: number;
@@ -253,200 +253,256 @@ const CuadreSaldoTable: React.FC<Props> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [triggerValidate]);
 
+  /* ===================== Paginador (estilo BaseTablaPedidos) ===================== */
+
+  const pagerItems = useMemo(() => {
+    const maxButtons = 5;
+    const pages: (number | string)[] = [];
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, page - 2);
+      let end = Math.min(totalPages, page + 2);
+      if (page <= 3) {
+        start = 1;
+        end = maxButtons;
+      } else if (page >= totalPages - 2) {
+        start = totalPages - (maxButtons - 1);
+        end = totalPages;
+      }
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (start > 1) {
+        pages.unshift("...");
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  }, [page, totalPages]);
+
+  const goToPage = (p: number) => {
+    if (p < 1 || p > totalPages || p === page) return;
+    setPage(p);
+  };
+
   /* ===================== Render ===================== */
 
   return (
     <div>
-      <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left text-gray-600">
-            <tr>
-              <th className="w-12 p-4">
-                <Checkbox checked={allChecked} onChange={toggleAll} />
-              </th>
-              <th className="p-4 font-semibold">Fec. Entrega</th>
-              <th className="p-4 font-semibold">Monto por Servicio</th>
-              <th className="p-4 font-semibold">Estado</th>
-              <th className="p-4 font-semibold text-right">Acciones</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-gray-100">
-            {err && (
-              <tr>
-                <td colSpan={5} className="p-4 text-red-600">
-                  {err}
-                </td>
+      {/* Contenedor y tabla con estilos modelo */}
+      <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
+        <div className="overflow-x-auto bg-white">
+          <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+            <thead className="bg-[#E5E7EB]">
+              <tr className="text-gray70 font-roboto font-medium">
+                <th className="px-4 py-3 w-[44px] text-left">
+                  <Checkbox checked={allChecked} onChange={toggleAll} />
+                </th>
+                <th className="px-4 py-3 text-left">Fec. Entrega</th>
+                <th className="px-4 py-3 text-left">Monto por Servicio</th>
+                <th className="px-4 py-3 text-left">Estado</th>
+                <th className="px-4 py-3 text-center">Acciones</th>
               </tr>
-            )}
+            </thead>
 
-            {!err && items.length === 0 && !loading && (
-              <tr>
-                <td colSpan={5} className="p-4 text-gray-500">
-                  No hay datos para el filtro seleccionado.
-                </td>
-              </tr>
-            )}
-
-            {items.map((row) => {
-              const ymd = toYMD(row.fecha);
-              const estado: Estado = row.validado ? "Validado" : "Por Validar";
-              return (
-                <tr key={ymd} className="hover:bg-gray-50">
-                  <td className="p-4">
-                    <Checkbox
-                      checked={!!selected[ymd]}
-                      onChange={() => toggleOne(ymd)}
-                    />
-                  </td>
-                  <td className="p-4">{isoToDMY(row.fecha)}</td>
-                  <td className="p-4">
-                    {formatPEN(row.totalServicioMotorizado)}
-                  </td>
-                  <td className="p-4">
-                    <EstadoPill estado={estado} />
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        title="Ver detalle"
-                        onClick={() => openDetalle(row.fecha)}
-                        className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 hover:bg-gray-50"
-                      >
-                        <EyeIcon />
-                      </button>
-
-                      <button
-                        onClick={() => onValidar(ymd, !row.validado)}
-                        className={[
-                          "rounded-md px-3 py-1.5 text-sm",
-                          row.validado
-                            ? "border hover:bg-gray-50"
-                            : "bg-gray-900 text-white hover:opacity-90",
-                        ].join(" ")}
-                      >
-                        {row.validado ? "Quitar validación" : "Validar"}
-                      </button>
-                    </div>
+            <tbody className="divide-y divide-gray20">
+              {err && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-6 text-red-600">
+                    {err}
                   </td>
                 </tr>
-              );
-            })}
+              )}
 
-            {loading && (
-              <tr>
-                <td colSpan={5} className="p-4 text-gray-600">
-                  Cargando…
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              {!err && items.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray70 italic">
+                    No hay datos para el filtro seleccionado.
+                  </td>
+                </tr>
+              )}
 
-        {/* Paginación */}
-        <div className="flex items-center justify-between gap-2 p-4">
-          <div className="text-xs text-gray-600">
-            Página {page} de {totalPages} • {total} día(s)
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1 || loading}
-            >
-              {"<"}
-            </button>
-            <button
-              className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages || loading}
-            >
-              {">"}
-            </button>
-          </div>
+              {items.map((row) => {
+                const ymd = toYMD(row.fecha);
+                const estado: Estado = row.validado ? "Validado" : "Por Validar";
+                return (
+                  <tr key={ymd} className="hover:bg-gray10 transition-colors">
+                    <td className="h-12 px-4 py-3">
+                      <Checkbox
+                        checked={!!selected[ymd]}
+                        onChange={() => toggleOne(ymd)}
+                      />
+                    </td>
+                    <td className="h-12 px-4 py-3 text-gray70">{isoToDMY(row.fecha)}</td>
+                    <td className="h-12 px-4 py-3 text-gray70">
+                      {formatPEN(row.totalServicioMotorizado)}
+                    </td>
+                    <td className="h-12 px-4 py-3">
+                      <EstadoPill estado={estado} />
+                    </td>
+                    <td className="h-12 px-4 py-3">
+                      <div className="flex items-center justify-center gap-3">
+                        <button
+                          title="Ver detalle"
+                          onClick={() => openDetalle(row.fecha)}
+                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                        >
+                          <EyeIcon />
+                        </button>
+
+                        <button
+                          onClick={() => onValidar(ymd, !row.validado)}
+                          className={[
+                            "rounded-md px-3 py-1.5 text-sm",
+                            row.validado
+                              ? "border text-gray-700 hover:bg-gray-50"
+                              : "bg-gray90 text-white hover:opacity-90",
+                          ].join(" ")}
+                        >
+                          {row.validado ? "Quitar validación" : "Validar"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {loading && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-6 text-center text-gray70">
+                    Cargando…
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginador — modelo guía */}
+        <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+          <button
+            onClick={() => goToPage(page - 1)}
+            disabled={page === 1 || loading}
+            className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+          >
+            &lt;
+          </button>
+
+          {pagerItems.map((p, i) =>
+            typeof p === "string" ? (
+              <span key={`dots-${i}`} className="px-2 text-gray70">
+                {p}
+              </span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => goToPage(p)}
+                aria-current={page === p ? "page" : undefined}
+                disabled={loading}
+                className={[
+                  "w-8 h-8 flex items-center justify-center rounded",
+                  page === p ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
+                ].join(" ")}
+              >
+                {p}
+              </button>
+            )
+          )}
+
+          <button
+            onClick={() => goToPage(page + 1)}
+            disabled={page === totalPages || loading}
+            className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+          >
+            &gt;
+          </button>
         </div>
       </div>
 
       {/* Modal Detalle */}
       <Modal
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        title={
-          detailDate ? `Detalle del ${ymdToDMY(detailDate)}` : "Detalle del día"
-        }
-      >
-        {detailLoading && (
-          <div className="p-4 text-sm text-gray-600">Cargando detalle…</div>
-        )}
-        {detailErr && (
-          <div className="p-4 text-sm text-red-600">{detailErr}</div>
-        )}
+  open={detailOpen}
+  onClose={() => setDetailOpen(false)}
+  title={detailDate ? `Detalle del ${ymdToDMY(detailDate)}` : "Detalle del día"}
+>
+  {detailLoading && (
+    <div className="p-4 text-sm text-gray-600">Cargando detalle…</div>
+  )}
+  {detailErr && (
+    <div className="p-4 text-sm text-red-600">{detailErr}</div>
+  )}
 
-        {detail && (
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-4 text-sm">
-              <div>
-                <span className="text-gray-500">Total Recaudado: </span>
-                <strong>{formatPEN(detail.totalRecaudado)}</strong>
-              </div>
-              <div>
-                <span className="text-gray-500">Total Servicio: </span>
-                <strong>{formatPEN(detail.totalServicioMotorizado)}</strong>
-              </div>
-            </div>
+  {detail && (
+    <div className="space-y-4">
+      {/* resumen arriba (igual) */}
+      <div className="flex flex-wrap items-center gap-4 text-sm">
+        <div>
+          <span className="text-gray-500">Total Recaudado: </span>
+          <strong>{formatPEN(detail.totalRecaudado)}</strong>
+        </div>
+        <div>
+          <span className="text-gray-500">Total Servicio: </span>
+          <strong>{formatPEN(detail.totalServicioMotorizado)}</strong>
+        </div>
+      </div>
 
-            <div className="overflow-hidden rounded-xl border">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-left text-gray-600">
-                  <tr>
-                    <th className="p-3">Hora</th>
-                    <th className="p-3">Código</th>
-                    <th className="p-3">Cliente</th>
-                    <th className="p-3">Método</th>
-                    <th className="p-3">Distrito</th>
-                    <th className="p-3 text-right">Monto</th>
-                    <th className="p-3 text-right">Servicio</th>
+      {/* tabla con estilos modelo base */}
+      <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
+        <div className="overflow-x-auto bg-white">
+          <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+            <thead className="bg-[#E5E7EB]">
+              <tr className="text-gray70 font-roboto font-medium">
+                <th className="px-4 py-3 text-left">Hora</th>
+                <th className="px-4 py-3 text-left">Código</th>
+                <th className="px-4 py-3 text-left">Cliente</th>
+                <th className="px-4 py-3 text-left">Método</th>
+                <th className="px-4 py-3 text-left">Distrito</th>
+                <th className="px-4 py-3 text-right">Monto</th>
+                <th className="px-4 py-3 text-right">Servicio</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray20">
+              {detail.pedidos.map((p) => {
+                const hora = p.fechaEntrega
+                  ? new Date(p.fechaEntrega).toLocaleTimeString("es-PE", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "-";
+                return (
+                  <tr key={p.id} className="hover:bg-gray10 transition-colors">
+                    <td className="h-12 px-4 py-3 text-gray70">{hora}</td>
+                    <td className="h-12 px-4 py-3 text-gray70">{p.codigo}</td>
+                    <td className="h-12 px-4 py-3 text-gray70">{p.cliente}</td>
+                    <td className="h-12 px-4 py-3 text-gray70">{p.metodoPago ?? "-"}</td>
+                    <td className="h-12 px-4 py-3 text-gray70">{p.distrito}</td>
+                    <td className="h-12 px-4 py-3 text-right text-gray70">
+                      {formatPEN(p.monto ?? 0)}
+                    </td>
+                    <td className="h-12 px-4 py-3 text-right text-gray70">
+                      {p.servicioCourier != null ? formatPEN(p.servicioCourier) : "-"}
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {detail.pedidos.map((p) => {
-                    const hora = p.fechaEntrega
-                      ? new Date(p.fechaEntrega).toLocaleTimeString("es-PE", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "-";
-                    return (
-                      <tr key={p.id} className="hover:bg-gray-50">
-                        <td className="p-3">{hora}</td>
-                        <td className="p-3">{p.codigo}</td>
-                        <td className="p-3">{p.cliente}</td>
-                        <td className="p-3">{p.metodoPago ?? "-"}</td>
-                        <td className="p-3">{p.distrito}</td>
-                        <td className="p-3 text-right">
-                          {formatPEN(p.monto ?? 0)}
-                        </td>
-                        <td className="p-3 text-right">
-                          {p.servicioCourier != null
-                            ? formatPEN(p.servicioCourier)
-                            : "-"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {detail.pedidos.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="p-3 text-gray-500">
-                        Sin pedidos para este día.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </Modal>
+                );
+              })}
+
+              {detail.pedidos.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray70 italic">
+                    Sin pedidos para este día.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )}
+</Modal>
     </div>
   );
 };

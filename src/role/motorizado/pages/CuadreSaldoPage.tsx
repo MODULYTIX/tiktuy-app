@@ -1,18 +1,9 @@
 // src/pages/repartidor/cuadresaldo/CuadreSaldoPage.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import CuadreSaldoTable from "@/shared/components/repartidor/cuadresaldo/CuadreSaldoTable";
+import Buttonx from "@/shared/common/Buttonx";
+import { SelectxDate } from "@/shared/common/Selectx";
 
-const CalendarIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-    <path d="M6 2a1 1 0 011 1v1h6V3a1 1 0 112 0v1h1a2 2 0 012 2v2H1V6a2 2 0 012-2h1V3a1 1 0 112 0v1z" />
-    <path d="M1 9h18v7a2 2 0 01-2 2H3a2 2 0 01-2-2V9z" />
-  </svg>
-);
-const BroomIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-    <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M15 3l6 6M3 21l6-6m10-6l-7 7M4 16l4 4" />
-  </svg>
-);
 const CoinIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
     <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
@@ -31,11 +22,18 @@ function defaultMonthRange() {
   return { desde: toYMD(first), hasta: toYMD(last) };
 }
 
+// Normaliza el rango: si ambas fechas existen y desde>hasta, las invierte.
+// Si alguna está vacía, retorna undefined para que la tabla lo trate como "sin filtro".
+function normalizeRange(desde?: string, hasta?: string) {
+  if (desde && hasta && desde > hasta) return { desde: hasta, hasta: desde };
+  return { desde: desde || undefined, hasta: hasta || undefined };
+}
+
 const CuadreSaldoPage: React.FC = () => {
   const token = getToken();
   const defaults = useMemo(defaultMonthRange, []);
 
-  // filtros del formulario
+  // filtros del formulario (inputs controlados)
   const [formDesde, setFormDesde] = useState(defaults.desde);
   const [formHasta, setFormHasta] = useState(defaults.hasta);
 
@@ -46,17 +44,12 @@ const CuadreSaldoPage: React.FC = () => {
   // señal para validar lote desde el header
   const [validateSignal, setValidateSignal] = useState(0);
 
-  const aplicarFiltros = () => {
-    setAppliedDesde(formDesde || undefined);
-    setAppliedHasta(formHasta || undefined);
-  };
-
-  const limpiarFiltros = () => {
-    setFormDesde("");
-    setFormHasta("");
-    setAppliedDesde(undefined);
-    setAppliedHasta(undefined);
-  };
+  // Auto-aplicar filtros al cambiar fechas (y normalizar el rango)
+  useEffect(() => {
+    const { desde, hasta } = normalizeRange(formDesde || undefined, formHasta || undefined);
+    setAppliedDesde(desde);
+    setAppliedHasta(hasta);
+  }, [formDesde, formHasta]);
 
   return (
     <div className="mt-8">
@@ -76,33 +69,43 @@ const CuadreSaldoPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">Fecha Inicio</label>
-            <div className="flex items-center gap-2 rounded-xl border px-3 py-2">
-              <input type="date" value={formDesde} onChange={(e) => setFormDesde(e.target.value)} className="w-full bg-transparent outline-none" />
-              <CalendarIcon />
-            </div>
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">Fecha Fin</label>
-            <div className="flex items-center gap-2 rounded-xl border px-3 py-2">
-              <input type="date" value={formHasta} onChange={(e) => setFormHasta(e.target.value)} className="w-full bg-transparent outline-none" />
-              <CalendarIcon />
-            </div>
-          </div>
-          <div className="flex items-end">
-            <button onClick={aplicarFiltros} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90">
-              Aplicar Filtros
-            </button>
-          </div>
-          <div className="flex items-end">
-            <button onClick={limpiarFiltros} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-gray-50">
-              <BroomIcon />
-              Limpiar Filtros
-            </button>
-          </div>
+      {/* Filtro con tus componentes y estilos base */}
+      <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90 mb-5">
+        {/* Fecha Inicio */}
+        <div className="w-full sm:w-auto max-w-[320px] flex-1">
+          <SelectxDate
+            label="Fecha Inicio"
+            value={formDesde}
+            onChange={(e) => setFormDesde((e.target as HTMLInputElement).value)}
+            placeholder="dd/mm/aaaa"
+            className="w-full"
+            // Si prefieres etiqueta a la izquierda: labelVariant="left"
+          />
+        </div>
+
+        {/* Fecha Fin */}
+        <div className="w-full sm:w-auto max-w-[320px] flex-1">
+          <SelectxDate
+            label="Fecha Fin"
+            value={formHasta}
+            onChange={(e) => setFormHasta((e.target as HTMLInputElement).value)}
+            placeholder="dd/mm/aaaa"
+            className="w-full"
+          />
+        </div>
+
+        {/* Limpiar Filtros */}
+        <div className="w-full sm:w-auto">
+          <Buttonx
+            label="Limpiar Filtros"
+            icon="mynaui:delete"
+            variant="outlined" // usa "primary" si quieres fondo azul
+            onClick={() => {
+              setFormDesde("");
+              setFormHasta("");
+              // No hace falta tocar applied*: el useEffect lo pondrá en undefined automáticamente
+            }}
+          />
         </div>
       </div>
 
@@ -110,7 +113,7 @@ const CuadreSaldoPage: React.FC = () => {
         token={token}
         desde={appliedDesde}
         hasta={appliedHasta}
-        triggerValidate={validateSignal}   // <<-- señal para validar seleccionados
+        triggerValidate={validateSignal}   // señal para validar seleccionados
       />
     </div>
   );
