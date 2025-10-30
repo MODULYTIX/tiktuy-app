@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FaEye } from 'react-icons/fa';
 import { Icon } from '@iconify/react';
-import { FiChevronDown } from 'react-icons/fi';
 
 import type {
   Paginated,
@@ -21,7 +20,6 @@ import {
 
 import DetallePedidoDrawer from './DetallePedidoDrawer';
 import { Selectx } from '@/shared/common/Selectx';
-import { Inputx } from '@/shared/common/Inputx';
 import Buttonx from '@/shared/common/Buttonx';
 import { SearchInputx } from '@/shared/common/SearchInputx';
 

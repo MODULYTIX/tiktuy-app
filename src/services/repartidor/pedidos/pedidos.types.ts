@@ -10,7 +10,7 @@ export interface ListByEstadoQuery {
   perPage?: number;
   desde?: string | Date;
   hasta?: string | Date;
-  sortBy?: 'programada' | 'real' | 'creacion';
+  sortBy?: 'programada' | 'real' | 'creacion' | 'actualizada';
   order?: 'asc' | 'desc';
 }
 
@@ -45,7 +45,13 @@ export interface PedidoListItem {
 
   direccion_envio: string | null;
 
-  ecommerce: { id: number; nombre_comercial: string };
+  ecommerce:
+    | {
+        id: number | null;
+        nombre_comercial: string | null;
+      }
+    | null;
+
   motorizado?: { id: number; nombres?: string; apellidos?: string } | null;
 
   cliente: {
@@ -58,7 +64,14 @@ export interface PedidoListItem {
 
   monto_recaudar: string;
 
-  metodo_pago?: { id: number; nombre: string; requiere_evidencia: boolean } | null;
+  metodo_pago?:
+    | {
+        id: number;
+        nombre: string;
+        requiere_evidencia: boolean;
+      }
+    | null;
+
   pago_evidencia_url?: string | null;
   observacion_estado?: string | null;
 
@@ -66,13 +79,15 @@ export interface PedidoListItem {
   items_total_cantidad?: number;
   items_total_monto?: string;
 
-  reprogramacion_ultima?: {
-    fecha_anterior: string;
-    fecha_nueva: string;
-    motivo?: string | null;
-    creado_en?: string;
-    creado_por_id?: number;
-  } | null;
+  reprogramacion_ultima?:
+    | {
+        fecha_anterior: string;
+        fecha_nueva: string;
+        motivo?: string | null;
+        creado_en?: string;
+        creado_por_id?: number;
+      }
+    | null;
 }
 
 /** Versión extendida para detalle (GET /:id) */
@@ -109,7 +124,10 @@ export interface UpdateResultadoBody {
   resultado: ResultadoEntrega;
   monto_recaudado?: number | string;
   observacion?: string;
-  evidenciaFile?: File | Blob;
+  evidenciaFile?: File | Blob; // se envía en campo 'evidencia' del FormData
+  fecha_entrega_real?: string | Date; // opcional: si no se envía, el backend usa "now()"
+  // Solo para lógica de UI; el backend no lo consume
+  metodo?: 'EFECTIVO' | 'BILLETERA' | 'DIRECTO_ECOMMERCE';
 }
 
 export interface UpdateResultadoResponse {

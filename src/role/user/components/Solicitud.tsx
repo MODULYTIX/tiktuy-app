@@ -5,22 +5,35 @@ import { AiOutlineMail } from 'react-icons/ai';
 import { GiCube } from 'react-icons/gi';
 import { BsSendArrowUp } from 'react-icons/bs';
 import { Icon } from '@iconify/react/dist/iconify.js';
-import type { SolicitudCourierInput } from '../service/solicitud-courier.types';
 
-// NUEVO: API pública de ubigeo
+import type { SolicitudCourierInput } from '../service/solicitud-courier.types';
+import type {
+  SolicitudEcommerceInput,
+} from '../service/solicitud-ecommerce.types';
+
 import {
   fetchDepartamentosPublic,
-  fetchCiudadesPublic, 
+  fetchCiudadesPublic,
 } from '../service/ubigeo-public.api';
 
 import { registrarSolicitudCourier } from '../service/solitud-courier.api';
 
+import {
+  registrarSolicitudEcommerce,
+} from '../service/solitud-courier.api';
+
 type Msg = { type: 'ok' | 'err'; text: string } | null;
 
+type TipoSolicitud = 'courier' | 'ecommerce';
+
 export default function Solicitud() {
+  const [tipo, setTipo] = useState<TipoSolicitud>('courier'); // selector
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
 
+  // --------------------------
+  // Formulario COURIER (igual al tuyo)
+  // --------------------------
   const [form, setForm] = useState<SolicitudCourierInput>({
     // Personales
     nombres: '',
@@ -38,13 +51,32 @@ export default function Solicitud() {
     direccion: '',
   });
 
+  // --------------------------
+  // Formulario ECOMMERCE (nuevo)
+  // (mantengo diseño similar y estructura de grids; campos se adaptan)
+  // --------------------------
+  const [formE, setFormE] = useState<SolicitudEcommerceInput>({
+    // Personales
+    nombres: '',
+    apellido: '',
+    dni_ci: '',
+    correo: '',
+    telefono: '',
+    // Empresa
+    nombre_comercial: '',
+    ruc: '',
+    ciudad: '',
+    direccion: '',
+    rubro: '',
+  });
+
   // --- estado para selects dinámicos (sin cambiar diseño) ---
   const [departamentos, setDepartamentos] = useState<string[]>([]);
   const [ciudades, setCiudades] = useState<string[]>([]);
   const [loadingDeps, setLoadingDeps] = useState(true);
-  const [loadingCiudades, setLoadingCiudades] = useState(false); // ⬅️ ahora sí se usa
+  const [loadingCiudades, setLoadingCiudades] = useState(false);
 
-  // Cargar departamentos al montar
+  // Cargar departamentos al montar (para el selector de Courier)
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -65,12 +97,11 @@ export default function Solicitud() {
     };
   }, []);
 
-  // Cargar ciudades cuando cambia el departamento
+  // Cargar ciudades cuando cambia el departamento (Courier)
   useEffect(() => {
     let active = true;
 
     (async () => {
-      // limpiar si no hay departamento
       if (!form.departamento) {
         setCiudades([]);
         return;
@@ -93,6 +124,7 @@ export default function Solicitud() {
     };
   }, [form.departamento]);
 
+  // Handlers de cambio (Courier)
   const onChange =
     (key: keyof SolicitudCourierInput) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -100,16 +132,26 @@ export default function Solicitud() {
       setForm((s) => ({
         ...s,
         [key]: value,
-        // Si cambia el departamento, reiniciamos ciudad para forzar selección válida
         ...(key === 'departamento' ? { ciudad: '' } : null),
       }));
     };
 
-  function validate(data: SolicitudCourierInput): string | null {
+  // Handlers de cambio (Ecommerce)
+  const onChangeE =
+    (key: keyof SolicitudEcommerceInput) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const value = e.target.value;
+      setFormE((s) => ({
+        ...s,
+        [key]: value,
+      }));
+    };
+
+  // Validación (Courier)
+  function validateCourier(data: SolicitudCourierInput): string | null {
     if (!data.nombres.trim()) return 'Ingrese sus nombres';
     if (!data.correo.trim()) return 'Ingrese su E-mail';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.correo))
-      return 'E-mail inválido';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.correo)) return 'E-mail inválido';
     if (!data.dni_ci.trim()) return 'Ingrese su DNI';
     if (!data.nombre_comercial.trim()) return 'Ingrese el nombre comercial';
     if (!data.ruc.trim()) return 'Ingrese el RUC';
@@ -120,43 +162,98 @@ export default function Solicitud() {
     return null;
   }
 
+  // Validación (Ecommerce) — personales obligatorios; empresa OPCIONAL
+  function validateEcommerce(data: SolicitudEcommerceInput): string | null {
+    if (!data.nombres.trim()) return 'Ingrese sus nombres';
+    if (!data.correo.trim()) return 'Ingrese su E-mail';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.correo)) return 'E-mail inválido';
+    if (!data.dni_ci.trim()) return 'Ingrese su DNI';
+
+    // Empresa opcional: si el usuario empieza a llenar algo de empresa,
+    // pedimos al menos nombre_comercial y ruc juntos; validamos formato básico si existen.
+    const anyEmpresa =
+      (data.nombre_comercial && data.nombre_comercial.trim().length > 0) ||
+      (data.ruc && data.ruc.trim().length > 0) ||
+      (data.ciudad && data.ciudad.trim().length > 0) ||
+      (data.direccion && data.direccion.trim().length > 0) ||
+      (data.rubro && data.rubro.trim().length > 0);
+
+    if (anyEmpresa) {
+      const hasNombre = !!data.nombre_comercial?.trim();
+      const hasRuc = !!data.ruc?.trim();
+
+      if (hasNombre && !hasRuc) return 'Ingrese el RUC o deje los datos de empresa vacíos';
+      if (!hasNombre && hasRuc) return 'Ingrese el nombre comercial o deje los datos de empresa vacíos';
+
+      if (hasRuc && !/^\d{8,}$/.test(data.ruc!)) return 'RUC inválido';
+      // ciudad/dirección/rubro siguen siendo opcionales: solo validamos si vienen
+      if (data.ciudad && !data.ciudad.trim()) return 'Ingrese una ciudad válida o deje el campo vacío';
+      if (data.direccion && !data.direccion.trim()) return 'Ingrese una dirección válida o deje el campo vacío';
+      if (data.rubro && !data.rubro.trim()) return 'Ingrese un rubro válido o deje el campo vacío';
+    }
+
+    return null;
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    const err = validate(form);
-    if (err) {
-      setMsg({ type: 'err', text: err });
-      return;
-    }
+
     try {
       setLoading(true);
-      const res = await registrarSolicitudCourier(form);
-      setMsg({
-        type: 'ok',
-        text: res.message || 'Solicitud registrada correctamente.',
-      });
-      // limpiar formulario
-      setForm({
-        nombres: '',
-        apellido_paterno: '',
-        apellido_materno: '',
-        correo: '',
-        dni_ci: '',
-        telefono: '',
-        nombre_comercial: '',
-        ruc: '',
-        representante: '',
-        departamento: '',
-        ciudad: '',
-        direccion: '',
-      });
-      setCiudades([]); // limpia ciudades
+
+      if (tipo === 'courier') {
+        const err = validateCourier(form);
+        if (err) {
+          setMsg({ type: 'err', text: err });
+          return;
+        }
+        const res = await registrarSolicitudCourier(form);
+        setMsg({ type: 'ok', text: res.message || 'Solicitud registrada correctamente.' });
+
+        // limpiar formulario courier
+        setForm({
+          nombres: '',
+          apellido_paterno: '',
+          apellido_materno: '',
+          correo: '',
+          dni_ci: '',
+          telefono: '',
+          nombre_comercial: '',
+          ruc: '',
+          representante: '',
+          departamento: '',
+          ciudad: '',
+          direccion: '',
+        });
+        setCiudades([]);
+      } else {
+        const err = validateEcommerce(formE);
+        if (err) {
+          setMsg({ type: 'err', text: err });
+          return;
+        }
+        const res = await registrarSolicitudEcommerce(formE);
+        setMsg({ type: 'ok', text: res.message || 'Solicitud registrada correctamente.' });
+
+        // limpiar formulario ecommerce
+        setFormE({
+          nombres: '',
+          apellido: '',
+          correo: '',
+          dni_ci: '',
+          telefono: '',
+          nombre_comercial: '',
+          ruc: '',
+          ciudad: '',
+          direccion: '',
+          rubro: '',
+        });
+      }
     } catch (e: any) {
       setMsg({
         type: 'err',
-        text:
-          e?.message ||
-          'No se pudo registrar la solicitud. Intente nuevamente.',
+        text: e?.message || 'No se pudo registrar la solicitud. Intente nuevamente.',
       });
     } finally {
       setLoading(false);
@@ -224,6 +321,33 @@ export default function Solicitud() {
         <form
           onSubmit={onSubmit}
           className="w-full lg:max-w-[640px] rounded-2xl border border-[#99BCDA] p-6 lg:p-8 shadow-sm">
+
+          {/* Selector de tipo (tabs muy simples, sin cambiar el look & feel) */}
+          <div className="mb-5 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setTipo('courier')}
+              className={`px-3 py-1.5 rounded-md border ${
+                tipo === 'courier'
+                  ? 'bg-[#0057A3] text-white border-[#0057A3]'
+                  : 'bg-white text-[#0057A3] border-[#99BCDA]'
+              }`}
+            >
+              Courier
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipo('ecommerce')}
+              className={`px-3 py-1.5 rounded-md border ${
+                tipo === 'ecommerce'
+                  ? 'bg-[#0057A3] text-white border-[#0057A3]'
+                  : 'bg-white text-[#0057A3] border-[#99BCDA]'
+              }`}
+            >
+              Ecommerce
+            </button>
+          </div>
+
           {/* mensaje */}
           {msg && (
             <div
@@ -245,76 +369,133 @@ export default function Solicitud() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">Nombres</label>
-                <input
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
-                  placeholder="Ingrese sus nombres"
-                  value={form.nombres}
-                  onChange={onChange('nombres')}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">
-                  Apellido Paterno
-                </label>
-                <input
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
-                  placeholder="Ingrese su apellido paterno"
-                  value={form.apellido_paterno}
-                  onChange={onChange('apellido_paterno')}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">
-                  Apellido Materno
-                </label>
-                <input
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
-                  placeholder="Ingrese su apellido materno"
-                  value={form.apellido_materno}
-                  onChange={onChange('apellido_materno')}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">E-mail</label>
-                <input
-                  type="email"
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
-                  placeholder="Ingrese su E-mail"
-                  value={form.correo}
-                  onChange={onChange('correo')}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">DNI</label>
-                <input
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
-                  placeholder="Ingrese su DNI"
-                  value={form.dni_ci}
-                  onChange={onChange('dni_ci')}
-                />
-              </div>
-
-              {/* Teléfono con prefijo */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">Teléfono</label>
-                <div className="h-10 rounded-md border border-[#99BCDA] flex overflow-hidden">
-                  <span className="px-1 flex items-center border-r border-[#99BCDA] text-[12px] text-[#525252] gap-0.5">
-                    <Icon icon="openmoji:flag-peru" width="14" height="14" />
-                    (+51)
-                  </span>
+            {tipo === 'courier' ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Nombres</label>
                   <input
-                    className="flex-1 px-1 text-sm outline-none"
-                    placeholder="Ingrese su teléfono"
-                    value={form.telefono ?? ''}
-                    onChange={onChange('telefono')}
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese sus nombres"
+                    value={form.nombres}
+                    onChange={onChange('nombres')}
                   />
                 </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Apellido Paterno</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su apellido paterno"
+                    value={form.apellido_paterno}
+                    onChange={onChange('apellido_paterno')}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Apellido Materno</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su apellido materno"
+                    value={form.apellido_materno}
+                    onChange={onChange('apellido_materno')}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">E-mail</label>
+                  <input
+                    type="email"
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su E-mail"
+                    value={form.correo}
+                    onChange={onChange('correo')}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">DNI</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su DNI"
+                    value={form.dni_ci}
+                    onChange={onChange('dni_ci')}
+                  />
+                </div>
+
+                {/* Teléfono con prefijo */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Teléfono</label>
+                  <div className="h-10 rounded-md border border-[#99BCDA] flex overflow-hidden">
+                    <span className="px-1 flex items-center border-r border-[#99BCDA] text-[12px] text-[#525252] gap-0.5">
+                      <Icon icon="openmoji:flag-peru" width="14" height="14" />
+                      (+51)
+                    </span>
+                    <input
+                      className="flex-1 px-1 text-sm outline-none"
+                      placeholder="Ingrese su teléfono"
+                      value={form.telefono ?? ''}
+                      onChange={onChange('telefono')}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              // Ecommerce
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Nombres</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese sus nombres"
+                    value={formE.nombres}
+                    onChange={onChangeE('nombres')}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Apellido</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su apellido"
+                    value={formE.apellido ?? ''}
+                    onChange={onChangeE('apellido')}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">E-mail</label>
+                  <input
+                    type="email"
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su E-mail"
+                    value={formE.correo}
+                    onChange={onChangeE('correo')}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">DNI</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su DNI"
+                    value={formE.dni_ci}
+                    onChange={onChangeE('dni_ci')}
+                  />
+                </div>
+
+                {/* Teléfono con prefijo */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Teléfono</label>
+                  <div className="h-10 rounded-md border border-[#99BCDA] flex overflow-hidden">
+                    <span className="px-1 flex items-center border-r border-[#99BCDA] text-[12px] text-[#525252] gap-0.5">
+                      <Icon icon="openmoji:flag-peru" width="14" height="14" />
+                      (+51)
+                    </span>
+                    <input
+                      className="flex-1 px-1 text-sm outline-none"
+                      placeholder="Ingrese su teléfono"
+                      value={formE.telefono ?? ''}
+                      onChange={onChangeE('telefono')}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Datos de la empresa */}
@@ -322,93 +503,149 @@ export default function Solicitud() {
             <div className="border-b border-[#99BCDA] pb-3">
               <p className="flex items-center gap-2 text-gray-800 font-semibold">
                 <GiCube className="text-[#0057A3]" />
-                Datos de la empresa
+                {/*  Aqui podrias poner  que solo ecomer tenga el (Opcional), pero el courier no tenga esa opcion,sequeda haci*/}
+                {/* Hecho: solo Ecommerce muestra "(Opcional)" */}
+                Datos de la empresa{tipo === 'ecommerce' ? ' (Opcional)' : ''}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">
-                  Nombre Comercial
-                </label>
-                <input
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
-                  placeholder="Ingrese su nombre comercial"
-                  value={form.nombre_comercial}
-                  onChange={onChange('nombre_comercial')}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">RUC</label>
-                <input
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
-                  placeholder="Ingrese su RUC"
-                  value={form.ruc}
-                  onChange={onChange('ruc')}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">Representante</label>
-                <input
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
-                  placeholder="Ingrese su nombre de representante"
-                  value={form.representante}
-                  onChange={onChange('representante')}
-                />
-              </div>
+            {tipo === 'courier' ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Nombre Comercial</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su nombre comercial"
+                    value={form.nombre_comercial}
+                    onChange={onChange('nombre_comercial')}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">RUC</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su RUC"
+                    value={form.ruc}
+                    onChange={onChange('ruc')}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Representante</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su nombre de representante"
+                    value={form.representante}
+                    onChange={onChange('representante')}
+                  />
+                </div>
 
-              {/* Departamento (dinámico, mismo diseño) */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">Departamento</label>
-                <select
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none bg-white focus:ring-2 focus:ring-[#99BCDA]"
-                  value={form.departamento}
-                  onChange={onChange('departamento')}
-                  disabled={loadingDeps}>
-                  <option value="">
-                    {loadingDeps ? 'Cargando…' : 'Seleccione su departamento'}
-                  </option>
-                  {departamentos.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
+                {/* Departamento */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Departamento</label>
+                  <select
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none bg-white focus:ring-2 focus:ring-[#99BCDA]"
+                    value={form.departamento}
+                    onChange={onChange('departamento')}
+                    disabled={loadingDeps}>
+                    <option value="">
+                      {loadingDeps ? 'Cargando…' : 'Seleccione su departamento'}
                     </option>
-                  ))}
-                </select>
-              </div>
+                    {departamentos.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Ciudad (dinámico, depende de departamento) */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">Ciudad</label>
-                <select
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none bg-white focus:ring-2 focus:ring-[#99BCDA]"
-                  value={form.ciudad}
-                  onChange={onChange('ciudad')}
-                  disabled={!form.departamento || loadingCiudades}>
-                  <option value="">
-                    {!form.departamento
-                      ? 'Seleccione un departamento primero'
-                      : loadingCiudades
-                      ? 'Cargando…'
-                      : 'Seleccione su ciudad'}
-                  </option>
-                  {ciudades.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                {/* Ciudad */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Ciudad</label>
+                  <select
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none bg-white focus:ring-2 focus:ring-[#99BCDA]"
+                    value={form.ciudad}
+                    onChange={onChange('ciudad')}
+                    disabled={!form.departamento || loadingCiudades}>
+                    <option value="">
+                      {!form.departamento
+                        ? 'Seleccione un departamento primero'
+                        : loadingCiudades
+                        ? 'Cargando…'
+                        : 'Seleccione su ciudad'}
                     </option>
-                  ))}
-                </select>
-              </div>
+                    {ciudades.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">Dirección</label>
-                <input
-                  className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
-                  placeholder="Ingrese su dirección"
-                  value={form.direccion}
-                  onChange={onChange('direccion')}
-                />
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Dirección</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su dirección"
+                    value={form.direccion}
+                    onChange={onChange('direccion')}
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              // Ecommerce
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Nombre Comercial</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su nombre comercial"
+                    value={formE.nombre_comercial}
+                    onChange={onChangeE('nombre_comercial')}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">RUC</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su RUC"
+                    value={formE.ruc}
+                    onChange={onChangeE('ruc')}
+                  />
+                </div>
+
+                {/* Rubro (campo propio de Ecommerce) */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Rubro</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ej. Moda, Tecnología, Alimentos"
+                    value={formE.rubro}
+                    onChange={onChangeE('rubro')}
+                  />
+                </div>
+
+                {/* Ciudad (Ecommerce no requiere departamento en tu schema) */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Ciudad</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su ciudad"
+                    value={formE.ciudad}
+                    onChange={onChangeE('ciudad')}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Dirección</label>
+                  <input
+                    className="h-10 rounded-md border border-[#99BCDA] px-3 text-sm outline-none focus:ring-2 focus:ring-[#99BCDA]"
+                    placeholder="Ingrese su dirección"
+                    value={formE.direccion}
+                    onChange={onChangeE('direccion')}
+                  />
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Botón enviar */}
@@ -423,9 +660,7 @@ export default function Solicitud() {
                 disabled:opacity-60
               ">
               {loading ? 'Enviando...' : 'Enviar solicitud'}
-              <BsSendArrowUp
-                className={`text-lg ${loading ? 'animate-pulse' : ''}`}
-              />
+              <BsSendArrowUp className={`text-lg ${loading ? 'animate-pulse' : ''}`} />
             </button>
           </div>
         </form>

@@ -1,18 +1,22 @@
-import { useState } from 'react';
-import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
-import { Icon } from '@iconify/react';
+// src/shared/components/ecommerce/ModalAsociarseCourier.tsx
+import { useState } from "react";
+import { Icon } from "@iconify/react";
+import type {
+  CourierConEstado,
+  NuevaRelacionInput,
+} from "@/services/ecommerce/ecommerceCourier.types";
 
-export type ModalMode = 'view' | 'associate' | 'desassociate';
+export type ModalMode = "view" | "associate" | "desassociate";
 
 type ModalProps = {
   open: boolean;
   mode: ModalMode;
   token: string;
-  entry: CourierAsociado;
+  entry: CourierConEstado;
   onClose: () => void;
-  onAssociated: () => void;
-  onDesassociated: () => void;
-  crearRelacionCourier: (body: { courier_id: number }, token: string) => Promise<unknown>;
+  onAssociated: () => void;     // se llama tras asociar/crear relación
+  onDesassociated: () => void;  // se llama tras desasociar
+  crearRelacionCourier: (body: NuevaRelacionInput, token: string) => Promise<unknown>;
   asociarCourier: (relacionId: number, token: string) => Promise<unknown>;
   desasociarCourier: (relacionId: number, token: string) => Promise<unknown>;
 };
@@ -31,32 +35,32 @@ export function ModalAsociarseCourier({
 }: ModalProps) {
   const [confirmo, setConfirmo] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [errMsg, setErrMsg] = useState('');
+  const [errMsg, setErrMsg] = useState("");
 
   if (!open) return null;
 
-  // Estado unificado a "Activo" | "No Asociado"
-  const asociado = entry.estado_asociacion === 'Activo';
-  const isAssociate = mode === 'associate';
-  const isDesassociate = mode === 'desassociate';
+  const asociado = entry.estado_asociacion === "Activo";
+  const isAssociate = mode === "associate";
+  const isDesassociate = mode === "desassociate";
 
   const handleAsociar = async () => {
     if (!token) return;
     setSubmitting(true);
-    setErrMsg('');
+    setErrMsg("");
     try {
       if (entry.id_relacion == null) {
-        // Si no existe relación previa, primero la creamos
+        // No hay relación aún -> crearla (no activa por defecto)
         await crearRelacionCourier({ courier_id: entry.id }, token);
-        // Si el backend NO asocia automáticamente al crear,
-        // el onAssociated() recargará y luego se podría llamar a asociarCourier con el nuevo id.
+        // Si tu backend no activa automáticamente al crear,
+        // el caller puede recargar y luego llamar a asociarCourier con el nuevo id_relacion.
       } else {
-        // Si ya hay relación creada, solo activamos la asociación
+        // Ya hay relación -> activar (pasar a Activo)
         await asociarCourier(entry.id_relacion, token);
       }
       onAssociated();
-    } catch {
-      setErrMsg('Error al asociar courier');
+    } catch (e: any) {
+      const msg = e?.message || "Error al asociar courier";
+      setErrMsg(msg);
     } finally {
       setSubmitting(false);
     }
@@ -65,12 +69,13 @@ export function ModalAsociarseCourier({
   const handleDesasociar = async () => {
     if (!token || entry.id_relacion == null) return;
     setSubmitting(true);
-    setErrMsg('');
+    setErrMsg("");
     try {
       await desasociarCourier(entry.id_relacion, token);
       onDesassociated();
-    } catch {
-      setErrMsg('Error al desasociar courier');
+    } catch (e: any) {
+      const msg = e?.message || "Error al desasociar courier";
+      setErrMsg(msg);
     } finally {
       setSubmitting(false);
     }
@@ -87,10 +92,10 @@ export function ModalAsociarseCourier({
         {/* Header */}
         <div className="flex flex-col items-center gap-3">
           <div
-            className="w-20 h-20 rounded-full bg-yellow-400 grid place-items-center text-white text-xl font-extrabold"
+            className="w-20 h-20 rounded-full bg-indigo-600 grid place-items-center text-white text-xl font-extrabold"
             aria-hidden
           >
-            {entry.nombre_comercial?.[0]?.toUpperCase() ?? 'C'}
+            {entry.nombre_comercial?.[0]?.toUpperCase() ?? "C"}
           </div>
           <h2 id="modal-title" className="text-xl font-extrabold tracking-wide text-gray-900">
             {entry.nombre_comercial?.toUpperCase()}
@@ -98,19 +103,28 @@ export function ModalAsociarseCourier({
 
           <div className="text-sm text-gray-700 space-y-1">
             <div>
-              <span className="font-semibold">Ciudad:</span> {entry.ciudad || '-'}
+              <span className="font-semibold">Ciudad:</span> {entry.ciudad || "-"}
             </div>
             <div>
-              <span className="font-semibold">Teléfono:</span> {entry.telefono || '-'}
+              <span className="font-semibold">Dirección:</span> {entry.direccion || "-"}
+            </div>
+            <div>
+              <span className="font-semibold">Teléfono:</span> {entry.telefono || "-"}
             </div>
             <div className="flex items-center gap-2">
               <span className="font-semibold">Estado actual:</span>
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                  asociado ? 'bg-black text-white' : 'bg-gray-200 text-gray-800'
+                  asociado
+                    ? "bg-green-100 text-green-700"
+                    : entry.estado_asociacion === "Inactivo"
+                    ? "bg-amber-100 text-amber-700"
+                    : entry.estado_asociacion === "Eliminado"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-gray-200 text-gray-800"
                 }`}
               >
-                {entry.estado_asociacion || 'No Asociado'}
+                {entry.estado_asociacion || "No Asociado"}
               </span>
             </div>
           </div>
@@ -126,7 +140,7 @@ export function ModalAsociarseCourier({
           </ul>
         </div>
 
-        {/* Mensajes / confirmaciones */}
+        {/* Confirmaciones */}
         {isAssociate && (
           <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
             <input
@@ -141,7 +155,7 @@ export function ModalAsociarseCourier({
 
         {isDesassociate && (
           <div className="mt-4 text-sm text-gray-700">
-            ¿Seguro que deseas{' '}
+            ¿Seguro que deseas{" "}
             <span className="font-semibold text-red-600">desasociarte</span> de este courier?
           </div>
         )}
@@ -169,13 +183,13 @@ export function ModalAsociarseCourier({
               disabled={!confirmo || submitting}
               className={`px-4 py-2 rounded-lg text-white text-sm inline-flex items-center gap-2 ${
                 !confirmo || submitting
-                  ? 'bg-green-400/60 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700'
+                  ? "bg-indigo-400/60 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700"
               }`}
               type="button"
             >
               {submitting && <Icon icon="mdi:reload" className="animate-spin" />}
-              {submitting ? 'Asociando…' : 'Asociarme'}
+              {submitting ? "Asociando…" : "Asociarme"}
             </button>
           )}
 
@@ -187,7 +201,7 @@ export function ModalAsociarseCourier({
               type="button"
             >
               {submitting && <Icon icon="mdi:reload" className="animate-spin" />}
-              {submitting ? 'Procesando…' : 'Desasociar'}
+              {submitting ? "Procesando…" : "Desasociar"}
             </button>
           )}
         </div>

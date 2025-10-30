@@ -8,7 +8,11 @@ import ModalEntregaRepartidor from '@/shared/components/repartidor/Pedido/ModalP
 import ModalPedidoDetalle from '@/shared/components/repartidor/Pedido/VerDetallePedido';
 
 // APIs
-import { patchEstadoInicial, patchResultado } from '@/services/repartidor/pedidos/pedidos.api';
+import {
+  patchEstadoInicial,
+  patchResultado,
+  fetchPedidoDetalle,
+} from '@/services/repartidor/pedidos/pedidos.api';
 
 import TablePedidosHoy from '@/shared/components/repartidor/Pedido/TablePedidosHoy';
 import TablePedidosPendientes from '@/shared/components/repartidor/Pedido/TablePedidosPendientes';
@@ -42,38 +46,23 @@ export default function PedidosPage() {
   // ===== modal "ver detalle"
   const [openModalDetalle, setOpenModalDetalle] = useState(false);
   const [pedidoDetalle, setPedidoDetalle] = useState<PedidoListItem | null>(null);
+  const [loadingDetalle, setLoadingDetalle] = useState(false);
 
-  // ahora recibe id
-  const handleVerDetalle = (id: number) => {
-
-    // 🔹 Aquí puedes buscar el pedido en tu store/lista ya cargada
-    // Ejemplo temporal: simulamos un pedido
-    setPedidoDetalle({
-      id,
-      codigo_pedido: 'C25JUL25V14',
-      estado_id: 1,
-      estado_nombre: 'Proceso',
-      fecha_entrega_programada: new Date().toISOString(),
-      fecha_entrega_real: null,
-      direccion_envio: 'Av. Siempre Viva 123',
-      ecommerce: { id: 1, nombre_comercial: 'Peru FIT' },
-      cliente: {
-        nombre: 'Rosa Mamani',
-        celular: '987654321',
-        distrito: 'Cayma',
-        direccion: 'Calle Los Álamos 456',
-        referencia: 'A media cuadra del parque',
-      },
-      monto_recaudar: '45.00',
-      metodo_pago: { id: 1, nombre: 'Efectivo', requiere_evidencia: false },
-      items: [
-        { producto_id: 1, nombre: 'Laptop', descripcion: 'Lenovo Ryzen 7', cantidad: 1, subtotal: '3000.00' },
-        { producto_id: 2, nombre: 'Billetera', descripcion: 'Cuero marrón', cantidad: 1, subtotal: '50.00' },
-      ],
-      items_total_cantidad: 2,
-      items_total_monto: '3050.00',
-    });
+  // ahora recibe id (sin data estática)
+  const handleVerDetalle = async (id: number) => {
     setOpenModalDetalle(true);
+    setPedidoDetalle(null);
+    setLoadingDetalle(true);
+    try {
+      const detalle = await fetchPedidoDetalle(token, id);
+      setPedidoDetalle(detalle);
+    } catch (err: any) {
+      console.error('Error al obtener detalle:', err);
+      alert(String(err?.message || 'No se pudo obtener el detalle del pedido'));
+      setOpenModalDetalle(false);
+    } finally {
+      setLoadingDetalle(false);
+    }
   };
 
   // según la vista activa, decide qué modal abrir
@@ -127,10 +116,7 @@ export default function PedidosPage() {
           observacion: data.observacion,
         });
       } else {
-        const obs = [
-          data.observacion?.trim(),
-          data.metodo ? `[Pago: ${data.metodo}]` : undefined,
-        ]
+        const obs = [data.observacion?.trim(), data.metodo ? `[Pago: ${data.metodo}]` : undefined]
           .filter(Boolean)
           .join(' | ');
 
@@ -222,6 +208,8 @@ export default function PedidosPage() {
           setPedidoDetalle(null);
         }}
         pedido={pedidoDetalle}
+        // si tu modal acepta prop de loading
+        loading={loadingDetalle as any}
       />
     </section>
   );

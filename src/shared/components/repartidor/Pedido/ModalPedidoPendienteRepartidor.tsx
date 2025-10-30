@@ -1,16 +1,12 @@
-import { useMemo, useState } from 'react';
 import { Icon } from '@iconify/react';
 import type { PedidoListItem } from '@/services/repartidor/pedidos/pedidos.types';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 type ResultadoFinal = 'ENTREGADO' | 'RECHAZADO';
 type MetodoPagoUI = 'EFECTIVO' | 'BILLETERA' | 'DIRECTO_ECOMMERCE';
 
 type ConfirmPayload =
-  | {
-      pedidoId: number;
-      resultado: 'RECHAZADO';
-      observacion?: string;
-    }
+  | { pedidoId: number; resultado: 'RECHAZADO'; observacion?: string }
   | {
       pedidoId: number;
       resultado: 'ENTREGADO';
@@ -35,19 +31,20 @@ export default function ModalEntregaRepartidor({
   pedido,
   onConfirm,
 }: Props) {
+  // --- Hooks (orden estable) ---
   const [paso, setPaso] = useState<Paso>('resultado');
   const [submitting, setSubmitting] = useState(false);
 
-  // resultado final
   const [resultado, setResultado] = useState<ResultadoFinal | null>(null);
-
-  // cuando ENTREGADO
   const [metodo, setMetodo] = useState<MetodoPagoUI | null>(null);
 
-  // (quedan, pero ya no se usan para EFECTIVO)
-  const [, setObservacion] = useState<string>('');
+  // evidencia
   const [evidenciaFile, setEvidenciaFile] = useState<File | undefined>(undefined);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null); // solo para descargar/ver
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // compat (no usados para EFECTIVO)
+  const [, setObservacion] = useState<string>('');
   const [, setFechaEntregaReal] = useState<string>(() => {
     const d = new Date();
     d.setSeconds(0, 0);
@@ -56,7 +53,7 @@ export default function ModalEntregaRepartidor({
     return local.toISOString().slice(0, 16);
   });
 
-  // cuando RECHAZADO
+  // rechazo
   const [obsRechazo, setObsRechazo] = useState<string>('');
 
   const resumen = useMemo(() => {
@@ -72,7 +69,31 @@ export default function ModalEntregaRepartidor({
     return { fechaProg, distrito, telefono, codigo, direccion, cliente, ecommerce, monto };
   }, [pedido]);
 
-  if (!isOpen || !pedido) return null;
+  const requiresEvidencia = (m: MetodoPagoUI | null): boolean =>
+    m === 'BILLETERA' || m === 'DIRECTO_ECOMMERCE';
+
+  const handleMetodo = (m: MetodoPagoUI) => {
+    setMetodo(m);
+    if (requiresEvidencia(m)) setPaso('evidencia');
+    else setPaso('pago');
+  };
+
+  const onFilePicked = useCallback(
+    (file?: File) => {
+      if (!file) {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+        setEvidenciaFile(undefined);
+        return;
+      }
+      if (!file.type.startsWith('image/')) return;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      setEvidenciaFile(file);
+    },
+    [previewUrl]
+  );
 
   function reset() {
     setPaso('resultado');
@@ -80,11 +101,9 @@ export default function ModalEntregaRepartidor({
     setMetodo(null);
     setObservacion('');
     setObsRechazo('');
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
     setEvidenciaFile(undefined);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
     const d = new Date();
     d.setSeconds(0, 0);
     const off = d.getTimezoneOffset();
@@ -102,63 +121,39 @@ export default function ModalEntregaRepartidor({
     if (resultado === 'RECHAZADO') setPaso('rechazo');
   }
 
-  function requiresEvidencia(m: MetodoPagoUI | null): boolean {
-    return m === 'BILLETERA' || m === 'DIRECTO_ECOMMERCE';
-  }
-
-  function handleMetodo(m: MetodoPagoUI) {
-    setMetodo(m);
-    // EFECTIVO: se queda en "pago" y no muestra más campos (solo Confirmar)
-    if (requiresEvidencia(m)) setPaso('evidencia');
-    else setPaso('pago');
-  }
-
-  function onFilePicked(file?: File) {
-    setEvidenciaFile(file);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(file ? URL.createObjectURL(file) : null);
-  }
-
   async function handleConfirm() {
     if (!resultado || !pedido) return;
 
     const pid = pedido.id;
-
     try {
       setSubmitting(true);
 
       if (resultado === 'RECHAZADO') {
         const obs = obsRechazo.trim() || undefined;
-        await onConfirm?.({
-          pedidoId: pid,
-          resultado: 'RECHAZADO',
-          observacion: obs,
-        });
+        await onConfirm?.({ pedidoId: pid, resultado: 'RECHAZADO', observacion: obs });
         closeAll();
         return;
       }
 
-      // ENTREGADO:
       if (!metodo) return;
       if (requiresEvidencia(metodo) && !evidenciaFile) return;
-
-      // Para EFECTIVO: no enviar fecha ni observación
-      const fechaIso = metodo === 'EFECTIVO' ? undefined : undefined;
-      const obs = metodo === 'EFECTIVO' ? undefined : undefined;
 
       await onConfirm?.({
         pedidoId: pid,
         resultado: 'ENTREGADO',
         metodo,
-        observacion: obs,
+        observacion: undefined,
         evidenciaFile,
-        fecha_entrega_real: fechaIso,
+        fecha_entrega_real: undefined,
       });
       closeAll();
     } finally {
       setSubmitting(false);
     }
   }
+
+  // Guard después de hooks
+  if (!isOpen || !pedido) return null;
 
   const telHref =
     resumen?.telefono && resumen.telefono !== '—' ? `tel:${resumen.telefono}` : undefined;
@@ -171,9 +166,10 @@ export default function ModalEntregaRepartidor({
     <div className="fixed inset-0 z-[60]">
       <div className="absolute inset-0 bg-black/40" onClick={closeAll} />
 
-      <div className="absolute inset-x-0 bottom-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[460px] bg-white rounded-t-3xl sm:rounded-none sm:rounded-l-3xl shadow-2xl overflow-hidden">
+      {/* Panel: layout en columna para header / contenido scroll / footer fijo */}
+      <div className="absolute inset-x-0 bottom-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[460px] bg-white rounded-t-3xl sm:rounded-none sm:rounded-l-3xl shadow-2xl overflow-hidden flex flex-col h-[90vh] sm:h-full">
         {/* Header */}
-        <div className="px-4 pt-4 pb-3 border-b bg-gray-50">
+        <div className="px-4 pt-4 pb-3 border-b bg-gray-50 shrink-0">
           <div className="flex items-center gap-2 text-emerald-700">
             <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
               <Icon icon="mdi:check-decagram-outline" className="text-lg" />
@@ -185,8 +181,8 @@ export default function ModalEntregaRepartidor({
           <p className="text-xs text-gray-500">Validación de información para la entrega</p>
         </div>
 
-        {/* Contenido */}
-        <div className="p-4 space-y-4 overflow-y-auto max-h-[75vh] sm:max-h-full bg-white">
+        {/* Contenido (scrollable) */}
+        <div className="p-4 space-y-4 overflow-y-auto flex-1 bg-white">
           {/* Resumen */}
           <section className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
             <div className="text-[11px] text-gray-500">Cliente</div>
@@ -248,43 +244,21 @@ export default function ModalEntregaRepartidor({
               <p className="text-xs text-gray-500">Elige una de estas opciones</p>
 
               <div className="grid grid-cols-1 gap-3 mt-3">
-                <OpcionCard
-                  active={metodo === 'EFECTIVO'}
-                  icon="mdi:cash"
-                  title="Efectivo"
-                  onClick={() => handleMetodo('EFECTIVO')}
-                  activeColor="yellow"
-                  fill
-                />
-                <OpcionCard
-                  active={metodo === 'BILLETERA'}
-                  icon="mdi:qrcode-scan"
-                  title="Pago por Billetera Digital"
-                  onClick={() => handleMetodo('BILLETERA')}
-                  activeColor="lime"
-                  fill
-                />
-                <OpcionCard
-                  active={metodo === 'DIRECTO_ECOMMERCE'}
-                  icon="mdi:credit-card-outline"
-                  title="Pago directo al Ecommerce"
-                  onClick={() => handleMetodo('DIRECTO_ECOMMERCE')}
-                  activeColor="blue"
-                  fill
-                />
+                <OpcionCard active={metodo === 'EFECTIVO'} icon="mdi:cash" title="Efectivo" onClick={() => handleMetodo('EFECTIVO')} activeColor="yellow" fill />
+                <OpcionCard active={metodo === 'BILLETERA'} icon="mdi:qrcode-scan" title="Pago por Billetera Digital" onClick={() => handleMetodo('BILLETERA')} activeColor="lime" fill />
+                <OpcionCard active={metodo === 'DIRECTO_ECOMMERCE'} icon="mdi:credit-card-outline" title="Pago directo al Ecommerce" onClick={() => handleMetodo('DIRECTO_ECOMMERCE')} activeColor="blue" fill />
               </div>
-
-              {/* EFECTIVO: ya no muestra fecha ni observación; solo Confirmar en el footer */}
             </section>
           )}
 
-          {/* Paso: Evidencias (solo billetera o directo) */}
+          {/* Paso: Evidencias (sin dropzone ni preview grande) */}
           {paso === 'evidencia' && (
             <section>
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Subir evidencias</h3>
               <p className="text-xs text-gray-500">Sube una evidencia para verificación del pago</p>
 
-              <div className="mt-3 space-y-3">
+              {/* Solo botones */}
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <label className="block">
                   <input
                     type="file"
@@ -304,6 +278,7 @@ export default function ModalEntregaRepartidor({
                     accept="image/*"
                     capture="environment"
                     className="hidden"
+                    ref={fileInputRef}
                     onChange={(e) => onFilePicked(e.target.files?.[0])}
                   />
                   <div className="w-full border rounded-xl px-3 py-2 text-sm flex items-center gap-2 cursor-pointer shadow-sm hover:bg-gray-50">
@@ -311,21 +286,64 @@ export default function ModalEntregaRepartidor({
                     Tomar foto
                   </div>
                 </label>
-
-                {previewUrl && (
-                  <div className="mt-2">
-                    <img
-                      src={previewUrl}
-                      alt="Evidencia"
-                      className="w-full max-h-60 object-contain rounded-xl border"
-                    />
-                  </div>
-                )}
               </div>
+
+              {/* Ficha del archivo (sin preview embebido) */}
+              {evidenciaFile && (
+                <div className="mt-3 flex items-center justify-between rounded-xl border bg-white px-3 py-2 shadow-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center">
+                      <Icon icon="mdi:image-outline" className="text-lg text-gray-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm text-gray-900 truncate">{evidenciaFile.name || 'evidencia.jpg'}</div>
+                      <div className="text-[11px] text-gray-500">{(evidenciaFile.size / 1024).toFixed(1)} KB</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Descargar */}
+                    <button
+                      type="button"
+                      title="Descargar"
+                      className="w-9 h-9 rounded-md bg-gray-900 text-white flex items-center justify-center hover:opacity-90"
+                      onClick={() => {
+                        if (!previewUrl) return;
+                        const a = document.createElement('a');
+                        a.href = previewUrl;
+                        a.download = evidenciaFile.name || 'evidencia.jpg';
+                        a.click();
+                      }}
+                    >
+                      <Icon icon="mdi:download" className="text-base" />
+                    </button>
+                    {/* Ver en nueva pestaña */}
+                    <button
+                      type="button"
+                      title="Ver"
+                      className="w-9 h-9 rounded-md bg-gray-900 text-white flex items-center justify-center hover:opacity-90"
+                      onClick={() => {
+                        if (previewUrl) window.open(previewUrl, '_blank');
+                      }}
+                    >
+                      <Icon icon="mdi:eye-outline" className="text-base" />
+                    </button>
+                    {/* Eliminar */}
+                    <button
+                      type="button"
+                      title="Eliminar"
+                      className="w-9 h-9 rounded-md bg-gray-900 text-white flex items-center justify-center hover:opacity-90"
+                      onClick={() => onFilePicked(undefined)}
+                    >
+                      <Icon icon="mdi:trash-can-outline" className="text-base" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
-          {/* Paso: Rechazo (observación) */}
+          {/* Paso: Rechazo */}
           {paso === 'rechazo' && (
             <section>
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
@@ -346,9 +364,8 @@ export default function ModalEntregaRepartidor({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-4 py-3 border-t bg-white flex items-center gap-3">
-          {/* Volver / Cancelar izquierda */}
+        {/* Footer fijo */}
+        <div className="px-4 py-3 border-t bg-white flex items-center gap-3 shrink-0">
           {paso !== 'resultado' ? (
             <button
               className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50"
@@ -362,32 +379,21 @@ export default function ModalEntregaRepartidor({
               ← Volver
             </button>
           ) : (
-            <button
-              className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50"
-              onClick={closeAll}
-              disabled={submitting}
-            >
+            <button className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50" onClick={closeAll} disabled={submitting}>
               Cancelar
             </button>
           )}
 
           {paso !== 'resultado' && (
-            <button
-              className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50"
-              onClick={closeAll}
-              disabled={submitting}
-            >
+            <button className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50" onClick={closeAll} disabled={submitting}>
               Cancelar
             </button>
           )}
 
-          {/* Acción principal derecha */}
           {paso === 'resultado' && resultado && (
             <button
               className={`ml-auto rounded-xl py-2 px-4 text-white ${
-                resultado === 'RECHAZADO'
-                  ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-blue-600 hover:bg-blue-700'
+                resultado === 'RECHAZADO' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
               } disabled:opacity-50`}
               onClick={handleNextFromResultado}
               disabled={!resultado || submitting}
@@ -426,7 +432,7 @@ export default function ModalEntregaRepartidor({
             <button
               className="ml-auto rounded-xl py-2 px-4 text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
               onClick={handleConfirm}
-              disabled={submitting /* || !obsRechazo.trim() */}
+              disabled={submitting}
             >
               {submitting ? 'Guardando...' : 'Confirmar'}
             </button>
@@ -488,7 +494,6 @@ function AccionCircular({
   );
 }
 
-/** Card con soporte de color y modo "fill". */
 function OpcionCard({
   active,
   icon,
@@ -505,41 +510,11 @@ function OpcionCard({
   fill?: boolean;
 }) {
   const palette = {
-    blue: {
-      ring: 'ring-blue-300',
-      border: 'border-blue-500',
-      bg: 'bg-blue-600',
-      pale: 'bg-blue-50',
-      text: 'text-blue-600',
-    },
-    red: {
-      ring: 'ring-red-300',
-      border: 'border-red-500',
-      bg: 'bg-red-600',
-      pale: 'bg-red-50',
-      text: 'text-red-600',
-    },
-    emerald: {
-      ring: 'ring-emerald-300',
-      border: 'border-emerald-500',
-      bg: 'bg-emerald-600',
-      pale: 'bg-emerald-50',
-      text: 'text-emerald-600',
-    },
-    yellow: {
-      ring: 'ring-yellow-300',
-      border: 'border-yellow-500',
-      bg: 'bg-yellow-500',
-      pale: 'bg-yellow-50',
-      text: 'text-yellow-600',
-    },
-    lime: {
-      ring: 'ring-lime-300',
-      border: 'border-lime-500',
-      bg: 'bg-lime-500',
-      pale: 'bg-lime-50',
-      text: 'text-lime-600',
-    },
+    blue: { ring: 'ring-blue-300', border: 'border-blue-500', bg: 'bg-blue-600', pale: 'bg-blue-50', text: 'text-blue-600' },
+    red: { ring: 'ring-red-300', border: 'border-red-500', bg: 'bg-red-600', pale: 'bg-red-50', text: 'text-red-600' },
+    emerald: { ring: 'ring-emerald-300', border: 'border-emerald-500', bg: 'bg-emerald-600', pale: 'bg-emerald-50', text: 'text-emerald-600' },
+    yellow: { ring: 'ring-yellow-300', border: 'border-yellow-500', bg: 'bg-yellow-500', pale: 'bg-yellow-50', text: 'text-yellow-600' },
+    lime: { ring: 'ring-lime-300', border: 'border-lime-500', bg: 'bg-lime-500', pale: 'bg-lime-50', text: 'text-lime-600' },
   }[activeColor];
 
   const activeFilled = `border ${palette.border} ${fill ? `${palette.bg} text-white` : `${palette.pale} ${palette.text}`} shadow-sm`;
@@ -548,7 +523,9 @@ function OpcionCard({
   return (
     <button
       onClick={onClick}
-      className={`w-full rounded-2xl p-3 text-left flex items-center gap-3 transition focus:outline-none focus:ring-2 ${active ? `${palette.ring} ${activeFilled}` : `ring-gray-200 ${inactive}`}`}
+      className={`w-full rounded-2xl p-3 text-left flex items-center gap-3 transition focus:outline-none focus:ring-2 ${
+        active ? `${palette.ring} ${activeFilled}` : `ring-gray-200 ${inactive}`
+      }`}
     >
       <div className={`w-9 h-9 rounded-full flex items-center justify-center ${active ? 'bg-white/20' : 'bg-gray-100'}`}>
         <Icon icon={icon} className={`text-xl ${active ? 'text-white' : 'text-gray-700'}`} />

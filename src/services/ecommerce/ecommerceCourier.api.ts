@@ -1,66 +1,94 @@
-import type { CourierAsociado, EcommerceCourier, NuevaRelacionInput } from './ecommerceCourier.types';
+// src/services/ecommerce-courier/ecommerceCourier.api.ts
+import type {
+  CourierConEstado,
+  CreatedRelacion,
+  NuevaRelacionInput,
+  SedeConEstado,
+} from "./ecommerceCourier.types";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-// Obtener todas las asociaciones ecommerce-courier
-export async function fetchEcommerceCourier(token: string): Promise<EcommerceCourier[]> {
-  const res = await fetch(`${API_URL}/ecommerce-courier`, { 
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (!res.ok) throw new Error('Error al obtener relaciones ecommerce-courier');
-  return await res.json();
+function authHeaders(token: string, json = false): HeadersInit {
+  const h: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (json) h["Content-Type"] = "application/json";
+  return h;
 }
 
-// Obtener solo couriers asociados (estado = Activo)
-export async function fetchCouriersAsociados(token: string): Promise<CourierAsociado[]> {
+async function handleJson<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    try {
+      const j = text ? JSON.parse(text) : null;
+      throw new Error(j?.message || j?.error || `HTTP ${res.status} ${res.statusText}`);
+    } catch {
+      throw new Error(text || `HTTP ${res.status} ${res.statusText}`);
+    }
+  }
+  return res.json() as Promise<T>;
+}
+
+/* =========================
+ * Couriers (vista clásica)
+ * ========================= */
+export async function fetchEcommerceCourier(token: string): Promise<CourierConEstado[]> {
+  const res = await fetch(`${API_URL}/ecommerce-courier`, {
+    headers: authHeaders(token),
+  });
+  return handleJson<CourierConEstado[]>(res);
+}
+
+export async function fetchCouriersAsociados(token: string): Promise<CourierConEstado[]> {
   const res = await fetch(`${API_URL}/ecommerce-courier/asociados`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
   });
-
-  if (!res.ok) throw new Error('Error al obtener couriers asociados');
-  return await res.json();
+  return handleJson<CourierConEstado[]>(res);
 }
 
-
-// Asociar courier
 export async function asociarCourier(id: number, token: string): Promise<void> {
   const res = await fetch(`${API_URL}/ecommerce-courier/${id}/asociar`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}` },
+    method: "PATCH",
+    headers: authHeaders(token),
   });
-
-  if (!res.ok) throw new Error('Error al asociar courier');
+  await handleJson(res);
 }
 
-// Desasociar courier
 export async function desasociarCourier(id: number, token: string): Promise<void> {
   const res = await fetch(`${API_URL}/ecommerce-courier/${id}/desasociar`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}` },
+    method: "PATCH",
+    headers: authHeaders(token),
   });
-
-  if (!res.ok) throw new Error('Error al desasociar courier');
+  await handleJson(res);
 }
 
-// Crear nueva relación ecommerce-courier
+/** POST flexible: puedes enviar courier_id o sede_id/sede_uuid para resolver el courier en backend */
 export async function crearRelacionCourier(
   input: NuevaRelacionInput,
   token: string
-): Promise<EcommerceCourier> {
+): Promise<CreatedRelacion> {
   const res = await fetch(`${API_URL}/ecommerce-courier`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    method: "POST",
+    headers: authHeaders(token, true),
     body: JSON.stringify(input),
   });
+  return handleJson<CreatedRelacion>(res);
+}
 
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData?.error || 'Error al crear relación');
-  }
+/* =========================
+ * Sedes (nueva vista)
+ * ========================= */
 
-  return await res.json();
+/** Lista sedes con estado (el backend ya devuelve solo las que tienen representante asignado) */
+export async function fetchSedesConEstado(token: string): Promise<SedeConEstado[]> {
+  const res = await fetch(`${API_URL}/ecommerce-courier/sedes`, {
+    headers: authHeaders(token),
+  });
+  return handleJson<SedeConEstado[]>(res);
+}
+
+/** Lista sedes cuyos couriers están asociados (estado Activo con el ecommerce) */
+export async function fetchSedesAsociadas(token: string): Promise<SedeConEstado[]> {
+  const res = await fetch(`${API_URL}/ecommerce-courier/sedes/asociadas`, {
+    headers: authHeaders(token),
+  });
+  return handleJson<SedeConEstado[]>(res);
 }
