@@ -56,18 +56,7 @@ export default function CuadreSaldoTable({
 
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
 
-  const renderStock = (r: ResumenDia) => {
-    const stockBajo = r.cobrado <= r.servicio; // Ajusta esta condición si necesitas mostrar estado de stock
-    return (
-      <div className="flex items-center gap-2">
-        <span className={stockBajo ? 'text-amber-600' : 'text-green-600'}>•</span>
-        <span className="text-gray70">{r.cobrado}</span>
-        <span className="text-xs text-gray-500">
-          {stockBajo ? 'Stock bajo' : 'Stock normal'}
-        </span>
-      </div>
-    );
-  };
+
 
   return (
     <div className="overflow-hidden rounded-md shadow-default bg-white">

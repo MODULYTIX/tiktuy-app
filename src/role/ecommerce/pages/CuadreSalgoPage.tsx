@@ -16,9 +16,7 @@ import type {
 } from "@/services/ecommerce/cuadreSaldo/cuadreSaldoC.types";
 import Tittlex from "@/shared/common/Tittlex";
 
-// ⬇️ Ajusta la ruta según dónde guardaste Selectx/SelectxDate
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
-import { Icon } from "@iconify/react";
 import Buttonx from "@/shared/common/Buttonx";
 
 /* ================= Helpers ================= */
