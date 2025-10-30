@@ -9,6 +9,8 @@ type Props = {
   error?: string;
   onView?: (row: AlmacenamientoCourier) => void;
   onEdit: (row: AlmacenamientoCourier) => void;
+  /** Llamado cuando el estado del representante es "pendiente" y el usuario hace click en Reenviar */
+  onResendInvite?: (row: AlmacenamientoCourier) => void;
 };
 
 const PAGE_SIZE = 5;
@@ -17,6 +19,7 @@ function formatDate(iso?: string) {
   if (!iso) return "-";
   try {
     const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
     const dd = String(d.getDate()).padStart(2, "0");
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const yyyy = d.getFullYear();
@@ -26,15 +29,27 @@ function formatDate(iso?: string) {
   }
 }
 
+/** Deducción best-effort del estado del representante.
+ *  Si tu backend ya devuelve un campo explícito, reemplaza esta lógica. */
+function getRepresentanteEstado(row: AlmacenamientoCourier): "asignado" | "pendiente" {
+  const anyRow = row as any;
+  // Si el backend incluye 'representante_usuario_id' o un 'representante' poblado:
+  if (anyRow?.representante_usuario_id || anyRow?.representante) return "asignado";
+  // Si llega un flag/estado específico úsalo; esto es por compatibilidad:
+  if (anyRow?.representante_estado === "asignado") return "asignado";
+  return "pendiente";
+}
+
 export default function AlmacenCourierTable({
   items,
   loading,
   error,
   onEdit,
+  onResendInvite,
 }: Props) {
   const [page, setPage] = useState(1);
 
-  // Si cambian los items, regresa a la primera página para evitar páginas “vacías”
+  // Volver a la primera página cuando llegan nuevos items
   useEffect(() => {
     setPage(1);
   }, [items]);
@@ -84,42 +99,52 @@ export default function AlmacenCourierTable({
     setPage(p);
   };
 
+  // columnas sin nodos de texto en <colgroup>
+  const colDefs = useMemo(
+    () => [
+      { key: "nombre", className: "w-[30%]" },   // Nom. Sede (con fecha)
+      { key: "depto", className: "w-[17%]" },    // Departamento
+      { key: "ciudad", className: "w-[16%]" },   // Ciudad
+      { key: "dir", className: "w-[23%]" },      // Dirección
+      { key: "rep", className: "w-[9%]" },       // Representante (badge)
+      { key: "acc", className: "w-[5%]" },       // Acciones
+    ],
+    []
+  );
+
   return (
-    <div className="">
-      <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
+    <div>
+      <div className="bg-white rounded-lg overflow-hidden shadow-default border border-gray-200">
         <section className="flex-1 overflow-auto">
           <div className="overflow-x-auto bg-white">
-            <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+            <table className="min-w-full table-fixed text-[13px] bg-white">
               <colgroup>
-                <col className="w-[20%]" /> {/* Nom. Almacén */}
-                <col className="w-[15%]" /> {/* Depto */}
-                <col className="w-[15%]" /> {/* Ciudad */}
-                <col className="w-[25%]" /> {/* Dirección */}
-                <col className="w-[15%]" /> {/* F. Creación */}
-                <col className="w-[10%]" /> {/* Acciones */}
+                {colDefs.map((c) => (
+                  <col key={c.key} className={c.className} />
+                ))}
               </colgroup>
 
               <thead className="bg-[#E5E7EB]">
-                <tr className="text-gray70 font-roboto font-medium">
+                <tr className="text-gray-700 font-medium">
                   <th className="px-4 py-3 text-left">Nom. Sede</th>
                   <th className="px-4 py-3 text-left">Departamento</th>
                   <th className="px-4 py-3 text-left">Ciudad</th>
                   <th className="px-4 py-3 text-left">Dirección</th>
-                  <th className="px-4 py-3 text-left">F. Creación</th>
+                  <th className="px-4 py-3 text-left">Representante</th>
                   <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-gray20">
+              <tbody className="divide-y divide-gray-200">
                 {loading ? (
                   Array.from({ length: PAGE_SIZE }).map((_, idx) => (
                     <tr
                       key={`sk-${idx}`}
-                      className="[&>td]:px-4 [&>td]:py-3 [&>td]:h-12 animate-pulse"
+                      className="[&>td]:px-4 [&>td]:py-4 [&>td]:h-[60px] animate-pulse"
                     >
                       {Array.from({ length: 6 }).map((__, i) => (
                         <td key={`sk-${idx}-${i}`}>
-                          <div className="h-4 bg-gray20 rounded w-3/4" />
+                          <div className="h-4 bg-gray-200/80 rounded w-3/4" />
                         </td>
                       ))}
                     </tr>
@@ -128,43 +153,86 @@ export default function AlmacenCourierTable({
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-4 py-4 text-center text-red-600 italic"
+                      className="px-4 py-6 text-center text-red-600 italic"
                     >
                       {error}
                     </td>
                   </tr>
                 ) : currentData.length > 0 ? (
                   <>
-                    {currentData.map((a) => (
-                      <tr key={a.uuid} className="hover:bg-gray10 transition-colors">
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
-                          {a.nombre_almacen}
-                        </td>
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
-                          {a.departamento}
-                        </td>
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
-                          {a.ciudad}
-                        </td>
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
-                          {a.direccion}
-                        </td>
-                        <td className="h-12 px-4 py-3 text-gray70 font-[400]">
-                          {formatDate(a.fecha_registro)}
-                        </td>
-                        <td className="h-12 px-4 py-3">
-                          <div className="flex items-center justify-center gap-3">
-                            <button
-                              onClick={() => onEdit(a)}
-                              className="text-amber-600 hover:text-amber-800 transition-colors"
-                              title="Editar"
-                            >
-                              <Icon icon="uil:edit" width="18" height="18" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {currentData.map((a) => {
+                      const estado = getRepresentanteEstado(a);
+                      return (
+                        <tr key={a.uuid} className="hover:bg-gray-50 transition-colors">
+                          {/* Nom. Sede + Creado */}
+                          <td className="h-[64px] px-4 py-3">
+                            <div className="text-gray-900 font-semibold">
+                              {a.nombre_almacen}
+                            </div>
+                            <div className="text-[12px] text-gray-500">
+                              Creado: {formatDate(a.fecha_registro)}
+                            </div>
+                          </td>
+
+                          {/* Depto */}
+                          <td className="h-[64px] px-4 py-3 text-gray-700">
+                            {a.departamento ?? "-"}
+                          </td>
+
+                          {/* Ciudad */}
+                          <td className="h-[64px] px-4 py-3 text-gray-700">
+                            {a.ciudad ?? "-"}
+                          </td>
+
+                          {/* Dirección */}
+                          <td className="h-[64px] px-4 py-3 text-gray-700">
+                            {a.direccion ?? "-"}
+                          </td>
+
+                          {/* Representante */}
+                          <td className="h-[64px] px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              {estado === "asignado" ? (
+                                <span className="inline-block text-[12px] px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+                                  Asignado
+                                </span>
+                              ) : (
+                                <>
+                                  <span className="inline-block text-[12px] px-3 py-1 rounded-full bg-yellow-100 text-yellow-700">
+                                    Pendiente
+                                  </span>
+                                  {onResendInvite && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onResendInvite(a)}
+                                      className="text-blue-700 hover:underline text-[12px]"
+                                    >
+                                      Reenviar
+                                      <br />
+                                      invitación
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Acciones */}
+                          <td className="h-[64px] px-4 py-3">
+                            <div className="flex items-center justify-center">
+                              <button
+                                onClick={() => onEdit(a)}
+                                className="text-amber-600 hover:text-amber-800 transition-colors"
+                                title="Editar"
+                                aria-label={`Editar ${a.nombre_almacen}`}
+                              >
+                                <Icon icon="uil:edit" width="18" height="18" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
 
                     {/* Relleno hasta 5 filas con misma altura */}
                     {Array.from({
@@ -172,7 +240,7 @@ export default function AlmacenCourierTable({
                     }).map((_, idx) => (
                       <tr key={`empty-${idx}`} className="hover:bg-transparent">
                         {Array.from({ length: 6 }).map((__, i) => (
-                          <td key={i} className="h-12 px-4 py-3">
+                          <td key={i} className="h-[64px] px-4 py-3">
                             &nbsp;
                           </td>
                         ))}
@@ -183,9 +251,9 @@ export default function AlmacenCourierTable({
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-4 py-4 text-center text-gray70 italic"
+                      className="px-4 py-6 text-center text-gray-600 italic"
                     >
-                      No hay cedes.
+                      No hay sedes.
                     </td>
                   </tr>
                 )}
@@ -193,12 +261,12 @@ export default function AlmacenCourierTable({
             </table>
           </div>
 
-          {/* Paginador */}
-          <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+          {/* Paginador (estilo similar a tu captura) */}
+          <div className="flex items-center justify-end gap-2 py-4 px-3">
             <button
               onClick={() => goToPage(page - 1)}
               disabled={page === 1}
-              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+              className="w-9 h-9 flex items-center justify-center rounded bg-white shadow ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               aria-label="Página anterior"
             >
               &lt;
@@ -206,7 +274,10 @@ export default function AlmacenCourierTable({
 
             {pagerItems.map((p, i) =>
               typeof p === "string" ? (
-                <span key={`dots-${i}`} className="px-2 text-gray70">
+                <span
+                  key={`dots-${i}`}
+                  className="px-2 text-gray-500 select-none"
+                >
                   {p}
                 </span>
               ) : (
@@ -215,10 +286,10 @@ export default function AlmacenCourierTable({
                   onClick={() => goToPage(p)}
                   aria-current={page === p ? "page" : undefined}
                   className={[
-                    "w-8 h-8 flex items-center justify-center rounded",
+                    "w-9 h-9 flex items-center justify-center rounded shadow ring-1",
                     page === p
-                      ? "bg-gray90 text-white"
-                      : "bg-gray10 text-gray70 hover:bg-gray20",
+                      ? "bg-black text-white ring-black"
+                      : "bg-white text-gray-700 ring-gray-200 hover:bg-gray-50",
                   ].join(" ")}
                 >
                   {p}
@@ -229,7 +300,7 @@ export default function AlmacenCourierTable({
             <button
               onClick={() => goToPage(page + 1)}
               disabled={page === totalPages}
-              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+              className="w-9 h-9 flex items-center justify-center rounded bg-white shadow ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               aria-label="Página siguiente"
             >
               &gt;
