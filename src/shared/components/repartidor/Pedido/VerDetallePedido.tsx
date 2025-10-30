@@ -5,7 +5,7 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   pedido: PedidoListItem | null;
-  loading?: boolean; // ✅ agregado para permitir la prop "loading"
+  loading?: boolean; 
 };
 
 export default function ModalPedidoDetalle({ isOpen, onClose, pedido, loading }: Props) {

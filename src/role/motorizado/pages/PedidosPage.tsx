@@ -1,5 +1,4 @@
 import { useContext, useEffect, useState } from 'react';
-
 import { AuthContext } from '@/auth/context/AuthContext';
 import type { RepartidorVista, PedidoListItem } from '@/services/repartidor/pedidos/pedidos.types';
 
@@ -7,7 +6,6 @@ import ModalRepartidorMotorizado from '@/shared/components/repartidor/Pedido/Mod
 import ModalEntregaRepartidor from '@/shared/components/repartidor/Pedido/ModalPedidoPendienteRepartidor';
 import ModalPedidoDetalle from '@/shared/components/repartidor/Pedido/VerDetallePedido';
 
-// APIs
 import {
   patchEstadoInicial,
   patchResultado,
@@ -35,20 +33,16 @@ export default function PedidosPage() {
     localStorage.setItem('repartidor_vista_pedidos', vista);
   }, [vista]);
 
-  // ===== modal "cambiar estado inicial" (asignados/hoy)
   const [openModalCambio, setOpenModalCambio] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<PedidoListItem | null>(null);
 
-  // ===== modal "finalizar entrega" (pendientes)
   const [openModalEntrega, setOpenModalEntrega] = useState(false);
   const [pedidoEntrega, setPedidoEntrega] = useState<PedidoListItem | null>(null);
 
-  // ===== modal "ver detalle"
   const [openModalDetalle, setOpenModalDetalle] = useState(false);
   const [pedidoDetalle, setPedidoDetalle] = useState<PedidoListItem | null>(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
 
-  // ahora recibe id (sin data estática)
   const handleVerDetalle = async (id: number) => {
     setOpenModalDetalle(true);
     setPedidoDetalle(null);
@@ -65,7 +59,6 @@ export default function PedidosPage() {
     }
   };
 
-  // según la vista activa, decide qué modal abrir
   const handleCambiarEstado = (pedido: PedidoListItem) => {
     if (vista === 'pendientes') {
       setPedidoEntrega(pedido);
@@ -76,7 +69,6 @@ export default function PedidosPage() {
     }
   };
 
-  // Guardar resultado inicial (asignados/hoy)
   async function handleConfirmResultado(payload: {
     pedidoId: number;
     resultado: 'RECEPCION_HOY' | 'NO_RESPONDE' | 'REPROGRAMADO' | 'ANULO';
@@ -97,7 +89,6 @@ export default function PedidosPage() {
     }
   }
 
-  // Guardar resultado final (pendientes)
   async function handleConfirmEntrega(
     data:
       | { pedidoId: number; resultado: 'RECHAZADO'; observacion?: string }
@@ -137,8 +128,8 @@ export default function PedidosPage() {
   const view = toRepartidorVista(vista);
 
   return (
-    <section className="mt-4 md:mt-8">
-      {/* Header */}
+    <section className="mt-4 md:mt-8 px-3 sm:px-4 lg:px-0">
+      {/* Header Desktop */}
       <div className="hidden md:flex md:items-center md:justify-between gap-3">
         <Tittlex
           title="Mis Pedidos"
@@ -150,27 +141,49 @@ export default function PedidosPage() {
             icon="solar:bill-list-broken"
             variant={vista === 'asignados' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('asignados')}
-            disabled={false}
           />
           <Buttonx
             label="Pendientes"
             icon="mdi:clock-outline"
             variant={vista === 'pendientes' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('pendientes')}
-            disabled={false}
           />
           <Buttonx
             label="Terminados"
             icon="mdi:clipboard-check-outline"
             variant={vista === 'terminados' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('terminados')}
-            disabled={false}
+          />
+        </div>
+      </div>
+
+      {/* Header Mobile */}
+      <div className="flex flex-col md:hidden text-center mt-2">
+        <h2 className="text-lg font-semibold text-blue-700">Gestión de Pedidos</h2>
+        <p className="text-sm text-gray-600 mb-2">
+          Administra y visualiza el estado de tus pedidos
+        </p>
+        <div className="flex justify-center gap-2 overflow-x-auto scrollbar-hide pb-2">
+          <Buttonx
+            label="Asignados"
+            variant={vista === 'asignados' ? 'secondary' : 'tertiary'}
+            onClick={() => setVista('asignados')}
+          />
+          <Buttonx
+            label="Pendientes"
+            variant={vista === 'pendientes' ? 'secondary' : 'tertiary'}
+            onClick={() => setVista('pendientes')}
+          />
+          <Buttonx
+            label="Terminados"
+            variant={vista === 'terminados' ? 'secondary' : 'tertiary'}
+            onClick={() => setVista('terminados')}
           />
         </div>
       </div>
 
       {/* Tablas */}
-      <div className="my-6 md:my-8">
+      <div className="my-4 md:my-8 overflow-x-auto">
         {view === 'hoy' && (
           <TablePedidosHoy token={token} onVerDetalle={handleVerDetalle} onCambiarEstado={handleCambiarEstado} />
         )}
@@ -208,7 +221,6 @@ export default function PedidosPage() {
           setPedidoDetalle(null);
         }}
         pedido={pedidoDetalle}
-        // si tu modal acepta prop de loading
         loading={loadingDetalle as any}
       />
     </section>
