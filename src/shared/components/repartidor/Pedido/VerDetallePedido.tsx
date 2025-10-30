@@ -5,10 +5,24 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   pedido: PedidoListItem | null;
+  loading?: boolean; // ✅ agregado para permitir la prop "loading"
 };
 
-export default function ModalPedidoDetalle({ isOpen, onClose, pedido }: Props) {
-  if (!isOpen || !pedido) return null;
+export default function ModalPedidoDetalle({ isOpen, onClose, pedido, loading }: Props) {
+  if (!isOpen) return null;
+
+  // Puedes mostrar un loader opcional si quieres, pero no es obligatorio
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <p className="text-gray-600">Cargando detalle del pedido...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!pedido) return null;
 
   return (
     <div className="fixed inset-0 z-[70]">
@@ -54,9 +68,7 @@ export default function ModalPedidoDetalle({ isOpen, onClose, pedido }: Props) {
           </div>
           <div>
             <div className="text-xs text-gray-500">Monto a Recaudar</div>
-            <div className="font-semibold text-emerald-700">
-              S/. {pedido.monto_recaudar}
-            </div>
+            <div className="font-semibold text-emerald-700">S/. {pedido.monto_recaudar}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Estado</div>
