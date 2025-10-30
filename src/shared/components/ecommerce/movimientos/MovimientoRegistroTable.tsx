@@ -9,7 +9,7 @@ import type { Filters } from '@/shared/components/ecommerce/movimientos/Movimien
 interface Props {
   filters: Filters;
   onSelectProducts: (productos: Producto[]) => void;
-  onViewProduct?: (producto: Producto) => void; // ⬅️ Ahora pasa el objeto completo
+  onViewProduct?: (producto: Producto) => void; // pasa el objeto completo
 }
 
 export default function MovimientoRegistroTable({
@@ -127,11 +127,22 @@ export default function MovimientoRegistroTable({
     } else {
       let start = Math.max(1, page - 2);
       let end = Math.min(totalPages, page + 2);
-      if (page <= 3) { start = 1; end = maxButtons; }
-      else if (page >= totalPages - 2) { start = totalPages - (maxButtons - 1); end = totalPages; }
+      if (page <= 3) {
+        start = 1;
+        end = maxButtons;
+      } else if (page >= totalPages - 2) {
+        start = totalPages - (maxButtons - 1);
+        end = totalPages;
+      }
       for (let i = start; i <= end; i++) pages.push(i);
-      if (start > 1) { pages.unshift('...'); pages.unshift(1); }
-      if (end < totalPages) { pages.push('...'); pages.push(totalPages); }
+      if (start > 1) {
+        pages.unshift('...');
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push('...');
+        pages.push(totalPages);
+      }
     }
     return pages;
   }, [page, totalPages]);
@@ -140,6 +151,21 @@ export default function MovimientoRegistroTable({
   const visibleCount = Math.max(1, pageData.length);
   const emptyRows = Math.max(0, pageSize - visibleCount);
 
+  // Definición de widths para evitar whitespace en <colgroup>
+  const COLS = useMemo(
+    () => [
+      'w-[4%]',   // checkbox
+      'w-[12%]',  // Código
+      'w-[30%]',  // Producto
+      'w-[16%]',  // Sedes
+      'w-[12%]',  // Stock
+      'w-[10%]',  // Precio
+      'w-[8%]',   // Estado
+      'w-[8%]',   // Acciones
+    ],
+    []
+  );
+
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
       <section className="flex-1 overflow-auto">
@@ -147,14 +173,9 @@ export default function MovimientoRegistroTable({
           <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
             {/* Porcentajes por columna (suman 100%) */}
             <colgroup>
-              <col className="w-[4%]" />   {/* checkbox */}
-              <col className="w-[12%]" />  {/* Código */}
-              <col className="w-[30%]" />  {/* Producto */}
-              <col className="w-[16%]" />  {/* Sedes */}
-              <col className="w-[12%]" />  {/* Stock */}
-              <col className="w-[10%]" />  {/* Precio */}
-              <col className="w-[8%]" />   {/* Estado */}
-              <col className="w-[8%]" />   {/* Acciones */}
+              {COLS.map((w, i) => (
+                <col key={i} className={w} />
+              ))}
             </colgroup>
 
             <thead className="bg-[#E5E7EB]">
@@ -220,7 +241,7 @@ export default function MovimientoRegistroTable({
                     <div className="flex items-center justify-center">
                       <button
                         type="button"
-                        onClick={() => handleView(prod)} // ⬅️ pasa el producto completo
+                        onClick={() => handleView(prod)} // pasa el producto completo
                         className="text-blue-600 hover:text-blue-800"
                         title="Ver detalle"
                         aria-label={`Ver ${prod.nombre_producto}`}

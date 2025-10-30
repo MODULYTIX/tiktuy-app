@@ -159,7 +159,7 @@ export async function reenviarInvitacionRepresentante(
 ): Promise<ReenviarInvitacionResponse> {
   const res = await fetch(`${BASE_URL}/sedes/${sedeId}/reenviar-invitacion`, {
     method: 'POST',
-    headers: buildHeaders(token, true),
+    headers: buildHeaders(token, true), 
     body: JSON.stringify(body ?? {}),
   });
   return handleJson<ReenviarInvitacionResponse>(res);
