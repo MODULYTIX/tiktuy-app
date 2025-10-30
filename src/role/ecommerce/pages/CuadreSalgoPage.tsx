@@ -14,29 +14,33 @@ import type {
   ResumenDia,
   PedidoDiaItem,
 } from "@/services/ecommerce/cuadreSaldo/cuadreSaldoC.types";
+import Tittlex from "@/shared/common/Tittlex";
+
+// ⬇️ Ajusta la ruta según dónde guardaste Selectx/SelectxDate
+import { Selectx, SelectxDate } from "@/shared/common/Selectx";
+import { Icon } from "@iconify/react";
+import Buttonx from "@/shared/common/Buttonx";
 
 /* ================= Helpers ================= */
 const pad2 = (n: number) => String(n).padStart(2, "0");
-const toYMD = (d: Date) =>
-  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const todayLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
 const getToken = () => localStorage.getItem("token") ?? "";
-
-function defaultMonthRange() {
-  const today = new Date();
-  const first = new Date(today.getFullYear(), today.getMonth(), 1);
-  const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  return { desde: toYMD(first), hasta: toYMD(last) };
-}
 
 /* ================= Page ================= */
 const CuadreSaldoPage: React.FC = () => {
   const token = getToken();
-  const defaults = useMemo(defaultMonthRange, []);
 
-  const [couriers, setCouriers] = useState<{ id: number; nombre: string }[]>([]);
+  const [couriers, setCouriers] = useState<{ id: number; nombre: string }[]>(
+    []
+  );
   const [courierId, setCourierId] = useState<number | "">("");
-  const [desde, setDesde] = useState(defaults.desde);
-  const [hasta, setHasta] = useState(defaults.hasta);
+
+  // Fechas en HOY por defecto
+  const [desde, setDesde] = useState<string>(todayLocal());
+  const [hasta, setHasta] = useState<string>(todayLocal());
 
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<ResumenDia[]>([]);
@@ -79,6 +83,15 @@ const CuadreSaldoPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Auto-búsqueda: cada vez que cambie courier/fechas (si hay courier seleccionado)
+  useEffect(() => {
+    if (!token) return;
+    if (!courierId) return;
+    if (!desde || !hasta) return;
+    buscar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courierId, desde, hasta, token]);
 
   /* ====== helpers tabla ====== */
   const toggleFecha = (date: string) => {
@@ -137,99 +150,77 @@ const CuadreSaldoPage: React.FC = () => {
   };
 
   const limpiarFiltros = () => {
+    const hoy = todayLocal();
     setCourierId("");
-    setDesde("");
-    setHasta("");
+    setDesde(hoy);
+    setHasta(hoy);
     setRows([]);
     setSelected([]);
   };
 
   return (
-    <div className="mx-auto max-w-7xl p-6">
+    <div className="mt-8 flex flex-col gap-5">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Cuadre de Saldo</h1>
-        <p className="mt-1 text-gray-600">Monitorea lo recaudado en el día</p>
+      <div className="flex justify-between items-end">
+        <Tittlex
+          title="Cuadre de Saldo"
+          description="Monitorea lo recaudado en el día"
+        />
+
+        <Buttonx
+              label={`Validar (${selected.length})`}
+              icon="iconoir:new-tab"
+              variant="primary"
+              onClick={() => setOpenValidar(true)}
+              disabled={selected.length === 0}
+            />
       </div>
 
-      {/* Filtros */}
-      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-          <div className="md:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Courier
-            </label>
-            <select
-              className="w-full rounded-xl border px-3 py-2 outline-none"
-              value={courierId === "" ? "" : String(courierId)}
-              onChange={(e) =>
-                setCourierId(e.target.value === "" ? "" : Number(e.target.value))
-              }
-            >
-              <option value="">Selecciona courier</option>
-              {couriers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Fecha Inicio
-            </label>
-            <input
-              type="date"
-              value={desde}
-              onChange={(e) => setDesde(e.target.value)}
-              className="w-full rounded-xl border px-3 py-2 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Fecha Fin
-            </label>
-            <input
-              type="date"
-              value={hasta}
-              onChange={(e) => setHasta(e.target.value)}
-              className="w-full rounded-xl border px-3 py-2 outline-none"
-            />
-          </div>
-
-          <div className="flex items-end justify-between gap-2">
-            <button
-              onClick={buscar}
-              className="inline-flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
-              Aplicar Filtros
-            </button>
-            <button
-              onClick={limpiarFiltros}
-              className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm hover:bg-gray-50"
-            >
-              Limpiar
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabla */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          {selected.length > 0
-            ? `${selected.length} fecha(s) seleccionada(s)`
-            : "—"}
-        </div>
-        <button
-          disabled={selected.length === 0}
-          onClick={() => setOpenValidar(true)}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      {/* Filtros (estilo modelo + Selectx) */}
+      <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
+        <Selectx
+          id="f-courier"
+          label="Courier"
+          value={courierId === "" ? "" : String(courierId)}
+          onChange={(e) =>
+            setCourierId(e.target.value === "" ? "" : Number(e.target.value))
+          }
+          placeholder="Seleccionar courier"
+          className="w-full"
         >
-          Validar ({selected.length})
-        </button>
+          <option value="">— Seleccionar courier —</option>
+          {couriers.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre}
+            </option>
+          ))}
+        </Selectx>
+
+        <SelectxDate
+          id="f-fecha-inicio"
+          label="Fecha Inicio"
+          value={desde}
+          onChange={(e) => setDesde(e.target.value)}
+          placeholder="dd/mm/aaaa"
+          className="w-full"
+        />
+
+        <SelectxDate
+          id="f-fecha-fin"
+          label="Fecha Fin"
+          value={hasta}
+          onChange={(e) => setHasta(e.target.value)}
+          placeholder="dd/mm/aaaa"
+          className="w-full"
+        />
+
+        <Buttonx
+          label="Limpiar Filtros"
+          icon="mynaui:delete"
+          variant="outlined"
+          onClick={limpiarFiltros}
+          disabled={false}
+        />
       </div>
 
       <CuadreSaldoTable

@@ -1,4 +1,3 @@
-// src/shared/components/courier/cuadreSaldo/EcommerceCuadreSaldoTable.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   listEcommercesCourier,
@@ -16,7 +15,9 @@ import type {
 import ConfirmAbonoModal from "./ConfirmAbonoModal";
 import EcommerceDetalleModal from "./EcommerceDetalleModal";
 
-/* ================= helpers ================= */
+import { Selectx, SelectxDate } from "@/shared/common/Selectx";
+import Buttonx from "@/shared/common/Buttonx";
+
 const formatPEN = (v: number) =>
   `S/. ${Number(v || 0).toLocaleString("es-PE", {
     minimumFractionDigits: 2,
@@ -24,8 +25,10 @@ const formatPEN = (v: number) =>
   })}`;
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
-const toYMD = (d: Date) =>
-  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const todayLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
 
 const toDMY = (ymd: string) => {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -37,27 +40,14 @@ const toDMY = (ymd: string) => {
   });
 };
 
-function defaultMonthRange() {
-  const today = new Date();
-  const first = new Date(today.getFullYear(), today.getMonth(), 1);
-  const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  return { desde: toYMD(first), hasta: toYMD(last) };
-}
-
 /** Normalizadores */
 const montoDe = (i: any) => Number(i?.monto ?? i?.monto_recaudar ?? 0);
 const servicioDe = (i: any) => {
   const sc = Number(
-    i?.servicioCourier ??
-      i?.servicio_courier ??
-      i?.servicioCourierEfectivo ??
-      0
+    i?.servicioCourier ?? i?.servicio_courier ?? i?.servicioCourierEfectivo ?? 0
   );
   const sr = Number(
-    i?.servicioRepartidor ??
-      i?.servicio_repartidor ??
-      i?.servicioRepartidorEfectivo ??
-      0
+    i?.servicioRepartidor ?? i?.servicio_repartidor ?? i?.servicioRepartidorEfectivo ?? 0
   );
   if (sc || sr) return sc + sr;
   if (i?.servicioTotal != null) return Number(i.servicioTotal);
@@ -65,53 +55,14 @@ const servicioDe = (i: any) => {
   return 0;
 };
 
-/* ================= overrides ================= */
-type AbonoOverrides = Record<string, string[]>;
-const LS_KEY = "csE_abono_overrides";
-
-function readOverrides(): AbonoOverrides {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return typeof parsed === "object" && parsed ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-function writeOverrides(data: AbonoOverrides) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(data));
-  } catch {}
-}
-function addOverrides(ecommerceId: number, fechas: string[]) {
-  const all = readOverrides();
-  const key = String(ecommerceId);
-  const prev = new Set(all[key] ?? []);
-  fechas.forEach((f) => prev.add(f));
-  all[key] = Array.from(prev);
-  writeOverrides(all);
-}
-function removeOverrides(ecommerceId: number, fechas: string[]) {
-  const all = readOverrides();
-  const key = String(ecommerceId);
-  if (!all[key]) return;
-  const set = new Set(all[key]);
-  fechas.forEach((f) => set.delete(f));
-  all[key] = Array.from(set);
-  writeOverrides(all);
-}
-
-/* ================= Tabla ================= */
 type Props = { token: string };
 type ResumenRow = ResumenDia & { estado?: AbonoEstado };
 
 const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
-  const defaults = useMemo(defaultMonthRange, []);
   const [ecommerces, setEcommerces] = useState<EcommerceItem[]>([]);
   const [ecoId, setEcoId] = useState<number | "">("");
-  const [desde, setDesde] = useState(defaults.desde);
-  const [hasta, setHasta] = useState(defaults.hasta);
+  const [desde, setDesde] = useState<string>(todayLocal()); // ⬅️ hoy
+  const [hasta, setHasta] = useState<string>(todayLocal()); // ⬅️ hoy
 
   const [rows, setRows] = useState<ResumenRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -136,22 +87,17 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     [ecoId, ecommerces]
   );
 
-  /* cargar ecommerces */
   useEffect(() => {
     (async () => {
       try {
         const list = await listEcommercesCourier(token);
         setEcommerces(list);
-        if (list.length) {
-          setEcoId((prev) => (prev === "" ? list[0].id : prev));
-        }
       } catch (e: any) {
         setError(e?.message ?? "No se pudo cargar ecommerces");
       }
     })();
   }, [token]);
 
-  /* cargar resumen */
   const loadResumen = async () => {
     if (!ecoId || typeof ecoId !== "number") {
       setRows([]);
@@ -167,24 +113,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       });
       const baseRows: ResumenRow[] = (data ?? []) as ResumenRow[];
 
-      const overrides = readOverrides()[String(ecoId)] ?? [];
-      const overrideSet = new Set(overrides);
-
-      const merged = baseRows.map((r) => {
-        if (r.estado === "Validado") {
-          if (overrideSet.has(r.fecha)) {
-            removeOverrides(ecoId, [r.fecha]);
-            overrideSet.delete(r.fecha);
-          }
-          return r;
-        }
-        if (overrideSet.has(r.fecha)) {
-          return { ...r, estado: "Por Validar" as AbonoEstado };
-        }
-        return r;
-      });
-
-      setRows(merged);
+      setRows(baseRows);
       setSelectedFechas([]);
     } catch (e: any) {
       setError(e?.message ?? "Error al cargar el resumen");
@@ -194,14 +123,14 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   };
 
   useEffect(() => {
+    if (!ecoId || typeof ecoId !== "number") return;
+    if (!desde || !hasta) return;
     void loadResumen();
   }, [ecoId, desde, hasta]);
 
   const toggleFecha = (fecha: string) =>
     setSelectedFechas((prev) =>
-      prev.includes(fecha)
-        ? prev.filter((f) => f !== fecha)
-        : [...prev, fecha]
+      prev.includes(fecha) ? prev.filter((f) => f !== fecha) : [...prev, fecha]
     );
 
   const toggleAllFechas = () => {
@@ -227,8 +156,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   };
 
   const prepararAbonoMultiFecha = async () => {
-    if (!ecoId || typeof ecoId !== "number" || selectedFechas.length === 0)
-      return;
+    if (!ecoId || typeof ecoId !== "number" || selectedFechas.length === 0) return;
     try {
       setLoading(true);
       const porFecha = await Promise.all(
@@ -288,8 +216,6 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       formData.append("estado", "Por Validar");
       formData.append("voucher", voucherFile, voucherFile.name);
 
-      console.log("✅ Enviando abono con ecommerceId:", ecoId);
-
       const resp = await abonarEcommerceFechas(token, formData, true);
 
       const fechasMarcadas = (resp?.fechas ?? confirmFechas).map((f) =>
@@ -303,8 +229,6 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
             : r
         )
       );
-
-      addOverrides(ecoId, fechasMarcadas);
 
       setOpenConfirm(false);
       setConfirmFechas([]);
@@ -322,9 +246,18 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     }
   };
 
+  const limpiarFiltros = () => {
+    const hoy = todayLocal();
+    setEcoId("");
+    setDesde(hoy);
+    setHasta(hoy);
+    setRows([]);
+    setSelectedFechas([]);
+  };
+
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-      {/* barra superior */}
+    <div className="flex flex-col gap-5">
+      {/* Barra superior */}
       <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
         <div className="text-lg font-semibold">Ecommerce</div>
         <button
@@ -351,84 +284,73 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         </button>
       </div>
 
-      {/* filtros */}
-      <div className="grid grid-cols-1 gap-4 px-4 pb-4 pt-3 md:grid-cols-4">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Ecommerce
-          </label>
-          <select
-            name="ecommerceSelect" // ✅ agregado
-            className="w-full rounded-xl border px-3 py-2 outline-none"
-            value={ecoId}
-            onChange={(e) =>
-              setEcoId(e.target.value === "" ? "" : Number(e.target.value))
-            }
-          >
-            {ecommerces.length === 0 && <option value="">—</option>}
-            {ecommerces.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Filtros (modelo unificado + auto-búsqueda) */}
+      <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
+        <Selectx
+          id="f-ecommerce"
+          label="Ecommerce"
+          value={ecoId === "" ? "" : String(ecoId)}
+          onChange={(e) =>
+            setEcoId(e.target.value === "" ? "" : Number(e.target.value))
+          }
+          placeholder="Seleccionar ecommerce"
+          className="w-full"
+        >
+          <option value="">— Seleccionar ecommerce —</option>
+          {ecommerces.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.nombre}
+            </option>
+          ))}
+        </Selectx>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Fecha Inicio
-          </label>
-          <input
-            type="date"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-            className="w-full rounded-xl border px-3 py-2 outline-none"
-          />
-        </div>
+        <SelectxDate
+          id="f-fecha-inicio"
+          label="Fecha Inicio"
+          value={desde}
+          onChange={(e) => setDesde(e.target.value)}
+          placeholder="dd/mm/aaaa"
+          className="w-full"
+        />
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Fecha Fin
-          </label>
-          <input
-            type="date"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-            className="w-full rounded-xl border px-3 py-2 outline-none"
-          />
-        </div>
+        <SelectxDate
+          id="f-fecha-fin"
+          label="Fecha Fin"
+          value={hasta}
+          onChange={(e) => setHasta(e.target.value)}
+          placeholder="dd/mm/aaaa"
+          className="w-full"
+        />
 
-        <div className="flex items-end justify-end">
-          <button
-            onClick={loadResumen}
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-          >
-            Aplicar Filtros
-          </button>
-        </div>
+        <Buttonx
+          label="Limpiar Filtros"
+          icon="mynaui:delete"
+          variant="outlined"
+          onClick={limpiarFiltros}
+          disabled={false}
+        />
       </div>
 
       {error && <div className="px-4 pb-2 text-sm text-red-600">{error}</div>}
 
-      {/* tabla resumen */}
-      <div className="relative">
+      {/* Tabla resumen */}
+      <div className="relative border-gray70">
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 text-sm">
             Cargando...
           </div>
         )}
 
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left text-gray-600">
-            <tr>
+        <table className="w-full text-sm table-auto bg-white shadow-md rounded-md overflow-hidden">
+          <thead className="bg-[#E5E7EB] text-gray-600">
+            <tr className="text-left">
               <th className="p-4">
                 <input
                   type="checkbox"
-                  checked={
-                    rows.length > 0 && selectedFechas.length === rows.length
-                  }
+                  checked={rows.length > 0 && selectedFechas.length === rows.length}
                   onChange={toggleAllFechas}
                   aria-label="Seleccionar todo"
+                  className="h-4 w-4 accent-blue-600"
                 />
               </th>
               <th className="p-4 font-semibold">Fec. Entrega</th>
@@ -442,7 +364,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
           <tbody className="divide-y divide-gray-100">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-4 text-gray-500">
+                <td colSpan={7} className="p-4 text-center text-gray-500">
                   Sin resultados para el filtro seleccionado.
                 </td>
               </tr>
@@ -454,8 +376,8 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                   estado === "Validado"
                     ? "bg-gray-900 text-white"
                     : estado === "Sin Validar"
-                    ? "bg-gray-100 text-gray-800 border border-gray-200"
-                    : "bg-blue-100 text-blue-900 border border-blue-200";
+                      ? "bg-gray-100 text-gray-800 border border-gray-200"
+                      : "bg-blue-100 text-blue-900 border border-blue-200";
                 return (
                   <tr key={r.fecha} className="hover:bg-gray-50">
                     <td className="p-4">
@@ -464,6 +386,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                         checked={checked}
                         onChange={() => toggleFecha(r.fecha)}
                         aria-label={`Seleccionar ${r.fecha}`}
+                        className="h-4 w-4 accent-blue-600"
                       />
                     </td>
                     <td className="p-4">{toDMY(r.fecha)}</td>
@@ -477,7 +400,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                         {estado}
                       </span>
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 text-right">
                       <div className="flex items-center justify-end">
                         <button
                           onClick={() => openDia(r.fecha)}
