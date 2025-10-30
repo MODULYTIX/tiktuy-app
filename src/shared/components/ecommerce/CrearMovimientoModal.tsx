@@ -14,7 +14,7 @@ import { useNotification } from '@/shared/context/notificacionesDeskop/useNotifi
 import { Selectx } from '@/shared/common/Selectx';
 import Buttonx from '@/shared/common/Buttonx';
 import Tittlex from '@/shared/common/Tittlex';
-import { Inputx, InputxTextarea } from '@/shared/common/Inputx';
+import {  InputxTextarea } from '@/shared/common/Inputx';
 
 interface Props {
   open: boolean;
