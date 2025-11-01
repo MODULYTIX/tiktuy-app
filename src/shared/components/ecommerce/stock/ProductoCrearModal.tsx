@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, type ChangeEvent, type FormEvent } from 'react';
 import { crearProducto } from '@/services/ecommerce/producto/producto.api';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
-import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
+
+// 👇 ahora listamos SEDES
+import { fetchSedes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { useAuth } from '@/auth/context';
 
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
-import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
+import type { Sede } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
+
 import { Inputx, InputxNumber, InputxTextarea } from '@/shared/common/Inputx';
 import Tittlex from '@/shared/common/Tittlex';
 import Buttonx from '@/shared/common/Buttonx';
@@ -43,7 +46,7 @@ type CreateProductoPayload =
     } & BasePayload);
 
 type BasePayload = {
-  almacenamiento_id: number;
+  almacenamiento_id: number; // <- se mantiene igual para backend
   precio: number;
   stock: number;
   stock_minimo: number;
@@ -74,7 +77,7 @@ type FormState = {
   descripcion: string;
   categoriaInput: string;
   categoriaSelectedId: string;
-  almacenamiento_id: string;
+  almacenamiento_id: string; // <- id de la sede seleccionada
   precio: string;
   stock: string;
   stock_minimo: string;
@@ -105,19 +108,28 @@ function canonical(s: string) {
 export default function ProductoCrearModal({ open, onClose, onCreated }: Props) {
   const { token } = useAuth();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
+  const [sedes, setSedes] = useState<Sede[]>([]);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<FormState>(getInitialForm());
   const formRef = useRef<HTMLFormElement | null>(null);
 
+  // Imagen local (frontend only)
+  const [imagenFile, setImagenFile] = useState<File | null>(null);
+  const [imagenPreview, setImagenPreview] = useState<string | null>(null);
+
   useEffect(() => {
     if (!token || !open) return;
     fetchCategorias(token).then(setCategorias).catch(console.error);
-    fetchAlmacenes(token).then(setAlmacenes).catch(console.error);
+    // 👇 ahora listamos SEDES desde /almacenes
+    fetchSedes(token).then(setSedes).catch(console.error);
   }, [token, open]);
 
   useEffect(() => {
-    if (open) setForm(getInitialForm());
+    if (open) {
+      setForm(getInitialForm());
+      setImagenFile(null);
+      setImagenPreview(null);
+    }
   }, [open]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -127,6 +139,8 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
 
   const handleClose = () => {
     setForm(getInitialForm());
+    setImagenFile(null);
+    setImagenPreview(null);
     onClose();
   };
 
@@ -150,6 +164,14 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
     setForm(p => ({ ...p, categoriaInput: value, categoriaSelectedId: '' }));
   }
 
+  function onImagenChange(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setImagenFile(f);
+    const url = URL.createObjectURL(f);
+    setImagenPreview(url);
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!token || saving) return;
@@ -166,7 +188,7 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
     if (form.categoriaSelectedId) {
       payload = {
         categoria_id: Number(form.categoriaSelectedId),
-        almacenamiento_id: Number(form.almacenamiento_id),
+        almacenamiento_id: Number(form.almacenamiento_id), // <- id de Sede
         precio,
         stock,
         stock_minimo,
@@ -185,7 +207,7 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
           descripcion: null,
           es_global: true as const,
         },
-        almacenamiento_id: Number(form.almacenamiento_id),
+        almacenamiento_id: Number(form.almacenamiento_id), // <- id de Sede
         precio,
         stock,
         stock_minimo,
@@ -200,6 +222,7 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
 
     setSaving(true);
     try {
+      // (La imagen NO se envía aún; solo preview local)
       const producto = await crearProducto(payload as unknown as Partial<Producto>, token);
       if (!form.categoriaSelectedId && (producto as any)?.categoria) {
         const nueva = (producto as any).categoria as Categoria;
@@ -210,6 +233,8 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
       }
       onCreated?.(producto);
       setForm(getInitialForm());
+      setImagenFile(null);
+      setImagenPreview(null);
       onClose();
     } catch (err) {
       console.error('Error al crear producto:', err);
@@ -223,7 +248,8 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/40" onClick={handleClose} />
-      <div className="w-full max-w-md bg-white shadow-lg h-full flex flex-col gap-5 px-5 py-5">
+      {/* Contenedor lateral: habilitamos scroll del contenido */}
+      <div className="w-full max-w-md bg-white shadow-lg h-full flex flex-col px-5 py-5">
         <Tittlex
           variant="modal"
           icon="vaadin:stock"
@@ -231,8 +257,13 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
           description="Registra un nuevo producto en tu inventario especificando su información básica, ubicación en almacén y condiciones de stock."
         />
 
-        <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-5 h-full">
-          <div className="h-full flex flex-col gap-5">
+        {/* Área con scroll */}
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="flex-1 flex flex-col gap-5 overflow-y-auto min-h-0"
+        >
+          <div className="flex flex-col gap-5">
             <div className="grid grid-cols-2 gap-5">
               <Inputx
                 name="codigo_identificacion"
@@ -287,47 +318,91 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
                 <select
                   name="almacenamiento_id"
                   value={form.almacenamiento_id}
-                  onChange={(e) =>
-                    setForm(p => ({ ...p, almacenamiento_id: e.target.value }))
-                  }
+                  onChange={(e) => setForm(p => ({ ...p, almacenamiento_id: e.target.value }))}
                   className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
                     ${!form.almacenamiento_id ? 'text-gray-500' : 'text-gray90'}
                     placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
                     focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
                   required
-                  disabled={saving}>
+                  disabled={saving}
+                >
                   <option value="" disabled hidden>
                     Seleccionar sede
                   </option>
-                  {almacenes.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.nombre_almacen}
+                  {sedes.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.nombre_sede}{s.es_principal ? ' (Principal)' : ''}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* ---- Estado ---- */}
-            <div>
-              <label className="block text-base font-normal text-gray90 text-left">Estado</label>
-              <div className="relative">
-                <select
-                  value={form.estado}
-                  onChange={(e) =>
-                    setForm(p => ({ ...p, estado: e.target.value as EstadoId }))
-                  }
-                  className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
-                    ${!form.estado ? 'text-gray-500' : 'text-gray90'}
-                    placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
-                    focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
-                  disabled={saving}>
-                  {ESTADO_OPCIONES.map(op => (
-                    <option key={op.id} value={op.id}>
-                      {op.nombre}
-                    </option>
-                  ))}
-                </select>
+            {/* ---- Estado + Imagen (mitad y mitad) ---- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Col 1: Estado */}
+              <div>
+                <label className="block text-base font-normal text-gray90 text-left">Estado</label>
+                <div className="relative">
+                  <select
+                    value={form.estado}
+                    onChange={(e) => setForm(p => ({ ...p, estado: e.target.value as EstadoId }))}
+                    className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
+                      ${!form.estado ? 'text-gray-500' : 'text-gray90'}
+                      placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
+                      focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
+                    disabled={saving}
+                  >
+                    {ESTADO_OPCIONES.map(op => (
+                      <option key={op.id} value={op.id}>
+                        {op.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Col 2: Imagen local (frontend) */}
+              <div>
+                <label className="block text-base font-normal text-gray90 text-left">Imagen</label>
+                <div className="border border-gray-300 rounded-md p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <input
+                      id="file-imagen-producto"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={onImagenChange}
+                      disabled={saving}
+                    />
+                    <label
+                      htmlFor="file-imagen-producto"
+                      className="inline-flex items-center gap-2 px-3 h-9 rounded-md bg-gray-100 text-sm cursor-pointer hover:bg-gray-200"
+                    >
+                      <span className="i-tabler-upload w-4 h-4" />
+                      Subir imagen
+                    </label>
+
+                    {imagenFile ? (
+                      <span className="text-xs text-gray-600 truncate">
+                        {imagenFile.name}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400">PNG, JPG…</span>
+                    )}
+                  </div>
+
+                  {/* Preview */}
+                  {imagenPreview && (
+                    <div className="mt-3">
+                      <img
+                        src={imagenPreview}
+                        alt="Vista previa"
+                        className="w-full h-40 object-cover rounded-md border border-gray-200"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -385,8 +460,8 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
             </div>
           </div>
 
-          {/* ---- BOTONES ---- */}
-          <div className="flex items-center gap-5">
+          {/* ---- BOTONES (zona fija abajo, fuera del scroll) ---- */}
+          <div className="sticky bottom-0 bg-white pt-2 pb-0 flex items-center gap-5">
             <Buttonx
               type="submit"
               variant="quartery"
@@ -395,7 +470,6 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
               icon={saving ? 'line-md:loading-twotone-loop' : 'tabler:cube-plus'}
               className={`px-4 text-sm ${saving ? '[&_svg]:animate-spin' : ''}`}
             />
-
             <Buttonx
               type="button"
               variant="tertiary"

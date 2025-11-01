@@ -1,5 +1,3 @@
-// src/services/ecommerce/almacenamiento/almacenamiento.types.ts
-
 /* =========================
  * Core models (Frontend)
  * ========================= */
@@ -35,6 +33,40 @@ export interface Almacenamiento {
     apellidos: string;
     correo: string;
   } | null;
+}
+
+/* =========================
+ * NUEVO: Sede (payload del listado /almacenes)
+ * ========================= */
+
+export interface Sede {
+  id: number;
+  uuid: string;
+  nombre_sede: string; // alias de nombre_almacen
+  ciudad: string;
+  direccion: string;
+  departamento?: string | null;
+  provincia?: string | null;
+  es_principal: boolean;
+
+  representante: {
+    id: number;
+    uuid: string;
+    nombres: string;
+    apellidos: string;
+    correo: string;
+    telefono?: string | null;
+  } | null;
+
+  invitacion_pendiente: {
+    correo: string;
+    expiracion: string; // ISO
+    /** en dev podría venir, en prod normalmente no */
+    token?: string;
+  } | null;
+
+  fecha_registro: string; // ISO
+  estado_id: number;
 }
 
 export interface MovimientoPayload {

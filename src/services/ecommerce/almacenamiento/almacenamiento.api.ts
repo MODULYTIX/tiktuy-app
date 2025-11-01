@@ -1,4 +1,3 @@
-// src/services/ecommerce/almacenamiento/almacenamiento.api.ts
 import type {
   Almacenamiento,
   MovimientoAlmacen,
@@ -10,9 +9,11 @@ import type {
   ReenviarInvitacionDTO,
   ReenviarInvitacionResponse,
   EntidadesConAlmacenResponse,
+  Sede, 
 } from './almacenamiento.types';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/almacenamiento`;
+const BASE_URL_SEDES = `${import.meta.env.VITE_API_URL}/almacenamiento`; // 👈 nuevo (solo listado de sedes)
 
 /** Siempre devuelve HeadersInit plano (evita unions raras que rompen el tipo de fetch) */
 function buildHeaders(token?: string, json = false): HeadersInit {
@@ -47,7 +48,17 @@ function safeJson(str: string): any | undefined {
 }
 
 /* =========================
- * Almacenes (CRUD + listados)
+ * Sedes (listado)
+ * ========================= */
+
+/** 👇 NUEVO: lista SEDES desde /almacenes (no rompe nada existente) */
+export async function fetchSedes(token: string): Promise<Sede[]> {
+  const res = await fetch(BASE_URL_SEDES, { headers: buildHeaders(token) });
+  return handleJson<Sede[]>(res);
+}
+
+/* =========================
+ * Almacenes (CRUD + listados históricos)
  * ========================= */
 
 export async function fetchAlmacenes(token: string): Promise<Almacenamiento[]> {
@@ -159,7 +170,7 @@ export async function reenviarInvitacionRepresentante(
 ): Promise<ReenviarInvitacionResponse> {
   const res = await fetch(`${BASE_URL}/sedes/${sedeId}/reenviar-invitacion`, {
     method: 'POST',
-    headers: buildHeaders(token, true), 
+    headers: buildHeaders(token, true),
     body: JSON.stringify(body ?? {}),
   });
   return handleJson<ReenviarInvitacionResponse>(res);
