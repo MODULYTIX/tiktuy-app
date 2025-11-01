@@ -469,5 +469,5 @@ export default function EcommerceHomePage() {
         />
       )}
     </section>
-  );
+  ); 
 }
