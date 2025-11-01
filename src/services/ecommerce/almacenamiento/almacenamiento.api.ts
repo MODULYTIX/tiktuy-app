@@ -13,7 +13,7 @@ import type {
 } from './almacenamiento.types';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/almacenamiento`;
-const BASE_URL_SEDES = `${import.meta.env.VITE_API_URL}/almacenamiento`; // 👈 nuevo (solo listado de sedes)
+const BASE_URL_SEDES = `${import.meta.env.VITE_API_URL}/almacenamiento`; 
 
 /** Siempre devuelve HeadersInit plano (evita unions raras que rompen el tipo de fetch) */
 function buildHeaders(token?: string, json = false): HeadersInit {
