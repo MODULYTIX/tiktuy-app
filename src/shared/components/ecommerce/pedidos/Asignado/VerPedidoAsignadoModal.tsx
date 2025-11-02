@@ -9,7 +9,7 @@ interface Props {
   onClose: () => void;
   onEditar?: (id: number) => void;
   pedidoId: number | null;
-  detalle: Pedido | null;
+  detalle?: Pedido | null; // <-- ahora opcional (antes requerido)
 }
 
 export default function VerPedidoCompletadoModal({
@@ -17,20 +17,6 @@ export default function VerPedidoCompletadoModal({
   onClose,
   pedidoId,
 }: Props) {
-
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open, onClose]);
-
-  if (!open) return null;
 
   const { token } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -42,8 +28,9 @@ export default function VerPedidoCompletadoModal({
   useEffect(() => {
     if (!isOpen) return;
     const clickOutside = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node))
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
         onClose();
+      }
     };
     document.addEventListener('mousedown', clickOutside);
     return () => document.removeEventListener('mousedown', clickOutside);
@@ -76,10 +63,10 @@ export default function VerPedidoCompletadoModal({
 
   const fechaEntregaStr = fechaEntrega
     ? fechaEntrega.toLocaleDateString('es-PE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
     : '';
 
   // Estado (verde si es Entregado)
@@ -104,6 +91,7 @@ export default function VerPedidoCompletadoModal({
               variant="modal"
               title="DETALLE DEL PEDIDO"
               icon="lsicon:shopping-cart-filled"
+              description="" {/* evita TS por prop requerida en Tittlex */}
             />
             {estado && (
               <div className="text-sm">
@@ -197,7 +185,7 @@ export default function VerPedidoCompletadoModal({
                   Cant. de Productos:
                 </label>
                 <div className="text-gray-800 text-sm">
-                  {/*Aqui Esau, aqui pon la cantidad de producto gaaaa*/}
+                  {(pedido?.detalles ?? []).reduce((sum, d) => sum + (Number(d.cantidad) || 0), 0)}
                 </div>
               </div>
 
@@ -209,8 +197,8 @@ export default function VerPedidoCompletadoModal({
                   {
                     montoCalc
                       ? `S/. ${Number(montoCalc).toLocaleString('es-PE', {
-                        minimumFractionDigits: 2,
-                      })}`
+                          minimumFractionDigits: 2,
+                        })}`
                       : ''
                   }
                 </div>
@@ -229,7 +217,7 @@ export default function VerPedidoCompletadoModal({
                   {(pedido?.detalles ?? []).map((it, i) => (
                     <tr key={it.producto_id ?? it.producto?.id ?? i} className="border-y border-gray20">
                       <td className="px-3 py-2 w-full align-top">
-                        <div className="font-normal">{it.nombre ?? it.producto?.nombre_producto}</div>
+                        <div className="font-normal">{it.producto?.nombre_producto}</div>
                         {it.descripcion && (
                           <div className="text-gray-500 text-xs">
                             {it.descripcion}
