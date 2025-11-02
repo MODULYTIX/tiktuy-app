@@ -43,7 +43,7 @@ export default function DetallePedidoDrawer({
           />
           <div className="flex gap-1">
             <label className="block text-xs font-semibold text-gray-600">Cód. Pedido:</label>
-            <div className="text-xs text-gray-600">{detalle.codigo_pedido}</div>
+            <div className="text-xs text-gray-600">{detalle?.codigo_pedido}</div>
           </div>
         </div>
 

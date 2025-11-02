@@ -9,6 +9,7 @@ interface Props {
   onClose: () => void;
   onEditar?: (id: number) => void;
   pedidoId: number | null;
+  detalle: Pedido | null;
 }
 
 export default function VerPedidoCompletadoModal({
