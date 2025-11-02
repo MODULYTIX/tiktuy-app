@@ -91,7 +91,7 @@ export default function VerPedidoCompletadoModal({
               variant="modal"
               title="DETALLE DEL PEDIDO"
               icon="lsicon:shopping-cart-filled"
-              description="" {/* evita TS por prop requerida en Tittlex */}
+              description="" 
             />
             {estado && (
               <div className="text-sm">
