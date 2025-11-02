@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
 import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
 import { useAuth } from '@/auth/context';
-import FieldX from '@/shared/common/FieldX';
+import Tittlex from '@/shared/common/Tittlex';
 
 interface Props {
   isOpen: boolean;
@@ -16,6 +16,21 @@ export default function VerPedidoCompletadoModal({
   onClose,
   pedidoId,
 }: Props) {
+
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
   const { token } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -51,8 +66,8 @@ export default function VerPedidoCompletadoModal({
     det?.precio_unitario && det?.cantidad
       ? (Number(det.precio_unitario) * Number(det.cantidad)).toFixed(2)
       : pedido?.monto_recaudar != null
-      ? Number(pedido.monto_recaudar).toFixed(2)
-      : '';
+        ? Number(pedido.monto_recaudar).toFixed(2)
+        : '';
 
   const fechaEntrega = pedido?.fecha_entrega_programada
     ? new Date(pedido.fecha_entrega_programada)
@@ -60,10 +75,10 @@ export default function VerPedidoCompletadoModal({
 
   const fechaEntregaStr = fechaEntrega
     ? fechaEntrega.toLocaleDateString('es-PE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
     : '';
 
   // Estado (verde si es Entregado)
@@ -79,30 +94,28 @@ export default function VerPedidoCompletadoModal({
     <div className="fixed inset-0 z-50 bg-black/20 bg-opacity-40 flex justify-end">
       <div
         ref={modalRef}
-        className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right">
+        className="w-full max-w-md h-full bg-white shadow-xl flex flex-col gap-5 p-5 animate-slide-in-right"
+      >
         {/* Header */}
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-start gap-2">
-            <div>
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-semibold text-[#0B3C6F]">
-                  DETALLE DEL PEDIDO
-                </h2>
-                {estado && (
-                  <div className="text-sm">
-                    <span className="text-gray-500">Estado : </span>
-                    <span className={`${estadoColor} font-medium`}>
-                      {estado}
-                    </span>
-                  </div>
-                )}
+        <div className="flex flex-col gap-3">
+          <div className='flex gap-1 justify-between items-center'>
+            <Tittlex
+              variant="modal"
+              title="DETALLE DEL PEDIDO"
+              icon="lsicon:shopping-cart-filled"
+            />
+            {estado && (
+              <div className="text-sm">
+                <span className="text-gray-500">Estado : </span>
+                <span className={`${estadoColor} font-medium`}>
+                  {estado}
+                </span>
               </div>
-              <p className="text-sm text-gray-600 -mt-0.5">
-                Consulta toda la información registrada de este pedido,
-                incluyendo los datos del cliente, el producto y la entrega.
-              </p>
-            </div>
+            )}
           </div>
+          <p className="text-base text-gray-600 -mt-0.5">
+            Consulta toda la información registrada de este pedido, incluyendo los datos del cliente, el producto y la entrega.
+          </p>
         </div>
 
         {loading ? (
@@ -116,76 +129,123 @@ export default function VerPedidoCompletadoModal({
         ) : (
           <>
             {/* Cuerpo (2 columnas) */}
-            <div className="grid grid-cols-2 gap-4">
-              <FieldX
-                label="Courier"
-                value={pedido.courier?.nombre_comercial ?? ''}
-                placeholder="—"
-              />
-              <FieldX
-                label="Nombre"
-                value={pedido.nombre_cliente}
-                placeholder="Nombre del cliente"
-              />
-
-              <FieldX
-                label="Teléfono"
-                prefix="+ 51"
-                value={pedido.celular_cliente}
-                placeholder="987654321"
-              />
-              <FieldX
-                label="Distrito"
-                value={pedido.distrito}
-                placeholder="Distrito"
-              />
-
-              <div className="col-span-2">
-                <FieldX
-                  label="Dirección"
-                  value={pedido.direccion_envio}
-                  placeholder="Av. Grau J 499"
-                />
+            <div className="border border-gray-200 rounded-xl flex flex-col gap-2 p-3">
+              <div className="w-full items-center flex flex-col">
+                <label className="block text-xs font-light text-gray-500">
+                  Courier
+                </label>
+                <div className="text-gray-800 font-semibold text-base">{pedido.courier?.nombre_comercial ?? ''}</div>
               </div>
 
-              <div className="col-span-2">
-                <FieldX
-                  label="Referencia"
-                  value={pedido.referencia_direccion ?? ''}
-                  placeholder="(opcional)"
-                />
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-500">
+                  Cliente:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {pedido.nombre_cliente}
+                </div>
               </div>
 
-              <FieldX
-                label="Producto"
-                value={det?.producto?.nombre_producto}
-                placeholder="Producto"
-              />
-              <FieldX
-                label="Cantidad"
-                value={det?.cantidad != null ? String(det.cantidad) : ''}
-                placeholder="0"
-              />
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-500">
+                  Teléfono:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  + 51 {pedido.celular_cliente}
+                </div>
+              </div>
 
-              <FieldX
-                label="Monto"
-                value={
-                  montoCalc
-                    ? `S/. ${Number(montoCalc).toLocaleString('es-PE', {
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-500">
+                  F. Entrega:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {fechaEntregaStr}
+                </div>
+              </div>
+
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-500">
+                  Distrito:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {pedido.distrito}
+                </div>
+              </div>
+
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-500">
+                  Dirección:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {pedido.direccion_envio}
+                </div>
+              </div>
+
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-500">
+                  Referencia:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {pedido.referencia_direccion ?? ''}
+                </div>
+              </div>
+
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-500">
+                  Cant. de Productos:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {/*Aqui Esau, aqui pon la cantidad de producto gaaaa*/}
+                </div>
+              </div>
+
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-500">
+                  Monto:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {
+                    montoCalc
+                      ? `S/. ${Number(montoCalc).toLocaleString('es-PE', {
                         minimumFractionDigits: 2,
                       })}`
-                    : ''
-                }
-                placeholder="S/. 0.00"
-              />
-              <FieldX
-                label="Fecha Entrega"
-                value={fechaEntregaStr}
-                placeholder="dd/mm/aaaa"
-              />
+                      : ''
+                  }
+                </div>
+              </div>
             </div>
 
-            {/* Sin botones abajo (solo lectura) */}
+            <div className="shadow-default rounded h-full">
+              <table className="w-full text-sm">
+                <thead className="bg-gray20">
+                  <tr>
+                    <th className="px-3 w-full py-2 font-normal text-left">Producto</th>
+                    <th className="px-3 w-12 py-2 font-normal text-right">Cant.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(pedido?.detalles ?? []).map((it, i) => (
+                    <tr key={it.producto_id ?? it.producto?.id ?? i} className="border-y border-gray20">
+                      <td className="px-3 py-2 w-full align-top">
+                        <div className="font-normal">{it.nombre ?? it.producto?.nombre_producto}</div>
+                        {it.descripcion && (
+                          <div className="text-gray-500 text-xs">
+                            {it.descripcion}
+                          </div>
+                        )}
+                        {it.marca && (
+                          <div className="text-gray-400 text-xs">
+                            Marca: {it.marca}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 w-12 text-gray60 text-center">{it.cantidad}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </div>

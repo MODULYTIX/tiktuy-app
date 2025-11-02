@@ -1,7 +1,10 @@
-import  { useEffect, useMemo, useState } from 'react';
-import { FaTimes } from 'react-icons/fa';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchPedidoDetalle, reassignPedido } from '@/services/courier/pedidos/pedidos.api';
 import type { PedidoListItem, PedidoDetalle } from '@/services/courier/pedidos/pedidos.types';
+import Tittlex from "@/shared/common/Tittlex";
+import { Selectx } from '@/shared/common/Selectx';
+import { InputxTextarea } from '@/shared/common/Inputx';
+import Buttonx from '@/shared/common/Buttonx';
 
 type MotorizadoBasic = { id: number; nombre: string };
 
@@ -36,10 +39,23 @@ export default function ReasignarRepartidorModal({
   token,
   pedido,
   motorizados: motorizadosProp,
-  title = 'REASIGNAR REPARTIDOR',
   onClose,
   onSuccess,
 }: Props) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    if (open) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
   const [detalle, setDetalle] = useState<PedidoDetalle | null>(null);
   const [loading, setLoading] = useState(false);
   const [motosLoading, setMotosLoading] = useState(false);
@@ -140,6 +156,13 @@ export default function ReasignarRepartidorModal({
     [detalle, pedido]
   );
 
+  // 🔎 Excluir al repartidor actual del select
+  const motorizadoActualId = pedido.motorizado?.id ?? null;
+  const motorizadosFiltrados = useMemo(
+    () => motorizadosLocal.filter((m) => m.id !== motorizadoActualId),
+    [motorizadosLocal, motorizadoActualId]
+  );
+
   async function handleSubmit() {
     if (!motorizadoId || submitting) return;
 
@@ -173,133 +196,177 @@ export default function ReasignarRepartidorModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50">
-      <div className="w-[420px] max-w-[92vw] bg-white rounded-xl shadow-xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="flex-1 bg-black/40" />
+      {/* panel lateral */}
+      <div ref={panelRef} className="w-[520px] h-full max-w-[92vw] flex flex-col gap-5 bg-white rounded-xl shadow-default animate-slide-in-right p-5">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-2.5 h-2.5 bg-indigo-600 rounded-full" />
-            <h3 className="font-semibold">{title}</h3>
+        <div className="flex gap-1 justify-between items-center">
+          <Tittlex
+            variant="modal"
+            title="REASIGNAR PEDIDO"
+            icon="mdi:package-variant-closed"
+          />
+          <div className="flex gap-1">
+            <label className="block text-xs font-semibold text-gray-600">Cód. Pedido:</label>
+            <div className="text-xs text-gray-600">{pedido.codigo_pedido}</div>
           </div>
-          <div className="text-xs text-gray-500">
-            Cód. Pedido : <b>{pedido.codigo_pedido}</b>
-          </div>
-          <button onClick={onClose} className="ml-2 text-gray-500 hover:text-gray-700" disabled={submitting}>
-            <FaTimes />
-          </button>
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-3">
+        <div className="h-full flex flex-col gap-5">
           {/* Card resumen */}
-          <div className="border rounded-md p-3 text-sm">
-            <div className="flex items-start justify-between mb-1">
-              <div className="text-gray-700">
-                <div className="text-[13px]">
-                  <span className="text-gray-500">Cliente:</span> {pedido.cliente?.nombre ?? '-'}
-                </div>
-                <div className="text-[12px] text-gray-500">
-                  Dirección de Entrega:{' '}
-                  <span className="text-gray-700">
-                    {pedido.cliente?.direccion ?? pedido.direccion_envio ?? '-'}
-                  </span>
-                </div>
-                <div className="text-[12px] text-gray-500">
-                  F. Entrega:{' '}
-                  <span className="text-gray-700">
-                    {pedido.fecha_entrega_programada
-                      ? new Date(pedido.fecha_entrega_programada).toLocaleDateString('es-PE')
-                      : '-'}
-                  </span>
+          <div className="flex flex-col gap-5 border border-gray-200 rounded-md p-3">
+            <div className="flex flex-col gap-2">
+              <div className="w-full items-center flex flex-col">
+                <label className="block text-xs font-light text-gray-400">
+                  Cliente
+                </label>
+                <div className="text-gray-800 font-semibold text-base">{pedido.cliente.nombre}</div>
+              </div>
+
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-400">
+                  Dirección:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {pedido.cliente?.direccion ?? pedido.direccion_envio ?? '-'}
                 </div>
               </div>
-              <div className="text-right text-[13px]">
-                <div> Monto: <b>{PEN.format(Number(pedido.monto_recaudar || 0))}</b> </div>
-                <div className="text-gray-500"> Cant. de Productos: <b>{two(cantidad || 0)}</b> </div>
+
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-400">
+                  F. Entrega:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {pedido.fecha_entrega_programada
+                    ? new Date(pedido.fecha_entrega_programada).toLocaleDateString('es-PE')
+                    : '-'}
+                </div>
+              </div>
+
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-400">
+                  Cant. de Productos:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {two(cantidad || 0)}
+                </div>
+              </div>
+
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-400">Monto:</label>
+                <div className="text-gray-800 text-sm">
+                  {PEN.format(Number(pedido.monto_recaudar || 0))}
+                </div>
+              </div>
+
+              <div className="flex gap-1">
+                <label className="block text-sm font-light text-gray-400">
+                  Actual repartador:
+                </label>
+                <div className="text-gray-800 text-sm">
+                  {pedido.motorizado?.nombres}
+                </div>
               </div>
             </div>
 
             {/* Tabla productos mini */}
-            <div className="border rounded mt-2">
-              <div className="flex justify-between text-[11px] uppercase text-gray-500 px-2 py-1 border-b">
-                <span>Producto</span>
-                <span>Cant.</span>
-              </div>
-              <div className="max-h-28 overflow-y-auto">
-                {loading && <div className="p-2 text-xs text-gray-500">Cargando productos…</div>}
-                {!loading && (detalle?.items?.length ?? 0) === 0 && (
-                  <div className="p-2 text-xs text-gray-400">Sin productos</div>
-                )}
-                {!loading &&
-                  (detalle?.items ?? []).map((it, idx) => (
-                    <div key={idx} className="flex justify-between px-2 py-1 text-sm">
-                      <span className="truncate">{it.nombre}</span>
-                      <span>{two(it.cantidad)}</span>
-                    </div>
-                  ))}
-              </div>
+            <div className="shadow-default rounded h-[200px]">
+              <table className="w-full text-sm">
+                <thead className="bg-gray20">
+                  <tr>
+                    <th className="px-3 w-full py-2 font-normal text-left">Producto</th>
+                    <th className="px-3 w-12 py-2 font-normal text-right">Cant.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && (
+                    <tr>
+                      <td colSpan={2} className="px-3 py-2 text-xs text-gray-500">
+                        Cargando productos…
+                      </td>
+                    </tr>
+                  )}
+
+                  {!loading && (detalle?.items?.length ?? 0) === 0 && (
+                    <tr>
+                      <td colSpan={2} className="px-3 py-2 text-xs text-gray-400">
+                        Sin productos
+                      </td>
+                    </tr>
+                  )}
+
+                  {!loading &&
+                    (detalle?.items ?? []).map((it, idx) => (
+                      <tr key={idx} className="border-y border-gray20">
+                        <td className="px-3 py-2 w-full align-top">
+                          <div className="font-normal truncate">{it.nombre}</div>
+                        </td>
+                        <td className="px-3 py-2 w-12 text-gray60 text-center">
+                          {two(it.cantidad)}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* Selector de repartidor */}
-          <div className="mt-2">
-            <label className="block text-sm text-gray-700 mb-1">Repartidor</label>
-            <select
-              className="w-full h-10 px-3 pr-9 rounded-md border border-gray-200 bg-gray-50 text-gray-900 outline-none focus:border-gray-400 focus:ring-2 focus:ring-indigo-500"
+          {/* Selector de repartidor (excluyendo actual) */}
+          <div>
+            <Selectx
+              label="Repartidor"
+              placeholder="Seleccione repartidor"
               value={motorizadoId}
-              onChange={(e) => setMotorizadoId(e.target.value ? Number(e.target.value) : '')}
+              onChange={(e) =>
+                setMotorizadoId(e.target.value ? Number(e.target.value) : "")
+              }
               disabled={motosLoading || submitting}
+              labelVariant="left"
             >
-              <option value="">Seleccione repartidor</option>
-              {motorizadosLocal.map((m) => (
+              {motorizadosFiltrados.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.nombre}
                 </option>
               ))}
-            </select>
-            {!motosLoading && motorizadosLocal.length === 0 && (
-              <div className="text-xs text-gray-500 mt-1">No hay repartidores disponibles.</div>
+            </Selectx>
+
+            {!motosLoading && motorizadosFiltrados.length === 0 && (
+              <div className="text-xs text-gray-500 mt-1">
+                No hay repartidores disponibles.
+              </div>
             )}
           </div>
 
           {/* Observación (obligatoria) */}
-          <div className="mt-2">
-            <label className="block text-sm text-gray-700 mb-1">Observación</label>
-            <textarea
-              className="w-full min-h-[80px] px-3 py-2 rounded-md border border-gray-200 bg-gray-50 text-gray-900 outline-none focus:border-gray-400 focus:ring-2 focus:ring-indigo-500"
-              placeholder="Motivo de la reasignación (p. ej., cambio de zona, capacidad, etc.)"
-              value={observacion}
-              onChange={(e) => setObservacion(e.target.value)}
-              maxLength={250}
-              disabled={submitting}
-            />
-            <div className="text-xs text-gray-400 mt-1">{observacion.length}/250</div>
-          </div>
-
+          <InputxTextarea
+            label="Observación"
+            placeholder="Motivo de la reasignación (p. ej., cambio de zona, capacidad, etc.)"
+            value={observacion}
+            onChange={(e) => setObservacion(e.target.value)}
+            maxLength={250}
+            disabled={submitting}
+            minRows={3}
+            maxRows={6}
+          />
           {error && <div className="text-red-600 text-sm">{error}</div>}
-
-          <div className="text-[11px] text-gray-500">
-            El pedido original quedará en estado <b>Reasignado</b> y se creará un nuevo pedido para el
-            repartidor seleccionado.
-          </div>
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t bg-gray-50 flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded border bg-white text-gray-700 hover:bg-gray-100"
-            disabled={submitting}
-          >
-            Cancelar
-          </button>
-          <button
+        <div className="md:col-span-2 flex justify-start gap-3">
+          <Buttonx
+            variant="secondary"
+            label={submitting ? 'Procesando…' : 'Reasignar'}
             onClick={handleSubmit}
             disabled={!motorizadoId || !observacion.trim() || submitting}
-            className="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50"
-          >
-            {submitting ? 'Procesando…' : 'Reasignar'}
-          </button>
+          />
+          <Buttonx
+            variant="outlined"
+            label="Cancelar"
+            onClick={onClose}
+            disabled={submitting}
+          />
         </div>
       </div>
     </div>

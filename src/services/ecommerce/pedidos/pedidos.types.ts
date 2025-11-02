@@ -7,6 +7,8 @@ export interface ProductoInfo {
 }
 
 export interface PedidoDetalle {
+  marca: any;
+  descripcion: any;
   id: number;
   producto_id: number;
   cantidad: number;
