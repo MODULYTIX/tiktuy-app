@@ -60,7 +60,7 @@ export async function desasociarCourier(id: number, token: string): Promise<void
   await handleJson(res);
 }
 
-/** POST flexible: puedes enviar courier_id o sede_id/sede_uuid para resolver el courier en backend */
+/** POST flexible: envía courier_id o sede_id/sede_uuid (el backend resuelve el courier) */
 export async function crearRelacionCourier(
   input: NuevaRelacionInput,
   token: string
@@ -77,7 +77,7 @@ export async function crearRelacionCourier(
  * Sedes (nueva vista)
  * ========================= */
 
-/** Lista sedes con estado (el backend ya devuelve solo las que tienen representante asignado) */
+/** Lista sedes con estado (backend filtra sedes con representante asignado) */
 export async function fetchSedesConEstado(token: string): Promise<SedeConEstado[]> {
   const res = await fetch(`${API_URL}/ecommerce-courier/sedes`, {
     headers: authHeaders(token),

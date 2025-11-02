@@ -27,7 +27,7 @@ export interface Almacenamiento {
   ecommerce_id?: number | null;
   courier_id?: number | null;
 
-  // Opcional: si el backend llega a incluir el representante
+  // Opcional: si el backend incluye el representante
   representante?: {
     id: number;
     uuid: string;
@@ -35,6 +35,16 @@ export interface Almacenamiento {
     apellidos: string;
     correo: string;
   } | null;
+
+  /**
+   * Opcional: info de la entidad dueña para ciertos listados
+   * (el servicio puede adjuntarlo sin romper otros endpoints)
+   */
+  entidad?: {
+    tipo: 'ecommerce' | 'courier';
+    id: number;
+    nombre_comercial: string;
+  };
 }
 
 export interface MovimientoPayload {
@@ -47,11 +57,26 @@ export interface MovimientoPayload {
   }[];
 }
 
+/** NUEVO: body para validar movimiento */
+export interface MovimientoValidarBody {
+  items?: Array<{
+    producto_id: number;
+    cantidad_validada: number;
+  }>;
+  /** Coincide con lo declarado en Swagger del endpoint */
+  observaciones?: string;
+}
+
 export interface MovimientoAlmacen {
   id: number;
   uuid: string;
   descripcion: string;
+  /** ISO string */
   fecha_movimiento: string;
+
+  /** Opcional: si el backend persiste observaciones al validar */
+  observaciones?: string | null;
+
   estado: {
     id: number;
     nombre: string;
@@ -66,7 +91,12 @@ export interface MovimientoAlmacen {
   };
   productos: {
     id: number;
+    /** cantidad solicitada en la creación del movimiento */
     cantidad: number;
+
+    /** Opcional: si el backend guarda la cantidad validada por ítem */
+    cantidad_validada?: number | null;
+
     producto: {
       id: number;
       nombre_producto: string;
@@ -153,4 +183,23 @@ export interface EntidadConAlmacenes {
 export interface EntidadesConAlmacenResponse {
   ecommerces: EntidadConAlmacenes[];
   couriers: EntidadConAlmacenes[];
+}
+
+/* =========================
+ * NUEVO: Sedes con representante
+ * ========================= */
+
+/**
+ * Para el endpoint GET /almacenamiento/con-representante
+ * Garantiza que "representante" viene presente (no null).
+ */
+export interface SedeConRepresentante
+  extends Omit<Almacenamiento, 'representante'> {
+  representante: {
+    id: number;
+    uuid: string;
+    nombres: string;
+    apellidos: string;
+    correo: string;
+  };
 }

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
 import type {
-  CourierConEstado,
+  CourierAsociado,
   NuevaRelacionInput,
 } from "@/services/ecommerce/ecommerceCourier.types";
 
@@ -12,10 +12,10 @@ type ModalProps = {
   open: boolean;
   mode: ModalMode;
   token: string;
-  entry: CourierConEstado;
+  entry: CourierAsociado; // Para el modal (solo "Activo" | "No Asociado")
   onClose: () => void;
-  onAssociated: () => void;     // se llama tras asociar/crear relación
-  onDesassociated: () => void;  // se llama tras desasociar
+  onAssociated: () => void;     // tras asociar/crear relación
+  onDesassociated: () => void;  // tras desasociar (general)
   crearRelacionCourier: (body: NuevaRelacionInput, token: string) => Promise<unknown>;
   asociarCourier: (relacionId: number, token: string) => Promise<unknown>;
   desasociarCourier: (relacionId: number, token: string) => Promise<unknown>;
@@ -43,16 +43,36 @@ export function ModalAsociarseCourier({
   const isAssociate = mode === "associate";
   const isDesassociate = mode === "desassociate";
 
+  /** Construye el payload correcto según si viene desde sede o a nivel courier */
+  const buildCreatePayload = (): NuevaRelacionInput => {
+    // Si el item trae identificadores de sede, priorizarlos
+    // (estos campos pueden venir del adaptador que uses para el modal)
+    const anyEntry = entry as unknown as {
+      sede_id?: number;
+      sede_uuid?: string;
+    };
+    if (anyEntry.sede_id) return { sede_id: anyEntry.sede_id };
+    if (anyEntry.sede_uuid) return { sede_uuid: anyEntry.sede_uuid };
+    return { courier_id: entry.id };
+  };
+
   const handleAsociar = async () => {
     if (!token) return;
     setSubmitting(true);
     setErrMsg("");
     try {
+      // Si viene desde sede (tiene sede_id/uuid), siempre usamos POST con la sede específica.
+      const anyEntry = entry as unknown as { sede_id?: number; sede_uuid?: string };
+      if (anyEntry.sede_id || anyEntry.sede_uuid) {
+        await crearRelacionCourier(buildCreatePayload(), token);
+        onAssociated();
+        return;
+      }
+
+      // Flujo general por courier:
       if (entry.id_relacion == null) {
-        // No hay relación aún -> crearla (no activa por defecto)
-        await crearRelacionCourier({ courier_id: entry.id }, token);
-        // Si tu backend no activa automáticamente al crear,
-        // el caller puede recargar y luego llamar a asociarCourier con el nuevo id_relacion.
+        // No hay relación aún -> crearla
+        await crearRelacionCourier(buildCreatePayload(), token);
       } else {
         // Ya hay relación -> activar (pasar a Activo)
         await asociarCourier(entry.id_relacion, token);
@@ -71,6 +91,8 @@ export function ModalAsociarseCourier({
     setSubmitting(true);
     setErrMsg("");
     try {
+      // Nota: esto desasocia a nivel GENERAL (courier).
+      // Si quisieras desasociar SOLO una sede, necesitarías un endpoint específico.
       await desasociarCourier(entry.id_relacion, token);
       onDesassociated();
     } catch (e: any) {
@@ -115,18 +137,25 @@ export function ModalAsociarseCourier({
               <span className="font-semibold">Estado actual:</span>
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                  asociado
-                    ? "bg-green-100 text-green-700"
-                    : entry.estado_asociacion === "Inactivo"
-                    ? "bg-amber-100 text-amber-700"
-                    : entry.estado_asociacion === "Eliminado"
-                    ? "bg-red-100 text-red-700"
-                    : "bg-gray-200 text-gray-800"
+                  asociado ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-800"
                 }`}
               >
-                {entry.estado_asociacion || "No Asociado"}
+                {entry.estado_asociacion}
               </span>
             </div>
+
+            {/* Mensaje informativo si el modal viene desde una sede */}
+            {(() => {
+              const anyEntry = entry as unknown as { sede_id?: number; sede_uuid?: string };
+              if (anyEntry.sede_id || anyEntry.sede_uuid) {
+                return (
+                  <div className="text-xs text-gray-500">
+                    Asociarás <b>solo esta sede</b> del courier.
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 
@@ -149,14 +178,24 @@ export function ModalAsociarseCourier({
               onChange={(e) => setConfirmo(e.target.checked)}
               aria-checked={confirmo}
             />
-            Confirmo que quiero asociarme con este courier
+            {(() => {
+              const anyEntry = entry as unknown as { sede_id?: number; sede_uuid?: string };
+              return (
+                <>
+                  Confirmo que quiero asociarme{" "}
+                  {anyEntry.sede_id || anyEntry.sede_uuid ? "con esta sede" : "con este courier"}
+                </>
+              );
+            })()}
           </label>
         )}
 
         {isDesassociate && (
           <div className="mt-4 text-sm text-gray-700">
             ¿Seguro que deseas{" "}
-            <span className="font-semibold text-red-600">desasociarte</span> de este courier?
+            <span className="font-semibold text-red-600">desasociarte</span>{" "}
+            {/* Nota: este botón desasocia la relación GENERAL */}
+            de este courier?
           </div>
         )}
 

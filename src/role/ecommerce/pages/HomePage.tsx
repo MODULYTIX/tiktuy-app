@@ -22,7 +22,8 @@ import Tittlex from "@/shared/common/Tittlex";
 
 /** Adaptador para el modal (espera un CourierAsociado) */
 function sedeToCourierAsociado(s: SedeConEstado): CourierAsociado {
-  return {
+  // Inyectamos sede_id / sede_uuid para que el modal pueda crear relación por sede
+  const base: CourierAsociado = {
     id: s.courier_id ?? 0,
     nombre_comercial: s.courier_nombre ?? "",
     telefono: s.telefono ?? "",
@@ -31,8 +32,15 @@ function sedeToCourierAsociado(s: SedeConEstado): CourierAsociado {
     direccion: s.direccion ?? "",
     nombre_usuario: "",
     estado_asociacion: s.estado_asociacion === "Activo" ? "Activo" : "No Asociado",
-    id_relacion: s.id_relacion,
+    id_relacion: s.id_relacion ?? null,
   };
+
+  // Devolvemos con campos extra (no tipados en CourierAsociado) para que el modal los lea
+  return {
+    ...base,
+    ...(s.sede_id ? { sede_id: s.sede_id } : {}),
+    ...(s.sede_uuid ? { sede_uuid: s.sede_uuid } : {}),
+  } as CourierAsociado & { sede_id?: number; sede_uuid?: string };
 }
 
 /** Snackbar simple */
@@ -79,7 +87,6 @@ export default function EcommerceHomePage() {
       setErrorMsg("");
       setLoading(true);
       const res = await fetchSedesConEstado(token);
-      // El backend ya devuelve solo sedes con representante asignado (si así lo configuraste)
       setData(res);
     } catch {
       setErrorMsg("Ocurrió un error al cargar las sedes.");
@@ -250,7 +257,6 @@ export default function EcommerceHomePage() {
         <section className="flex-1 overflow-auto">
           <div className="overflow-x-auto bg-white">
             <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-              {/* Evita whitespace en <colgroup> usando map */}
               <colgroup>
                 {["18%", "24%", "26%", "14%", "10%", "8%"].map((w) => (
                   <col key={w} style={{ width: w }} />

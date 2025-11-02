@@ -10,6 +10,7 @@ import type {
   ReenviarInvitacionDTO,
   ReenviarInvitacionResponse,
   EntidadesConAlmacenResponse,
+  SedeConRepresentante,
 } from './almacenamiento.types';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/almacenamiento`;
@@ -24,7 +25,7 @@ function buildHeaders(token?: string, json = false): HeadersInit {
 
 /** Manejo consistente de respuestas JSON o texto con mensajes de error amigables */
 async function handleJson<T>(res: Response): Promise<T> {
-  const raw = await res.text(); // leemos una vez el body
+  const raw = await res.text();
   const maybeJson = raw ? safeJson(raw) : undefined;
 
   if (!res.ok) {
@@ -34,7 +35,6 @@ async function handleJson<T>(res: Response): Promise<T> {
       `HTTP ${res.status}`;
     throw new Error(msg);
   }
-  // si no hay body (204), devolvemos undefined como T (quien llame debe manejarlo)
   return (maybeJson as T) ?? ({} as T);
 }
 
@@ -63,6 +63,12 @@ export async function fetchAlmacenesEcommerCourier(token: string): Promise<Almac
 export async function fetchEntidadesConAlmacen(token: string): Promise<EntidadesConAlmacenResponse> {
   const res = await fetch(`${BASE_URL}/entidades-con-almacen`, { headers: buildHeaders(token) });
   return handleJson<EntidadesConAlmacenResponse>(res);
+}
+
+/** Nuevo: listar solo sedes que tienen representante y son visibles para el usuario */
+export async function fetchSedesConRepresentante(token: string): Promise<SedeConRepresentante[]> {
+  const res = await fetch(`${BASE_URL}/con-representante`, { headers: buildHeaders(token) });
+  return handleJson<SedeConRepresentante[]>(res);
 }
 
 export async function fetchAlmacenByUuid(uuid: string, token: string): Promise<Almacenamiento> {
@@ -100,7 +106,6 @@ export async function deleteAlmacenamiento(uuid: string, token: string): Promise
     method: 'DELETE',
     headers: buildHeaders(token),
   });
-  // 204 No Content -> handleJson devolverá {} como T, pero aquí ignoramos el retorno
   await handleJson<unknown>(res);
 }
 
@@ -123,6 +128,23 @@ export async function registrarMovimiento(
 export async function fetchMovimientos(token: string): Promise<MovimientoAlmacen[]> {
   const res = await fetch(`${BASE_URL}/movimientos`, { headers: buildHeaders(token) });
   return handleJson<MovimientoAlmacen[]>(res);
+}
+
+/** NUEVO: validar un movimiento (Proceso -> Validado/Observado) */
+export async function validarMovimiento(
+  uuid: string,
+  token: string,
+  body?: {
+    items?: Array<{ producto_id: number; cantidad_validada: number }>;
+    observaciones?: string;
+  }
+): Promise<MovimientoAlmacen> {
+  const res = await fetch(`${BASE_URL}/movimientos/${uuid}/validar`, {
+    method: 'POST',
+    headers: buildHeaders(token, true),
+    body: JSON.stringify(body ?? {}),
+  });
+  return handleJson<MovimientoAlmacen>(res);
 }
 
 /* =========================
@@ -159,7 +181,7 @@ export async function reenviarInvitacionRepresentante(
 ): Promise<ReenviarInvitacionResponse> {
   const res = await fetch(`${BASE_URL}/sedes/${sedeId}/reenviar-invitacion`, {
     method: 'POST',
-    headers: buildHeaders(token, true), 
+    headers: buildHeaders(token, true),
     body: JSON.stringify(body ?? {}),
   });
   return handleJson<ReenviarInvitacionResponse>(res);

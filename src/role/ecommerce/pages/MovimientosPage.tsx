@@ -104,7 +104,7 @@ export default function RegistroMovimientoPage() {
           <span className="block w-[1px] h-8 bg-primary"></span>
 
           <Buttonx
-            label="Ver Movimientos"
+            label="Ver Movimientos / Validar"
             icon="hugeicons:validation"
             variant={modalMode === 'validacion' ? 'secondary' : 'tertiary'} // "primary" cuando está activo, "tertiary" cuando no
             onClick={() => setModalMode('validacion')}

@@ -1,20 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FaEye } from 'react-icons/fa';
+import { FaEye, FaRegSquare } from 'react-icons/fa';
 import { useAuth } from '@/auth/context';
 import { fetchMovimientos } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import type { MovimientoAlmacen } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 import VerMovimientoRealizadoModal from './VerMovimientoRealizadoModal';
+import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
+import ValidarMovimientoModal from './modal/MovimientoValidacionModal';
 
 const PAGE_SIZE = 6;
 
 export default function MovimientoValidacionTable() {
   const { token } = useAuth();
+  const { notify } = useNotification();
+
   const [movimientos, setMovimientos] = useState<MovimientoAlmacen[]>([]);
   const [loading, setLoading] = useState(false);
 
   // modal "ver"
   const [verOpen, setVerOpen] = useState(false);
   const [verUuid, setVerUuid] = useState<string | null>(null);
+
+  // modal "validar"
+  const [validarOpen, setValidarOpen] = useState(false);
+  const [movAValidar, setMovAValidar] = useState<MovimientoAlmacen | null>(null);
 
   // paginación local
   const [page, setPage] = useState(1);
@@ -24,9 +32,12 @@ export default function MovimientoValidacionTable() {
     setLoading(true);
     fetchMovimientos(token)
       .then(setMovimientos)
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        notify('No se pudieron cargar los movimientos.', 'error');
+      })
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, notify]);
 
   // Alias de compatibilidad: "Activo" → "Proceso"
   const normalizeEstado = (nombre?: string) => {
@@ -68,6 +79,23 @@ export default function MovimientoValidacionTable() {
   const handleVerClick = (mov: MovimientoAlmacen) => {
     setVerUuid(mov.uuid);
     setVerOpen(true);
+  };
+
+  const handleAbrirValidar = (mov: MovimientoAlmacen) => {
+    const estado = normalizeEstado(mov.estado?.nombre).toLowerCase();
+    if (estado !== 'proceso' && estado !== 'en proceso') return;
+    setMovAValidar(mov);
+    setValidarOpen(true);
+  };
+
+  // actualizar el ítem en la tabla cuando el modal devuelva el movimiento cerrado
+  const mergeMovimientoActualizado = (up: MovimientoAlmacen) => {
+    setMovimientos((prev) =>
+      prev.map((m) => (m.uuid === up.uuid ? up : m))
+    );
+    // cerrar modal
+    setValidarOpen(false);
+    setMovAValidar(null);
   };
 
   const sorted = useMemo(
@@ -118,7 +146,7 @@ export default function MovimientoValidacionTable() {
     return pages;
   }, [page, totalPages]);
 
-  // altura constante de la tabla
+  // altura constante
   const visibleCount = Math.max(1, current.length);
   const emptyRows = Math.max(0, PAGE_SIZE - visibleCount);
 
@@ -127,15 +155,14 @@ export default function MovimientoValidacionTable() {
       <section className="flex-1 overflow-auto">
         <div className="overflow-x-auto bg-white">
           <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-            {/* Porcentajes por columna (suman 100%) */}
             <colgroup>
-              <col className="w-[12%]" /> {/* Código */}
-              <col className="w-[18%]" /> {/* Desde */}
-              <col className="w-[18%]" /> {/* Hacia */}
-              <col className="w-[28%]" /> {/* Descripción */}
-              <col className="w-[12%]" /> {/* Fec. Movimiento */}
-              <col className="w-[6%]" /> {/* Estado */}
-              <col className="w-[6%]" /> {/* Acciones */}
+              <col className="w-[12%]" />
+              <col className="w-[18%]" />
+              <col className="w-[18%]" />
+              <col className="w-[28%]" />
+              <col className="w-[12%]" />
+              <col className="w-[6%]" />
+              <col className="w-[6%]" />
             </colgroup>
 
             <thead className="bg-[#E5E7EB]">
@@ -151,41 +178,59 @@ export default function MovimientoValidacionTable() {
             </thead>
 
             <tbody className="divide-y divide-gray20">
-              {current.map((m) => (
-                <tr key={m.uuid} className="hover:bg-gray10 transition-colors">
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    {m.uuid.slice(0, 8).toUpperCase()}
-                  </td>
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    {m.almacen_origen?.nombre_almacen || '-'}
-                  </td>
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    {m.almacen_destino?.nombre_almacen || '-'}
-                  </td>
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    {m.descripcion || '-'}
-                  </td>
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    {fmtFecha(m.fecha_movimiento as unknown as string)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {renderEstado(m.estado)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center">
-                      <button
-                        className="text-blue-600 hover:text-blue-800"
-                        onClick={() => handleVerClick(m)}
-                        title="Ver detalle"
-                        aria-label={`Ver ${m.uuid}`}>
-                        <FaEye />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {current.map((m) => {
+                const estadoNorm = normalizeEstado(m.estado?.nombre).toLowerCase();
+                const puedeValidar =
+                  estadoNorm === 'proceso' || estadoNorm === 'en proceso';
 
-              {/* Relleno para altura constante */}
+                return (
+                  <tr key={m.uuid} className="hover:bg-gray10 transition-colors">
+                    <td className="px-4 py-3 text-gray70 font-[400]">
+                      {m.uuid.slice(0, 8).toUpperCase()}
+                    </td>
+                    <td className="px-4 py-3 text-gray70 font-[400]">
+                      {m.almacen_origen?.nombre_almacen || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray70 font-[400]">
+                      {m.almacen_destino?.nombre_almacen || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray70 font-[400]">
+                      {m.descripcion || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray70 font-[400]">
+                      {fmtFecha(m.fecha_movimiento as unknown as string)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {renderEstado(m.estado)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-3">
+                        {/* Ver */}
+                        <button
+                          className="text-blue-600 hover:text-blue-800"
+                          onClick={() => handleVerClick(m)}
+                          title="Ver detalle"
+                          aria-label={`Ver ${m.uuid}`}>
+                          <FaEye />
+                        </button>
+
+                        {/* Validar: mostrar SOLO si está en Proceso, como un checkbox sin marcar */}
+                        {puedeValidar && (
+                          <button
+                            className="text-emerald-600 hover:text-emerald-800"
+                            onClick={() => handleAbrirValidar(m)}
+                            title="Validar movimiento"
+                            aria-label={`Validar ${m.uuid}`}>
+                            <FaRegSquare />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {/* Relleno */}
               {emptyRows > 0 &&
                 Array.from({ length: emptyRows }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="hover:bg-transparent">
@@ -199,9 +244,7 @@ export default function MovimientoValidacionTable() {
 
               {!loading && current.length === 0 && (
                 <tr>
-                  <td
-                    className="px-4 py-6 text-center text-gray70 italic"
-                    colSpan={7}>
+                  <td className="px-4 py-6 text-center text-gray70 italic" colSpan={7}>
                     No hay movimientos.
                   </td>
                 </tr>
@@ -251,7 +294,7 @@ export default function MovimientoValidacionTable() {
         )}
       </section>
 
-      {/* Modal de VER — ahora pasa UUID para cargar el detalle desde la API */}
+      {/* Modal de VER */}
       <VerMovimientoRealizadoModal
         open={verOpen}
         onClose={() => {
@@ -259,6 +302,17 @@ export default function MovimientoValidacionTable() {
           setVerUuid(null);
         }}
         uuid={verUuid ?? ''}
+      />
+
+      {/* Modal de VALIDAR */}
+      <ValidarMovimientoModal
+        open={validarOpen}
+        onClose={() => {
+          setValidarOpen(false);
+          setMovAValidar(null);
+        }}
+        movimiento={movAValidar}
+        onValidated={mergeMovimientoActualizado}
       />
     </div>
   );
