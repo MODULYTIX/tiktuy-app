@@ -330,7 +330,7 @@ export function InputxTextarea({
                 rows={rows}
                 onInput={resize}
                 {...props}
-                className={`w-full px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 outline-none font-roboto text-sm
+                className={`w-full px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 outline-none font-roboto text-sm
                 resize-none overflow-x-hidden ${className ?? ""}`}
             />
         </div>

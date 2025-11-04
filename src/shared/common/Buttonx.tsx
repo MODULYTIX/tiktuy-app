@@ -41,7 +41,7 @@ const Buttonx: React.FC<ButtonProps> = ({
     tertiary: "bg-gray-200 text-black hover:bg-gray-300",
     quartery: "bg-gray90 text-white hover:bg-gray-300",
     outlined:
-      "border-2 bg-gray-50 font-medium border-gray-400 text-gray-500 hover:bg-gray-100",
+      "border-[2px] bg-gray-50 font-medium border-gray-500 text-gray-700 hover:bg-gray-100",
     outlinedw:
       "border-[1.5px] font-medium border-gray80 text-black hover:bg-gray-100",
   };

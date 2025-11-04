@@ -1,10 +1,9 @@
 import { useEffect, useRef } from "react";
-import { FaTimes } from "react-icons/fa";
-import { BsBoxSeam } from "react-icons/bs";
 import type { PedidoDetalle } from "@/services/courier/pedidos/pedidos.types";
+import Tittlex from "@/shared/common/Tittlex";
 
 interface Props {
-  open: boolean;  
+  open: boolean;
   onClose: () => void;
   detalle: PedidoDetalle | null;
   loading?: boolean;
@@ -32,27 +31,24 @@ export default function DetallePedidoDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="flex-1 bg-black/40" />
       {/* panel lateral */}
-      <div
-        ref={panelRef}
-        className="w-[420px] h-full bg-white shadow-xl flex flex-col animate-slide-in-right"
-      >
+      <div ref={panelRef} className="w-[520px] h-full bg-white shadow-default flex flex-col gap-5 animate-slide-in-right p-5">
         {/* header */}
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-lg font-semibold flex items-center gap-2 text-blue-900">
-            <BsBoxSeam className="text-primary text-xl" />
-            DETALLE DEL PEDIDO
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 text-gray-500 hover:text-gray-700"
-          >
-            <FaTimes size={20} />
-          </button>
+        <div className="flex gap-1 justify-between items-center">
+          <Tittlex
+            variant="modal"
+            title="DETALLE DEL PEDIDO"
+            icon="lsicon:shopping-cart-filled"
+          />
+          <div className="flex gap-1">
+            <label className="block text-xs font-semibold text-gray-600">Cód. Pedido:</label>
+            <div className="text-xs text-gray-600">{detalle?.codigo_pedido}</div>
+          </div>
         </div>
 
         {/* body */}
-        <div className="flex-1 overflow-y-auto p-4 text-sm">
+        <div className="flex flex-col gap-5 text-sm h-full">
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -69,90 +65,83 @@ export default function DetallePedidoDrawer({
           ) : (
             <>
               {/* info básica */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label className="block text-xs text-gray-500">
-                    Cód. Pedido
-                  </label>
-                  <div className="text-gray-800">{detalle.codigo_pedido}</div>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500">
+              <div className="flex flex-col gap-2">
+                <div className="w-full items-center flex flex-col">
+                  <label className="block text-xs font-light text-gray-500">
                     Cliente
                   </label>
-                  <div className="text-gray-800">{detalle.cliente}</div>
+                  <div className="text-gray-800 font-semibold text-base">{detalle.cliente}</div>
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-xs text-gray-500">
-                    Dirección
+
+                <div className="flex gap-1">
+                  <label className="block text-sm font-light text-gray-500">
+                    Dirección:
                   </label>
-                  <div className="text-gray-800">
+                  <div className="text-gray-800 text-sm">
                     {detalle.direccion_entrega}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-500">
-                    F. Entrega
+
+                <div className="flex gap-1">
+                  <label className="block text-sm font-light text-gray-500">
+                    F. Entrega:
                   </label>
-                  <div className="text-gray-800">
+                  <div className="text-gray-800 text-sm">
                     {detalle.fecha_entrega_programada
                       ? new Date(
-                          detalle.fecha_entrega_programada
-                        ).toLocaleDateString("es-PE")
+                        detalle.fecha_entrega_programada
+                      ).toLocaleDateString("es-PE")
                       : "—"}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-500">
-                    Productos
+
+                <div className="flex gap-1">
+                  <label className="block text-sm font-light text-gray-500">
+                    Cant. de Productos:
                   </label>
-                  <div className="text-gray-800">
+                  <div className="text-gray-800 text-sm">
                     {detalle.cantidad_productos}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-500">Monto</label>
-                  <div className="text-gray-800">
+
+                <div className="flex gap-1">
+                  <label className="block text-sm font-light text-gray-500">Monto:</label>
+                  <div className="text-gray-800 text-sm">
                     S/. {detalle.monto_total.toFixed(2)}
                   </div>
                 </div>
               </div>
 
               {/* productos */}
-              <div>
-                <h3 className="font-medium text-gray-700 mb-2">
-                  Productos del pedido
-                </h3>
-                <div className="border rounded overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="px-3 py-2 text-left">Producto</th>
-                        <th className="px-3 py-2 text-right">Cant.</th>
+              <div className="shadow-default rounded h-full">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray20">
+                    <tr>
+                      <th className="px-3 w-full py-2 font-normal text-left">Producto</th>
+                      <th className="px-3 w-12 py-2 font-normal text-right">Cant.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detalle.items.map((it) => (
+                      <tr key={it.producto_id} className="border-y border-gray20">
+                        <td className="px-3 py-2 w-full align-top">
+                          <div className="font-normal">{it.nombre}</div>
+                          {it.descripcion && (
+                            <div className="text-gray-500 text-xs">
+                              {it.descripcion}
+                            </div>
+                          )}
+                          {it.marca && (
+                            <div className="text-gray-400 text-xs">
+                              Marca: {it.marca}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 w-12 text-gray60 text-center">{it.cantidad}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {detalle.items.map((it) => (
-                        <tr key={it.producto_id} className="border-t">
-                          <td className="px-3 py-2 align-top">
-                            <div className="font-medium">{it.nombre}</div>
-                            {it.descripcion && (
-                              <div className="text-gray-500 text-xs">
-                                {it.descripcion}
-                              </div>
-                            )}
-                            {it.marca && (
-                              <div className="text-gray-400 text-xs">
-                                Marca: {it.marca}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 text-right">{it.cantidad}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </>
           )}

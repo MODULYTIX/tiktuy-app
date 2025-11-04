@@ -205,7 +205,7 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros }: Props
             <th className="px-2 py-3 text-center">Fec. Entrega</th>
             <th className="px-4 py-3 text-left">Courier</th>
             <th className="px-4 py-3 text-left">Cliente</th>
-            <th className="px-4 py-3 text-left">Producto</th>
+            <th className="px-4 py-3 text-left"> Producto</th>
             <th className="px-4 py-3 text-center">Cantidad</th>
             <th className="px-4 py-3 text-center">Monto</th>
             <th className="px-4 py-3 text-center">Estado</th>

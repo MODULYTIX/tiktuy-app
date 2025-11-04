@@ -64,8 +64,8 @@ export default function PedidosAsignado({ filtros }: Props) {
         isOpen={verOpen}
         onClose={handleClose}
         pedidoId={selectedId}
-        onEditar={handleEditarDesdeVer}   // botón Editar en el footer (derecha)
-      />
+        onEditar={handleEditarDesdeVer} // botón Editar en el footer (derecha)
+        detalle={null}      />
 
       {/* Modal Editar (Asignado) */}
       <EditarPedidoAsignadoModal

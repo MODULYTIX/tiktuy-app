@@ -22,6 +22,7 @@ import DetallePedidoDrawer from './DetallePedidoDrawer';
 import { Selectx } from '@/shared/common/Selectx';
 import Buttonx from '@/shared/common/Buttonx';
 import { SearchInputx } from '@/shared/common/SearchInputx';
+import Tittlex from '@/shared/common/Tittlex';
 
 type View = 'asignados' | 'pendientes' | 'terminados';
 
@@ -244,21 +245,26 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
   };
 
   return (
-    <div className="w-full bg-transparent overflow-visible">
+    <div className="flex flex-col gap-5 w-full bg-transparent overflow-visible">
       {/* Header */}
-      <div className="flex items-center justify-between px-0 pt-0 pb-0 mb-5">
-        <div>
-          <h2 className="text-[20px] font-semibold text-primaryDark leading-tight">
-            {view === 'asignados' && 'Pedidos Asignados'}
-            {view === 'pendientes' && 'Pedidos Pendientes'}
-            {view === 'terminados' && 'Pedidos Terminados'}
-          </h2>
-          <p className="text-sm text-gray-600">
-            {view === 'asignados' && 'Selecciona y asigna pedidos a un repartidor.'}
-            {view === 'pendientes' && 'Pedidos en gestión con el cliente (contacto, reprogramación, etc.).'}
-            {view === 'terminados' && 'Pedidos completados (mostrar método de pago y evidencia si corresponde).'}
-          </p>
-        </div>
+      <div className="flex items-center justify-between">
+        <Tittlex
+          variant="section"
+          title={
+            view === 'asignados'
+              ? 'Pedidos Asignados'
+              : view === 'pendientes'
+                ? 'Pedidos Pendientes'
+                : 'Pedidos Terminados'
+          }
+          description={
+            view === 'asignados'
+              ? 'Selecciona y asigna pedidos a un repartidor.'
+              : view === 'pendientes'
+                ? 'Pedidos en gestión con el cliente (contacto, reprogramación, etc.).'
+                : 'Pedidos completados (mostrar método de pago y evidencia si corresponde).'
+          }
+        />
 
         <button
           onClick={() => onAsignar?.(selectedIds)}
@@ -271,67 +277,63 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
       </div>
 
       {/* Filtros */}
-      <div className="px-0 py-0 mb-5">
-        <div className="bg-white p-5 rounded shadow-default flex flex-wrap gap-4 items-end border-b-4 border-gray90">
-          {/* Distrito */}
-          <div className="flex-1 min-w-[200px]">
-            <Selectx
-              label="Distrito"
-              name="filtro_distrito"
-              value={filtroDistrito}
-              onChange={(e) => setFiltroDistrito(e.target.value)}
-              placeholder="Seleccionar distrito"
-            /* Estilos originales conservados */
-            >
-              {distritos.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </Selectx>
-          </div>
+      <div className="bg-white p-5 rounded shadow-default flex gap-5 items-end border-b-4 border-gray90">
+        {/* Distrito */}
+        <Selectx
+          label="Distrito"
+          name="filtro_distrito"
+          value={filtroDistrito}
+          onChange={(e) => setFiltroDistrito(e.target.value)}
+          placeholder="Seleccionar distrito"
+        /* Estilos originales conservados */
+        >
+          {distritos.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </Selectx>
 
-          {/* Cantidad */}
-          <div className="flex-1 min-w-[200px]">
-            <Selectx
-              label="Cantidad"
-              name="filtro_cantidad"
-              value={filtroCantidad}
-              onChange={(e) => setFiltroCantidad(e.target.value)}
-              placeholder="Seleccionar cantidad"
-            /* Estilos originales conservados */
-            >
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {two(n)}
-                </option>
-              ))}
-            </Selectx>
-          </div>
+        {/* Cantidad */}
+        <Selectx
+          label="Cantidad"
+          name="filtro_cantidad"
+          value={filtroCantidad}
+          onChange={(e) => setFiltroCantidad(e.target.value)}
+          placeholder="Seleccionar cantidad"
+        /* Estilos originales conservados */
+        >
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>
+              {two(n)}
+            </option>
+          ))}
+        </Selectx>
 
-          {/* Búsqueda (SearchInputx sin label interno → añadimos label externo como en tu UI) */}
-          <div className="flex-1 min-w-[240px] flex flex-col gap-[10px]">
-            <label className="text-sm font-medium text-black block">
-              Buscar productos por nombre
-            </label>
-            <SearchInputx
-              placeholder="Buscar productos por nombre..."
-              value={searchProducto}
-              onChange={(e) => setSearchProducto(e.target.value)}
-            /* Estilos originales conservados (override sobre los defaults del componente) */
-            />
-          </div>
 
-          {/* Limpiar (tu botón por componente) */}
-          <Buttonx
-            variant="outlined"
-            onClick={() => { setFiltroDistrito(''); setFiltroCantidad(''); setSearchProducto(''); }}
-            label="Limpiar Filtros"
-            icon="mynaui:delete"
-          /* Mismo look & feel que tu botón previo */
+        {/* Búsqueda (SearchInputx sin label interno → añadimos label externo como en tu UI) */}
+        <div className="w-full flex flex-col gap-[10px]">
+          <label className="text-sm font-medium text-black block">
+            Buscar productos por nombre
+          </label>
+          <SearchInputx
+            placeholder="Buscar productos por nombre..."
+            value={searchProducto}
+            onChange={(e) => setSearchProducto(e.target.value)}
+          /* Estilos originales conservados (override sobre los defaults del componente) */
           />
         </div>
+
+        {/* Limpiar (tu botón por componente) */}
+        <Buttonx
+          variant="outlined"
+          onClick={() => { setFiltroDistrito(''); setFiltroCantidad(''); setSearchProducto(''); }}
+          label="Limpiar Filtros"
+          icon="mynaui:delete"
+        /* Mismo look & feel que tu botón previo */
+        />
       </div>
+
 
       {/* Estados */}
       {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
@@ -339,172 +341,172 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
 
       {/* Tabla */}
       {!loading && !error && (
-        
-          <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
-            <div className="overflow-x-auto bg-white">
-              <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-                <colgroup>
-                  <col className="w-[5%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[28%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[5%]" />
-                </colgroup>
 
-                <thead className="bg-[#E5E7EB]">
-                  <tr className="text-gray70 font-roboto font-medium">
-                    <th className="px-4 py-3 text-left">
-                      <input
-                        ref={headerCbRef}
-                        type="checkbox"
-                        className="cursor-pointer"
-                        checked={allSelected}
-                        onChange={(e) => {
-                          if (view !== 'asignados') return;
-                          if (e.target.checked) {
-                            setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
-                          } else {
-                            setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
-                          }
-                        }}
-                        disabled={view !== 'asignados'}
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left">Fec. Entrega</th>
-                    <th className="px-4 py-3 text-left">Ecommerce</th>
-                    <th className="px-4 py-3 text-left">Cliente</th>
-                    <th className="px-4 py-3 text-left">Dirección de Entrega</th>
-                    <th className="px-4 py-3 text-center">Cant. de productos</th>
-                    <th className="px-4 py-3 text-left">Monto</th>
-                    <th className="px-4 py-3 text-center">Acciones</th>
-                  </tr>
-                </thead>
+        <div className="bg-white rounded-md overflow-hidden shadow-default">
+          <div className="overflow-x-auto bg-white">
+            <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+              <colgroup>
+                <col className="w-[5%]" />
+                <col className="w-[12%]" />
+                <col className="w-[15%]" />
+                <col className="w-[15%]" />
+                <col className="w-[28%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[5%]" />
+              </colgroup>
 
-                <tbody className="divide-y divide-gray20">
-                  {itemsFiltrados.map((p) => {
-                    const fecha =
-                      view === 'terminados'
-                        ? p.fecha_entrega_real ?? p.fecha_entrega_programada
-                        : p.fecha_entrega_programada;
+              <thead className="bg-[#E5E7EB]">
+                <tr className="text-gray70 font-roboto font-medium">
+                  <th className="px-4 py-3 text-left">
+                    <input
+                      ref={headerCbRef}
+                      type="checkbox"
+                      className="cursor-pointer"
+                      checked={allSelected}
+                      onChange={(e) => {
+                        if (view !== 'asignados') return;
+                        if (e.target.checked) {
+                          setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+                        } else {
+                          setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+                        }
+                      }}
+                      disabled={view !== 'asignados'}
+                    />
+                  </th>
+                  <th className="px-4 py-3 text-left">Fec. Entrega</th>
+                  <th className="px-4 py-3 text-left">Ecommerce</th>
+                  <th className="px-4 py-3 text-left">Cliente</th>
+                  <th className="px-4 py-3 text-left">Dirección de Entrega</th>
+                  <th className="px-4 py-3 text-center">Cant. de productos</th>
+                  <th className="px-4 py-3 text-left">Monto</th>
+                  <th className="px-4 py-3 text-center">Acciones</th>
+                </tr>
+              </thead>
 
-                    const cantidad =
-                      p.items_total_cantidad ?? p.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0;
-                    const direccion = p.cliente?.direccion ?? '';
-                    const montoNumber = Number(p.monto_recaudar || 0);
+              <tbody className="divide-y divide-gray20">
+                {itemsFiltrados.map((p) => {
+                  const fecha =
+                    view === 'terminados'
+                      ? p.fecha_entrega_real ?? p.fecha_entrega_programada
+                      : p.fecha_entrega_programada;
 
-                    return (
-                      <tr key={p.id} className="hover:bg-gray10 transition-colors">
-                        <td className="h-12 px-4 py-3">
-                          <input
-                            type="checkbox"
-                            className="cursor-pointer"
-                            checked={selectedIds.includes(p.id)}
-                            onChange={(e) => {
-                              if (view !== 'asignados') return;
-                              setSelectedIds((prev) =>
-                                e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id)
-                              );
-                            }}
-                            disabled={view !== 'asignados'}
-                          />
-                        </td>
-                        <td className="h-12 px-4 py-3 text-gray70">
-                          {fecha ? new Date(fecha).toLocaleDateString('es-PE') : '—'}
-                        </td>
-                        <td className="h-12 px-4 py-3 text-gray70">
-                          {p.ecommerce?.nombre_comercial ?? '—'}
-                        </td>
-                        <td className="h-12 px-4 py-3 text-gray70">{p.cliente?.nombre ?? '—'}</td>
-                        <td className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]" title={direccion}>
-                          {direccion || '—'}
-                        </td>
-                        <td className="h-12 px-4 py-3 text-center text-gray70">{two(cantidad)}</td>
-                        <td className="h-12 px-4 py-3 text-gray70">{PEN.format(montoNumber)}</td>
-                        <td className="h-12 px-4 py-3">
-                          <div className="flex items-center justify-center gap-3">
+                  const cantidad =
+                    p.items_total_cantidad ?? p.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0;
+                  const direccion = p.cliente?.direccion ?? '';
+                  const montoNumber = Number(p.monto_recaudar || 0);
+
+                  return (
+                    <tr key={p.id} className="hover:bg-gray10 transition-colors">
+                      <td className="h-12 px-4 py-3">
+                        <input
+                          type="checkbox"
+                          className="cursor-pointer"
+                          checked={selectedIds.includes(p.id)}
+                          onChange={(e) => {
+                            if (view !== 'asignados') return;
+                            setSelectedIds((prev) =>
+                              e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id)
+                            );
+                          }}
+                          disabled={view !== 'asignados'}
+                        />
+                      </td>
+                      <td className="h-12 px-4 py-3 text-gray70">
+                        {fecha ? new Date(fecha).toLocaleDateString('es-PE') : '—'}
+                      </td>
+                      <td className="h-12 px-4 py-3 text-gray70">
+                        {p.ecommerce?.nombre_comercial ?? '—'}
+                      </td>
+                      <td className="h-12 px-4 py-3 text-gray70">{p.cliente?.nombre ?? '—'}</td>
+                      <td className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]" title={direccion}>
+                        {direccion || '—'}
+                      </td>
+                      <td className="h-12 px-4 py-3 text-center text-gray70">{two(cantidad)}</td>
+                      <td className="h-12 px-4 py-3 text-gray70">{PEN.format(montoNumber)}</td>
+                      <td className="h-12 px-4 py-3">
+                        <div className="flex items-center justify-center gap-3">
+                          <button
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                            onClick={() => handleVerDetalle(p.id)}
+                            title="Ver detalle"
+                            aria-label={`Ver ${p.id}`}
+                          >
+                            <FaEye />
+                          </button>
+
+                          {view === 'pendientes' && (
                             <button
-                              className="text-blue-600 hover:text-blue-800 transition-colors"
-                              onClick={() => handleVerDetalle(p.id)}
-                              title="Ver detalle"
-                              aria-label={`Ver ${p.id}`}
+                              className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                              onClick={() => handleReasignar(p)}
+                              title="Reasignar pedido"
+                              aria-label={`Reasignar ${p.id}`}
                             >
-                              <FaEye />
+                              <Icon icon="mdi:swap-horizontal" width={18} />
                             </button>
-
-                            {view === 'pendientes' && (
-                              <button
-                                className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                                onClick={() => handleReasignar(p)}
-                                title="Reasignar pedido"
-                                aria-label={`Reasignar ${p.id}`}
-                              >
-                                <Icon icon="mdi:swap-horizontal" width={18} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-
-                  {!itemsFiltrados.length && (
-                    <tr className="hover:bg-transparent">
-                      <td colSpan={8} className="px-4 py-8 text-center text-gray70 italic">
-                        No hay pedidos para esta etapa.
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
-                <button
-                  onClick={() => goToPage(page - 1)}
-                  disabled={page === 1 || loading}
-                  className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-                  aria-label="Página anterior"
-                >
-                  &lt;
-                </button>
-
-                {pagerItems.map((p, i) =>
-                  typeof p === 'string' ? (
-                    <span key={`dots-${i}`} className="px-2 text-gray70">
-                      {p}
-                    </span>
-                  ) : (
-                    <button
-                      key={p}
-                      onClick={() => goToPage(p)}
-                      aria-current={page === p ? 'page' : undefined}
-                      className={[
-                        'w-8 h-8 flex items-center justify-center rounded',
-                        page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
-                      ].join(' ')}
-                      disabled={loading}
-                    >
-                      {p}
-                    </button>
-                  )
+                {!itemsFiltrados.length && (
+                  <tr className="hover:bg-transparent">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray70 italic">
+                      No hay pedidos para esta etapa.
+                    </td>
+                  </tr>
                 )}
-
-                <button
-                  onClick={() => goToPage(page + 1)}
-                  disabled={page === totalPages || loading}
-                  className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-                  aria-label="Página siguiente"
-                >
-                  &gt;
-                </button>
-              </div>
-            )}
+              </tbody>
+            </table>
           </div>
-        
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+              <button
+                onClick={() => goToPage(page - 1)}
+                disabled={page === 1 || loading}
+                className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+                aria-label="Página anterior"
+              >
+                &lt;
+              </button>
+
+              {pagerItems.map((p, i) =>
+                typeof p === 'string' ? (
+                  <span key={`dots-${i}`} className="px-2 text-gray70">
+                    {p}
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => goToPage(p)}
+                    aria-current={page === p ? 'page' : undefined}
+                    className={[
+                      'w-8 h-8 flex items-center justify-center rounded',
+                      page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
+                    ].join(' ')}
+                    disabled={loading}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={() => goToPage(page + 1)}
+                disabled={page === totalPages || loading}
+                className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+                aria-label="Página siguiente"
+              >
+                &gt;
+              </button>
+            </div>
+          )}
+        </div>
+
       )}
 
       {/* Drawer del detalle */}

@@ -108,6 +108,9 @@ export default function ValidarMovimientoModal({
     (movimiento.estado?.nombre || '').charAt(0).toUpperCase() +
     (movimiento.estado?.nombre || '').slice(1);
 
+  // Fix TS2322: Tittlex.description debe ser string, no un elemento
+  const descriptionText = `Código: ${movimiento.uuid.slice(0, 12).toUpperCase()} • Estado: ${headerEstado || '-'}`;
+
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={closeByBackdrop}>
       {/* Panel derecho */}
@@ -119,18 +122,20 @@ export default function ValidarMovimientoModal({
           variant="modal"
           icon="solar:check-square-linear"
           title="VALIDAR MOVIMIENTO"
-          description={
-            <>
-              <span className="text-gray-500">Código:</span>{' '}
-              <span className="font-medium">{movimiento.uuid.slice(0, 12).toUpperCase()}</span>{' '}
-              <span className="mx-2">•</span>
-              <span className="text-gray-500">Estado:</span>{' '}
-              <span className={enProceso ? 'text-yellow-700' : headerEstado === 'Validado' ? 'text-black' : 'text-red-700'}>
-                {headerEstado || '-'}
-              </span>
-            </>
-          }
+          description={descriptionText}
         />
+
+        {/* (Opcional) Chip visual del estado, manteniendo el string en el título */}
+        <div className="text-sm">
+          <span className="text-gray-500 mr-1">Estado:</span>
+          <span
+            className={
+              enProceso ? 'text-yellow-700' : headerEstado === 'Validado' ? 'text-black' : 'text-red-700'
+            }
+          >
+            {headerEstado || '-'}
+          </span>
+        </div>
 
         {/* Descripción */}
         <div className="text-sm text-gray-800">
@@ -199,10 +204,10 @@ export default function ValidarMovimientoModal({
           </table>
         </div>
 
-        {/* Observaciones */}
+        {/* Observaciones (fix TS2741: label obligatorio en InputxTextarea) */}
         <div>
-          <p className="text-sm font-medium text-gray-800 mb-1">Observaciones</p>
           <InputxTextarea
+            label="Observaciones"
             name="observaciones"
             value={observaciones}
             onChange={(e) => setObservaciones(e.target.value)}

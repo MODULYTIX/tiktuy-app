@@ -7,6 +7,7 @@ import { useAuth } from '@/auth/context';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { SedeConRepresentante } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
+
 import { Inputx, InputxNumber, InputxTextarea } from '@/shared/common/Inputx';
 import Tittlex from '@/shared/common/Tittlex';
 import Buttonx from '@/shared/common/Buttonx';
@@ -32,6 +33,20 @@ const ESTADO_OPCIONES: EstadoOption[] = [
   { id: 'descontinuado', nombre: 'Descontinuado' },
 ];
 
+type BasePayload = {
+  almacenamiento_id: number;
+  precio: number;
+  stock: number;
+  stock_minimo: number;
+  peso: number;
+  codigo_identificacion: string;
+  nombre_producto: string;
+  descripcion: string;
+  // Se envía como string; tu backend puede mapear a estado_id
+  estado: 'activo' | 'inactivo' | 'descontinuado';
+  fecha_registro: string;
+};
+
 type CreateProductoPayload =
   | ({
       categoria_id: number;
@@ -45,19 +60,6 @@ type CreateProductoPayload =
       };
       categoria_id?: undefined;
     } & BasePayload);
-
-type BasePayload = {
-  almacenamiento_id: number;
-  precio: number;
-  stock: number;
-  stock_minimo: number;
-  peso: number;
-  codigo_identificacion: string;
-  nombre_producto: string;
-  descripcion: string;
-  estado: 'activo' | 'inactivo' | 'descontinuado';
-  fecha_registro: string;
-};
 
 function generarCodigoConFecha(): string {
   const now = new Date();
@@ -110,6 +112,13 @@ const getInitialForm = (): FormState => ({
 
 function canonical(s: string) {
   return s.normalize('NFKC').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function parseNum(input: string, decimals = 2): number {
+  // Permite ',' como separador decimal
+  const normalized = (input ?? '').toString().replace(',', '.').trim();
+  const n = Number(normalized);
+  return Number.isFinite(n) ? Number(n.toFixed(decimals)) : NaN;
 }
 
 export default function ProductoCrearModal({ open, onClose, onCreated }: Props) {
@@ -193,7 +202,6 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
   function onPickFile(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
     if (!f) return;
-    // Opcional: validar tipo/size
     if (!f.type.startsWith('image/')) return;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     const url = URL.createObjectURL(f);
@@ -225,12 +233,16 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!token || saving) return;
-    if (!form.almacenamiento_id) return;
 
-    const precio = parseFloat(form.precio);
-    const stock = parseInt(form.stock);
-    const stock_minimo = parseInt(form.stock_minimo);
-    const peso = parseFloat(form.peso);
+    if (!form.almacenamiento_id) return;
+    if (!form.nombre_producto.trim()) return;
+
+    // parseo seguro
+    const precio = parseNum(form.precio, 2);
+    const stock = parseNum(form.stock, 0);
+    const stock_minimo = parseNum(form.stock_minimo, 0);
+    const peso = parseNum(form.peso, 3);
+
     if ([precio, stock, stock_minimo, peso].some(n => Number.isNaN(n))) return;
 
     let payload: CreateProductoPayload;
@@ -275,6 +287,7 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
       // Nota: no enviamos la imagen; queda local (como pediste).
       const producto = await crearProducto(payload as unknown as Partial<Producto>, token);
 
+      // Si el backend devuelve la categoría creada, la agregamos al cache local
       if (!form.categoriaSelectedId && (producto as any)?.categoria) {
         const nueva = (producto as any).categoria as Categoria;
         setCategorias(prev => {
@@ -282,6 +295,7 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
           return dup ? prev : [...prev, nueva];
         });
       }
+
       onCreated?.(producto);
       setForm(getInitialForm());
       onClose();
@@ -312,7 +326,7 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
         </div>
 
         {/* Body scrollable */}
-        <form ref={formRef} onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 pb-24">
+        <form id="crear-producto-form" ref={formRef} onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 pb-24">
           <div className="flex flex-col gap-5">
             <div className="grid grid-cols-2 gap-5">
               <Inputx
@@ -440,7 +454,6 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
                 <div className="flex items-center gap-3">
                   {/* Miniatura */}
                   <div className="w-16 h-16 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-                    {/* No mostramos la imagen completa en el modal; solo miniatura */}
                     <img
                       src={previewUrl}
                       alt="preview"
@@ -539,23 +552,22 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
         <div className="sticky bottom-0 bg-white border-t border-gray-200 px-5 py-4">
           <div className="flex items-center gap-5 justify-start">
             <Buttonx
-              type="submit"
               variant="quartery"
-              form={formRef.current ? formRef.current.id : undefined}
               onClick={() => formRef.current?.requestSubmit()}
               disabled={saving}
               label={saving ? 'Creando…' : 'Crear nuevo'}
               icon={saving ? 'line-md:loading-twotone-loop' : 'tabler:cube-plus'}
               className={`px-4 text-sm ${saving ? '[&_svg]:animate-spin' : ''}`}
+              type="button"
             />
             <Buttonx
-              type="button"
               variant="tertiary"
               onClick={handleClose}
               disabled={saving}
               label="Salir"
               icon=""
               className="px-4 text-sm text-gray-600 bg-gray-200"
+              type="button"
             />
           </div>
         </div>
