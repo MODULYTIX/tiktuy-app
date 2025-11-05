@@ -91,10 +91,52 @@ export async function fetchProductoByUuid(
  *  - categoria_id  O
  *  - categoria { nombre, descripcion?, es_global? }
  */
+// Crear: usa FormData si viene archivo, sino JSON
 export async function crearProducto(
   data: ProductoCreateInput,
   token: string
 ): Promise<Producto> {
+  const hasFile = !!(data as any).file;
+
+  if (hasFile) {
+    const fd = new FormData();
+    // archivo -> campo 'imagen'
+    fd.append('imagen', (data as any).file as File);
+
+    // campos obligatorios / comunes
+    fd.append('nombre_producto', String(data.nombre_producto));
+    fd.append('almacenamiento_id', String(data.almacenamiento_id));
+    fd.append('precio', String(data.precio));
+    fd.append('stock_minimo', String(data.stock_minimo));
+    fd.append('peso', String(data.peso));
+
+    // opcionales
+    if (data.descripcion != null) fd.append('descripcion', String(data.descripcion));
+    if (data.codigo_identificacion) fd.append('codigo_identificacion', String(data.codigo_identificacion));
+    if (data.stock != null) fd.append('stock', String(data.stock));
+    if (data.estado) fd.append('estado', String(data.estado));
+
+    // categoría (recomendado: solo categoria_id)
+    if (data.categoria_id != null) {
+      fd.append('categoria_id', String(data.categoria_id));
+    } else if (data.categoria?.nombre) {
+      fd.append('categoria.nombre', data.categoria.nombre);
+      if (data.categoria.descripcion) fd.append('categoria.descripcion', data.categoria.descripcion);
+      if (typeof data.categoria.es_global === 'boolean') {
+        fd.append('categoria.es_global', String(data.categoria.es_global));
+      }
+    }
+
+    const res = await fetch(BASE, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }, // NO pongas Content-Type, el browser lo setea
+      body: fd,
+    });
+    if (!res.ok) throw new Error(await res.text().catch(() => 'Error al crear producto'));
+    return res.json();
+  }
+
+  // sin archivo -> JSON
   const res = await fetch(BASE, {
     method: 'POST',
     headers: {
@@ -103,13 +145,10 @@ export async function crearProducto(
     },
     body: JSON.stringify(data),
   });
-
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    throw new Error(txt || 'Error al crear producto');
-  }
+  if (!res.ok) throw new Error(await res.text().catch(() => 'Error al crear producto'));
   return res.json();
 }
+
 
 // =====================
 // ACTUALIZAR (**PUT**)
@@ -118,26 +157,64 @@ export async function crearProducto(
  * Actualiza campos parciales o totales vía **PUT** para alinearse con tu backend.
  * También puedes cambiar de categoría con categoria_id o categoria{...}.
  */
+// Actualizar: FormData solo si hay archivo o si quieres enviar multipart; sino JSON
 export async function actualizarProducto(
   uuid: string,
   data: ProductoUpdateInput,
   token: string
 ): Promise<Producto> {
+  const hasFile = !!(data as any).file;
+
+  if (hasFile) {
+    const fd = new FormData();
+    // archivo -> 'imagen'
+    fd.append('imagen', (data as any).file as File);
+
+    // campos opcionales
+    if (data.nombre_producto != null) fd.append('nombre_producto', String(data.nombre_producto));
+    if (data.descripcion != null) fd.append('descripcion', String(data.descripcion));
+    if (data.almacenamiento_id != null) fd.append('almacenamiento_id', String(data.almacenamiento_id));
+    if (data.categoria_id != null) fd.append('categoria_id', String(data.categoria_id));
+    if (data.codigo_identificacion != null) fd.append('codigo_identificacion', String(data.codigo_identificacion));
+    if (data.precio != null) fd.append('precio', String(data.precio));
+    if (data.stock != null) fd.append('stock', String(data.stock));
+    if (data.stock_minimo != null) fd.append('stock_minimo', String(data.stock_minimo));
+    if (data.peso != null) fd.append('peso', String(data.peso));
+    if (data.estado_id != null) fd.append('estado_id', String(data.estado_id));
+    if (data.estado != null) fd.append('estado', String(data.estado));
+    if (data.imagen_url_remove === true) fd.append('imagen_url_remove', 'true');
+
+    // categoría por objeto (si no usas categoria_id). Mejor evita esto y usa categoria_id.
+    if (data.categoria?.nombre) {
+      fd.append('categoria.nombre', data.categoria.nombre);
+      if (data.categoria.descripcion) fd.append('categoria.descripcion', data.categoria.descripcion);
+      if (typeof data.categoria.es_global === 'boolean') {
+        fd.append('categoria.es_global', String(data.categoria.es_global));
+      }
+    }
+
+    const res = await fetch(`${BASE}/${uuid}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
+    });
+    if (!res.ok) throw new Error(await res.text().catch(() => 'Error al actualizar producto'));
+    return res.json();
+  }
+
+  // sin archivo -> JSON (también sirve para eliminar imagen con imagen_url_remove: true)
   const res = await fetch(`${BASE}/${uuid}`, {
-    method: 'PUT', // 👈 ahora usando PUT (tu backend expone PUT)
+    method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
   });
-
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    throw new Error(txt || 'Error al actualizar producto');
-  }
+  if (!res.ok) throw new Error(await res.text().catch(() => 'Error al actualizar producto'));
   return res.json();
 }
+
 
 // ==========================================
 // LISTAR con filtros desde la UI (paginado)
