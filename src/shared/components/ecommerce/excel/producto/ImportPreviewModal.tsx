@@ -51,11 +51,11 @@ export default function ImportProductosPreviewModal({
   const [error, setError] = useState<string | null>(null);
 
   const categoriaNames = useMemo(
-    () => (preloadedCategoriaOptions ?? []).map(o => o.label),
+    () => toArray<Option>(preloadedCategoriaOptions as unknown).map(o => o.label),
     [preloadedCategoriaOptions]
   );
   const almacenNames = useMemo(
-    () => (preloadedAlmacenOptions ?? []).map(o => o.label),
+    () => toArray<Option>(preloadedAlmacenOptions as unknown).map(o => o.label),
     [preloadedAlmacenOptions]
   );
 
