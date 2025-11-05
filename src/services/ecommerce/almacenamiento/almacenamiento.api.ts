@@ -46,13 +46,69 @@ function safeJson(str: string): any | undefined {
   }
 }
 
+/* ===== Tipos internos opcionales (no exportados) ===== */
+type PaginatedResponse<T> = {
+  data: T[];
+  pagination?: {
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+  };
+};
+
 /* =========================
  * Almacenes (CRUD + listados)
  * ========================= */
 
+/**
+ * Soporta ambas respuestas del backend:
+ *  - Formato antiguo: Almacenamiento[]
+ *  - Formato nuevo:   { data: Almacenamiento[], pagination: { ... } }
+ * Si está paginado, concatena TODAS las páginas y retorna un único array.
+ */
 export async function fetchAlmacenes(token: string): Promise<Almacenamiento[]> {
-  const res = await fetch(BASE_URL, { headers: buildHeaders(token) });
-  return handleJson<Almacenamiento[]>(res);
+  // Primera llamada (por defecto page=1 si tu backend lo toma así)
+  const firstRes = await fetch(BASE_URL, { headers: buildHeaders(token) });
+  const firstJson = await handleJson<any>(firstRes);
+
+  // Formato antiguo: ya es array
+  if (Array.isArray(firstJson)) return firstJson as Almacenamiento[];
+
+  // Formato nuevo
+  const dataPrimera = Array.isArray(firstJson?.data)
+    ? (firstJson.data as Almacenamiento[])
+    : [];
+  const pag = firstJson?.pagination;
+
+  // Si no hay paginación o solo hay una página, devuelve lo que hay
+  if (!pag || !Number.isFinite(pag.totalPages) || pag.totalPages <= 1) {
+    return dataPrimera;
+  }
+
+  // Hay más páginas: traerlas todas
+  const totalPages = Number(pag.totalPages) || 1;
+  const perPage = Number(pag.perPage) || dataPrimera.length || 10;
+
+  const promises: Promise<Almacenamiento[]>[] = [];
+  for (let page = 2; page <= totalPages; page++) {
+    const u = new URL(BASE_URL);
+    u.searchParams.set('page', String(page));
+    u.searchParams.set('perPage', String(perPage));
+
+    promises.push(
+      fetch(u.toString(), { headers: buildHeaders(token) })
+        .then((r) => handleJson<PaginatedResponse<Almacenamiento> | Almacenamiento[]>(r))
+        .then((j) => {
+          if (Array.isArray(j)) return j as Almacenamiento[];
+          return Array.isArray(j?.data) ? (j.data as Almacenamiento[]) : [];
+        })
+        .catch(() => [])
+    );
+  }
+
+  const rest = await Promise.all(promises);
+  return dataPrimera.concat(...rest);
 }
 
 export async function fetchAlmacenesEcommerCourier(token: string): Promise<Almacenamiento[]> {
@@ -127,7 +183,12 @@ export async function registrarMovimiento(
 
 export async function fetchMovimientos(token: string): Promise<MovimientoAlmacen[]> {
   const res = await fetch(`${BASE_URL}/movimientos`, { headers: buildHeaders(token) });
-  return handleJson<MovimientoAlmacen[]>(res);
+  const payload = await handleJson<any>(res);
+
+  // Normalización robusta
+  if (Array.isArray(payload)) return payload as MovimientoAlmacen[];
+  if (Array.isArray(payload?.data)) return payload.data as MovimientoAlmacen[];
+  return [];
 }
 
 /** NUEVO: validar un movimiento (Proceso -> Validado/Observado) */

@@ -62,7 +62,10 @@ export default function ImportPreviewModal({
 
   // Normalización
   const norm = (s: string) =>
-    (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    (s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
 
   // ===== Couriers (asociados reales) =====
   const [localCouriers, setLocalCouriers] = useState<CourierOption[]>([]);
@@ -113,7 +116,9 @@ export default function ImportPreviewModal({
   }, [localCouriers]);
   useEffect(() => {
     if (courierId || !groups?.length || !localCouriers.length) return;
-    const firstMatch = groups.map((g) => byCourierName.get(norm(g.courier))).find(Boolean);
+    const firstMatch = groups
+      .map((g) => byCourierName.get(norm(g.courier)))
+      .find(Boolean);
     if (firstMatch) setCourierId(firstMatch.id);
   }, [courierId, groups, byCourierName, localCouriers.length]);
 
@@ -127,7 +132,9 @@ export default function ImportPreviewModal({
       return Array.from(
         new Set(
           list
-            .map((z: any) => (typeof z?.distrito === 'string' ? z.distrito : ''))
+            .map((z: any) =>
+              typeof z?.distrito === 'string' ? z.distrito : ''
+            )
             .filter((d): d is string => d.length > 0)
         )
       );
@@ -148,7 +155,10 @@ export default function ImportPreviewModal({
           return;
         }
 
-        const zonasPriv = await fetchZonasByCourierPrivado(Number(courierId), token);
+        const zonasPriv = await fetchZonasByCourierPrivado(
+          Number(courierId),
+          token
+        );
         if (cancel) return;
 
         const uniqPriv: string[] = toDistritoList(zonasPriv);
@@ -165,23 +175,42 @@ export default function ImportPreviewModal({
   }, [courierId, token]);
 
   // ===== Productos (reales) =====
+  // ===== Productos (reales) =====
   const [productos, setProductos] = useState<ProductoOpt[]>([]);
+
   useEffect(() => {
     let cancel = false;
+
+    // Asegura un array de productos desde diversas respuestas posibles
+    const toArray = (res: any): any[] => {
+      if (Array.isArray(res)) return res;
+      if (Array.isArray(res?.data)) return res.data;
+      if (Array.isArray(res?.items)) return res.items;
+      if (Array.isArray(res?.results)) return res.results;
+      // Si viene como { data: { items: [] } } o similar
+      if (Array.isArray(res?.data?.items)) return res.data.items;
+      return [];
+      // Si tu backend usa otra clave (p.ej. res.content), puedes añadirla aquí sin tocar la lógica de abajo.
+    };
+
     async function load() {
       try {
         const res = await fetchProductos(token);
         if (cancel) return;
-        const mapped: ProductoOpt[] = (res || []).map((p: any) => ({
+
+        const list = toArray(res);
+        const mapped: ProductoOpt[] = list.map((p: any) => ({
           id: p.id,
           nombre: p.nombre_producto,
         }));
+
         setProductos(mapped);
       } catch (e) {
         console.error('No se pudieron cargar productos:', e);
         if (!cancel) setProductos([]);
       }
     }
+
     load();
     return () => {
       cancel = true;
@@ -193,7 +222,10 @@ export default function ImportPreviewModal({
     value: c.id,
     label: c.nombre,
   }));
-  const distritoOptions: Option[] = distritos.map((d) => ({ value: d, label: d }));
+  const distritoOptions: Option[] = distritos.map((d) => ({
+    value: d,
+    label: d,
+  }));
   const productoOptions: Option[] = productos.map((p) => ({
     value: p.id,
     label: p.nombre,
@@ -213,7 +245,9 @@ export default function ImportPreviewModal({
 
   // Patch de grupo
   const patchGroup = (idx: number, patch: Partial<PreviewGroupDTO>) => {
-    setGroups((prev) => prev.map((g, i) => (i === idx ? { ...g, ...patch } : g)));
+    setGroups((prev) =>
+      prev.map((g, i) => (i === idx ? { ...g, ...patch } : g))
+    );
   };
 
   // Totales y bandera de inválidos
@@ -252,7 +286,9 @@ export default function ImportPreviewModal({
 
   // aplicar valor a todas las filas seleccionadas
   const applyToSelected = (patch: Partial<PreviewGroupDTO>) => {
-    setGroups((prev) => prev.map((g, i) => (selected[i] ? { ...g, ...patch } : g)));
+    setGroups((prev) =>
+      prev.map((g, i) => (selected[i] ? { ...g, ...patch } : g))
+    );
   };
 
   // Confirmar importación
@@ -268,7 +304,9 @@ export default function ImportPreviewModal({
       return;
     }
 
-    const groupsToSend = someSelected ? groups.filter((_, i) => selected[i]) : groups;
+    const groupsToSend = someSelected
+      ? groups.filter((_, i) => selected[i])
+      : groups;
 
     const payload: ImportPayload = {
       groups: groupsToSend,
@@ -292,7 +330,10 @@ export default function ImportPreviewModal({
   if (!open) return null;
 
   return (
-    <CenteredModal title="Validación de datos" onClose={onClose} widthClass="max-w=[1400px]">
+    <CenteredModal
+      title="Validación de datos"
+      onClose={onClose}
+      widthClass="max-w=[1400px]">
       {/* Barra superior */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <select
@@ -301,10 +342,11 @@ export default function ImportPreviewModal({
           onChange={(e) => {
             const val = e.target.value;
             setCourierId(val ? Number(val) : '');
-          }}
-        >
+          }}>
           <option value="">
-            {localCouriers.length ? 'Seleccionar Courier (requerido)' : 'Cargando couriers...'}
+            {localCouriers.length
+              ? 'Seleccionar Courier (requerido)'
+              : 'Cargando couriers...'}
           </option>
           {localCouriers.map((c) => (
             <option key={c.id} value={c.id}>
@@ -379,14 +421,15 @@ export default function ImportPreviewModal({
               <th className="px-2 py-2 border-b border-gray-200">
                 <select
                   className="w-full border rounded px-2 py-1"
-                  disabled={!(typeof courierId === 'number') || !distritos.length}
+                  disabled={
+                    !(typeof courierId === 'number') || !distritos.length
+                  }
                   onChange={(e) => {
                     const v = e.target.value;
                     if (!v) return;
                     applyToSelected({ distrito: v });
                     e.currentTarget.selectedIndex = 0;
-                  }}
-                >
+                  }}>
                   <option value="">
                     {typeof courierId !== 'number'
                       ? 'Elige courier'
@@ -457,8 +500,7 @@ export default function ImportPreviewModal({
                     const c = localCouriers.find((x) => String(x.id) === val);
                     if (c) applyToSelected({ courier: c.nombre });
                     e.currentTarget.selectedIndex = 0;
-                  }}
-                >
+                  }}>
                   <option value="">Seleccionar</option>
                   {localCouriers.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -491,8 +533,7 @@ export default function ImportPreviewModal({
                       })
                     );
                     e.currentTarget.selectedIndex = 0;
-                  }}
-                >
+                  }}>
                   <option value="">Producto objetivo</option>
                   {productos.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -517,7 +558,10 @@ export default function ImportPreviewModal({
                             if (!selected[i]) return g;
                             return {
                               ...g,
-                              items: g.items.map((it) => ({ ...it, cantidad: n })),
+                              items: g.items.map((it) => ({
+                                ...it,
+                                cantidad: n,
+                              })),
                             };
                           })
                         );
@@ -584,16 +628,36 @@ export default function ImportPreviewModal({
           <thead>
             <tr className="sticky top-0 z-10 bg-gray-100 text-xs font-medium">
               <th className="border-b border-gray-200 px-2 py-2"></th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Nombre</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Distrito</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Celular</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Dirección</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Referencia</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Courier</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Producto</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-right">Cantidad</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-right">Monto</th>
-              <th className="border-b border-gray-200 px-2 py-2 text-left">Fec. Entrega</th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">
+                Nombre
+              </th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">
+                Distrito
+              </th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">
+                Celular
+              </th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">
+                Dirección
+              </th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">
+                Referencia
+              </th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">
+                Courier
+              </th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">
+                Producto
+              </th>
+              <th className="border-b border-gray-200 px-2 py-2 text-right">
+                Cantidad
+              </th>
+              <th className="border-b border-gray-200 px-2 py-2 text-right">
+                Monto
+              </th>
+              <th className="border-b border-gray-200 px-2 py-2 text-left">
+                Fec. Entrega
+              </th>
             </tr>
           </thead>
 
@@ -630,7 +694,9 @@ export default function ImportPreviewModal({
                 <td className="border-b border-gray-100 px-2 py-1 align-top">
                   <input
                     value={g.telefono}
-                    onChange={(e) => patchGroup(gi, { telefono: e.target.value })}
+                    onChange={(e) =>
+                      patchGroup(gi, { telefono: e.target.value })
+                    }
                     className="w-full border rounded px-2 py-1"
                   />
                 </td>
@@ -638,7 +704,9 @@ export default function ImportPreviewModal({
                 <td className="border-b border-gray-100 px-2 py-1 align-top">
                   <input
                     value={g.direccion}
-                    onChange={(e) => patchGroup(gi, { direccion: e.target.value })}
+                    onChange={(e) =>
+                      patchGroup(gi, { direccion: e.target.value })
+                    }
                     className="w-full border rounded px-2 py-1"
                   />
                 </td>
@@ -646,7 +714,9 @@ export default function ImportPreviewModal({
                 <td className="border-b border-gray-100 px-2 py-1 align-top">
                   <input
                     value={g.referencia || ''}
-                    onChange={(e) => patchGroup(gi, { referencia: e.target.value })}
+                    onChange={(e) =>
+                      patchGroup(gi, { referencia: e.target.value })
+                    }
                     className="w-full border rounded px-2 py-1"
                   />
                 </td>
@@ -670,7 +740,10 @@ export default function ImportPreviewModal({
                         key={ii}
                         value={
                           (it as any).producto_id ??
-                          (productos.find((p) => p.nombre === (it.producto || ''))?.id ?? '')
+                          productos.find(
+                            (p) => p.nombre === (it.producto || '')
+                          )?.id ??
+                          ''
                         }
                         onChange={(e) => {
                           const id = Number(e.target.value);
@@ -694,8 +767,7 @@ export default function ImportPreviewModal({
                             )
                           );
                         }}
-                        className="w-full border rounded px-2 py-1"
-                      >
+                        className="w-full border rounded px-2 py-1">
                         <option value="">Seleccionar producto...</option>
                         {productoOptions.map((p) => (
                           <option key={p.value} value={p.value}>
@@ -715,9 +787,13 @@ export default function ImportPreviewModal({
                         type="number"
                         min={0}
                         value={it.cantidad ?? 0}
-                        onChange={(e) => handleCantidad(gi, ii, Number(e.target.value))}
+                        onChange={(e) =>
+                          handleCantidad(gi, ii, Number(e.target.value))
+                        }
                         className={`w-full border rounded px-2 py-1 text-right ${
-                          isInvalidCantidad(it.cantidad) ? 'border-red-500 bg-red-50' : ''
+                          isInvalidCantidad(it.cantidad)
+                            ? 'border-red-500 bg-red-50'
+                            : ''
                         }`}
                       />
                     ))}
@@ -729,7 +805,9 @@ export default function ImportPreviewModal({
                     type="number"
                     step="0.01"
                     value={g.monto_total ?? 0}
-                    onChange={(e) => patchGroup(gi, { monto_total: Number(e.target.value) })}
+                    onChange={(e) =>
+                      patchGroup(gi, { monto_total: Number(e.target.value) })
+                    }
                     className={`w-full border rounded px-2 py-1 text-right ${
                       (g.monto_total ?? 0) < 0 ? 'border-red-500 bg-red-50' : ''
                     }`}
@@ -762,15 +840,16 @@ export default function ImportPreviewModal({
       {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
 
       <div className="flex justify-end gap-2 mt-4">
-        <button onClick={onClose} className="px-3 py-2 text-sm rounded border hover:bg-gray-50">
+        <button
+          onClick={onClose}
+          className="px-3 py-2 text-sm rounded border hover:bg-gray-50">
           Cerrar
         </button>
         <button
           onClick={confirmarImportacion}
           disabled={loading || hasInvalid}
           className="px-4 py-2 text-sm rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
-          title={hasInvalid ? 'Corrige los campos en rojo' : ''}
-        >
+          title={hasInvalid ? 'Corrige los campos en rojo' : ''}>
           {loading ? 'Importando…' : 'Cargar Datos'}
         </button>
       </div>

@@ -1,3 +1,4 @@
+// src/auth/pages/LoginPage.tsx
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackgroundImage from '@/assets/images/login-background.webp';
@@ -25,23 +26,43 @@ export default function LoginPage() {
   useEffect(() => {
     if (!user) return;
 
-    const currentPath = window.location.pathname;
+    const currentPath =
+      (typeof window !== 'undefined' ? window.location.pathname : '/')?.replace(/\/+$/, '') || '/';
 
-    // Rol principal
-    const role = user.rol?.nombre; // viene del backend como string
+    const role = user.rol?.nombre as unknown;
+
+    // 1) Priorizar módulo si es TRABAJADOR
+    if (isRole(role) && role === 'trabajador') {
+      const moduloAsignado: unknown = user.perfil_trabajador?.modulo_asignado;
+      if (isModuloAsignado(moduloAsignado)) {
+        const target = `/${moduloAsignado}`.replace(/\/+$/, '') || '/';
+        if (currentPath !== target) navigate(target, { replace: true });
+        return;
+      }
+      // Si no tiene módulo, caerá al mapeo de rol más abajo
+    }
+
+    // 2) Rol principal (incluye representante con resolución por contexto)
     if (isRole(role)) {
-      const targetPath = roleDefaultPaths[role]; // role ahora es Role
-      if (currentPath !== targetPath) {
-        navigate(targetPath, { replace: true });
+      let targetPath = roleDefaultPaths[role];
+
+      if (role === 'representante') {
+        const pt = user.perfil_trabajador;
+        if (user.courier || pt?.courier_id) {
+          targetPath = '/courier';
+        } else if (user.ecommerce || pt?.ecommerce_id || (user as any)?.ecommerce_id) {
+          targetPath = '/ecommerce';
+        }
+      }
+
+      const normTarget = targetPath.replace(/\/+$/, '') || '/';
+      if (currentPath !== normTarget) {
+        navigate(normTarget, { replace: true });
       }
       return;
     }
 
-    // Trabajador con módulo asignado
-    const moduloAsignado = user.perfil_trabajador?.modulo_asignado;
-    if (isModuloAsignado(moduloAsignado) && currentPath !== `/${moduloAsignado}`) {
-      navigate(`/${moduloAsignado}`, { replace: true });
-    }
+    // 3) Sin rol válido: no redirige (se queda en login)
   }, [user, navigate]);
 
   return (

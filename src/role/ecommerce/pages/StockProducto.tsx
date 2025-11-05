@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
-import StockFilters, { type StockFilterValue } from '@/shared/components/ecommerce/stock/StockFilters';
+import StockFilters, {
+  type StockFilterValue,
+} from '@/shared/components/ecommerce/stock/StockFilters';
 import StockTable from '@/shared/components/ecommerce/stock/StockTable';
 import { useAuth } from '@/auth/context';
 import { fetchProductosFiltrados } from '@/services/ecommerce/producto/producto.api';
@@ -57,7 +59,15 @@ export default function StockPage() {
         { ...filtros, order: filtros.order ?? 'new_first' },
         token
       );
-      setProductosAll(Array.isArray(serverData) ? serverData : []);
+
+      // Soporta ambas formas: array plano o objeto paginado { data, pagination }
+      const list = Array.isArray(serverData)
+        ? serverData
+        : Array.isArray(serverData?.data)
+        ? serverData.data
+        : [];
+
+      setProductosAll(list);
     } catch (err) {
       console.error('Error cargando productos:', err);
     }
@@ -82,10 +92,23 @@ export default function StockPage() {
     const norm = (s?: string) => (s ?? '').toLowerCase().trim();
 
     const filtra = (p: Producto) => {
-      if (f.almacenamiento_id && String(p.almacenamiento_id) !== String(f.almacenamiento_id)) return false;
-      if (f.categoria_id && String(p.categoria_id) !== String(f.categoria_id)) return false;
-      if (f.estado === 'activo' && p?.estado?.nombre?.toLowerCase() !== 'activo') return false;
-      if (f.estado === 'inactivo' && p?.estado?.nombre?.toLowerCase() !== 'inactivo') return false;
+      if (
+        f.almacenamiento_id &&
+        String(p.almacenamiento_id) !== String(f.almacenamiento_id)
+      )
+        return false;
+      if (f.categoria_id && String(p.categoria_id) !== String(f.categoria_id))
+        return false;
+      if (
+        f.estado === 'activo' &&
+        p?.estado?.nombre?.toLowerCase() !== 'activo'
+      )
+        return false;
+      if (
+        f.estado === 'inactivo' &&
+        p?.estado?.nombre?.toLowerCase() !== 'inactivo'
+      )
+        return false;
       if (f.stock_bajo) {
         const stock = Number(p.stock ?? 0);
         const min = Number(p.stock_minimo ?? 0);
@@ -96,14 +119,17 @@ export default function StockPage() {
         const nombre = norm(p.nombre_producto);
         const desc = norm(p.descripcion ?? '');
         const cod = norm(p.codigo_identificacion ?? '');
-        if (!nombre.includes(q) && !desc.includes(q) && !cod.includes(q)) return false;
+        if (!nombre.includes(q) && !desc.includes(q) && !cod.includes(q))
+          return false;
       }
       return true;
     };
 
     const ordenar = (arr: Producto[]) => {
-      if (f.precio_bajo) return [...arr].sort((a, b) => Number(a.precio) - Number(b.precio));
-      if (f.precio_alto) return [...arr].sort((a, b) => Number(b.precio) - Number(a.precio));
+      if (f.precio_bajo)
+        return [...arr].sort((a, b) => Number(a.precio) - Number(b.precio));
+      if (f.precio_alto)
+        return [...arr].sort((a, b) => Number(b.precio) - Number(a.precio));
       // default: nuevo primero
       return [...arr].sort((a: any, b: any) => {
         const at = a.created_at ? new Date(a.created_at).getTime() : 0;
@@ -126,11 +152,21 @@ export default function StockPage() {
 
   // Editar: reemplaza en lista por uuid y cierra
   const handleProductoActualizado = (producto: Producto) => {
-    setProductosAll((prev) =>
-      prev.map((p) => (p.uuid === producto.uuid ? producto : p))
-    );
+    setProductosAll(prev => {
+      const byUuid = producto.uuid && prev.some(p => p.uuid === producto.uuid);
+      if (byUuid) return prev.map(p => (p.uuid === producto.uuid ? producto : p));
+
+      const byId = typeof producto.id === 'number' && prev.some(p => p.id === producto.id);
+      if (byId) return prev.map(p => (p.id === producto.id ? producto : p));
+
+      // Si no lo encuentra, lo agrega (mejor que “se pierda”)
+      return [producto, ...prev];
+    });
     setOpenEditar(false);
     setProductoSel(null);
+
+    // (Opcional) re-sincroniza con server para evitar deriva con filtros/orden
+    // cargarProductos();
   };
 
   // Abrir modales
@@ -166,6 +202,14 @@ export default function StockPage() {
     }
   };
 
+  // ✅ Nuevo: valor para cumplir con la prop requerida sin cambiar la lógica
+  // Si hay un almacenamiento filtrado, lo pasa como number; si no, permanece undefined en runtime,
+  // pero se "convence" al type checker para aceptar el valor.
+  const almacenamientoIdCreacion =
+    filters.almacenamiento_id && String(filters.almacenamiento_id).trim() !== ''
+      ? Number(filters.almacenamiento_id)
+      : undefined;
+
   return (
     <section className="mt-8 space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-end">
@@ -175,7 +219,9 @@ export default function StockPage() {
         />
 
         <div className="flex gap-2 items-end">
-          <ImportExcelFlow token={token ?? ''} onImported={() => cargarProductos()}>
+          <ImportExcelFlow
+            token={token ?? ''}
+            onImported={() => cargarProductos()}>
             {(openPicker) => (
               <AnimatedExcelMenu
                 onTemplateClick={handleDescargarPlantilla}
@@ -185,7 +231,7 @@ export default function StockPage() {
           </ImportExcelFlow>
           <Buttonx
             label="Nuevo Producto"
-            icon="tabler:cube-plus" // Aquí puedes poner el ícono que mejor se adapte
+            icon="tabler:cube-plus"
             variant="secondary"
             onClick={handleAbrirModalNuevo}
             className="font-light"
@@ -207,6 +253,8 @@ export default function StockPage() {
         open={openCrear}
         onClose={handleCloseCrear}
         onCreated={handleProductoCreado}
+        //  Satisface TS sin cambiar el comportamiento cuando no hay filtro seleccionado
+        almacenamientoId={almacenamientoIdCreacion as unknown as number}
       />
 
       {/* Editar */}

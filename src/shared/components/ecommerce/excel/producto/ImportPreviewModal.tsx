@@ -19,6 +19,17 @@ type Props = {
   preloadedCategoriaOptions?: Option[];
 };
 
+// Normaliza un valor (array, {items:[]}, {data:[]}, o null) a T[]
+function toArray<T>(val: unknown): T[] {
+  if (Array.isArray(val)) return val as T[];
+  if (val && typeof val === 'object') {
+    const obj = val as any;
+    if (Array.isArray(obj.items)) return obj.items as T[];
+    if (Array.isArray(obj.data))  return obj.data  as T[];
+  }
+  return [];
+}
+
 export default function ImportProductosPreviewModal({
   open,
   onClose,
@@ -29,22 +40,22 @@ export default function ImportProductosPreviewModal({
   preloadedCategoriaOptions = [],
 }: Props) {
   // ----------------- STATE -----------------
-  const initialPreview: PreviewProductoDTO[] = Array.isArray(data?.preview) ? data.preview : [];
+  const initialPreview: PreviewProductoDTO[] = toArray<PreviewProductoDTO>(data?.preview);
   const [groups, setGroups] = useState<PreviewProductoDTO[]>(initialPreview);
 
   useEffect(() => {
-    setGroups(Array.isArray(data?.preview) ? data.preview : []);
+    setGroups(toArray<PreviewProductoDTO>(data?.preview));
   }, [data]);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const categoriaNames = useMemo(
-    () => (preloadedCategoriaOptions ?? []).map(o => o.label),
+    () => toArray<Option>(preloadedCategoriaOptions as unknown).map(o => o.label),
     [preloadedCategoriaOptions]
   );
   const almacenNames = useMemo(
-    () => (preloadedAlmacenOptions ?? []).map(o => o.label),
+    () => toArray<Option>(preloadedAlmacenOptions as unknown).map(o => o.label),
     [preloadedAlmacenOptions]
   );
 

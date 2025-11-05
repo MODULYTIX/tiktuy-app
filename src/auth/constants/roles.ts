@@ -16,7 +16,7 @@ export type Role = (typeof validRoles)[number];
 export const roleDefaultPaths: Record<Role, string> = {
   admin: '/admin',
   ecommerce: '/ecommerce',
-  representante: '/ecommerce', 
+  representante: '/', 
   courier: '/courier',
   motorizado: '/motorizado',
   trabajador: '/trabajador',

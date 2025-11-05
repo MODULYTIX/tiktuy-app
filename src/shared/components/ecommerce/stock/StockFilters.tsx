@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { useAuth } from '@/auth/context';
@@ -13,7 +13,7 @@ interface Filters {
   almacenamiento_id: string;
   categoria_id: string;
   estado: string;
-  nombre: string; 
+  nombre: string;
   stock_bajo: boolean;
   precio_bajo: boolean;
   precio_alto: boolean;
@@ -24,14 +24,32 @@ interface Props {
   onFilterChange?: (filters: Filters) => void;
 }
 
-/* 👇 Exporta el tipo que necesitas importar desde otros archivos */
+/* Export para otros archivos */
 export type StockFilterValue = Filters;
 export type { Filters };
 
+/* --- Helpers --- */
+function toArray<T = unknown>(res: any): T[] {
+  if (Array.isArray(res)) return res as T[];
+  if (Array.isArray(res?.data)) return res.data as T[];
+  if (res && typeof res === 'object') return Object.values(res) as T[];
+  return [];
+}
+
 export default function StockFilters({ onFilterChange }: Props) {
   const { token } = useAuth();
+
+  /* Data */
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
+
+  /* UI state */
+  const [loadingCats, setLoadingCats] = useState(false);
+  const [loadingAlm, setLoadingAlm] = useState(false);
+  const [errorCats, setErrorCats] = useState<string | null>(null);
+  const [errorAlm, setErrorAlm] = useState<string | null>(null);
+
+  /* Filtros controlados */
   const [filters, setFilters] = useState<Filters>({
     almacenamiento_id: '',
     categoria_id: '',
@@ -43,26 +61,73 @@ export default function StockFilters({ onFilterChange }: Props) {
     search: '',
   });
 
+  /* Evitar setState en desmontaje */
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  /* Carga de datos */
   useEffect(() => {
     if (!token) return;
-    fetchCategorias(token).then(setCategorias).catch(console.error);
-    fetchAlmacenes(token).then(setAlmacenes).catch(console.error);
+
+    setLoadingCats(true);
+    setErrorCats(null);
+    fetchCategorias(token)
+      .then((res) => {
+        if (!mountedRef.current) return;
+        setCategorias(toArray<Categoria>(res));
+      })
+      .catch((err) => {
+        console.error('Error al cargar categorías:', err);
+        if (!mountedRef.current) return;
+        setErrorCats('No se pudieron cargar las categorías');
+        setCategorias([]); // defensivo
+      })
+      .finally(() => mountedRef.current && setLoadingCats(false));
+
+    setLoadingAlm(true);
+    setErrorAlm(null);
+    fetchAlmacenes(token)
+      .then((res) => {
+        if (!mountedRef.current) return;
+        setAlmacenes(toArray<Almacenamiento>(res));
+      })
+      .catch((err) => {
+        console.error('Error al cargar almacenes:', err);
+        if (!mountedRef.current) return;
+        setErrorAlm('No se pudieron cargar los almacenes');
+        setAlmacenes([]); // defensivo
+      })
+      .finally(() => mountedRef.current && setLoadingAlm(false));
   }, [token]);
 
+  /* Notificar cambios al padre (el padre ya hace debounce) */
   useEffect(() => {
     onFilterChange?.(filters);
   }, [filters, onFilterChange]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked, type, value } = e.target;
-    if (type === 'checkbox') {
+  /* Handlers */
+  const handleCheckboxChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, checked } = e.target;
       setFilters((prev) => ({ ...prev, [name]: checked }));
-    } else {
-      setFilters((prev) => ({ ...prev, [name]: value }));
-    }
-  };
+    },
+    []
+  );
 
-  const handleReset = () => {
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const { name, value } = e.target;
+      setFilters((prev) => ({ ...prev, [name]: value }));
+    },
+    []
+  );
+
+  const handleReset = useCallback(() => {
     setFilters({
       almacenamiento_id: '',
       categoria_id: '',
@@ -73,12 +138,23 @@ export default function StockFilters({ onFilterChange }: Props) {
       precio_alto: false,
       search: '',
     });
-  };
+  }, []);
+
+  /* Opciones memoizadas (opcional, por limpieza) */
+  const disponibilidadAlmacenes = useMemo(
+    () => (Array.isArray(almacenes) ? almacenes : []),
+    [almacenes]
+  );
+  const disponibilidadCategorias = useMemo(
+    () => (Array.isArray(categorias) ? categorias : []),
+    [categorias]
+  );
 
   return (
     <div className="bg-white p-5 rounded-md shadow-default border-b-4 border-gray90 ">
       {/* xs: 1 col, sm: 2 cols, lg: 1fr 1fr 1fr auto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm ">
+
         {/* Ecommerce */}
         <Selectx
           label="Ecommerce"
@@ -86,45 +162,55 @@ export default function StockFilters({ onFilterChange }: Props) {
           onChange={(e) =>
             setFilters((prev) => ({ ...prev, almacenamiento_id: e.target.value }))
           }
-          placeholder="Seleccionar ecommerce"
+          placeholder={loadingAlm ? 'Cargando...' : 'Seleccionar ecommerce'}
           id="f-ecommerce"
+          disabled={loadingAlm}
+          name="almacenamiento_id"
         >
-          {almacenes.map((a) => (
+          <option value="">Todos</option>
+          {disponibilidadAlmacenes.map((a) => (
             <option key={a.id} value={String(a.id)}>
               {a.nombre_almacen}
             </option>
           ))}
         </Selectx>
+        {errorAlm && (
+          <div className="text-xs text-red-600 col-span-full">{errorAlm}</div>
+        )}
 
         {/* Categorías */}
         <Selectx
           label="Categorías"
           value={filters.categoria_id}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, categoria_id: e.target.value }))
-          }
-          placeholder="Seleccionar categoría"
+          onChange={handleInputChange}
+          placeholder={loadingCats ? 'Cargando...' : 'Seleccionar categoría'}
           className="w-full"
           id="f-categoria"
+          disabled={loadingCats}
+          name="categoria_id"
         >
-          {categorias.map((c) => (
+          <option value="">Todas</option>
+          {disponibilidadCategorias.map((c) => (
             <option key={c.id} value={String(c.id)}>
               {c.nombre}
             </option>
           ))}
         </Selectx>
+        {errorCats && (
+          <div className="text-xs text-red-600 col-span-full">{errorCats}</div>
+        )}
 
         {/* Estado */}
         <Selectx
           label="Estado"
           value={filters.estado}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, estado: e.target.value }))
-          }
+          onChange={handleInputChange}
           placeholder="Seleccionar estado"
           className="w-full"
           id="f-estado"
+          name="estado"
         >
+          <option value="">Todos</option>
           <option value="activo">Activo</option>
           <option value="inactivo">Inactivo</option>
         </Selectx>
@@ -138,7 +224,7 @@ export default function StockFilters({ onFilterChange }: Props) {
                 type="checkbox"
                 name="stock_bajo"
                 checked={filters.stock_bajo}
-                onChange={handleChange}
+                onChange={handleCheckboxChange}
                 className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
               />
               <span>Stock bajo</span>
@@ -148,7 +234,7 @@ export default function StockFilters({ onFilterChange }: Props) {
                 type="checkbox"
                 name="precio_bajo"
                 checked={filters.precio_bajo}
-                onChange={handleChange}
+                onChange={handleCheckboxChange}
                 className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
               />
               <span>Precios bajos</span>
@@ -158,7 +244,7 @@ export default function StockFilters({ onFilterChange }: Props) {
                 type="checkbox"
                 name="precio_alto"
                 checked={filters.precio_alto}
-                onChange={handleChange}
+                onChange={handleCheckboxChange}
                 className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
               />
               <span>Precios altos</span>
@@ -170,20 +256,19 @@ export default function StockFilters({ onFilterChange }: Props) {
         <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <SearchInputx
             value={filters.search}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            placeholder="Buscar productos por nombre, " // Aquí defines el texto del placeholder
+            onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+            placeholder="Buscar productos por nombre, código o descripción"
             className="w-full"
+            name="search"
           />
 
           <Buttonx
             label="Limpiar Filtros"
             icon="mynaui:delete"
-            variant="outlined" // Si deseas el fondo azul, usa la variante "primary"
-            onClick={handleReset} // Asegúrate de que esto sea una función válida
+            variant="outlined"
+            onClick={handleReset}
             disabled={false}
           />
-
-
         </div>
       </div>
     </div>

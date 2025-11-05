@@ -265,7 +265,7 @@ export default function EditarPedidoAsignadoModal({
                     {(pedido?.detalles ?? []).map((it, i) => (
                       <tr key={it.producto_id ?? it.producto?.id ?? i} className="border-y border-gray20">
                         <td className="px-3 py-2 w-full align-top">
-                          <div className="font-normal">{it.nombre ?? it.producto?.nombre_producto}</div>
+                          <div className="font-normal">{it.producto_id ?? it.producto?.nombre_producto}</div>
                           {it.descripcion && (
                             <div className="text-gray-500 text-xs">
                               {it.descripcion}

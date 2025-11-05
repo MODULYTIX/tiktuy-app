@@ -1,17 +1,27 @@
 // src/shared/components/ecommerce/stock/ProductoEditarModal.tsx
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from 'react';
 import { actualizarProducto } from '@/services/ecommerce/producto/producto.api';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
-import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { useAuth } from '@/auth/context';
 
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
-import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
+
 import Tittlex from '@/shared/common/Tittlex';
 import { Inputx, InputxNumber, InputxTextarea } from '@/shared/common/Inputx';
-import { Selectx } from '@/shared/common/Selectx';
 import Buttonx from '@/shared/common/Buttonx';
+import {
+  SelectxCreatable,
+  type CreatableOption,
+} from '@/shared/common/SelectxCreatable';
+import { Icon } from '@iconify/react';
 
 type Props = {
   open: boolean;
@@ -28,6 +38,10 @@ const ESTADO_OPCIONES: EstadoOption[] = [
   { id: 'inactivo', nombre: 'Inactivo' },
   { id: 'descontinuado', nombre: 'Descontinuado' },
 ];
+
+function canonical(s: string) {
+  return s.normalize('NFKC').toLowerCase().trim().replace(/\s+/g, ' ');
+}
 
 function normalizarEstado(value: unknown): EstadoId {
   if (!value) return 'activo';
@@ -48,151 +62,265 @@ type FormState = {
   codigo_identificacion: string;
   nombre_producto: string;
   descripcion: string;
-  categoria_id: string;
-  almacenamiento_id: string;
+
+  categoriaInput: string;     // texto libre
+  categoriaSelectedId: string; // id seleccionado (si no se creará)
+
   precio: string;
   stock: string;
   stock_minimo: string;
   peso: string;
   estado: EstadoId;
   fecha_registro: string;
+
+  // imagen
+  imagen_url: string | null;  // la que ya tiene el producto (si hay)
 };
 
-export default function ProductoEditarModal({ open, onClose, initialData, onUpdated }: Props) {
+function parseNum(input: string, decimals = 2): number | undefined {
+  if (input === '' || input == null) return undefined;
+  const n = Number(String(input).replace(',', '.'));
+  if (!Number.isFinite(n)) return undefined;
+  return Number(n.toFixed(decimals));
+}
+
+export default function ProductoEditarModal({
+  open,
+  onClose,
+  initialData,
+  onUpdated,
+}: Props) {
   const { token } = useAuth();
+
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [almacenes, setAlmacenes] = useState<Almacenamiento[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const formRef = useRef<HTMLFormElement | null>(null);
+
+  // Imagen (UI local)
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormState>({
     codigo_identificacion: '',
     nombre_producto: '',
     descripcion: '',
-    categoria_id: '',
-    almacenamiento_id: '',
+
+    categoriaInput: '',
+    categoriaSelectedId: '',
+
     precio: '',
     stock: '',
     stock_minimo: '',
     peso: '',
     estado: 'activo',
     fecha_registro: new Date().toISOString(),
+
+    imagen_url: null,
   });
 
+  // Cargar categorías cuando abre
   useEffect(() => {
     if (!token || !open) return;
     fetchCategorias(token).then(setCategorias).catch(console.error);
-    fetchAlmacenes(token).then(setAlmacenes).catch(console.error);
   }, [token, open]);
 
+  // Hydrate con initialData al abrir
   useEffect(() => {
-    if (!open) return;
-    if (initialData) {
-      setForm({
-        codigo_identificacion: String((initialData as any).codigo_identificacion ?? ''),
-        nombre_producto: String((initialData as any).nombre_producto ?? ''),
-        descripcion: String((initialData as any).descripcion ?? ''),
-        categoria_id: String((initialData as any).categoria_id ?? ''),
-        almacenamiento_id: String((initialData as any).almacenamiento_id ?? ''),
-        precio: String((initialData as any).precio ?? ''),
-        stock: String((initialData as any).stock ?? ''),
-        stock_minimo: String((initialData as any).stock_minimo ?? ''),
-        peso: String((initialData as any).peso ?? ''),
-        estado: normalizarEstado((initialData as any).estado?.nombre ?? (initialData as any).estado),
-        fecha_registro: String((initialData as any).fecha_registro ?? new Date().toISOString()),
-      });
-    }
+    if (!open || !initialData) return;
+
+    setForm({
+      codigo_identificacion: String(initialData.codigo_identificacion ?? ''),
+      nombre_producto: String(initialData.nombre_producto ?? ''),
+      descripcion: String(initialData.descripcion ?? ''),
+
+      // si hay include categoria, hidratar ambos campos
+      categoriaInput: initialData.categoria?.nombre ?? '',
+      categoriaSelectedId: initialData.categoria_id ? String(initialData.categoria_id) : '',
+
+      precio: initialData.precio != null ? String(initialData.precio) : '',
+      stock: initialData.stock != null ? String(initialData.stock) : '',
+      stock_minimo: initialData.stock_minimo != null ? String(initialData.stock_minimo) : '',
+      peso: initialData.peso != null ? String(initialData.peso) : '',
+      estado: normalizarEstado(initialData.estado?.nombre ?? initialData.estado),
+      fecha_registro: String(initialData.fecha_registro ?? new Date().toISOString()),
+
+      imagen_url: initialData.imagen_url ?? null,
+    });
+
+    // reset selección de archivo/preview
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setFile(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData, open]);
 
+  // liberar objectURL al desmontar
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  // Opciones categoría (ordenadas)
+  const catOptions: CreatableOption[] = useMemo(
+    () =>
+      categorias
+        .slice()
+        .sort((a, b) =>
+          a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+        )
+        .map((c) => ({ id: c.id, label: c.nombre })),
+    [categorias]
+  );
+
+  // Handlers básicos
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((p) => ({ ...p, [name]: value }));
   };
 
-  const handleClose = () => onClose();
+  function onCategoriaInputChange(v: string) {
+    setForm((p) => {
+      const match = catOptions.find((o) => canonical(o.label) === canonical(v));
+      return {
+        ...p,
+        categoriaInput: v,
+        categoriaSelectedId: match ? String(match.id) : '',
+      };
+    });
+  }
+  function onCategoriaSelect(opt: CreatableOption) {
+    setForm((p) => ({
+      ...p,
+      categoriaInput: opt.label,
+      categoriaSelectedId: String(opt.id),
+    }));
+  }
+  function onCategoriaCreate(value: string) {
+    setForm((p) => ({ ...p, categoriaInput: value, categoriaSelectedId: '' }));
+  }
+
+  // Imagen (solo UI): seleccionar / ver / descargar / eliminar
+  function onPickFile(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    if (!f) return;
+    if (!f.type.startsWith('image/')) return;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    const url = URL.createObjectURL(f);
+    setPreviewUrl(url);
+    setFile(f);
+  }
+
+  function onViewImage() {
+    const url = previewUrl || form.imagen_url;
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  async function onDownloadImage() {
+    const url = previewUrl || form.imagen_url;
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'imagen';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function onDeleteImage() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setFile(null);
+    // marca intención de borrar en el submit
+    setForm((p) => ({ ...p, imagen_url: null }));
+  }  
+
+  const handleClose = () => {
+    // limpiar estado visual de imagen
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setFile(null);
+    onClose();
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!token || !initialData || saving) return;
-
-    const precio = form.precio === '' ? undefined : parseFloat(form.precio);
-    const stock = form.stock === '' ? undefined : parseInt(form.stock);
-    const stock_minimo = form.stock_minimo === '' ? undefined : parseInt(form.stock_minimo);
-    const peso = form.peso === '' ? undefined : parseFloat(form.peso);
-
-    setSaving(true);
-
-    // Omitimos campos conflictivos y definimos los que sí enviamos
-    type Payload = Omit<
-      Partial<Producto>,
-      'estado' | 'categoria_id' | 'almacenamiento_id' | 'precio' | 'stock' | 'stock_minimo' | 'peso' | 'fecha_registro'
-    > & {
-      estado?: EstadoId;
-      categoria_id?: number;
-      almacenamiento_id?: number;
-      precio?: number;
-      stock?: number;
-      stock_minimo?: number;
-      peso?: number;
-      fecha_registro?: string;
-    };
-
-    const payload: Payload = {
+  
+    const payload: any = {
+      codigo_identificacion: form.codigo_identificacion?.trim(),
       nombre_producto: form.nombre_producto?.trim(),
       descripcion: form.descripcion?.trim(),
-      codigo_identificacion: form.codigo_identificacion?.trim(),
-      categoria_id: form.categoria_id ? Number(form.categoria_id) : undefined,
-      almacenamiento_id: form.almacenamiento_id ? Number(form.almacenamiento_id) : undefined,
-      precio: typeof precio === 'number' && !Number.isNaN(precio) ? precio : undefined,
-      stock: typeof stock === 'number' && !Number.isNaN(stock) ? stock : undefined,
-      stock_minimo: typeof stock_minimo === 'number' && !Number.isNaN(stock_minimo) ? stock_minimo : undefined,
-      peso: typeof peso === 'number' && !Number.isNaN(peso) ? peso : undefined,
       estado: form.estado,
-      // fecha_registro: new Date(form.fecha_registro).toISOString(), // habilítalo si se edita la fecha
+      ...(form.categoriaSelectedId
+        ? { categoria_id: Number(form.categoriaSelectedId) }
+        : form.categoriaInput.trim()
+        ? { categoria: { nombre: form.categoriaInput.trim(), descripcion: '', es_global: true } }
+        : {}),
+      ...(parseNum(form.precio, 2) !== undefined && { precio: parseNum(form.precio, 2) }),
+      ...(parseNum(form.stock, 0) !== undefined && { stock: parseNum(form.stock, 0) }),
+      ...(parseNum(form.stock_minimo, 0) !== undefined && { stock_minimo: parseNum(form.stock_minimo, 0) }),
+      ...(parseNum(form.peso, 3) !== undefined && { peso: parseNum(form.peso, 3) }),
     };
-
+  
+    // ⬅️ Nuevo: subir imagen si la hay
+    if (file) {
+      payload.file = file;              // ↩ hace que actualizarProducto use FormData y envíe 'imagen'
+    } else if (form.imagen_url === null) {
+      payload.imagen_url_remove = true; // ↩ borrar imagen existente
+    }
+  
+    setSaving(true);
     try {
-      // Cast puntual para cumplir la firma sin tocar tu API ni la lógica
-      const producto = await actualizarProducto(
-        (initialData as any).uuid,
-        (payload as unknown as Partial<Producto>),
-        token
-      );
-      onUpdated?.(producto);
-      onClose();
+      const updated = await actualizarProducto(initialData.uuid, payload, token);
+      onUpdated?.(updated);
+      handleClose();
     } catch (err) {
       console.error('Error al actualizar producto:', err);
     } finally {
       setSaving(false);
     }
   };
+  
 
   if (!open || !initialData) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex">
+      {/* Backdrop */}
       <div className="flex-1 bg-black/40" onClick={handleClose} />
-      <div className="w-full max-w-md bg-white shadow-lg h-full flex flex-col gap-5 px-5 py-5">
-        <Tittlex
-          variant="modal"
-          icon="mdi:pencil-outline"
-          title="EDITAR PRODUCTO"
-          description="Actualiza la información de un producto existente en tu inventario modificando sus datos básicos, ubicación en almacén y condiciones de stock."
-        />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 h-full">
-          <div className="h-full flex flex-col gap-5">
+      {/* Panel (misma estética que crear) */}
+      <div className="w-full max-w-2xl bg-white shadow-lg h-full flex flex-col">
+        <div className="px-5 pt-5">
+          <Tittlex
+            variant="modal"
+            icon="mdi:pencil-outline"
+            title="EDITAR PRODUCTO"
+            description="Actualiza la información del producto manteniendo su ubicación y condiciones de stock."
+          />
+        </div>
+
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto px-5 pb-24"
+        >
+          <div className="flex flex-col gap-5">
+            {/* Código / Nombre (igual que crear) */}
             <div className="grid grid-cols-2 gap-5">
               <Inputx
                 name="codigo_identificacion"
                 label="Código"
                 value={form.codigo_identificacion}
-                readOnly
+                onChange={handleChange}
                 disabled={saving}
                 type="text"
               />
-
               <Inputx
                 name="nombre_producto"
                 label="Nombre del Producto"
@@ -205,6 +333,7 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
               />
             </div>
 
+            {/* Descripción */}
             <InputxTextarea
               name="descripcion"
               label="Descripción"
@@ -217,58 +346,108 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
               maxRows={8}
             />
 
-            <Selectx
+            {/* Categoría (creatable) — mismo control que crear */}
+            <SelectxCreatable
               label="Categoría"
-              name="categoria_id"
               labelVariant="left"
-              value={form.categoria_id}
-              onChange={handleChange}
-              placeholder="Seleccionar categoría"
+              placeholder="Escribe para buscar o crear…"
+              inputValue={form.categoriaInput}
+              selectedId={form.categoriaSelectedId}
+              options={catOptions}
+              disabled={saving}
               required
-              disabled={saving}
-            >
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.descripcion}
-                </option>
-              ))}
-            </Selectx>
+              onInputChange={onCategoriaInputChange}
+              onSelectOption={onCategoriaSelect}
+              onCreateFromInput={onCategoriaCreate}
+            />
 
-            <Selectx
-              label="Sede"
-              name="almacenamiento_id"
-              labelVariant="left"
-              value={form.almacenamiento_id}
-              onChange={handleChange}
-              placeholder="Seleccionar sede"
-              required
-              disabled={saving}
-            >
-              {almacenes.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nombre_almacen}
-                </option>
-              ))}
-            </Selectx>
+            {/* Estado (igual que crear) */}
+            <div>
+              <label className="block text-base font-normal text-gray90 text-left">
+                Estado
+              </label>
+              <div className="relative">
+                <select
+                  value={form.estado}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, estado: e.target.value as EstadoId }))
+                  }
+                  className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
+                    ${!form.estado ? 'text-gray-500' : 'text-gray90'}
+                    placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
+                    focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
+                  disabled={saving}
+                >
+                  {ESTADO_OPCIONES.map((op) => (
+                    <option key={op.id} value={op.id}>
+                      {op.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-            <Selectx
-              label="Estado"
-              labelVariant="left"
-              value={form.estado}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, estado: e.target.value as EstadoId }))
-              }
-              placeholder="Seleccionar estado"
-              disabled={saving}
-            >
-              {ESTADO_OPCIONES.map((op) => (
-                <option key={op.id} value={op.id}>
-                  {op.nombre}
-                </option>
-              ))}
-            </Selectx>
+            {/* Subir imagen — MISMA FILA (sin “Título de la imagen”) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
+              <div className="sm:col-span-2">
+                <label className="block text-base font-normal text-gray90 text-left">
+                  Subir imagen
+                </label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white cursor-pointer hover:bg-gray-50">
+                    <Icon icon="tabler:upload" className="text-xl" />
+                    <span className="text-sm">Seleccionar archivo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={onPickFile}
+                      disabled={saving}
+                    />
+                  </label>
 
-            <div className="grid grid-cols-2 gap-5">
+                  {(previewUrl || form.imagen_url) && (
+                    <>
+                      <div className="w-12 h-12 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+                        <img
+                          src={previewUrl || form.imagen_url || ''}
+                          alt="preview"
+                          className="w-full h-full object-cover"
+                          draggable={false}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
+                        title="Descargar"
+                        onClick={onDownloadImage}
+                      >
+                        <Icon icon="tabler:download" className="text-lg" />
+                      </button>
+                      <button
+                        type="button"
+                        className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
+                        title="Ver"
+                        onClick={onViewImage}
+                      >
+                        <Icon icon="tabler:eye" className="text-lg" />
+                      </button>
+                      <button
+                        type="button"
+                        className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
+                        title="Eliminar"
+                        onClick={onDeleteImage}
+                      >
+                        <Icon icon="tabler:trash" className="text-lg" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Números */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <InputxNumber
                 label="Precio"
                 name="precio"
@@ -280,7 +459,6 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
                 placeholder="0.00"
                 disabled={saving}
               />
-
               <InputxNumber
                 label="Cantidad"
                 name="stock"
@@ -295,7 +473,7 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <InputxNumber
                 label="Stock Mínimo"
                 name="stock_minimo"
@@ -308,7 +486,6 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
                 inputMode="numeric"
                 disabled={saving}
               />
-
               <InputxNumber
                 label="Peso (kg)"
                 name="peso"
@@ -322,27 +499,30 @@ export default function ProductoEditarModal({ open, onClose, initialData, onUpda
               />
             </div>
           </div>
+        </form>
 
-          <div className="flex items-center gap-5">
+        {/* Footer sticky */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-5 py-4">
+          <div className="flex items-center gap-5 justify-start">
             <Buttonx
               variant="quartery"
+              onClick={() => formRef.current?.requestSubmit()}
               disabled={saving}
-              onClick={() => { }}
-              label={saving ? "Guardando…" : "Guardar cambios"}
-              icon={saving ? "line-md:loading-twotone-loop" : undefined}
-              className={`px-4 text-sm ${saving ? "[&_svg]:animate-spin" : ""}`}
+              label={saving ? 'Guardando…' : 'Guardar cambios'}
+              icon={saving ? 'line-md:loading-twotone-loop' : 'mdi:content-save-outline'}
+              className={`px-4 text-sm ${saving ? '[&_svg]:animate-spin' : ''}`}
+              type="button"
             />
-
             <Buttonx
-              variant="outlinedw"
+              variant="tertiary"
               onClick={handleClose}
-              label="Cancelar"
-              className="px-4 text-sm border"
               disabled={saving}
+              label="Cancelar"
+              className="px-4 text-sm text-gray-600 bg-gray-200"
+              type="button"
             />
           </div>
-
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -276,7 +276,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
           playsInline
         />
       </div>
-      <div className="text-xs text-slate-500">Tiempo transcurrido</div>
+      <div className="text-xs text-slate-500 -mt-10">Tiempo transcurrido</div>
       <div className="flex items-center gap-1 text-xs text-slate-700 mt-1">
         <HiClock className="w-4 h-4" />
         {diasTranscurridos && `${diasTranscurridos} día${diasTranscurridos !== '1' ? 's' : ''}`}

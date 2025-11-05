@@ -8,17 +8,15 @@ import { Selectx } from '@/shared/common/Selectx';
 import { Inputx, InputxPhone, InputxNumber } from '@/shared/common/Inputx';
 import Tittlex from '@/shared/common/Tittlex';
 import type { CourierAsociado } from '@/services/ecommerce/ecommerceCourier.types';
-// ⛔️ Elimina el import del Producto de courier para evitar conflicto de tipos
-// import type { Producto } from '@/services/courier/producto/productoCourier.type';
 
-// ✅ Tipo local desacoplado de los servicios (lo mínimo que usa el componente)
+//  Tipo local para la UI
 type ProductoUI = {
   id: number;
   nombre_producto: string;
   precio: number; // normalizamos a number
 };
 
-// DTO local para creación/edición (lo que realmente envía el frontend al backend)
+// DTO local para creación/edición
 type CreatePedidoDto = {
   codigo_pedido?: string;
   ecommerce_id?: number;
@@ -95,15 +93,22 @@ export default function CrearPedidoModal({
     (async () => {
       try {
         const [prodsRaw, cours] = await Promise.all([
-          fetchProductos(token),          // puede devolver precio: number | string según el servicio
+          fetchProductos(token),          // puede devolver array o { data, ... }
           fetchCouriersAsociados(token),
         ]);
 
-        // 🔧 Normalización a ProductoUI (precio siempre number)
-        const prodsUI: ProductoUI[] = (prodsRaw as any[]).map((p) => ({
-          id: Number(p.id),
-          nombre_producto: String(p.nombre_producto ?? ''),
-          precio: Number(p.precio ?? 0),
+        // 🔧 Normalización segura (sin cast directo a any[])
+        const listRaw: unknown =
+          Array.isArray(prodsRaw)
+            ? prodsRaw
+            : Array.isArray((prodsRaw as any)?.data)
+            ? (prodsRaw as any).data
+            : [];
+
+        const prodsUI: ProductoUI[] = (listRaw as unknown[]).map((p: any) => ({
+          id: Number(p?.id),
+          nombre_producto: String(p?.nombre_producto ?? ''),
+          precio: Number(p?.precio ?? 0),
         }));
 
         setProductos(prodsUI);
@@ -132,7 +137,7 @@ export default function CrearPedidoModal({
       fetchZonasByCourierPrivado(Number(form.courier_id), token)
         .then((response) => {
           if ('data' in response) {
-            setZonas(response.data.map((zona) => ({ distrito: zona.distrito })));
+            setZonas(response.data.map((zona: any) => ({ distrito: zona.distrito })));
           } else {
             setZonas([]);
           }
@@ -393,7 +398,6 @@ export default function CrearPedidoModal({
             Cancelar
           </button>
         </div>
-        
       </div>
     </div>
   );
