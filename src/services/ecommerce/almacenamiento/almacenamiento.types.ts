@@ -1,5 +1,3 @@
-// src/services/ecommerce/almacenamiento/almacenamiento.types.ts
-
 /* =========================
  * Core models (Frontend)
  * ========================= */
@@ -15,10 +13,10 @@ export interface Almacenamiento {
   direccion: string;
 
   es_principal?: boolean;
-  representante_usuario_id?: number | null;
-
   fecha_registro: string;
 
+  representante_usuario_id?: number | null;
+  
   estado?: {
     id: number;
     nombre: string;
@@ -34,6 +32,8 @@ export interface Almacenamiento {
     nombres: string;
     apellidos: string;
     correo: string;
+    /** NUEVO: algunos selects del backend ya devuelven teléfono */
+    telefono?: string | null;
   } | null;
 
   /**
@@ -201,5 +201,24 @@ export interface SedeConRepresentante
     nombres: string;
     apellidos: string;
     correo: string;
+    /** NUEVO: mantener paridad con select del backend */
+    telefono?: string | null;
   };
 }
+
+/**
+ * Para el caso en que el backend una tus sedes + sedes de courier asociado.
+ * Aquí "entidad" es OBLIGATORIA para saber el origen (ecommerce|courier)
+ * sin romper los otros endpoints que la tienen opcional.
+ */
+export interface SedeConRepresentanteConEntidad
+  extends Omit<SedeConRepresentante, 'entidad'> {
+  entidad: {
+    tipo: 'ecommerce' | 'courier';
+    id: number;
+    nombre_comercial: string;
+  };
+}
+
+/** Respuesta típica del listado combinado */
+export type SedesConRepresentanteResponse = SedeConRepresentanteConEntidad[];

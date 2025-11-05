@@ -1,8 +1,7 @@
-// src/components/almacenamiento/CrearMovimientoModal.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  fetchSedesConRepresentante,           // ⬅️ ya integrado
+  fetchSedesConRepresentante,
   registrarMovimiento,
 } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
@@ -18,7 +17,7 @@ import { InputxTextarea } from '@/shared/common/Inputx';
 interface Props {
   open: boolean;
   onClose: () => void;
-  selectedProducts?: string[]; // uuids
+  selectedProducts?: string[];
 }
 
 export default function CrearMovimientoModal({
@@ -41,15 +40,16 @@ export default function CrearMovimientoModal({
   useEffect(() => {
     if (!open || !token) return;
 
-    //  Solo sedes con representante (visibles para el usuario)
+    // Sedes (mezcla: propias + asociadas al courier)
     fetchSedesConRepresentante(token)
       .then((data) => {
-        setSedesOrigen(data);
-        setSedesDestino(data);
+        const list: Almacenamiento[] = Array.isArray(data) ? data : [];
+        setSedesOrigen(list);
+        setSedesDestino(list);
       })
       .catch(console.error);
 
-    //  CORREGIDO: soporta respuesta como array o paginada { data, ... }
+    // Productos (array plano o { data: [] })
     fetchProductos(token)
       .then((serverData: any) => {
         const list: Producto[] = Array.isArray(serverData)
@@ -61,13 +61,14 @@ export default function CrearMovimientoModal({
       })
       .catch(console.error);
 
-    // reset estado al abrir
+    // Reset al abrir
     setCantidades({});
     setDescripcion('');
     setAlmacenDestino('');
+    setAlmacenOrigen(''); // se autoinferirá si corresponde
   }, [open, token]);
 
-  // Productos seleccionados (memo)
+  // Productos seleccionados
   const productosSeleccionados = useMemo(
     () => productos.filter((p) => selectedProducts.includes(p.uuid)),
     [productos, selectedProducts]
@@ -78,7 +79,6 @@ export default function CrearMovimientoModal({
     const almacenesProductos = productosSeleccionados
       .map((p) => (p.almacenamiento_id != null ? String(p.almacenamiento_id) : ''))
       .filter(Boolean);
-
     if (almacenesProductos.length === 0) return '';
     const base = almacenesProductos[0];
     const todosIguales = almacenesProductos.every((id) => id === base);
@@ -89,15 +89,27 @@ export default function CrearMovimientoModal({
   useEffect(() => {
     if (origenInferido) {
       setAlmacenOrigen(origenInferido);
-      // Si el destino coincide con el nuevo origen, limpialo
+      // Si el destino coincide con el nuevo origen, límpialo
       setAlmacenDestino((dest) => (dest === origenInferido ? '' : dest));
     }
   }, [origenInferido]);
 
-  // Destinos filtrados (no mostrar el origen actual)
+  // === DESTINO: solo sedes ASOCIADAS (courier), excluyendo la de ORIGEN ===
+  const esSedeAsociada = (s: Almacenamiento) =>
+    s?.entidad?.tipo === 'courier' || !!s?.courier_id;
+
+  // Base de destinos: usa sedesDestino si hay; si no, sedesOrigen
+  const destinosBase = useMemo(() => {
+    const base = (sedesDestino?.length ? sedesDestino : sedesOrigen) || [];
+    return base.filter(esSedeAsociada); // SOLO asociadas
+  }, [sedesDestino, sedesOrigen]);
+
+  // Filtradas: excluye el ORIGEN (si hay)
   const destinosFiltrados = useMemo(() => {
-    return sedesDestino.filter((s) => String(s.id) !== (almacenOrigen || ''));
-  }, [sedesDestino, almacenOrigen]);
+    if (!destinosBase.length) return [];
+    if (!almacenOrigen) return destinosBase;
+    return destinosBase.filter((s) => String(s.id) !== String(almacenOrigen));
+  }, [destinosBase, almacenOrigen]);
 
   const handleCantidadChange = (productoId: string, value: number, stock: number) => {
     const n = Number.isFinite(value) ? value : 0;
@@ -161,6 +173,7 @@ export default function CrearMovimientoModal({
       setCantidades({});
       setDescripcion('');
       setAlmacenDestino('');
+      setAlmacenOrigen('');
       onClose();
     } catch (err) {
       console.error(err);
@@ -168,6 +181,20 @@ export default function CrearMovimientoModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Etiqueta legible para sede (incluye origen de entidad si viene)
+  const renderSedeLabel = (s: Almacenamiento) => {
+    const rep = s.representante
+      ? ` — ${s.representante.nombres} ${s.representante.apellidos}`
+      : '';
+    const tag =
+      s.entidad?.tipo === 'ecommerce'
+        ? ' [ECOM]'
+        : s.entidad?.tipo === 'courier'
+        ? ' [COURIER]'
+        : '';
+    return `${s.nombre_almacen}${rep}${tag}`;
   };
 
   if (!open) return null;
@@ -206,8 +233,12 @@ export default function CrearMovimientoModal({
             <tbody className="bg-white">
               {productosSeleccionados.map((prod) => (
                 <tr key={prod.uuid} className="border-t last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-4 whitespace-nowrap text-gray-900">{prod.codigo_identificacion}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-gray-900">{prod.nombre_producto}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-gray-900">
+                    {prod.codigo_identificacion}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-gray-900">
+                    {prod.nombre_producto}
+                  </td>
                   <td className="px-4 py-4 text-gray-700">
                     <div className="line-clamp-2 leading-5 break-words">{prod.descripcion}</div>
                   </td>
@@ -220,7 +251,9 @@ export default function CrearMovimientoModal({
                         min={0}
                         max={prod.stock}
                         value={Number.isFinite(cantidades[prod.uuid]) ? cantidades[prod.uuid] : ''}
-                        onChange={(e) => handleCantidadChange(prod.uuid, Number(e.target.value), prod.stock)}
+                        onChange={(e) =>
+                          handleCantidadChange(prod.uuid, Number(e.target.value), prod.stock)
+                        }
                         className="w-[64px] h-9 rounded-lg border border-gray-300 px-2 text-center text-sm shadow-sm
                                    focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                       />
@@ -243,14 +276,12 @@ export default function CrearMovimientoModal({
               value={almacenOrigen ?? ''}
               onChange={(e) => setAlmacenOrigen(e.target.value)}
               placeholder="Seleccionar sede"
-              // Si hay origenInferido (por productos), podría deshabilitarse para evitar incongruencias:
-              // disabled={Boolean(origenInferido)}
+              // disabled={Boolean(origenInferido)} // si quieres impedir cambiarla cuando está inferida
             >
               <option value="">Seleccionar sede</option>
               {sedesOrigen.map((s) => (
                 <option key={s.id} value={String(s.id)}>
-                  {s.nombre_almacen}
-                  {s.representante ? ` — ${s.representante.nombres} ${s.representante.apellidos}` : ''}
+                  {renderSedeLabel(s)}
                 </option>
               ))}
             </Selectx>
@@ -264,12 +295,19 @@ export default function CrearMovimientoModal({
               placeholder="Seleccionar sede"
             >
               <option value="">Seleccionar sede</option>
-              {destinosFiltrados.map((s) => (
-                <option key={s.id} value={String(s.id)}>
-                  {s.nombre_almacen}
-                  {s.representante ? ` — ${s.representante.nombres} ${s.representante.apellidos}` : ''}
+              {destinosFiltrados.length === 0 ? (
+                <option value="" disabled>
+                  {almacenOrigen
+                    ? 'No hay sedes asociadas del courier distintas del origen.'
+                    : 'No hay sedes asociadas disponibles.'}
                 </option>
-              ))}
+              ) : (
+                destinosFiltrados.map((s) => (
+                  <option key={s.id} value={String(s.id)}>
+                    {renderSedeLabel(s)}
+                  </option>
+                ))
+              )}
             </Selectx>
           </div>
 
@@ -291,7 +329,7 @@ export default function CrearMovimientoModal({
             variant="quartery"
             disabled={
               loading ||
-              !origenInferido ||                       // debe existir un origen consistente
+              !origenInferido || // debe existir un origen consistente
               !almacenOrigen ||
               !almacenDestino ||
               almacenOrigen === almacenDestino
