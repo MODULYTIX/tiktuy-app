@@ -112,11 +112,11 @@ export async function crearProducto(
 }
 
 // =====================
-// ACTUALIZAR (PATCH)
+// ACTUALIZAR (**PUT**)
 // =====================
 /**
- * Actualiza campos parciales. También puedes cambiar de categoría
- * pasando categoria_id o categoria{...} y mover de sede (validado en backend).
+ * Actualiza campos parciales o totales vía **PUT** para alinearse con tu backend.
+ * También puedes cambiar de categoría con categoria_id o categoria{...}.
  */
 export async function actualizarProducto(
   uuid: string,
@@ -124,7 +124,7 @@ export async function actualizarProducto(
   token: string
 ): Promise<Producto> {
   const res = await fetch(`${BASE}/${uuid}`, {
-    method: 'PATCH', // <- usamos PATCH (no PUT) según backend
+    method: 'PUT', // 👈 ahora usando PUT (tu backend expone PUT)
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -142,34 +142,17 @@ export async function actualizarProducto(
 // ==========================================
 // LISTAR con filtros desde la UI (paginado)
 // ==========================================
-/**
- * Recibe los filtros de la UI y los mapea al backend.
- * Retorna siempre Paginated<Producto>.
- */
 type UiFilters = {
-  // texto libre
   search?: string;
-
-  // ids
   almacenamiento_id?: number | string;
   categoria_id?: number | string;
-
-  // estado: 'activo' | 'inactivo' | 'descontinuado'
   estado?: string;
-
-  // flags
   stock_bajo?: boolean;
   precio_bajo?: boolean;
   precio_alto?: boolean;
-
-  // orden
   order?: 'new_first' | 'price_asc' | 'price_desc';
-
-  // paginación
   page?: number;
   perPage?: number;
-
-  // extras
   [k: string]: any;
 };
 
@@ -187,25 +170,17 @@ export async function fetchProductosFiltrados(
       ? (ui.estado.toLowerCase() as ProductoListQuery['estado'])
       : undefined,
     stock_bajo: !!ui.stock_bajo,
-
-    // compat de flags
     precio_bajo: !!ui.precio_bajo,
     precio_alto: !!ui.precio_alto,
-
-    // orden
-    order:
-      ui.precio_bajo
-        ? 'price_asc'
-        : ui.precio_alto
-        ? 'price_desc'
-        : ui.order || 'new_first',
-
-    // paginación
+    order: ui.precio_bajo
+      ? 'price_asc'
+      : ui.precio_alto
+      ? 'price_desc'
+      : ui.order || 'new_first',
     page: ui.page ?? 1,
     perPage: ui.perPage ?? 10,
   };
 
-  // pasar-through extras no conflictivos
   const passthrough: Record<string, any> = {};
   const reserved = new Set([
     'search',

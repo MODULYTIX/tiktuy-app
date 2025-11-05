@@ -6,7 +6,7 @@ interface Props {
   productos: Producto[];
   onVer: (producto: Producto) => void;
   onEditar: (producto: Producto) => void;
-  filtrarInactivos?: boolean; 
+  filtrarInactivos?: boolean;
 }
 
 const PAGE_SIZE = 5;
@@ -19,8 +19,7 @@ export default function StockTable({
 }: Props) {
   const [page, setPage] = useState(1);
 
-  // 0) Ordenar por "nuevo primero" (fallback si el backend no lo manda ya así)
-  // - Prioriza created_at DESC si existe; si no, usa id DESC si es numérico.
+  // Orden "nuevo primero"
   const productosOrdenados = useMemo(() => {
     const byNewest = [...productos].sort((a: any, b: any) => {
       const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
@@ -33,7 +32,7 @@ export default function StockTable({
     return byNewest;
   }, [productos]);
 
-  // 1) Filtrado en memoria (si lo usas)
+  // Filtrado en memoria (si lo usas)
   const productosFiltrados = useMemo(() => {
     if (!filtrarInactivos) return productosOrdenados;
     return productosOrdenados.filter(
@@ -44,7 +43,7 @@ export default function StockTable({
     );
   }, [productosOrdenados, filtrarInactivos]);
 
-  // 2) Paginación
+  // Paginación
   const totalPages = Math.max(1, Math.ceil(productosFiltrados.length / PAGE_SIZE));
 
   useEffect(() => {
@@ -119,17 +118,37 @@ export default function StockTable({
     );
   }
 
-  // 👉 FIX DE HYDRATION: <colgroup> sin textos/comentarios/espacios.
+  // Col widths: nueva 1ª columna es la miniatura
   const colClasses = [
-    "w-[4%]",  // checkbox
+    "w-[6%]",  // Miniatura
     "w-[12%]", // Código
-    "w-[30%]", // Producto
-    "w-[16%]", // Almacén
+    "w-[28%]", // Producto
+    "w-[18%]", // Almacén
     "w-[12%]", // Stock
     "w-[10%]", // Precio
     "w-[8%]",  // Estado
-    "w-[8%]",  // Acciones
+    "w-[6%]",  // Acciones
   ];
+
+  // Pequeño helper de miniatura
+  const Thumb = ({ url, alt }: { url?: string | null; alt: string }) => {
+    return url ? (
+      <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
+        <img
+          src={url}
+          alt={alt}
+          className="w-full h-full object-cover"
+          draggable={false}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      </div>
+    ) : (
+      <div className="w-12 h-12 rounded-md bg-gray-100 border border-gray-200 flex items-center justify-center text-[14px]">
+        <span className="opacity-60">📦</span>
+      </div>
+    );
+  };
 
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
@@ -144,9 +163,7 @@ export default function StockTable({
 
             <thead className="bg-[#E5E7EB]">
               <tr className="text-gray70 font-roboto font-medium">
-                <th className="px-4 py-3 text-left">
-                  <input aria-label="Seleccionar todos" type="checkbox" />
-                </th>
+                <th className="px-4 py-3 text-left"> </th>
                 <th className="px-4 py-3 text-left">Código</th>
                 <th className="px-4 py-3 text-left">Producto</th>
                 <th className="px-4 py-3 text-left">Sede</th>
@@ -160,8 +177,9 @@ export default function StockTable({
             <tbody className="divide-y divide-gray20">
               {currentData.map((prod: any) => (
                 <tr key={prod.uuid ?? prod.id} className="hover:bg-gray10 transition-colors">
-                  <td className="px-4 py-3">
-                    <input type="checkbox" aria-label={`Seleccionar ${prod.nombre_producto}`} />
+                  {/* Miniatura */}
+                  <td className="px-4 py-3 align-middle">
+                    <Thumb url={prod.imagen_url} alt={prod.nombre_producto} />
                   </td>
 
                   <td className="px-4 py-3 text-gray70 font-[400]">

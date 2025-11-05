@@ -16,6 +16,9 @@ export interface Producto {
   nombre_producto: string;
   descripcion?: string | null;
 
+  /** URL pública de la imagen (Cloudinary/S3). Puede ser null si no tiene. */
+  imagen_url?: string | null;
+
   categoria_id?: number;               // puede venir si no se pide include
   almacenamiento_id: number;
 
@@ -34,7 +37,6 @@ export interface Producto {
   // Includes (pueden o no venir, según endpoint)
   categoria?: Categoria | null;
   almacenamiento?: Almacenamiento | null;
-
   estado?: EstadoBasico | null;
 }
 
@@ -72,6 +74,7 @@ export type Paginated<T> = {
 
 /** Para POST /productos
  *  Nota: puedes mandar categoria_id o un objeto categoria { nombre, descripcion?, es_global? }.
+ *  Si adjuntas imagen desde el front, envía FormData con `file` (File) y estos campos como strings.
  */
 export type ProductoCreateInput = {
   nombre_producto: string;
@@ -95,10 +98,15 @@ export type ProductoCreateInput = {
 
   /** opcional: si la UI manda 'estado' como string, el backend lo entiende */
   estado?: 'Activo' | 'Inactivo' | 'Descontinuado';
+
+  /** Imagen opcional: el front enviará multipart con este archivo */
+  file?: File;               // ← se convierte en FormData; el backend leerá file.path
 };
 
 /** Para PATCH /productos/:uuid
  *  Todo opcional; mismas reglas de categoría.
+ *  Si adjuntas nueva imagen, envía `file` (File) en FormData.
+ *  Si quieres quitar la imagen, envía `imagen_url_remove: true`.
  */
 export type ProductoUpdateInput = Partial<{
   nombre_producto: string;
@@ -121,4 +129,9 @@ export type ProductoUpdateInput = Partial<{
 
   estado_id: number;
   estado: 'Activo' | 'Inactivo' | 'Descontinuado';
+
+  /** Imagen */
+  imagen_url: string | null;   // lectura/escritura directa (poco común en front)
+  imagen_url_remove: boolean;  // para borrar la referencia en el backend
+  file: File;                  // nueva imagen (multipart/FormData)
 }>;

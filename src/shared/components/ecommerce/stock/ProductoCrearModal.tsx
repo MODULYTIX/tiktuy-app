@@ -29,7 +29,6 @@ import { Icon } from '@iconify/react';
 type Props = {
   open: boolean;
   onClose: () => void;
-  /** Llama a esto para refrescar la tabla en el padre */
   onCreated?: (producto: Producto) => void;
   /** Sede que se usará automáticamente (requerido) */
   almacenamientoId: number;
@@ -53,7 +52,6 @@ type BasePayload = {
   codigo_identificacion: string;
   nombre_producto: string;
   descripcion: string;
-  // Se envía como string; el backend lo mapea a estado_id
   estado: 'activo' | 'inactivo' | 'descontinuado';
   fecha_registro: string;
 };
@@ -77,20 +75,7 @@ function generarCodigoConFecha(): string {
   const hora = String(now.getHours()).padStart(2, '0');
   const minutos = String(now.getMinutes()).padStart(2, '0');
   const year = String(now.getFullYear()).slice(2);
-  const meses = [
-    'ENE',
-    'FEB',
-    'MAR',
-    'ABR',
-    'MAY',
-    'JUN',
-    'JUL',
-    'AGO',
-    'SEP',
-    'OCT',
-    'NOV',
-    'DIC',
-  ];
+  const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
   const mesAbrev = meses[now.getMonth()];
   const charset = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789';
   const aleatorio = charset[Math.floor(Math.random() * charset.length)];
@@ -104,7 +89,6 @@ type FormState = {
   categoriaInput: string;
   categoriaSelectedId: string;
 
-  // ya no se muestra, lo rellenamos con la prop
   almacenamiento_id: string;
 
   precio: string;
@@ -113,9 +97,6 @@ type FormState = {
   peso: string;
   estado: EstadoId;
   fecha_registro: string;
-
-  // Imagen local (solo UI)
-  imagenTitulo: string;
 };
 
 const getInitialForm = (almacenamientoId: number): FormState => ({
@@ -124,17 +105,13 @@ const getInitialForm = (almacenamientoId: number): FormState => ({
   descripcion: '',
   categoriaInput: '',
   categoriaSelectedId: '',
-
   almacenamiento_id: String(almacenamientoId),
-
   precio: '',
   stock: '',
   stock_minimo: '',
   peso: '',
   estado: 'activo',
   fecha_registro: new Date().toISOString(),
-
-  imagenTitulo: '',
 });
 
 function canonical(s: string) {
@@ -142,7 +119,6 @@ function canonical(s: string) {
 }
 
 function parseNum(input: string, decimals = 2): number {
-  // Permite ',' como separador decimal
   const normalized = (input ?? '').toString().replace(',', '.').trim();
   const n = Number(normalized);
   return Number.isFinite(n) ? Number(n.toFixed(decimals)) : NaN;
@@ -160,7 +136,7 @@ export default function ProductoCrearModal({
   const [form, setForm] = useState<FormState>(getInitialForm(almacenamientoId));
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  // Imagen (solo UI)
+  // Imagen (UI + envío opcional)
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -287,7 +263,7 @@ export default function ProductoCrearModal({
     if ([precio, stock, stock_minimo, peso].some((n) => Number.isNaN(n)))
       return;
 
-    let payload: CreateProductoPayload;
+    let payload: CreateProductoPayload & { file?: File };
 
     if (form.categoriaSelectedId) {
       payload = {
@@ -324,21 +300,20 @@ export default function ProductoCrearModal({
       };
     }
 
+    // Adjuntamos file si hay (API soporta multipart o body con file)
+    if (file) {
+      (payload as any).file = file;
+    }
+
     setSaving(true);
     try {
-      // Nota: no enviamos la imagen; queda local (como pediste).
-      const producto = await crearProducto(
-        payload as unknown as Partial<Producto>,
-        token
-      );
+      const producto = await crearProducto(payload as unknown as Partial<Producto>, token);
 
-      // Si el backend devuelve la categoría creada, la agregamos al cache local
+      // Si el backend devuelve la categoría creada, la cacheamos
       if (!form.categoriaSelectedId && (producto as any)?.categoria) {
         const nueva = (producto as any).categoria as Categoria;
         setCategorias((prev) => {
-          const dup = prev.some(
-            (c) => canonical(c.nombre) === canonical(nueva.nombre)
-          );
+          const dup = prev.some((c) => canonical(c.nombre) === canonical(nueva.nombre));
           return dup ? prev : [...prev, nueva];
         });
       }
@@ -377,10 +352,11 @@ export default function ProductoCrearModal({
           id="crear-producto-form"
           ref={formRef}
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto px-5 pb-24">
+          className="flex-1 overflow-y-auto px-5 pb-24"
+        >
           <div className="flex flex-col gap-5">
             {/* Código / Nombre */}
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Inputx
                 name="codigo_identificacion"
                 label="Código"
@@ -430,7 +406,7 @@ export default function ProductoCrearModal({
               onCreateFromInput={onCategoriaCreate}
             />
 
-            {/* Estado: full width (subido arriba) */}
+            {/* Estado */}
             <div>
               <label className="block text-base font-normal text-gray90 text-left">
                 Estado
@@ -448,7 +424,8 @@ export default function ProductoCrearModal({
                     ${!form.estado ? 'text-gray-500' : 'text-gray90'}
                     placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
                     focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
-                  disabled={saving}>
+                  disabled={saving}
+                >
                   {ESTADO_OPCIONES.map((op) => (
                     <option key={op.id} value={op.id}>
                       {op.nombre}
@@ -458,43 +435,29 @@ export default function ProductoCrearModal({
               </div>
             </div>
 
-            {/* Título imagen + Subir imagen (misma fila / mismo ancho) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <Inputx
-                name="imagenTitulo"
-                label="Título de la imagen"
-                placeholder="Ej. Foto principal"
-                value={form.imagenTitulo}
-                onChange={handleChange}
-                disabled={saving}
-                type="text"
-              />
+            {/* Subir imagen — una sola fila */}
+            <div>
+              <label className="block text-base font-normal text-gray90 text-left">
+                Subir imagen
+              </label>
 
-              <div className="flex flex-col gap-2">
-                <label className="block text-base font-normal text-gray90 text-left">
-                  Subir imagen
+              <div className="mt-2 flex items-center gap-3 flex-wrap">
+                {/* Botón seleccionar archivo */}
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white cursor-pointer hover:bg-gray-50">
+                  <Icon icon="tabler:upload" className="text-xl" />
+                  <span className="text-sm">Seleccionar archivo</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={onPickFile}
+                    disabled={saving}
+                  />
                 </label>
-                <div className="flex items-center gap-3">
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white cursor-pointer hover:bg-gray-50">
-                    <Icon icon="tabler:upload" className="text-xl" />
-                    <span className="text-sm">Seleccionar archivo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={onPickFile}
-                    />
-                  </label>
 
-                  {file && (
-                    <span className="text-sm text-gray-600 truncate max-w-[60%]">
-                      {file.name}
-                    </span>
-                  )}
-                </div>
-
+                {/* Preview + acciones (mismos renglón) */}
                 {previewUrl && (
-                  <div className="flex items-center gap-2">
+                  <>
                     <div className="w-12 h-12 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
                       <img
                         src={previewUrl}
@@ -503,28 +466,34 @@ export default function ProductoCrearModal({
                         draggable={false}
                       />
                     </div>
+
                     <button
                       type="button"
                       className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
                       title="Descargar"
-                      onClick={onDownloadImage}>
+                      onClick={onDownloadImage}
+                    >
                       <Icon icon="tabler:download" className="text-lg" />
                     </button>
+
                     <button
                       type="button"
                       className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
                       title="Ver"
-                      onClick={onViewImage}>
+                      onClick={onViewImage}
+                    >
                       <Icon icon="tabler:eye" className="text-lg" />
                     </button>
+
                     <button
                       type="button"
                       className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
                       title="Eliminar"
-                      onClick={onDeleteImage}>
+                      onClick={onDeleteImage}
+                    >
                       <Icon icon="tabler:trash" className="text-lg" />
                     </button>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -584,7 +553,7 @@ export default function ProductoCrearModal({
           </div>
         </form>
 
-        {/* Footer sticky (siempre visible) */}
+        {/* Footer sticky */}
         <div className="sticky bottom-0 bg-white border-t border-gray-200 px-5 py-4">
           <div className="flex items-center gap-5 justify-start">
             <Buttonx
@@ -592,9 +561,7 @@ export default function ProductoCrearModal({
               onClick={() => formRef.current?.requestSubmit()}
               disabled={saving}
               label={saving ? 'Creando…' : 'Crear nuevo'}
-              icon={
-                saving ? 'line-md:loading-twotone-loop' : 'tabler:cube-plus'
-              }
+              icon={saving ? 'line-md:loading-twotone-loop' : 'tabler:cube-plus'}
               className={`px-4 text-sm ${saving ? '[&_svg]:animate-spin' : ''}`}
               type="button"
             />
