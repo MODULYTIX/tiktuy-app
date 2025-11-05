@@ -13,9 +13,15 @@ interface Props {
 }
 
 export default function StepSeguridad({
-  password, confirm, onChangePassword, onChangeConfirm, onBack, onSubmit, loading, canSubmit,
+  password,
+  confirm,
+  onChangePassword,
+  onChangeConfirm,
+  onBack,
+  onSubmit,
+  loading,
+  canSubmit,
 }: Props) {
-  // Validación para las contraseñas
   const passwordsMatch = password === confirm;
 
   return (
@@ -27,12 +33,12 @@ export default function StepSeguridad({
         Crea una contraseña segura para acceder a la plataforma
       </p>
 
-      <div className="w-full flex flex-col-2 justify-center items-center gap-5">
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-5">
         <Inputx
           type="password"
-          label="Confirmar Contraseña"
+          label="Contraseña"
           placeholder="Escriba aquí"
-          value={confirm}
+          value={password}
           onChange={(e) => onChangePassword(e.target.value)}
           required
         />
@@ -46,12 +52,13 @@ export default function StepSeguridad({
         />
       </div>
 
-      {/* Mensaje de error si las contraseñas no coinciden */}
       {!passwordsMatch && confirm && (
-        <p className="text-red-600 text-sm mt-2">Las contraseñas no coinciden</p>
+        <p className="text-red-600 text-sm mt-2">
+          Las contraseñas no coinciden
+        </p>
       )}
 
-      <div className="flex justify-center items-center gap-5">
+      <div className="flex justify-center items-center gap-5 mt-4">
         <Buttonx
           label="Volver"
           icon="majesticons:arrow-left-line"
