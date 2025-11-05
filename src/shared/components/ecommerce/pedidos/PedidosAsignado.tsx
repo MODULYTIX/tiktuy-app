@@ -65,7 +65,7 @@ export default function PedidosAsignado({ filtros }: Props) {
         onClose={handleClose}
         pedidoId={selectedId}
         onEditar={handleEditarDesdeVer} // botón Editar en el footer (derecha)
-        detalle={null}      />
+        />
 
       {/* Modal Editar (Asignado) */}
       <EditarPedidoAsignadoModal
