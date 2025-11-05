@@ -40,13 +40,26 @@ export default function CrearMovimientoModal({
 
   useEffect(() => {
     if (!open || !token) return;
-    // 🔁 Solo sedes con representante (visibles para el usuario)
-    fetchSedesConRepresentante(token).then((data) => {
-      setSedesOrigen(data);
-      setSedesDestino(data);
-    }).catch(console.error);
 
-    fetchProductos(token).then(setProductos).catch(console.error);
+    //  Solo sedes con representante (visibles para el usuario)
+    fetchSedesConRepresentante(token)
+      .then((data) => {
+        setSedesOrigen(data);
+        setSedesDestino(data);
+      })
+      .catch(console.error);
+
+    //  CORREGIDO: soporta respuesta como array o paginada { data, ... }
+    fetchProductos(token)
+      .then((serverData: any) => {
+        const list: Producto[] = Array.isArray(serverData)
+          ? serverData
+          : Array.isArray(serverData?.data)
+          ? serverData.data
+          : [];
+        setProductos(list);
+      })
+      .catch(console.error);
 
     // reset estado al abrir
     setCantidades({});

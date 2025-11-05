@@ -1,7 +1,11 @@
+// src/shared/components/ecommerce/pedidos/Generado/EditarPedidoGeneradoModal.tsx
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/auth/context';
 import { fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
-import { actualizarPedidoGenerado, type UpdatePedidoGeneradoPayload } from '@/services/ecommerce/pedidos/pedidos.api';
+import {
+  actualizarPedidoGenerado,
+  type UpdatePedidoGeneradoPayload,
+} from '@/services/ecommerce/pedidos/pedidos.api';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
@@ -53,7 +57,17 @@ export default function EditarPedidoGeneradoModal({
   useEffect(() => {
     if (!open || !token) return;
 
-    fetchProductos(token).then(setProductos).catch(() => setProductos([]));
+    // ✅ Normaliza la respuesta de productos (array o { data, ... })
+    fetchProductos(token)
+      .then((resp: unknown) => {
+        const list: Producto[] = Array.isArray(resp)
+          ? resp
+          : Array.isArray((resp as any)?.data)
+          ? (resp as any).data
+          : [];
+        setProductos(list);
+      })
+      .catch(() => setProductos([]));
 
     if (pedidoId) {
       setLoading(true);
@@ -92,6 +106,7 @@ export default function EditarPedidoGeneradoModal({
     }
   }, [open, pedidoId, token]);
 
+  // Actualiza precio cuando cambia el producto
   useEffect(() => {
     const sel = productos.find((p) => p.id === Number(form.producto_id));
     if (sel) {
@@ -99,6 +114,7 @@ export default function EditarPedidoGeneradoModal({
     }
   }, [form.producto_id, productos]);
 
+  // Recalcula monto
   useEffect(() => {
     const cantidad = Number(form.cantidad);
     const precio = Number(form.precio_unitario);
@@ -107,6 +123,7 @@ export default function EditarPedidoGeneradoModal({
     }
   }, [form.cantidad, form.precio_unitario]);
 
+  // Cerrar al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) onClose();
@@ -248,7 +265,7 @@ export default function EditarPedidoGeneradoModal({
               </div>
 
               <Selectx
-              labelVariant="left"
+                labelVariant="left"
                 label="Producto"
                 name="producto_id"
                 value={form.producto_id}
