@@ -1,16 +1,61 @@
 // src/services/ecommerce/producto/producto.api.ts
-import type { Producto } from './producto.types';
+import type {
+  Producto,
+  Paginated,
+  ProductoListQuery,
+  ProductoCreateInput,
+  ProductoUpdateInput,
+} from './producto.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const BASE = `${API_URL}/productos`;
 
-/** Lista simple (con orden por defecto y cache-buster) */
-export async function fetchProductos(token: string): Promise<Producto[]> {
-  const url = new URL(BASE);
-  url.searchParams.set('order', 'new_first');
+// ---------------------------
+// Util: construir querystring
+// ---------------------------
+function buildURL(base: string, params?: Record<string, any>) {
+  const url = new URL(base);
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v === undefined || v === null || v === '') return;
+      if (Array.isArray(v)) {
+        v.forEach((x) => url.searchParams.append(k, String(x)));
+      } else {
+        url.searchParams.set(k, String(v));
+      }
+    });
+  }
+  // cache-buster
   url.searchParams.set('_ts', Date.now().toString());
+  return url.toString();
+}
 
-  const res = await fetch(url.toString(), {
+// =======================================
+// LISTAR (paginado) — default orden nuevo
+// =======================================
+/**
+ * Lista paginada con defaults seguros:
+ * - order=new_first
+ * - page=1, perPage=10
+ */
+export async function fetchProductos(
+  token: string,
+  params: Partial<ProductoListQuery> = {}
+): Promise<Paginated<Producto>> {
+  const query: ProductoListQuery = {
+    order: params.order ?? 'new_first',
+    page: params.page ?? 1,
+    perPage: params.perPage ?? 10,
+    q: params.q,
+    almacenamiento_id: params.almacenamiento_id,
+    categoria_id: params.categoria_id,
+    estado: params.estado,
+    stock_bajo: params.stock_bajo,
+    precio_bajo: params.precio_bajo,
+    precio_alto: params.precio_alto,
+  };
+
+  const res = await fetch(buildURL(BASE, query), {
     headers: {
       Authorization: `Bearer ${token}`,
       'Cache-Control': 'no-cache',
@@ -23,20 +68,33 @@ export async function fetchProductos(token: string): Promise<Producto[]> {
   return res.json();
 }
 
-/** Detalle por UUID */
-export async function fetchProductoByUuid(uuid: string, token: string): Promise<Producto> {
+// ==================
+// DETALLE POR UUID
+// ==================
+export async function fetchProductoByUuid(
+  uuid: string,
+  token: string
+): Promise<Producto> {
   const res = await fetch(`${BASE}/${uuid}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
-
   if (!res.ok) throw new Error('Producto no encontrado');
   return res.json();
 }
 
-/** Crear producto */
-export async function crearProducto(data: Partial<Producto>, token: string): Promise<Producto> {
+// ===============
+// CREAR PRODUCTO
+// ===============
+/**
+ * Crea un producto ligado a una sede (almacenamiento_id requerido).
+ * Acepta:
+ *  - categoria_id  O
+ *  - categoria { nombre, descripcion?, es_global? }
+ */
+export async function crearProducto(
+  data: ProductoCreateInput,
+  token: string
+): Promise<Producto> {
   const res = await fetch(BASE, {
     method: 'POST',
     headers: {
@@ -53,14 +111,20 @@ export async function crearProducto(data: Partial<Producto>, token: string): Pro
   return res.json();
 }
 
-/** Actualizar producto por UUID (PUT) */
+// =====================
+// ACTUALIZAR (PATCH)
+// =====================
+/**
+ * Actualiza campos parciales. También puedes cambiar de categoría
+ * pasando categoria_id o categoria{...} y mover de sede (validado en backend).
+ */
 export async function actualizarProducto(
   uuid: string,
-  data: Partial<Producto>,
+  data: ProductoUpdateInput,
   token: string
 ): Promise<Producto> {
   const res = await fetch(`${BASE}/${uuid}`, {
-    method: 'PUT',
+    method: 'PATCH', // <- usamos PATCH (no PUT) según backend
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -75,88 +139,94 @@ export async function actualizarProducto(
   return res.json();
 }
 
-// ===========================
-//  Filtros dinámicos (UI → API)
-// ===========================
+// ==========================================
+// LISTAR con filtros desde la UI (paginado)
+// ==========================================
+/**
+ * Recibe los filtros de la UI y los mapea al backend.
+ * Retorna siempre Paginated<Producto>.
+ */
 type UiFilters = {
-  almacenamiento_id?: string;
-  categoria_id?: string;
-  estado?: string;          // 'activo' | 'inactivo' | ''
+  // texto libre
+  search?: string;
+
+  // ids
+  almacenamiento_id?: number | string;
+  categoria_id?: number | string;
+
+  // estado: 'activo' | 'inactivo' | 'descontinuado'
+  estado?: string;
+
+  // flags
   stock_bajo?: boolean;
   precio_bajo?: boolean;
   precio_alto?: boolean;
-  search?: string;
+
+  // orden
   order?: 'new_first' | 'price_asc' | 'price_desc';
+
+  // paginación
+  page?: number;
+  perPage?: number;
+
+  // extras
   [k: string]: any;
 };
 
 export async function fetchProductosFiltrados(
-  uiFilters: UiFilters,
+  ui: UiFilters,
   token: string
-): Promise<Producto[]> {
-  const url = new URL(BASE);
+): Promise<Paginated<Producto>> {
+  const query: ProductoListQuery = {
+    q: ui.search?.trim() || undefined,
+    almacenamiento_id: ui.almacenamiento_id
+      ? Number(ui.almacenamiento_id)
+      : undefined,
+    categoria_id: ui.categoria_id ? Number(ui.categoria_id) : undefined,
+    estado: ui.estado
+      ? (ui.estado.toLowerCase() as ProductoListQuery['estado'])
+      : undefined,
+    stock_bajo: !!ui.stock_bajo,
 
-  // 1) texto -> q
-  if (uiFilters.search && uiFilters.search.trim()) {
-    url.searchParams.set('q', uiFilters.search.trim());
-  }
+    // compat de flags
+    precio_bajo: !!ui.precio_bajo,
+    precio_alto: !!ui.precio_alto,
 
-  // 2) ids directos
-  if (uiFilters.almacenamiento_id) {
-    url.searchParams.set('almacenamiento_id', String(uiFilters.almacenamiento_id));
-  }
-  if (uiFilters.categoria_id) {
-    url.searchParams.set('categoria_id', String(uiFilters.categoria_id));
-  }
+    // orden
+    order:
+      ui.precio_bajo
+        ? 'price_asc'
+        : ui.precio_alto
+        ? 'price_desc'
+        : ui.order || 'new_first',
 
-  // 3) estado
-  if (uiFilters.estado) {
-    url.searchParams.set('estado', uiFilters.estado);
-  }
+    // paginación
+    page: ui.page ?? 1,
+    perPage: ui.perPage ?? 10,
+  };
 
-  // 4) stock bajo
-  if (uiFilters.stock_bajo) {
-    url.searchParams.set('stock_bajo', '1');
-  }
-
-  // 5) orden
-  if (uiFilters.precio_bajo) {
-    url.searchParams.set('order', 'price_asc');
-  } else if (uiFilters.precio_alto) {
-    url.searchParams.set('order', 'price_desc');
-  } else if (uiFilters.order) {
-    url.searchParams.set('order', uiFilters.order);
-  } else {
-    url.searchParams.set('order', 'new_first');
-  }
-
-  // 6) soporta adicionales
-  const passthroughKeys = new Set([
+  // pasar-through extras no conflictivos
+  const passthrough: Record<string, any> = {};
+  const reserved = new Set([
+    'search',
     'almacenamiento_id',
     'categoria_id',
     'estado',
     'stock_bajo',
     'precio_bajo',
     'precio_alto',
-    'search',
     'order',
+    'page',
+    'perPage',
   ]);
 
-  Object.entries(uiFilters || {}).forEach(([key, value]) => {
-    if (passthroughKeys.has(key)) return;
-    if (value === undefined || value === null || value === '') return;
-
-    if (Array.isArray(value)) {
-      value.forEach((v) => url.searchParams.append(key, String(v)));
-    } else {
-      url.searchParams.set(key, String(value));
-    }
+  Object.entries(ui).forEach(([k, v]) => {
+    if (reserved.has(k)) return;
+    if (v === undefined || v === null || v === '') return;
+    passthrough[k] = v;
   });
 
-  // Cache-buster + no-cache
-  url.searchParams.set('_ts', Date.now().toString());
-
-  const res = await fetch(url.toString(), {
+  const res = await fetch(buildURL(BASE, { ...query, ...passthrough }), {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -170,6 +240,5 @@ export async function fetchProductosFiltrados(
     const txt = await res.text().catch(() => '');
     throw new Error(txt || 'Error al obtener productos filtrados');
   }
-
   return res.json();
 }

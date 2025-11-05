@@ -1,17 +1,26 @@
-import { useState, useEffect, useRef, useMemo, type ChangeEvent, type FormEvent } from 'react';
+// src/components/ecommerce/producto/ProductoCrearModal.tsx
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  type ChangeEvent,
+  type FormEvent,
+} from 'react';
 import { crearProducto } from '@/services/ecommerce/producto/producto.api';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
-import { fetchSedesConRepresentante } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { useAuth } from '@/auth/context';
 
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
-import type { SedeConRepresentante } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 
 import { Inputx, InputxNumber, InputxTextarea } from '@/shared/common/Inputx';
 import Tittlex from '@/shared/common/Tittlex';
 import Buttonx from '@/shared/common/Buttonx';
-import { SelectxCreatable, type CreatableOption } from '@/shared/common/SelectxCreatable';
+import {
+  SelectxCreatable,
+  type CreatableOption,
+} from '@/shared/common/SelectxCreatable';
 import { Icon } from '@iconify/react';
 
 // ========================
@@ -22,6 +31,8 @@ type Props = {
   onClose: () => void;
   /** Llama a esto para refrescar la tabla en el padre */
   onCreated?: (producto: Producto) => void;
+  /** Sede que se usará automáticamente (requerido) */
+  almacenamientoId: number;
 };
 
 type EstadoId = 'activo' | 'inactivo' | 'descontinuado';
@@ -42,7 +53,7 @@ type BasePayload = {
   codigo_identificacion: string;
   nombre_producto: string;
   descripcion: string;
-  // Se envía como string; tu backend puede mapear a estado_id
+  // Se envía como string; el backend lo mapea a estado_id
   estado: 'activo' | 'inactivo' | 'descontinuado';
   fecha_registro: string;
 };
@@ -66,7 +77,20 @@ function generarCodigoConFecha(): string {
   const hora = String(now.getHours()).padStart(2, '0');
   const minutos = String(now.getMinutes()).padStart(2, '0');
   const year = String(now.getFullYear()).slice(2);
-  const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const meses = [
+    'ENE',
+    'FEB',
+    'MAR',
+    'ABR',
+    'MAY',
+    'JUN',
+    'JUL',
+    'AGO',
+    'SEP',
+    'OCT',
+    'NOV',
+    'DIC',
+  ];
   const mesAbrev = meses[now.getMonth()];
   const charset = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789';
   const aleatorio = charset[Math.floor(Math.random() * charset.length)];
@@ -80,7 +104,9 @@ type FormState = {
   categoriaInput: string;
   categoriaSelectedId: string;
 
-  almacenamiento_id: string; // Sede
+  // ya no se muestra, lo rellenamos con la prop
+  almacenamiento_id: string;
+
   precio: string;
   stock: string;
   stock_minimo: string;
@@ -88,18 +114,19 @@ type FormState = {
   estado: EstadoId;
   fecha_registro: string;
 
-  // Imagen local (no conectada a backend)
+  // Imagen local (solo UI)
   imagenTitulo: string;
 };
 
-const getInitialForm = (): FormState => ({
+const getInitialForm = (almacenamientoId: number): FormState => ({
   codigo_identificacion: generarCodigoConFecha(),
   nombre_producto: '',
   descripcion: '',
   categoriaInput: '',
   categoriaSelectedId: '',
 
-  almacenamiento_id: '',
+  almacenamiento_id: String(almacenamientoId),
+
   precio: '',
   stock: '',
   stock_minimo: '',
@@ -121,29 +148,32 @@ function parseNum(input: string, decimals = 2): number {
   return Number.isFinite(n) ? Number(n.toFixed(decimals)) : NaN;
 }
 
-export default function ProductoCrearModal({ open, onClose, onCreated }: Props) {
+export default function ProductoCrearModal({
+  open,
+  onClose,
+  onCreated,
+  almacenamientoId,
+}: Props) {
   const { token } = useAuth();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [sedes, setSedes] = useState<SedeConRepresentante[]>([]);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<FormState>(getInitialForm());
+  const [form, setForm] = useState<FormState>(getInitialForm(almacenamientoId));
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  // Estado local para imagen
+  // Imagen (solo UI)
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Cargar cat + sedes con representante
+  // Cargar categorías
   useEffect(() => {
     if (!token || !open) return;
     fetchCategorias(token).then(setCategorias).catch(console.error);
-    fetchSedesConRepresentante(token).then(setSedes).catch(console.error);
   }, [token, open]);
 
-  // Reset al abrir/cerrar
+  // Reset al abrir/cerrar o cuando cambia la sede por prop
   useEffect(() => {
     if (open) {
-      setForm(getInitialForm());
+      setForm(getInitialForm(almacenamientoId));
       setFile(null);
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
@@ -151,7 +181,7 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, almacenamientoId]);
 
   // Liberar URL object al desmontar o cambiar file
   useEffect(() => {
@@ -160,13 +190,15 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
     };
   }, [previewUrl]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleClose = () => {
-    setForm(getInitialForm());
+    setForm(getInitialForm(almacenamientoId));
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setFile(null);
@@ -178,24 +210,34 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
     () =>
       categorias
         .slice()
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
-        .map(c => ({ id: c.id, label: c.nombre })),
+        .sort((a, b) =>
+          a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+        )
+        .map((c) => ({ id: c.id, label: c.nombre })),
     [categorias]
   );
 
   function onCategoriaInputChange(v: string) {
-    setForm(p => {
-      const match = catOptions.find(o => canonical(o.label) === canonical(v));
-      return { ...p, categoriaInput: v, categoriaSelectedId: match ? String(match.id) : '' };
+    setForm((p) => {
+      const match = catOptions.find((o) => canonical(o.label) === canonical(v));
+      return {
+        ...p,
+        categoriaInput: v,
+        categoriaSelectedId: match ? String(match.id) : '',
+      };
     });
   }
 
   function onCategoriaSelect(opt: CreatableOption) {
-    setForm(p => ({ ...p, categoriaInput: opt.label, categoriaSelectedId: String(opt.id) }));
+    setForm((p) => ({
+      ...p,
+      categoriaInput: opt.label,
+      categoriaSelectedId: String(opt.id),
+    }));
   }
 
   function onCategoriaCreate(value: string) {
-    setForm(p => ({ ...p, categoriaInput: value, categoriaSelectedId: '' }));
+    setForm((p) => ({ ...p, categoriaInput: value, categoriaSelectedId: '' }));
   }
 
   // Imagen: seleccionar, ver, descargar, eliminar
@@ -234,7 +276,6 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
     e.preventDefault();
     if (!token || saving) return;
 
-    if (!form.almacenamiento_id) return;
     if (!form.nombre_producto.trim()) return;
 
     // parseo seguro
@@ -243,7 +284,8 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
     const stock_minimo = parseNum(form.stock_minimo, 0);
     const peso = parseNum(form.peso, 3);
 
-    if ([precio, stock, stock_minimo, peso].some(n => Number.isNaN(n))) return;
+    if ([precio, stock, stock_minimo, peso].some((n) => Number.isNaN(n)))
+      return;
 
     let payload: CreateProductoPayload;
 
@@ -285,19 +327,24 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
     setSaving(true);
     try {
       // Nota: no enviamos la imagen; queda local (como pediste).
-      const producto = await crearProducto(payload as unknown as Partial<Producto>, token);
+      const producto = await crearProducto(
+        payload as unknown as Partial<Producto>,
+        token
+      );
 
       // Si el backend devuelve la categoría creada, la agregamos al cache local
       if (!form.categoriaSelectedId && (producto as any)?.categoria) {
         const nueva = (producto as any).categoria as Categoria;
-        setCategorias(prev => {
-          const dup = prev.some(c => canonical(c.nombre) === canonical(nueva.nombre));
+        setCategorias((prev) => {
+          const dup = prev.some(
+            (c) => canonical(c.nombre) === canonical(nueva.nombre)
+          );
           return dup ? prev : [...prev, nueva];
         });
       }
 
       onCreated?.(producto);
-      setForm(getInitialForm());
+      setForm(getInitialForm(almacenamientoId));
       onClose();
     } catch (err) {
       console.error('Error al crear producto:', err);
@@ -326,17 +373,23 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
         </div>
 
         {/* Body scrollable */}
-        <form id="crear-producto-form" ref={formRef} onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 pb-24">
+        <form
+          id="crear-producto-form"
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto px-5 pb-24">
           <div className="flex flex-col gap-5">
+            {/* Código / Nombre */}
             <div className="grid grid-cols-2 gap-5">
               <Inputx
                 name="codigo_identificacion"
                 label="Código"
                 value={form.codigo_identificacion}
-                readOnly
+                onChange={handleChange}
                 disabled={saving}
                 type="text"
               />
+
               <Inputx
                 name="nombre_producto"
                 label="Nombre del Producto"
@@ -349,6 +402,7 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
               />
             </div>
 
+            {/* Descripción */}
             <InputxTextarea
               name="descripcion"
               label="Descripción"
@@ -361,6 +415,7 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
               maxRows={8}
             />
 
+            {/* Categoría (creatable) */}
             <SelectxCreatable
               label="Categoría"
               labelVariant="left"
@@ -375,52 +430,36 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
               onCreateFromInput={onCategoriaCreate}
             />
 
-            {/* ---- Sede (solo con representante) ---- */}
+            {/* Estado: full width (subido arriba) */}
             <div>
-              <label className="block text-base font-normal text-gray90 text-left">Sede</label>
+              <label className="block text-base font-normal text-gray90 text-left">
+                Estado
+              </label>
               <div className="relative">
                 <select
-                  name="almacenamiento_id"
-                  value={form.almacenamiento_id}
-                  onChange={(e) => setForm(p => ({ ...p, almacenamiento_id: e.target.value }))}
+                  value={form.estado}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      estado: e.target.value as EstadoId,
+                    }))
+                  }
                   className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
-                    ${!form.almacenamiento_id ? 'text-gray-500' : 'text-gray90'}
+                    ${!form.estado ? 'text-gray-500' : 'text-gray90'}
                     placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
                     focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
-                  required
-                  disabled={saving}
-                >
-                  <option value="" disabled hidden>Seleccionar sede</option>
-                  {sedes.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.nombre_almacen} — {s.representante.nombres} {s.representante.apellidos}
+                  disabled={saving}>
+                  {ESTADO_OPCIONES.map((op) => (
+                    <option key={op.id} value={op.id}>
+                      {op.nombre}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* ---- Estado (50%) + Título imagen (50%) ---- */}
+            {/* Título imagen + Subir imagen (misma fila / mismo ancho) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-base font-normal text-gray90 text-left">Estado</label>
-                <div className="relative">
-                  <select
-                    value={form.estado}
-                    onChange={(e) => setForm(p => ({ ...p, estado: e.target.value as EstadoId }))}
-                    className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
-                      ${!form.estado ? 'text-gray-500' : 'text-gray90'}
-                      placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
-                      focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
-                    disabled={saving}
-                  >
-                    {ESTADO_OPCIONES.map(op => (
-                      <option key={op.id} value={op.id}>{op.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
               <Inputx
                 name="imagenTitulo"
                 label="Título de la imagen"
@@ -430,70 +469,67 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
                 disabled={saving}
                 type="text"
               />
-            </div>
 
-            {/* ---- Subir imagen + preview + acciones ---- */}
-            <div className="flex flex-col gap-3">
-              <label className="block text-base font-normal text-gray90 text-left">Subir imagen</label>
-
-              <div className="flex items-center gap-3">
-                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white cursor-pointer hover:bg-gray-50">
-                  <Icon icon="tabler:upload" className="text-xl" />
-                  <span className="text-sm">Seleccionar archivo</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={onPickFile} />
+              <div className="flex flex-col gap-2">
+                <label className="block text-base font-normal text-gray90 text-left">
+                  Subir imagen
                 </label>
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white cursor-pointer hover:bg-gray-50">
+                    <Icon icon="tabler:upload" className="text-xl" />
+                    <span className="text-sm">Seleccionar archivo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={onPickFile}
+                    />
+                  </label>
 
-                {file && (
-                  <span className="text-sm text-gray-600 truncate max-w-[60%]">
-                    {file.name}
-                  </span>
+                  {file && (
+                    <span className="text-sm text-gray-600 truncate max-w-[60%]">
+                      {file.name}
+                    </span>
+                  )}
+                </div>
+
+                {previewUrl && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-12 h-12 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+                      <img
+                        src={previewUrl}
+                        alt="preview"
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
+                      title="Descargar"
+                      onClick={onDownloadImage}>
+                      <Icon icon="tabler:download" className="text-lg" />
+                    </button>
+                    <button
+                      type="button"
+                      className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
+                      title="Ver"
+                      onClick={onViewImage}>
+                      <Icon icon="tabler:eye" className="text-lg" />
+                    </button>
+                    <button
+                      type="button"
+                      className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
+                      title="Eliminar"
+                      onClick={onDeleteImage}>
+                      <Icon icon="tabler:trash" className="text-lg" />
+                    </button>
+                  </div>
                 )}
               </div>
-
-              {previewUrl && (
-                <div className="flex items-center gap-3">
-                  {/* Miniatura */}
-                  <div className="w-16 h-16 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-                    <img
-                      src={previewUrl}
-                      alt="preview"
-                      className="w-full h-full object-cover"
-                      draggable={false}
-                    />
-                  </div>
-
-                  {/* Acciones */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="w-10 h-10 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                      title="Descargar"
-                      onClick={onDownloadImage}
-                    >
-                      <Icon icon="tabler:download" className="text-xl" />
-                    </button>
-                    <button
-                      type="button"
-                      className="w-10 h-10 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                      title="Ver en nueva pestaña"
-                      onClick={onViewImage}
-                    >
-                      <Icon icon="tabler:eye" className="text-xl" />
-                    </button>
-                    <button
-                      type="button"
-                      className="w-10 h-10 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                      title="Eliminar"
-                      onClick={onDeleteImage}
-                    >
-                      <Icon icon="tabler:trash" className="text-xl" />
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* ---- Números ---- */}
+            {/* Números */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <InputxNumber
                 label="Precio"
@@ -556,7 +592,9 @@ export default function ProductoCrearModal({ open, onClose, onCreated }: Props) 
               onClick={() => formRef.current?.requestSubmit()}
               disabled={saving}
               label={saving ? 'Creando…' : 'Crear nuevo'}
-              icon={saving ? 'line-md:loading-twotone-loop' : 'tabler:cube-plus'}
+              icon={
+                saving ? 'line-md:loading-twotone-loop' : 'tabler:cube-plus'
+              }
               className={`px-4 text-sm ${saving ? '[&_svg]:animate-spin' : ''}`}
               type="button"
             />
