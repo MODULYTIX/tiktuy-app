@@ -183,7 +183,12 @@ export async function registrarMovimiento(
 
 export async function fetchMovimientos(token: string): Promise<MovimientoAlmacen[]> {
   const res = await fetch(`${BASE_URL}/movimientos`, { headers: buildHeaders(token) });
-  return handleJson<MovimientoAlmacen[]>(res);
+  const payload = await handleJson<any>(res);
+
+  // Normalización robusta
+  if (Array.isArray(payload)) return payload as MovimientoAlmacen[];
+  if (Array.isArray(payload?.data)) return payload.data as MovimientoAlmacen[];
+  return [];
 }
 
 /** NUEVO: validar un movimiento (Proceso -> Validado/Observado) */
