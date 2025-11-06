@@ -15,7 +15,6 @@ type Props = {
   token: string;
   data: PreviewProductosResponseDTO;
   onImported: () => void;
-  preloadedAlmacenOptions?: Option[];
   preloadedCategoriaOptions?: Option[];
 };
 
@@ -36,7 +35,6 @@ export default function ImportProductosPreviewModal({
   token,
   data,
   onImported,
-  preloadedAlmacenOptions = [],
   preloadedCategoriaOptions = [],
 }: Props) {
   // ----------------- STATE -----------------
@@ -54,10 +52,6 @@ export default function ImportProductosPreviewModal({
     () => toArray<Option>(preloadedCategoriaOptions as unknown).map(o => o.label),
     [preloadedCategoriaOptions]
   );
-  const almacenNames = useMemo(
-    () => toArray<Option>(preloadedAlmacenOptions as unknown).map(o => o.label),
-    [preloadedAlmacenOptions]
-  );
 
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const allSelected  = groups.length > 0 && groups.every((_, i) => selected[i]);
@@ -72,11 +66,10 @@ export default function ImportProductosPreviewModal({
   const toggleRow  = (idx: number) => setSelected(prev => ({ ...prev, [idx]: !prev[idx] }));
   const toggleAll  = () => setSelected(allSelected ? {} : Object.fromEntries(groups.map((_, i) => [i, true])));
 
-  // ----------------- VALIDATION (misma lógica) -----------------
+  // ----------------- VALIDATION (misma lógica, sin 'almacen') -----------------
   const norm = (s: string) =>
     (s ?? '').toString().trim().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
   const categoriaSet = useMemo(() => new Set(categoriaNames.map(norm)), [categoriaNames]);
-  const almacenSet   = useMemo(() => new Set(almacenNames.map(norm)),   [almacenNames]);
 
   const isEmpty  = (s: unknown) => String(s ?? '').trim().length === 0;
   const toNumber = (v: any) => (v === '' || v == null ? NaN : Number(v));
@@ -93,7 +86,6 @@ export default function ImportProductosPreviewModal({
     return {
       nombre_producto: isEmpty(g.nombre_producto),
       categoria: isEmpty(g.categoria),
-      almacen:   isEmpty(g.almacen),
       precio:    !(Number.isFinite(precio)    && precio    >= 0),
       cantidad:  !(Number.isInteger(cantidad) && cantidad  >= 0),
       stock_minimo: !(Number.isInteger(stockMin) && stockMin >= 0),
@@ -106,7 +98,6 @@ export default function ImportProductosPreviewModal({
     return !(
       inv.nombre_producto ||
       inv.categoria ||
-      inv.almacen ||
       inv.precio ||
       inv.cantidad ||
       inv.stock_minimo ||
@@ -119,7 +110,6 @@ export default function ImportProductosPreviewModal({
     const e: string[] = [];
     if (inv.nombre_producto) e.push('Campo requerido: Nombre');
     if (inv.categoria)       e.push('Campo requerido: Categoria');
-    if (inv.almacen)         e.push('Campo requerido: Almacen');
     if (inv.precio)          e.push('Precio inválido (>= 0)');
     if (inv.cantidad)        e.push('Cantidad inválida (≥ 0)');
     if (inv.stock_minimo)    e.push('Stock mínimo inválido (≥ 0)');
@@ -133,8 +123,8 @@ export default function ImportProductosPreviewModal({
     if (!v) return 'bg-red-50';
     return has ? '' : 'bg-amber-50';
   };
-  const colorCategoria = (value?: string | null) => bgWarnFromCatalog(categoriaSet.has(norm(String(value ?? ''))), value);
-  const colorAlmacen   = (value?: string | null) => bgWarnFromCatalog(almacenSet.has(norm(String(value ?? ''))), value);
+  const colorCategoria = (value?: string | null) =>
+    bgWarnFromCatalog(categoriaSet.has(norm(String(value ?? ''))), value);
 
   // ----------------- PATCH (misma lógica) -----------------
   const patchGroup = (idx: number, patch: Partial<PreviewProductoDTO>) => {
@@ -176,9 +166,9 @@ export default function ImportProductosPreviewModal({
       return { ...g, valido, errores: valido ? [] : recomputeErrores(g) };
     });
 
-    const firstEmpty = groupsToSend.find(g => isEmpty(g.categoria) || isEmpty(g.almacen));
+    const firstEmpty = groupsToSend.find(g => isEmpty(g.categoria));
     if (firstEmpty) {
-      setError(`Hay filas con "Categoría" o "Almacén" vacíos (p.ej. fila Excel ${firstEmpty.fila}).`);
+      setError(`Hay filas con "Categoría" vacía (p.ej. fila Excel ${firstEmpty.fila}).`);
       return;
     }
     const hasInvalid = computeHasInvalid(groupsToSend);
@@ -190,7 +180,7 @@ export default function ImportProductosPreviewModal({
     try {
       setSubmitting(true);
       const payload: ImportProductosPayload = { groups: groupsToSend };
-      console.log('[IMPORT:UI] Payload a enviar (productos):', JSON.parse(JSON.stringify(payload)));
+      // console.log('[IMPORT:UI] Payload a enviar (productos):', JSON.parse(JSON.stringify(payload)));
       await importProductosDesdePreview(payload, token);
       onImported();
       onClose();
@@ -228,7 +218,7 @@ export default function ImportProductosPreviewModal({
 
       {/* Barra masiva (look de select) */}
       <div className="mt-3 mb-4 rounded-lg border border-gray-200 bg-white p-3">
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
           <div className="flex items-center">
             <input
               ref={headerChkRef}
@@ -287,26 +277,6 @@ export default function ImportProductosPreviewModal({
             />
             <datalist id="categorias-sugeridas">
               {categoriaNames.map((n) => <option key={n} value={n} />)}
-            </datalist>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
-          </div>
-
-          {/* Almacén */}
-          <div className="relative">
-            <input
-              list="almacenes-sugeridos"
-              placeholder="Seleccionar"
-              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const v = (e.target as HTMLInputElement).value.trim();
-                  if (v) applyToSelected({ almacen: v });
-                  (e.target as HTMLInputElement).value = '';
-                }
-              }}
-            />
-            <datalist id="almacenes-sugeridos">
-              {almacenNames.map((n) => <option key={n} value={n} />)}
             </datalist>
             <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
           </div>
@@ -388,11 +358,10 @@ export default function ImportProductosPreviewModal({
         <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
           <colgroup>
             <col className="w-9" />
-            <col className="w-[20%]" />
+            <col className="w-[22%]" />
             <col className="w-[18%]" />
-            <col className="w-[16%]" />
-            <col className="w-[16%]" />
-            <col className="w-[10%]" />
+            <col className="w-[18%]" />
+            <col className="w-[12%]" />
             <col className="w-[10%]" />
             <col className="w-[12%]" />
             <col className="w-[10%]" />
@@ -404,7 +373,6 @@ export default function ImportProductosPreviewModal({
               <th className="border-b border-gray-200 px-3 py-3 text-left">N. Producto</th>
               <th className="border-b border-gray-200 px-3 py-3 text-left">Descripción</th>
               <th className="border-b border-gray-200 px-3 py-3 text-left">Categoría</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Almacén</th>
               <th className="border-b border-gray-200 px-3 py-3 text-right">Precio</th>
               <th className="border-b border-gray-200 px-3 py-3 text-right">Cantidad</th>
               <th className="border-b border-gray-200 px-3 py-3 text-right">Stock mínimo</th>
@@ -457,20 +425,6 @@ export default function ImportProductosPreviewModal({
                     />
                     <datalist id={`categorias-row-${gi}`}>
                       {categoriaNames.map((n) => <option key={n} value={n} />)}
-                    </datalist>
-                  </td>
-
-                  {/* Almacén */}
-                  <td className={`border-b border-gray-200 px-3 py-2 align-middle ${colorAlmacen(g.almacen)}`}>
-                    <input
-                      list={`almacenes-row-${gi}`}
-                      value={g.almacen ?? ''}
-                      onChange={(e) => patchGroup(gi, { almacen: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
-                      title={String(g.almacen ?? '')}
-                    />
-                    <datalist id={`almacenes-row-${gi}`}>
-                      {almacenNames.map((n) => <option key={n} value={n} />)}
                     </datalist>
                   </td>
 
