@@ -239,7 +239,7 @@ export default function ProductoDetalleModal({ isOpen, onClose, producto }: Prop
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-5 justify-start">
           <Buttonx
             variant="outlined"
             onClick={onClose}

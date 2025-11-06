@@ -5,6 +5,9 @@ import {
   crearSedeSecundariaConInvitacion,
   updateAlmacenamiento,
 } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
+import Tittlex from '@/shared/common/Tittlex';
+import { Inputx, InputxPhone } from '@/shared/common/Inputx';
+import Buttonx from '@/shared/common/Buttonx';
 
 type Props = {
   token: string;
@@ -153,163 +156,138 @@ export default function CrearAlmacenModal({ token, almacen, modo, onClose, onSuc
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col gap-5 p-5 h-full w-[420px]">
       {/* Header */}
-      <header className="px-5 py-4 border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="text-primary-600 text-2xl">🏬</div>
-          <div>
-            <h2 className="text-[22px] font-semibold text-gray-900">{titulo}</h2>
-            <p className="text-sm text-gray-500">
-              Complete la información para {isEditar ? 'actualizar' : 'registrar'} la sede.
-            </p>
-          </div>
-        </div>
-      </header>
+      <Tittlex
+        variant="modal"
+        icon="hugeicons:warehouse"
+        title={titulo}
+        description={`Complete la información para ${isEditar ? 'actualizar' : 'registrar'} la sede.`}
+      />
 
       {/* Body */}
-      <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
-        {/* Datos de sede */}
-        <div className="space-y-3">
-          <label className="block">
-            <span className="text-sm text-gray-700">Nombre de Sede</span>
-            <input
-              className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200"
-              placeholder="Ej.: Sede Secundaria"
-              value={form.nombre_sede}
-              onChange={(e) => set('nombre_sede', e.target.value)}
-            />
-          </label>
+      <div className='flex flex-col gap-5 h-full'>
+        <Inputx
+          label="Nombre de Sede"
+          placeholder="Ej.: Sede Secundaria"
+          value={form.nombre_sede}
+          onChange={(e) => set('nombre_sede', e.target.value)}
+        />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-sm text-gray-700">Departamento (opcional)</span>
-              <input
-                className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200"
-                placeholder="Seleccionar departamento"
-                value={form.departamento ?? ''}
-                onChange={(e) => set('departamento', e.target.value || null)}
-              />
-            </label>
+        <div className="flex gap-5">
+          <Inputx
+            label="Departamento (opcional)"
+            placeholder="Seleccionar departamento"
+            value={form.departamento ?? ''}
+            onChange={(e) => set('departamento', e.target.value || null)}
+          />
 
-            <label className="block">
-              <span className="text-sm text-gray-700">Provincia (opcional)</span>
-              <input
-                className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200"
-                placeholder="Seleccionar provincia"
-                value={form.provincia ?? ''}
-                onChange={(e) => set('provincia', e.target.value || null)}
-              />
-            </label>
-          </div>
+          <Inputx
+            label="Provincia (opcional)"
+            placeholder="Seleccionar provincia"
+            value={form.provincia ?? ''}
+            onChange={(e) => set('provincia', e.target.value || null)}
+          />
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-sm text-gray-700">Ciudad</span>
-              <input
-                className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200"
-                placeholder="Seleccionar ciudad"
-                value={form.ciudad}
-                onChange={(e) => set('ciudad', e.target.value)}
-              />
-            </label>
+        <div className="flex gap-5">
+          <Inputx
+            label="Ciudad"
+            placeholder="Seleccionar ciudad"
+            value={form.ciudad}
+            onChange={(e) => set('ciudad', e.target.value)}
+          />
 
-            <label className="block">
-              <span className="text-sm text-gray-700">Dirección</span>
-              <input
-                className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200"
-                placeholder="Ej.: Av. Los Próceres 1234"
-                value={form.direccion}
-                onChange={(e) => set('direccion', e.target.value)}
-              />
-            </label>
-          </div>
+          <Inputx
+            label="Dirección"
+            placeholder="Ej.: Av. Los Próceres 1234"
+            value={form.direccion}
+            onChange={(e) => set('direccion', e.target.value)}
+          />
         </div>
 
         {/* Datos del representante (solo CREAR) */}
         {!isEditar && (
-          <div className="mt-2">
-            <div className="text-sm font-semibold text-gray-800 mb-2">Datos del representante</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-sm text-gray-700">Nombres</span>
-                <input
-                  className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200"
-                  value={form.representante.nombres}
-                  onChange={(e) => setRep('nombres', e.target.value)}
-                  placeholder="Nombres"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm text-gray-700">Apellidos</span>
-                <input
-                  className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200"
-                  value={form.representante.apellidos}
-                  onChange={(e) => setRep('apellidos', e.target.value)}
-                  placeholder="Apellidos"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm text-gray-700">DNI</span>
-                <input
-                  className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200"
-                  value={form.representante.dni}
-                  onChange={(e) => setRep('dni', e.target.value)}
-                  placeholder="DNI"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm text-gray-700">Celular (opcional)</span>
-                <input
-                  className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200"
-                  value={form.representante.celular ?? ''}
-                  onChange={(e) => setRep('celular', e.target.value)}
-                  placeholder="Celular"
-                />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="text-sm text-gray-700">Correo</span>
-                <input
-                  className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-200"
-                  value={form.representante.correo}
-                  onChange={(e) => setRep('correo', e.target.value)}
-                  placeholder="correo@dominio.com"
-                  type="email"
-                />
-              </label>
+          <div className="flex flex-col gap-5">
+            <div className="text-md font-semibold text-gray-800">Datos del representante</div>
+
+            <div className="flex gap-5">
+              <Inputx
+                label="Nombres"
+                placeholder="Nombres"
+                value={form.representante.nombres}
+                onChange={(e) => setRep('nombres', e.target.value)}
+              />
+
+              <Inputx
+                label="Apellidos"
+                placeholder="Apellidos"
+                value={form.representante.apellidos}
+                onChange={(e) => setRep('apellidos', e.target.value)}
+              />
             </div>
-            <p className="text-[12px] text-gray-500 mt-2">
+
+            <div className="flex gap-5">
+              <Inputx
+                label="DNI"
+                placeholder="DNI"
+                value={form.representante.dni}
+                onChange={(e) => setRep('dni', e.target.value)}
+              />
+
+              <InputxPhone
+                label="Celular (opcional)"
+                placeholder="Celular"
+                countryCode="+51"
+                value={form.representante.celular ?? ''}
+                onChange={(e) => setRep('celular', e.target.value)}
+              />
+            </div>
+
+            <Inputx
+              label="Correo"
+              placeholder="correo@dominio.com"
+              type="email"
+              value={form.representante.correo}
+              onChange={(e) => setRep('correo', e.target.value)}
+            />
+
+            <p className="text-[12px] text-gray-500">
               Se enviará una invitación al correo del representante para que cree su contraseña y active su cuenta.
             </p>
           </div>
         )}
 
         {errorMsg && (
-          <div className="text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2 text-sm">
+          <div className="text-red-600 bg-red-50 border border-red-200 rounded text-sm">
             {errorMsg}
           </div>
         )}
       </div>
 
       {/* Footer */}
-      <footer className="px-5 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
-          disabled={saving}
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
+      <div className="flex items-center gap-5">
+        <Buttonx
+          variant="quartery"
           onClick={onSubmit}
           disabled={saving}
-          className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60"
-        >
-          {saving ? (isEditar ? 'Guardando…' : 'Creando…') : isEditar ? 'Guardar cambios' : 'Crear nuevo'}
-        </button>
-      </footer>
+          label={
+            saving
+              ? isEditar
+                ? 'Guardando…'
+                : 'Creando…'
+              : isEditar
+                ? 'Guardar cambios'
+                : 'Crear nuevo'
+          }
+        />
+        <Buttonx
+          variant="outlinedw"
+          disabled={saving}
+          onClick={onClose}
+          label="Cancelar"
+        />
+      </div>
     </div>
   );
 }
