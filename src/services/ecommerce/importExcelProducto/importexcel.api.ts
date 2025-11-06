@@ -1,3 +1,5 @@
+// Tip: coloca este archivo donde centralizas tus llamadas a la API (e.g. src/services/importexcel.api.ts)
+
 import type {
   PreviewProductosResponseDTO,
   ImportProductosPayload,
@@ -7,7 +9,6 @@ import type {
 const API_URL = import.meta.env.VITE_API_URL as string;
 
 async function parseError(res: Response): Promise<never> {
-  // Intenta JSON primero
   try {
     const data = await res.json();
     const msg =
@@ -18,7 +19,6 @@ async function parseError(res: Response): Promise<never> {
       `HTTP ${res.status}`;
     throw new Error(msg);
   } catch {
-    // Si no es JSON, prueba texto
     try {
       const txt = await res.text();
       throw new Error(txt || `HTTP ${res.status}`);
@@ -31,6 +31,7 @@ async function parseError(res: Response): Promise<never> {
 /**
  * POST /import/excel/v1/productos/preview
  * Envía multipart/form-data con 'file' (.xlsx) y devuelve la estructura PreviewProductosResponseDTO.
+ * Nota: Ya NO se envía/retorna 'almacen' porque la sede se resuelve en el backend.
  */
 export async function previewProductosExcel(
   file: File,
@@ -41,9 +42,7 @@ export async function previewProductosExcel(
 
   const res = await fetch(`${API_URL}/import/excel/v1/productos/preview`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
 
@@ -53,8 +52,7 @@ export async function previewProductosExcel(
 
 /**
  * POST /import/excel/v1/productos
- * Envía JSON con { groups } e inserta/actualiza en BD.
- * Nota: si el backend devuelve 400 con estado "vacio", aquí se lanzará Error.
+ * Envía JSON con { groups } (los items del preview, posiblemente editados) e inserta/actualiza en BD.
  */
 export async function importProductosDesdePreview(
   payload: ImportProductosPayload,
@@ -88,9 +86,7 @@ export async function importProductosDesdeArchivo(args: {
 
   const res = await fetch(`${API_URL}/import/excel/v1/productos/file`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
 
@@ -98,7 +94,7 @@ export async function importProductosDesdeArchivo(args: {
   return res.json();
 }
 
-/* Aliases opcionales para mantener compatibilidad con nombres previos */
+/* Aliases opcionales para compatibilidad con nombres previos */
 export const previewExcelProductos = previewProductosExcel;
 export const importDesdePreviewProductos = importProductosDesdePreview;
 export const importDesdeArchivoProductos = importProductosDesdeArchivo;

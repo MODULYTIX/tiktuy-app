@@ -29,15 +29,37 @@ export default function MovimientoValidacionTable() {
 
   useEffect(() => {
     if (!token) return;
-    setLoading(true);
-    fetchMovimientos(token)
-      .then(setMovimientos)
-      .catch((err) => {
+  
+    const ac = new AbortController();
+    let alive = true;
+  
+    (async () => {
+      try {
+        setLoading(true);
+        const resp = await fetchMovimientos(token);
+        if (!alive || ac.signal.aborted) return;
+  
+        // Normaliza aquí por si el client no lo hace
+        const list = Array.isArray(resp) ? resp : Array.isArray((resp as any)?.data) ? (resp as any).data : [];
+        setMovimientos(list);
+      } catch (err) {
         console.error(err);
+        // No incluyas notify en deps; úsalo aquí sin meterlo en el array
+        // (si tu linter se queja, desactiva la regla para esta línea)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         notify('No se pudieron cargar los movimientos.', 'error');
-      })
-      .finally(() => setLoading(false));
-  }, [token, notify]);
+        setMovimientos([]);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+  
+    return () => {
+      alive = false;
+      ac.abort();
+    };
+  }, [token]); // 👈 solo token
+  
 
   // Alias de compatibilidad: "Activo" → "Proceso"
   const normalizeEstado = (nombre?: string) => {

@@ -28,9 +28,16 @@ export default function MovimientoRegistroTable({
   useEffect(() => {
     if (!token) return;
     fetchProductos(token)
-      .then((rows) => {
-        const productosActivos = (rows || []).filter(
-          (p) => p.estado?.nombre !== 'Inactivo' && p.stock > 0
+      .then((rows: unknown) => {
+        //  Soporta ambas formas: array plano o objeto paginado { data, ... }
+        const list: Producto[] = Array.isArray(rows)
+          ? rows
+          : Array.isArray((rows as any)?.data)
+          ? (rows as any).data
+          : [];
+
+        const productosActivos = list.filter(
+          (p: Producto) => p.estado?.nombre !== 'Inactivo' && Number(p.stock) > 0
         );
         setAllProductos(productosActivos);
       })
@@ -39,56 +46,65 @@ export default function MovimientoRegistroTable({
 
   // Comunicar selección hacia arriba
   useEffect(() => {
-    const seleccionados = allProductos.filter((p) => selectedIds.includes(p.uuid));
+    const seleccionados = allProductos.filter((p: Producto) => selectedIds.includes(p.uuid));
     onSelectProducts(seleccionados);
   }, [selectedIds, allProductos, onSelectProducts]);
 
   // ------- Filtrado en memoria (igual que tenías) -------
   const filtered = useMemo(() => {
-    let data = [...allProductos];
+    let data: Producto[] = [...allProductos];
 
-    data = data.filter((p) => p.estado?.nombre !== 'Inactivo' && p.stock > 0);
+    data = data.filter((p: Producto) => p.estado?.nombre !== 'Inactivo' && Number(p.stock) > 0);
 
     if (filters.almacenamiento_id) {
       data = data.filter(
-        (p) => String(p.almacenamiento_id || '') === String(filters.almacenamiento_id)
+        (p: Producto) =>
+          String(p.almacenamiento_id ?? '') === String(filters.almacenamiento_id)
       );
     }
 
     if (filters.categoria_id) {
       data = data.filter(
-        (p: any) =>
-          String(p.categoria_id || p?.categoria?.id || '') === String(filters.categoria_id)
+        (p: Producto) =>
+          String((p as any).categoria_id ?? (p as any)?.categoria?.id ?? '') ===
+          String(filters.categoria_id)
       );
     }
 
     if (filters.estado) {
       data = data.filter(
-        (p) => (p.estado?.nombre || '').toLowerCase() === filters.estado.toLowerCase()
+        (p: Producto) =>
+          (p.estado?.nombre ?? '').toLowerCase() === filters.estado.toLowerCase()
       );
     }
 
-    if (filters.search.trim()) {
-      const needle = filters.search.trim().toLowerCase();
-      data = data.filter((p) => (p.nombre_producto || '').toLowerCase().includes(needle));
+    const search = (filters.search ?? '').trim();
+    if (search) {
+      const needle = search.toLowerCase();
+      data = data.filter((p: Producto) =>
+        (p.nombre_producto ?? '').toLowerCase().includes(needle)
+      );
     }
 
     if (filters.stock_bajo) {
-      data = data.filter((p: any) => {
-        const min = typeof p.stock_minimo === 'number' ? p.stock_minimo : 5;
-        return Number(p.stock) <= min;
+      data = data.filter((p: Producto) => {
+        const min =
+          typeof (p as any).stock_minimo === 'number' ? (p as any).stock_minimo : 5;
+        return Number(p.stock) <= Number(min);
       });
     }
 
     if (filters.precio_bajo !== filters.precio_alto) {
-      const precios = data.map((p) => Number(p.precio)).filter((n) => !Number.isNaN(n));
+      const precios = data
+        .map((p: Producto) => Number(p.precio))
+        .filter((n: number) => !Number.isNaN(n));
       if (precios.length > 0) {
         const sorted = [...precios].sort((a, b) => a - b);
         const p25 = sorted[Math.floor(sorted.length * 0.25)];
         const p75 = sorted[Math.floor(sorted.length * 0.75)];
 
-        if (filters.precio_bajo) data = data.filter((p) => Number(p.precio) <= p25);
-        if (filters.precio_alto) data = data.filter((p) => Number(p.precio) >= p75);
+        if (filters.precio_bajo) data = data.filter((p: Producto) => Number(p.precio) <= p25);
+        if (filters.precio_alto) data = data.filter((p: Producto) => Number(p.precio) >= p75);
       }
     }
 
@@ -192,7 +208,7 @@ export default function MovimientoRegistroTable({
             </thead>
 
             <tbody className="divide-y divide-gray20">
-              {pageData.map((prod) => (
+              {pageData.map((prod: Producto) => (
                 <tr key={prod.uuid} className="hover:bg-gray10 transition-colors">
                   <td className="px-4 py-3">
                     <input

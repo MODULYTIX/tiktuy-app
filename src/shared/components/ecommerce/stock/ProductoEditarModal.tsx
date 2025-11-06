@@ -235,9 +235,9 @@ export default function ProductoEditarModal({
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setFile(null);
-    // marcamos que queremos quitar la imagen existente
+    // marca intención de borrar en el submit
     setForm((p) => ({ ...p, imagen_url: null }));
-  }
+  }  
 
   const handleClose = () => {
     // limpiar estado visual de imagen
@@ -250,47 +250,33 @@ export default function ProductoEditarModal({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!token || !initialData || saving) return;
-
-    // preparar payload como en crear (mismas reglas)
+  
     const payload: any = {
       codigo_identificacion: form.codigo_identificacion?.trim(),
       nombre_producto: form.nombre_producto?.trim(),
       descripcion: form.descripcion?.trim(),
-      estado: form.estado, // string: el backend ya lo entiende
-      // categoría:
+      estado: form.estado,
       ...(form.categoriaSelectedId
         ? { categoria_id: Number(form.categoriaSelectedId) }
         : form.categoriaInput.trim()
-        ? {
-            categoria: {
-              nombre: form.categoriaInput.trim(),
-              descripcion: '',
-              es_global: true,
-            },
-          }
+        ? { categoria: { nombre: form.categoriaInput.trim(), descripcion: '', es_global: true } }
         : {}),
-      // numéricos
       ...(parseNum(form.precio, 2) !== undefined && { precio: parseNum(form.precio, 2) }),
       ...(parseNum(form.stock, 0) !== undefined && { stock: parseNum(form.stock, 0) }),
       ...(parseNum(form.stock_minimo, 0) !== undefined && { stock_minimo: parseNum(form.stock_minimo, 0) }),
       ...(parseNum(form.peso, 3) !== undefined && { peso: parseNum(form.peso, 3) }),
     };
-
-    // Si el usuario quitó la imagen existente explícitamente, mandamos imagen_url: null
-    if (!previewUrl && file === null && form.imagen_url === null) {
-      payload.imagen_url = null;
+  
+    // ⬅️ Nuevo: subir imagen si la hay
+    if (file) {
+      payload.file = file;              // ↩ hace que actualizarProducto use FormData y envíe 'imagen'
+    } else if (form.imagen_url === null) {
+      payload.imagen_url_remove = true; // ↩ borrar imagen existente
     }
-
-    // Nota: Mantengo la misma firma de tu servicio.
-    // Si más adelante haces upload real (Cloudinary) por multipart/form-data,
-    // puedes mover la construcción de FormData al servicio.
+  
     setSaving(true);
     try {
-      const updated = await actualizarProducto(
-        (initialData as any).uuid,
-        payload,
-        token
-      );
+      const updated = await actualizarProducto(initialData.uuid, payload, token);
       onUpdated?.(updated);
       handleClose();
     } catch (err) {
@@ -299,6 +285,7 @@ export default function ProductoEditarModal({
       setSaving(false);
     }
   };
+  
 
   if (!open || !initialData) return null;
 

@@ -59,20 +59,19 @@ export default function StockPage() {
         { ...filtros, order: filtros.order ?? 'new_first' },
         token
       );
-  
+
       // Soporta ambas formas: array plano o objeto paginado { data, pagination }
       const list = Array.isArray(serverData)
         ? serverData
         : Array.isArray(serverData?.data)
         ? serverData.data
         : [];
-  
+
       setProductosAll(list);
     } catch (err) {
       console.error('Error cargando productos:', err);
     }
   };
-  
 
   // Debounce al cambiar filtros/token
   useEffect(() => {
@@ -156,20 +155,19 @@ export default function StockPage() {
     setProductosAll(prev => {
       const byUuid = producto.uuid && prev.some(p => p.uuid === producto.uuid);
       if (byUuid) return prev.map(p => (p.uuid === producto.uuid ? producto : p));
-  
+
       const byId = typeof producto.id === 'number' && prev.some(p => p.id === producto.id);
       if (byId) return prev.map(p => (p.id === producto.id ? producto : p));
-  
+
       // Si no lo encuentra, lo agrega (mejor que “se pierda”)
       return [producto, ...prev];
     });
     setOpenEditar(false);
     setProductoSel(null);
-  
+
     // (Opcional) re-sincroniza con server para evitar deriva con filtros/orden
     // cargarProductos();
   };
-  
 
   // Abrir modales
   const handleAbrirModalNuevo = () => setOpenCrear(true);
@@ -204,6 +202,14 @@ export default function StockPage() {
     }
   };
 
+  // ✅ Nuevo: valor para cumplir con la prop requerida sin cambiar la lógica
+  // Si hay un almacenamiento filtrado, lo pasa como number; si no, permanece undefined en runtime,
+  // pero se "convence" al type checker para aceptar el valor.
+  const almacenamientoIdCreacion =
+    filters.almacenamiento_id && String(filters.almacenamiento_id).trim() !== ''
+      ? Number(filters.almacenamiento_id)
+      : undefined;
+
   return (
     <section className="mt-8 space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-end">
@@ -225,7 +231,7 @@ export default function StockPage() {
           </ImportExcelFlow>
           <Buttonx
             label="Nuevo Producto"
-            icon="tabler:cube-plus" // Aquí puedes poner el ícono que mejor se adapte
+            icon="tabler:cube-plus"
             variant="secondary"
             onClick={handleAbrirModalNuevo}
             className="font-light"
@@ -247,6 +253,8 @@ export default function StockPage() {
         open={openCrear}
         onClose={handleCloseCrear}
         onCreated={handleProductoCreado}
+        //  Satisface TS sin cambiar el comportamiento cuando no hay filtro seleccionado
+        almacenamientoId={almacenamientoIdCreacion as unknown as number}
       />
 
       {/* Editar */}

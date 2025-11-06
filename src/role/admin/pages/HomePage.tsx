@@ -128,7 +128,7 @@ export default function AdminHomePage() {
   };
 
   return (
-    <div className="mt-8">
+    <div className="mt-8 flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <Tittlex
           title="Panel de Control"
@@ -187,7 +187,7 @@ export default function AdminHomePage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 mt-4">
+      <div className="flex flex-col gap-5">
         <FilterPanelAdmin
           filtros={filtros}
           ciudades={ciudades}

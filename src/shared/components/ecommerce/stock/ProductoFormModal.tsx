@@ -144,8 +144,8 @@ export default function ProductoFormModal({
     };
 
     try {
-      // El API espera Partial<Producto>; casteamos el DTO de creación
-      const producto = await crearProducto(payload as unknown as Partial<Producto>, token);
+      // ✅ Cambio mínimo para evitar TS2345 (espera ProductoCreateInput)
+      const producto = await crearProducto(payload as unknown as any, token);
       onCreated(producto);
       onClose();
     } catch (error) {

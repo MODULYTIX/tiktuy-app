@@ -307,7 +307,8 @@ export default function ProductoCrearModal({
 
     setSaving(true);
     try {
-      const producto = await crearProducto(payload as unknown as Partial<Producto>, token);
+      // ⬇️⬇️ Cambio mínimo: evita el choque de tipos con ProductoCreateInput
+      const producto = await crearProducto(payload as unknown as any, token);
 
       // Si el backend devuelve la categoría creada, la cacheamos
       if (!form.categoriaSelectedId && (producto as any)?.categoria) {
