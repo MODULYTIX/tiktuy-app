@@ -172,19 +172,24 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     ],
   };
 
-  // BasePath: para REPRESENTANTE usamos /ecommerce (comparte área)
-  const roleName = user?.rol?.nombre;
+  // Rol normalizado
+  const roleName = String(user?.rol?.nombre || '').toLowerCase();
+
+  // Flags para representantes
+  const isRepEcom = roleName === 'representante_ecommerce';
+  const isRepCour = roleName === 'representante_courier';
+
+  // BasePath por rol (representantes heredan del dueño)
   const basePath =
-    roleName === 'representante'
-      ? '/ecommerce'
-      : roleName
-      ? `/${roleName}`
-      : '';
+    isRepEcom ? '/ecommerce'
+    : isRepCour ? '/courier'
+    : roleName ? `/${roleName}`
+    : '';
 
   let links: (typeof linksByRole)[keyof typeof linksByRole] = [];
 
-  if (user?.rol?.nombre === 'trabajador') {
-    // Links base para trabajador (tal como lo tenías)
+  if (roleName === 'trabajador') {
+    // Menú de trabajador (igual que tenías)
     links = [
       {
         to: '/panel',
@@ -241,23 +246,30 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       ?.split(',')
       .map((m) => m.trim());
 
-    if (modulosAsignados) {
-      links = links.filter((link) =>
-        modulosAsignados.includes(link.modulo ?? '')
-      );
-    } else {
-      links = [];
-    }
-  } else if (roleName === 'representante') {
-    // 👇 Representante = menú ecommerce SIN "Sede"
+    links = modulosAsignados
+      ? links.filter((link) => modulosAsignados.includes(link.modulo ?? ''))
+      : [];
+  } else if (isRepEcom) {
+    // Representante de ecommerce: TODO salvo Sede
     links = (linksByRole['ecommerce'] || []).filter(
-      (link) => link.to !== '/almacen' && link.label.toLowerCase() !== 'sede'
+      (link) =>
+        link.to !== '/almacen' &&
+        link.label.toLowerCase() !== 'sede'
+    );
+  } else if (isRepCour) {
+    // Representante de courier: TODO salvo Sede
+    links = (linksByRole['courier'] || []).filter(
+      (link) =>
+        link.to !== '/almacen' &&
+        link.label.toLowerCase() !== 'sede'
     );
   } else if (roleName && roleName in linksByRole) {
     links = linksByRole[roleName];
+  } else {
+    links = [];
   }
 
-  // Aplica basePath a todos los enlaces
+  // Prefijar basePath
   links = links.map((link) => ({
     ...link,
     to: `${basePath}${link.to}`,
