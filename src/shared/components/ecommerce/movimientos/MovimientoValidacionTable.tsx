@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FaEye, FaRegSquare } from 'react-icons/fa';
+import { FaEye } from 'react-icons/fa';
 import { useAuth } from '@/auth/context';
 import { fetchMovimientos } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import type { MovimientoAlmacen } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
 import VerMovimientoRealizadoModal from './VerMovimientoRealizadoModal';
 import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
 import ValidarMovimientoModal from './modal/MovimientoValidacionModal';
+import { Icon } from '@iconify/react/dist/iconify.js';
 
 const PAGE_SIZE = 6;
 
@@ -22,25 +23,31 @@ export default function MovimientoValidacionTable() {
 
   // modal "validar"
   const [validarOpen, setValidarOpen] = useState(false);
-  const [movAValidar, setMovAValidar] = useState<MovimientoAlmacen | null>(null);
+  const [movAValidar, setMovAValidar] = useState<MovimientoAlmacen | null>(
+    null
+  );
 
   // paginación local
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (!token) return;
-  
+
     const ac = new AbortController();
     let alive = true;
-  
+
     (async () => {
       try {
         setLoading(true);
         const resp = await fetchMovimientos(token);
         if (!alive || ac.signal.aborted) return;
-  
+
         // Normaliza aquí por si el client no lo hace
-        const list = Array.isArray(resp) ? resp : Array.isArray((resp as any)?.data) ? (resp as any).data : [];
+        const list = Array.isArray(resp)
+          ? resp
+          : Array.isArray((resp as any)?.data)
+          ? (resp as any).data
+          : [];
         setMovimientos(list);
       } catch (err) {
         console.error(err);
@@ -53,13 +60,12 @@ export default function MovimientoValidacionTable() {
         if (alive) setLoading(false);
       }
     })();
-  
+
     return () => {
       alive = false;
       ac.abort();
     };
   }, [token]); // 👈 solo token
-  
 
   // Alias de compatibilidad: "Activo" → "Proceso"
   const normalizeEstado = (nombre?: string) => {
@@ -112,9 +118,7 @@ export default function MovimientoValidacionTable() {
 
   // actualizar el ítem en la tabla cuando el modal devuelva el movimiento cerrado
   const mergeMovimientoActualizado = (up: MovimientoAlmacen) => {
-    setMovimientos((prev) =>
-      prev.map((m) => (m.uuid === up.uuid ? up : m))
-    );
+    setMovimientos((prev) => prev.map((m) => (m.uuid === up.uuid ? up : m)));
     // cerrar modal
     setValidarOpen(false);
     setMovAValidar(null);
@@ -201,12 +205,16 @@ export default function MovimientoValidacionTable() {
 
             <tbody className="divide-y divide-gray20">
               {current.map((m) => {
-                const estadoNorm = normalizeEstado(m.estado?.nombre).toLowerCase();
+                const estadoNorm = normalizeEstado(
+                  m.estado?.nombre
+                ).toLowerCase();
                 const puedeValidar =
                   estadoNorm === 'proceso' || estadoNorm === 'en proceso';
 
                 return (
-                  <tr key={m.uuid} className="hover:bg-gray10 transition-colors">
+                  <tr
+                    key={m.uuid}
+                    className="hover:bg-gray10 transition-colors">
                     <td className="px-4 py-3 text-gray70 font-[400]">
                       {m.uuid.slice(0, 8).toUpperCase()}
                     </td>
@@ -243,7 +251,7 @@ export default function MovimientoValidacionTable() {
                             onClick={() => handleAbrirValidar(m)}
                             title="Validar movimiento"
                             aria-label={`Validar ${m.uuid}`}>
-                            <FaRegSquare />
+                            <Icon icon="ci:check-big" width="18" height="18" />{' '}
                           </button>
                         )}
                       </div>
@@ -266,7 +274,9 @@ export default function MovimientoValidacionTable() {
 
               {!loading && current.length === 0 && (
                 <tr>
-                  <td className="px-4 py-6 text-center text-gray70 italic" colSpan={7}>
+                  <td
+                    className="px-4 py-6 text-center text-gray70 italic"
+                    colSpan={7}>
                     No hay movimientos.
                   </td>
                 </tr>
