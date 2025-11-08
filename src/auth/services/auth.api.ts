@@ -32,6 +32,9 @@ export type User = {
   estado: string;
   rol?: Rol;
   trabajador?: Trabajador;
+  ecommerce_nombre: string;
+  courier_nombre: string;
+  motorizado_courier_nombre: string;
 };
 
 // --- Tipos de login y registro ---
