@@ -100,13 +100,17 @@ type FormState = {
   fecha_registro: string;
 };
 
+// ✅ Ajuste en getInitialForm → evita poner "0" como string
 const getInitialForm = (almacenamientoId: number): FormState => ({
   codigo_identificacion: generarCodigoConFecha(),
   nombre_producto: '',
   descripcion: '',
   categoriaInput: '',
   categoriaSelectedId: '',
-  almacenamiento_id: String(almacenamientoId),
+  almacenamiento_id:
+    !almacenamientoId || Number.isNaN(almacenamientoId)
+      ? '' // 👈 si llega 0 o NaN, se deja vacío
+      : String(almacenamientoId),
   precio: '',
   stock: '',
   stock_minimo: '',
@@ -114,6 +118,7 @@ const getInitialForm = (almacenamientoId: number): FormState => ({
   estado: 'activo',
   fecha_registro: new Date().toISOString(),
 });
+
 
 function canonical(s: string) {
   return s.normalize('NFKC').toLowerCase().trim().replace(/\s+/g, ' ');
@@ -252,24 +257,31 @@ export default function ProductoCrearModal({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!token || saving) return;
-
+  
     if (!form.nombre_producto.trim()) return;
-
-    // parseo seguro
+  
+    // Parseo seguro de valores numéricos
     const precio = parseNum(form.precio, 2);
     const stock = parseNum(form.stock, 0);
     const stock_minimo = parseNum(form.stock_minimo, 0);
     const peso = parseNum(form.peso, 3);
-
-    if ([precio, stock, stock_minimo, peso].some((n) => Number.isNaN(n)))
-      return;
-
+  
+    if ([precio, stock, stock_minimo, peso].some((n) => Number.isNaN(n))) return;
+  
+    // Evitar enviar "0" o vacío al backend
+    const almacenamiento_id =
+      !form.almacenamiento_id || form.almacenamiento_id === '0'
+        ? undefined
+        : Number(form.almacenamiento_id);
+  
+    console.log('Enviando almacenamiento_id:', almacenamiento_id);
+  
     let payload: CreateProductoPayload & { file?: File };
-
+  
     if (form.categoriaSelectedId) {
       payload = {
         categoria_id: Number(form.categoriaSelectedId),
-        almacenamiento_id: Number(form.almacenamiento_id),
+        ...(almacenamiento_id ? { almacenamiento_id } : {}),
         precio,
         stock,
         stock_minimo,
@@ -279,7 +291,7 @@ export default function ProductoCrearModal({
         descripcion: form.descripcion.trim(),
         estado: form.estado,
         fecha_registro: new Date(form.fecha_registro).toISOString(),
-      };
+      } as unknown as CreateProductoPayload;
     } else {
       if (!form.categoriaInput.trim()) return;
       payload = {
@@ -288,7 +300,7 @@ export default function ProductoCrearModal({
           descripcion: null,
           es_global: true as const,
         },
-        almacenamiento_id: Number(form.almacenamiento_id),
+        ...(almacenamiento_id ? { almacenamiento_id } : {}),
         precio,
         stock,
         stock_minimo,
@@ -298,28 +310,48 @@ export default function ProductoCrearModal({
         descripcion: form.descripcion.trim(),
         estado: form.estado,
         fecha_registro: new Date(form.fecha_registro).toISOString(),
-      };
+      } as unknown as CreateProductoPayload;
     }
-
-    // Adjuntamos file si hay (API soporta multipart o body con file)
+  
     if (file) {
       (payload as any).file = file;
     }
-
+  
     setSaving(true);
     try {
-      // ⬇️⬇️ Cambio mínimo: evita el choque de tipos con ProductoCreateInput
-      const producto = await crearProducto(payload as unknown as any, token);
-
-      // Si el backend devuelve la categoría creada, la cacheamos
+      // Limpieza antes del envío: elimina claves undefined o vacías
+      const cleanPayload = Object.fromEntries(
+        Object.entries(payload).filter(
+          ([, v]) =>
+            v !== undefined &&
+            v !== null &&
+            v !== '' &&
+            v !== 'undefined'
+        )
+      );
+  
+      // Elimina almacenamiento_id si no es numérico válido
+      if (
+        !('almacenamiento_id' in cleanPayload) ||
+        isNaN(Number((cleanPayload as any).almacenamiento_id))
+      ) {
+        delete (cleanPayload as any).almacenamiento_id;
+      }
+  
+      console.log('Payload limpio antes de enviar:', cleanPayload);
+  
+      const producto = await crearProducto(cleanPayload as unknown as any, token);
+  
       if (!form.categoriaSelectedId && (producto as any)?.categoria) {
         const nueva = (producto as any).categoria as Categoria;
         setCategorias((prev) => {
-          const dup = prev.some((c) => canonical(c.nombre) === canonical(nueva.nombre));
+          const dup = prev.some(
+            (c) => canonical(c.nombre) === canonical(nueva.nombre)
+          );
           return dup ? prev : [...prev, nueva];
         });
       }
-
+  
       onCreated?.(producto);
       setForm(getInitialForm(almacenamientoId));
       onClose();
@@ -329,7 +361,7 @@ export default function ProductoCrearModal({
       setSaving(false);
     }
   };
-
+  
   if (!open) return null;
 
   return (
