@@ -15,8 +15,10 @@ type Props = {
   token: string;
   data: PreviewProductosResponseDTO;
   onImported: () => void;
+  preloadedAlmacenOptions?: Option[];     
   preloadedCategoriaOptions?: Option[];
 };
+
 
 // Normaliza un valor (array, {items:[]}, {data:[]}, o null) a T[]
 function toArray<T>(val: unknown): T[] {
