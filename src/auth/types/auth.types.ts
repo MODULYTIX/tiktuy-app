@@ -28,9 +28,11 @@ export interface User {
   rol?: {
     id: number;
     nombre: string;
-    descripcion?: string;
+    descripcion?: string; 
   };
-
+  ecommerce_nombre: string;
+  courier_nombre: string;
+  motorizado_courier_nombre: string;
   /** Relación directa si el usuario es tipo ecommerce */
   ecommerce?: {
     id: number;
