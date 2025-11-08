@@ -43,7 +43,10 @@ export default function ValidarMovimientoModal({
       init[it.producto.id] = it.cantidad ?? 0;
       // si ya tienes cantidad_validada (auditoría), úsala:
       if (typeof it.cantidad_validada === 'number') {
-        init[it.producto.id] = Math.max(0, Math.min(it.cantidad, it.cantidad_validada));
+        init[it.producto.id] = Math.max(
+          0,
+          Math.min(it.cantidad, it.cantidad_validada)
+        );
       }
     });
     setCantidades(init);
@@ -51,7 +54,11 @@ export default function ValidarMovimientoModal({
     setArchivo(null);
   }, [open, movimiento]);
 
-  const handleCantidadChange = (productoId: number, value: number, max: number) => {
+  const handleCantidadChange = (
+    productoId: number,
+    value: number,
+    max: number
+  ) => {
     const n = Number.isFinite(value) ? Math.trunc(value) : 0;
     const safe = Math.max(0, Math.min(n, max));
     setCantidades((prev) => ({ ...prev, [productoId]: safe }));
@@ -109,15 +116,18 @@ export default function ValidarMovimientoModal({
     (movimiento.estado?.nombre || '').slice(1);
 
   // Fix TS2322: Tittlex.description debe ser string, no un elemento
-  const descriptionText = `Código: ${movimiento.uuid.slice(0, 12).toUpperCase()} • Estado: ${headerEstado || '-'}`;
+  const descriptionText = `Código: ${movimiento.uuid
+    .slice(0, 12)
+    .toUpperCase()} • Estado: ${headerEstado || '-'}`;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={closeByBackdrop}>
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/30"
+      onClick={closeByBackdrop}>
       {/* Panel derecho */}
       <div
         className="h-screen w-[760px] bg-white shadow-xl flex flex-col gap-5 px-5 py-5"
-        onClick={stop}
-      >
+        onClick={stop}>
         <Tittlex
           variant="modal"
           icon="solar:check-square-linear"
@@ -130,9 +140,12 @@ export default function ValidarMovimientoModal({
           <span className="text-gray-500 mr-1">Estado:</span>
           <span
             className={
-              enProceso ? 'text-yellow-700' : headerEstado === 'Validado' ? 'text-black' : 'text-red-700'
-            }
-          >
+              enProceso
+                ? 'text-yellow-700'
+                : headerEstado === 'Validado'
+                ? 'text-black'
+                : 'text-red-700'
+            }>
             {headerEstado || '-'}
           </span>
         </div>
@@ -160,24 +173,64 @@ export default function ValidarMovimientoModal({
                 <th className="px-4 text-right font-medium">Cantidad</th>
               </tr>
             </thead>
-            <tbody className="bg-white">
+            <tbody className="bg-white relative z-10 overflow-visible">
               {movimiento.productos.map((det) => {
                 const max = det.cantidad ?? 0;
                 const val = cantidades[det.producto.id] ?? max;
+
                 return (
-                  <tr key={det.id} className="border-t last:border-0 hover:bg-gray-50">
+                  <tr
+                    key={det.id}
+                    className="border-t last:border-0 hover:bg-gray-50 relative z-10">
+                    {/* Código */}
                     <td className="px-4 py-3 whitespace-nowrap text-gray-900">
-                      {det.producto?.id ? det.producto.id : '-'}
+                      {det.producto?.id ?? '-'}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-900">
-                      {det.producto?.nombre_producto || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      <div className="line-clamp-2 leading-5 break-words">
-                        {/* si tu backend trae descripcion del producto */}
-                        {det.producto ? (det.producto as any).descripcion ?? '-' : '-'}
+                    <td
+                      className="px-4 py-3 text-gray-900 align-top relative"
+                      onMouseEnter={(e) => {
+                        const tooltip = document.createElement('div');
+                        tooltip.className =
+                          'fixed z-[9999] bg-white text-gray-800 text-xs rounded-md px-3 py-2 shadow-lg border border-gray-200 max-w-[350px]';
+                        tooltip.style.top = e.clientY + 20 + 'px';
+                        tooltip.style.left = e.clientX + 'px';
+                        tooltip.textContent =
+                          det.producto?.nombre_producto || '-';
+                        tooltip.id = 'custom-tooltip';
+                        document.body.appendChild(tooltip);
+                      }}
+                      onMouseLeave={() => {
+                        const el = document.getElementById('custom-tooltip');
+                        if (el) el.remove();
+                      }}>
+                      <div className="max-w-[180px] truncate cursor-pointer">
+                        {det.producto?.nombre_producto || '-'}
                       </div>
                     </td>
+
+                    <td
+                      className="px-4 py-3 text-gray-700 align-top relative"
+                      onMouseEnter={(e) => {
+                        const tooltip = document.createElement('div');
+                        tooltip.className =
+                          'fixed z-[9999] bg-white text-gray-800 text-xs rounded-md px-3 py-2 shadow-lg border border-gray-200 max-w-[400px]';
+                        tooltip.style.top = e.clientY + 20 + 'px';
+                        tooltip.style.left = e.clientX + 'px';
+                        tooltip.textContent =
+                          (det.producto as any)?.descripcion || '-';
+                        tooltip.id = 'custom-tooltip';
+                        document.body.appendChild(tooltip);
+                      }}
+                      onMouseLeave={() => {
+                        const el = document.getElementById('custom-tooltip');
+                        if (el) el.remove();
+                      }}>
+                      <div className="max-w-[260px] truncate cursor-pointer">
+                        {(det.producto as any)?.descripcion || '-'}
+                      </div>
+                    </td>
+
+                    {/* Cantidad */}
                     <td className="px-4 py-3">
                       <div className="ml-auto flex w-full justify-end items-center gap-2">
                         <input
@@ -188,13 +241,19 @@ export default function ValidarMovimientoModal({
                           max={max}
                           value={val}
                           onChange={(e) =>
-                            handleCantidadChange(det.producto.id, Number(e.target.value), max)
+                            handleCantidadChange(
+                              det.producto.id,
+                              Number(e.target.value),
+                              max
+                            )
                           }
                           disabled={!enProceso}
                           className="w-[64px] h-9 rounded-lg border border-gray-300 px-2 text-center text-sm shadow-sm
-                                     focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:bg-gray-100"
+                         focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:bg-gray-100"
                         />
-                        <span className="text-sm text-gray-600 whitespace-nowrap">/ {max}</span>
+                        <span className="text-sm text-gray-600 whitespace-nowrap">
+                          / {max}
+                        </span>
                       </div>
                     </td>
                   </tr>
@@ -221,13 +280,18 @@ export default function ValidarMovimientoModal({
 
         {/* Adjuntar evidencia (UI) */}
         <div>
-          <p className="text-sm font-medium text-gray-800 mb-2">Adjuntar evidencia</p>
+          <p className="text-sm font-medium text-gray-800 mb-2">
+            Adjuntar evidencia
+          </p>
           <div className="border border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-between">
             <div className="text-sm text-gray-600">
               {archivo ? (
                 <span className="font-medium">{archivo.name}</span>
               ) : (
-                <>Seleccione un archivo, arrástrelo o suéltelo. <span className="text-gray-400">JPG, PNG o PDF</span></>
+                <>
+                  Seleccione un archivo, arrástrelo o suéltelo.{' '}
+                  <span className="text-gray-400">JPG, PNG o PDF</span>
+                </>
               )}
             </div>
             <label className="inline-flex items-center gap-2 px-3 py-2 border rounded-md text-sm cursor-pointer hover:bg-gray-50">
