@@ -22,6 +22,7 @@ import {
   type CreatableOption,
 } from '@/shared/common/SelectxCreatable';
 import { Icon } from '@iconify/react';
+import { Selectx } from '@/shared/common/Selectx';
 
 // ========================
 // Utilidades / Tipos
@@ -58,24 +59,24 @@ type BasePayload = {
 
 type CreateProductoPayload =
   | ({
-      categoria_id: number;
-      categoria?: undefined;
-    } & BasePayload)
+    categoria_id: number;
+    categoria?: undefined;
+  } & BasePayload)
   | ({
-      categoria?: {
-        nombre: string;
-        descripcion?: string | null;
-        es_global: true;
-      };
-      categoria_id?: undefined;
-    } & BasePayload);
+    categoria?: {
+      nombre: string;
+      descripcion?: string | null;
+      es_global: true;
+    };
+    categoria_id?: undefined;
+  } & BasePayload);
 
 function generarCodigoConFecha(): string {
   const now = new Date();
   const hora = String(now.getHours()).padStart(2, '0');
   const minutos = String(now.getMinutes()).padStart(2, '0');
   const year = String(now.getFullYear()).slice(2);
-  const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
   const mesAbrev = meses[now.getMonth()];
   const charset = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789';
   const aleatorio = charset[Math.floor(Math.random() * charset.length)];
@@ -337,61 +338,59 @@ export default function ProductoCrearModal({
       <div className="flex-1 bg-black/40" onClick={handleClose} />
 
       {/* Panel */}
-      <div className="w-full max-w-2xl bg-white shadow-lg h-full flex flex-col">
+      <div className="w-full max-w-2xl bg-white shadow-lg h-full flex flex-col gap-5 p-5">
         {/* Header */}
-        <div className="px-5 pt-5">
-          <Tittlex
-            variant="modal"
-            icon="vaadin:stock"
-            title="REGISTRAR NUEVO PRODUCTO"
-            description="Registra un nuevo producto en tu inventario especificando su información básica, ubicación en almacén y condiciones de stock."
-          />
-        </div>
+        <Tittlex
+          variant="modal"
+          icon="vaadin:stock"
+          title="REGISTRAR NUEVO PRODUCTO"
+          description="Registra un nuevo producto en tu inventario especificando su información básica, ubicación en almacén y condiciones de stock."
+        />
 
         {/* Body scrollable */}
         <form
           id="crear-producto-form"
           ref={formRef}
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto px-5 pb-24"
+          className="h-full flex flex-col gap-5 w-full overflow-y-auto"
         >
+          {/* Código / Nombre */}
           <div className="flex flex-col gap-5">
-            {/* Código / Nombre */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <Inputx
-                name="codigo_identificacion"
-                label="Código"
-                value={form.codigo_identificacion}
-                onChange={handleChange}
-                disabled={saving}
-                type="text"
-              />
-
-              <Inputx
-                name="nombre_producto"
-                label="Nombre del Producto"
-                placeholder="Ejem. Zapatos de Cuero"
-                value={form.nombre_producto}
-                onChange={handleChange}
-                required
-                disabled={saving}
-                type="text"
-              />
-            </div>
-
-            {/* Descripción */}
-            <InputxTextarea
-              name="descripcion"
-              label="Descripción"
-              value={form.descripcion}
+            <Inputx
+              name="codigo_identificacion"
+              label="Código"
+              value={form.codigo_identificacion}
               onChange={handleChange}
               disabled={saving}
-              placeholder="Describe el producto…"
-              autoResize
-              minRows={3}
-              maxRows={8}
+              type="text"
             />
 
+            <Inputx
+              name="nombre_producto"
+              label="Nombre del Producto"
+              placeholder="Ejem. Zapatos de Cuero"
+              value={form.nombre_producto}
+              onChange={handleChange}
+              required
+              disabled={saving}
+              type="text"
+            />
+          </div>
+
+          {/* Descripción */}
+          <InputxTextarea
+            name="descripcion"
+            label="Descripción"
+            value={form.descripcion}
+            onChange={handleChange}
+            disabled={saving}
+            placeholder="Describe el producto…"
+            autoResize
+            minRows={3}
+            maxRows={8}
+          />
+
+          <div className='flex gap-5'>
             {/* Categoría (creatable) */}
             <SelectxCreatable
               label="Categoría"
@@ -408,174 +407,161 @@ export default function ProductoCrearModal({
             />
 
             {/* Estado */}
-            <div>
-              <label className="block text-base font-normal text-gray90 text-left">
-                Estado
-              </label>
-              <div className="relative">
-                <select
-                  value={form.estado}
-                  onChange={(e) =>
-                    setForm((p) => ({
-                      ...p,
-                      estado: e.target.value as EstadoId,
-                    }))
-                  }
-                  className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
-                    ${!form.estado ? 'text-gray-500' : 'text-gray90'}
-                    placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
-                    focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
+            <Selectx
+              labelVariant='left'
+              label="Estado"
+              value={form.estado}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  estado: e.target.value as EstadoId,
+                }))
+              }
+              disabled={saving}
+            >
+              {ESTADO_OPCIONES.map((op) => (
+                <option key={op.id} value={op.id}>
+                  {op.nombre}
+                </option>
+              ))}
+            </Selectx>
+          </div>
+
+          {/* Subir imagen — una sola fila */}
+          <div>
+            <label className="block text-base font-normal text-gray90 text-left">
+              Subir imagen
+            </label>
+
+            <div className="mt-2 flex items-center gap-3 flex-wrap">
+              {/* Botón seleccionar archivo */}
+              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white cursor-pointer hover:bg-gray-50">
+                <Icon icon="tabler:upload" className="text-xl" />
+                <span className="text-sm">Seleccionar archivo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onPickFile}
                   disabled={saving}
-                >
-                  {ESTADO_OPCIONES.map((op) => (
-                    <option key={op.id} value={op.id}>
-                      {op.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Subir imagen — una sola fila */}
-            <div>
-              <label className="block text-base font-normal text-gray90 text-left">
-                Subir imagen
+                />
               </label>
 
-              <div className="mt-2 flex items-center gap-3 flex-wrap">
-                {/* Botón seleccionar archivo */}
-                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white cursor-pointer hover:bg-gray-50">
-                  <Icon icon="tabler:upload" className="text-xl" />
-                  <span className="text-sm">Seleccionar archivo</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={onPickFile}
-                    disabled={saving}
-                  />
-                </label>
+              {/* Preview + acciones (mismos renglón) */}
+              {previewUrl && (
+                <>
+                  <div className="w-12 h-12 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+                    <img
+                      src={previewUrl}
+                      alt="preview"
+                      className="w-full h-full object-cover"
+                      draggable={false}
+                    />
+                  </div>
 
-                {/* Preview + acciones (mismos renglón) */}
-                {previewUrl && (
-                  <>
-                    <div className="w-12 h-12 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-                      <img
-                        src={previewUrl}
-                        alt="preview"
-                        className="w-full h-full object-cover"
-                        draggable={false}
-                      />
-                    </div>
+                  <button
+                    type="button"
+                    className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
+                    title="Descargar"
+                    onClick={onDownloadImage}
+                  >
+                    <Icon icon="tabler:download" className="text-lg" />
+                  </button>
 
-                    <button
-                      type="button"
-                      className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                      title="Descargar"
-                      onClick={onDownloadImage}
-                    >
-                      <Icon icon="tabler:download" className="text-lg" />
-                    </button>
+                  <button
+                    type="button"
+                    className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
+                    title="Ver"
+                    onClick={onViewImage}
+                  >
+                    <Icon icon="tabler:eye" className="text-lg" />
+                  </button>
 
-                    <button
-                      type="button"
-                      className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                      title="Ver"
-                      onClick={onViewImage}
-                    >
-                      <Icon icon="tabler:eye" className="text-lg" />
-                    </button>
-
-                    <button
-                      type="button"
-                      className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                      title="Eliminar"
-                      onClick={onDeleteImage}
-                    >
-                      <Icon icon="tabler:trash" className="text-lg" />
-                    </button>
-                  </>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
+                    title="Eliminar"
+                    onClick={onDeleteImage}
+                  >
+                    <Icon icon="tabler:trash" className="text-lg" />
+                  </button>
+                </>
+              )}
             </div>
+          </div>
 
-            {/* Números */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <InputxNumber
-                label="Precio"
-                name="precio"
-                value={form.precio}
-                onChange={handleChange}
-                decimals={2}
-                step={0.01}
-                min={0}
-                placeholder="0.00"
-                disabled={saving}
-              />
-              <InputxNumber
-                label="Cantidad"
-                name="stock"
-                value={form.stock}
-                onChange={handleChange}
-                decimals={0}
-                step={1}
-                min={0}
-                placeholder="0"
-                inputMode="numeric"
-                disabled={saving}
-              />
-            </div>
+          {/* Números */}
+          <div className="flex gap-5">
+            <InputxNumber
+              label="Precio"
+              name="precio"
+              value={form.precio}
+              onChange={handleChange}
+              decimals={2}
+              step={0.01}
+              min={0}
+              placeholder="0.00"
+              disabled={saving}
+            />
+            <InputxNumber
+              label="Cantidad"
+              name="stock"
+              value={form.stock}
+              onChange={handleChange}
+              decimals={0}
+              step={1}
+              min={0}
+              placeholder="0"
+              inputMode="numeric"
+              disabled={saving}
+            />
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <InputxNumber
-                label="Stock Mínimo"
-                name="stock_minimo"
-                value={form.stock_minimo}
-                onChange={handleChange}
-                decimals={0}
-                step={1}
-                min={0}
-                placeholder="0"
-                inputMode="numeric"
-                disabled={saving}
-              />
-              <InputxNumber
-                label="Peso (kg)"
-                name="peso"
-                value={form.peso}
-                onChange={handleChange}
-                decimals={3}
-                step={0.001}
-                min={0}
-                placeholder="0.000"
-                disabled={saving}
-              />
-            </div>
+          <div className="flex gap-5">
+            <InputxNumber
+              label="Stock Mínimo"
+              name="stock_minimo"
+              value={form.stock_minimo}
+              onChange={handleChange}
+              decimals={0}
+              step={1}
+              min={0}
+              placeholder="0"
+              inputMode="numeric"
+              disabled={saving}
+            />
+            <InputxNumber
+              label="Peso (kg)"
+              name="peso"
+              value={form.peso}
+              onChange={handleChange}
+              decimals={3}
+              step={0.001}
+              min={0}
+              placeholder="0.000"
+              disabled={saving}
+            />
           </div>
         </form>
 
         {/* Footer sticky */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-5 py-4">
-          <div className="flex items-center gap-5 justify-start">
-            <Buttonx
-              variant="quartery"
-              onClick={() => formRef.current?.requestSubmit()}
-              disabled={saving}
-              label={saving ? 'Creando…' : 'Crear nuevo'}
-              icon={saving ? 'line-md:loading-twotone-loop' : 'tabler:cube-plus'}
-              className={`px-4 text-sm ${saving ? '[&_svg]:animate-spin' : ''}`}
-              type="button"
-            />
-            <Buttonx
-              variant="tertiary"
-              onClick={handleClose}
-              disabled={saving}
-              label="Salir"
-              icon=""
-              className="px-4 text-sm text-gray-600 bg-gray-200"
-              type="button"
-            />
-          </div>
+        <div className="flex items-center gap-5 justify-start">
+          <Buttonx
+            variant="quartery"
+            onClick={() => formRef.current?.requestSubmit()}
+            disabled={saving}
+            label={saving ? 'Creando…' : 'Crear nuevo'}
+            className={`px-4 text-sm ${saving ? '[&_svg]:animate-spin' : ''}`}
+            type="button"
+          />
+          <Buttonx
+            variant="tertiary"
+            onClick={handleClose}
+            disabled={saving}
+            label="Cancelar"
+            icon=""
+            type="button"
+          />
         </div>
       </div>
     </div>
