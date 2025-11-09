@@ -107,13 +107,7 @@ export default function ValidarMovimientoCourierModal({
       setLoading(true);
 
       // Construir items con cantidades validadas
-      const items = detalle.productos.map((it) => ({
-        producto_id: it.producto.id,
-        cantidad_validada:
-          typeof cantidades[it.producto.id] === 'number'
-            ? cantidades[it.producto.id]
-            : it.cantidad,
-      }));
+
 
       // Verificar si se modificó alguna cantidad
       const editoAlgo = detalle.productos.some(
@@ -123,7 +117,7 @@ export default function ValidarMovimientoCourierModal({
 
       // Enviar a backend
       await validarCourierMovimiento(uuid, token, {
-        items,
+        
         observaciones: obs,
         evidencia: file || undefined,
       });
