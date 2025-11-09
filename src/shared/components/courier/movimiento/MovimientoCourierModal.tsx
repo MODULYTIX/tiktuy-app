@@ -115,7 +115,7 @@ export default function DetallesMovimientoCourierModal({
     toText((data?.uuid || '').slice(0, 10).toUpperCase());
   const estado = toText(data?.estado?.nombre || '');
   const fechaGeneracion = fechaLegible((data as any)?.fecha_movimiento);
-  const fechaValidacion = fechaLegible(
+  const fecha_validacion = fechaLegible(
     (data as any)?.fecha_validacion || (data as any)?.meta?.fecha_validacion
   );
 
@@ -290,7 +290,7 @@ export default function DetallesMovimientoCourierModal({
                         <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#FFF1BF] px-3 py-2">
                           <span className="text-[#B98900] text-[12px] font-semibold">Fecha de Validación</span>
                         </div>
-                        <div className="mt-3 text-slate-600 text-[14px]">{fechaValidacion || '—'}</div>
+                        <div className="mt-3 text-slate-600 text-[14px]">{fecha_validacion || '—'}</div>
                       </div>
                     </div>
                   </div>

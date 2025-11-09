@@ -144,7 +144,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
   const fechaGeneracion = fechaLegible(
     data.meta?.fecha_generacion ?? data.fecha
   );
-  const fechaValidacion = fechaLegible(
+  const fecha_validacion = fechaLegible(
     data.meta?.fecha_validacion ?? data.fecha
   );
 
@@ -299,7 +299,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
       <div className="mt-3 inline-flex items-center gap-2 rounded-sm bg-amber-50 px-3 py-1">
         <span className="text-amber-700 text-xs font-semibold">Fecha de Validación</span>
       </div>
-      <div className="mt-2 text-slate-600 text-sm">{fechaValidacion}</div>
+      <div className="mt-2 text-slate-600 text-sm">{fecha_validacion}</div>
     </div>
   </div>
 </div>
