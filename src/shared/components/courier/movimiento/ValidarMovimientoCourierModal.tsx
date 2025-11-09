@@ -129,7 +129,7 @@ export default function ValidarMovimientoCourierModal({
       });
 
       if (editoAlgo || obs) {
-        notify('Movimiento observado. No se actualizó stock.', 'warning');
+        notify('Movimiento observado. No se actualizó stock.', 'error');
       } else {
         notify('Movimiento validado correctamente. Stock actualizado.', 'success');
       }
