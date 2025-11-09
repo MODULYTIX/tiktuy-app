@@ -100,7 +100,6 @@ export default function ValidarMovimientoCourierModal({
     setCantidades((prev) => ({ ...prev, [productoId]: safe }));
   };
 
-  const handlePick = () => inputRef.current?.click();
 
   const handleValidate = async () => {
     if (!token || !detalle) return;
