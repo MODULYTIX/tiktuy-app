@@ -1,5 +1,5 @@
 // src/shared/components/ecommerce/movimientos/MovimientoRegistroTable.tsx
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FaEye } from 'react-icons/fa';
 import { useAuth } from '@/auth/context';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
@@ -29,7 +29,6 @@ export default function MovimientoRegistroTable({
     if (!token) return;
     fetchProductos(token)
       .then((rows: unknown) => {
-        //  Soporta ambas formas: array plano o objeto paginado { data, ... }
         const list: Producto[] = Array.isArray(rows)
           ? rows
           : Array.isArray((rows as any)?.data)
@@ -50,7 +49,7 @@ export default function MovimientoRegistroTable({
     onSelectProducts(seleccionados);
   }, [selectedIds, allProductos, onSelectProducts]);
 
-  // ------- Filtrado en memoria (igual que tenías) -------
+  // ------- Filtrado en memoria -------
   const filtered = useMemo(() => {
     let data: Producto[] = [...allProductos];
 
@@ -111,7 +110,7 @@ export default function MovimientoRegistroTable({
     return data;
   }, [allProductos, filters]);
 
-  // Paginación (igual que tenías)
+  // Paginación
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const page = Math.min(currentPage, totalPages);
   const pageData = useMemo(() => {
@@ -167,27 +166,52 @@ export default function MovimientoRegistroTable({
   const visibleCount = Math.max(1, pageData.length);
   const emptyRows = Math.max(0, pageSize - visibleCount);
 
-  // Definición de widths para evitar whitespace en <colgroup>
+  // Definición de widths
   const COLS = useMemo(
     () => [
       'w-[4%]',   // checkbox
       'w-[12%]',  // Código
       'w-[30%]',  // Producto
-      'w-[16%]',  // Sedes
-      'w-[12%]',  // Stock
-      'w-[10%]',  // Precio
+      'w-[20%]',  // Sedes
+      'w-[10%]',  // Stock
+      'w-[8%]',  // Precio
       'w-[8%]',   // Estado
       'w-[8%]',   // Acciones
     ],
     []
   );
 
+  // ✅ NEW: lógica del checkbox maestro (solo página actual)
+  const pageIds = useMemo(() => pageData.map(p => p.uuid), [pageData]);
+  const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id));
+  const somePageSelected = !allPageSelected && pageIds.some(id => selectedIds.includes(id));
+
+  const masterRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (masterRef.current) {
+      masterRef.current.indeterminate = somePageSelected; // estado parcial visual
+    }
+  }, [somePageSelected]);
+
+  const toggleSelectPage = () => {
+    setSelectedIds(prev => {
+      if (allPageSelected) {
+        // deseleccionar todos los de la página
+        return prev.filter(id => !pageIds.includes(id));
+      }
+      // seleccionar todos los de la página (mantener los ya fuera de página)
+      const set = new Set(prev);
+      pageIds.forEach(id => set.add(id));
+      return Array.from(set);
+    });
+  };
+  // ✅ END NEW
+
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
       <section className="flex-1 overflow-auto">
         <div className="overflow-x-auto bg-white">
-          <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-            {/* Porcentajes por columna (suman 100%) */}
+          <table className="h-full min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
             <colgroup>
               {COLS.map((w, i) => (
                 <col key={i} className={w} />
@@ -196,7 +220,21 @@ export default function MovimientoRegistroTable({
 
             <thead className="bg-[#E5E7EB]">
               <tr className="text-gray70 font-roboto font-medium">
-                <th className="px-4 py-3 text-left">#</th>
+                <th className="px-4 py-3 text-left">
+                  {/* ✅ NEW: checkbox maestro en header */}
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      ref={masterRef}
+                      type="checkbox"
+                      checked={allPageSelected}
+                      onChange={toggleSelectPage}
+                      disabled={pageIds.length === 0}
+                      className="accent-gray-700 cursor-pointer"
+                      aria-label="Seleccionar todos los productos de esta página"
+                      title="Seleccionar todos (página)"
+                    />
+                  </label>
+                </th>
                 <th className="px-4 py-3 text-left">Código</th>
                 <th className="px-4 py-3 text-left">Producto</th>
                 <th className="px-4 py-3 text-left">Sedes</th>
@@ -207,7 +245,7 @@ export default function MovimientoRegistroTable({
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-gray20">
+            <tbody className="h-full divide-y divide-gray20">
               {pageData.map((prod: Producto) => (
                 <tr key={prod.uuid} className="hover:bg-gray10 transition-colors">
                   <td className="px-4 py-3">
@@ -215,6 +253,8 @@ export default function MovimientoRegistroTable({
                       type="checkbox"
                       checked={selectedIds.includes(prod.uuid)}
                       onChange={() => toggleCheckbox(prod.uuid)}
+                      className="accent-gray-700 cursor-pointer"
+                      aria-label={`Seleccionar ${prod.nombre_producto ?? 'producto'}`}
                     />
                   </td>
 
@@ -223,8 +263,18 @@ export default function MovimientoRegistroTable({
                   </td>
 
                   <td className="px-4 py-3 text-gray70 font-[400]">
-                    <div className="font-semibold">{prod.nombre_producto}</div>
-                    <div className="text-gray-500 text-xs line-clamp-2">{prod.descripcion}</div>
+                    <div
+                      className="font-semibold w-full overflow-hidden text-ellipsis line-clamp-1"
+                      title={prod.nombre_producto ?? undefined}
+                    >
+                      {prod.nombre_producto ?? '—'}
+                    </div>
+                    <div
+                      className="text-gray-500 text-xs w-full overflow-hidden text-ellipsis line-clamp-1"
+                      title={prod.descripcion ?? undefined}
+                    >
+                      {prod.descripcion ?? '—'}
+                    </div>
                   </td>
 
                   <td className="px-4 py-3 text-gray70 font-[400]">
@@ -257,10 +307,10 @@ export default function MovimientoRegistroTable({
                     <div className="flex items-center justify-center">
                       <button
                         type="button"
-                        onClick={() => handleView(prod)} // pasa el producto completo
+                        onClick={() => handleView(prod)}
                         className="text-blue-600 hover:text-blue-800"
                         title="Ver detalle"
-                        aria-label={`Ver ${prod.nombre_producto}`}
+                        aria-label={`Ver ${prod.nombre_producto ?? 'producto'}`}
                       >
                         <FaEye size={16} />
                       </button>
@@ -279,7 +329,6 @@ export default function MovimientoRegistroTable({
                   </tr>
                 ))}
 
-              {/* Empty state visible como 1 fila */}
               {pageData.length === 0 && (
                 <tr>
                   <td className="px-4 py-6 text-center text-gray70 italic" colSpan={8}>
@@ -291,7 +340,7 @@ export default function MovimientoRegistroTable({
           </table>
         </div>
 
-        {/* Paginador base — visible siempre que haya datos */}
+        {/* Paginador */}
         {filtered.length > 0 && (
           <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
             <button

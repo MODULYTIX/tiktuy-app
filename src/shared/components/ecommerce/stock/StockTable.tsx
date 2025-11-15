@@ -187,7 +187,7 @@ export default function StockTable({
                   </td>
 
                   <td className="px-4 py-3 text-gray70 font-[400]">
-                    <div className="font-semibold">{prod.nombre_producto}</div>
+                    <div className="font-semibold line-clamp-2 ">{prod.nombre_producto}</div>
                     <div className="text-gray-500 text-xs line-clamp-2">
                       {prod.descripcion}
                     </div>

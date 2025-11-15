@@ -60,7 +60,6 @@ export default function StockPage() {
         token
       );
 
-      // Soporta ambas formas: array plano o objeto paginado { data, pagination }
       const list = Array.isArray(serverData)
         ? serverData
         : Array.isArray(serverData?.data)
@@ -152,21 +151,17 @@ export default function StockPage() {
 
   // Editar: reemplaza en lista por uuid y cierra
   const handleProductoActualizado = (producto: Producto) => {
-    setProductosAll(prev => {
+    setProductosAll((prev) => {
       const byUuid = producto.uuid && prev.some(p => p.uuid === producto.uuid);
       if (byUuid) return prev.map(p => (p.uuid === producto.uuid ? producto : p));
 
       const byId = typeof producto.id === 'number' && prev.some(p => p.id === producto.id);
       if (byId) return prev.map(p => (p.id === producto.id ? producto : p));
 
-      // Si no lo encuentra, lo agrega (mejor que “se pierda”)
       return [producto, ...prev];
     });
     setOpenEditar(false);
     setProductoSel(null);
-
-    // (Opcional) re-sincroniza con server para evitar deriva con filtros/orden
-    // cargarProductos();
   };
 
   // Abrir modales
@@ -191,24 +186,27 @@ export default function StockPage() {
     setProductoSel(null);
   };
 
-  // ⬇️ Actualizado: descarga de plantilla
   const handleDescargarPlantilla = async () => {
     try {
       const res = await downloadProductosTemplate();
       triggerBrowserDownload(res);
     } catch (err) {
       console.error('Error al descargar plantilla:', err);
-      // aquí puedes disparar un toast si ya usas uno
     }
   };
 
-  // ✅ Nuevo: valor para cumplir con la prop requerida sin cambiar la lógica
-  // Si hay un almacenamiento filtrado, lo pasa como number; si no, permanece undefined en runtime,
-  // pero se "convence" al type checker para aceptar el valor.
-  const almacenamientoIdCreacion =
-    filters.almacenamiento_id && String(filters.almacenamiento_id).trim() !== ''
-      ? Number(filters.almacenamiento_id)
-      : undefined;
+  // ✅ FIX: Evitar NaN y enviar valor seguro
+  let almacenamientoIdCreacion: number | undefined;
+  const raw = filters.almacenamiento_id;
+
+  if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && !Number.isNaN(parsed)) {
+      almacenamientoIdCreacion = parsed;
+    }
+  }
+
+  console.log('🧩 almacenamientoIdCreacion preparado:', almacenamientoIdCreacion);
 
   return (
     <section className="mt-8 space-y-6">
@@ -253,8 +251,7 @@ export default function StockPage() {
         open={openCrear}
         onClose={handleCloseCrear}
         onCreated={handleProductoCreado}
-        //  Satisface TS sin cambiar el comportamiento cuando no hay filtro seleccionado
-        almacenamientoId={almacenamientoIdCreacion as unknown as number}
+        almacenamientoId={almacenamientoIdCreacion ?? 0} // 👈 nunca será NaN
       />
 
       {/* Editar */}

@@ -39,7 +39,7 @@ export default function Header() {
           </div>
           <div className="flex flex-col leading-tight text-sm">
             <span className="text-[13px] font-medium text-gray-800 truncate max-w-[140px]">
-              {user?.nombres || 'Empresa'}
+              {user?.ecommerce_nombre || user?.courier_nombre || user?.motorizado_courier_nombre || 'Empresa'}
             </span>
             {config && (
               <span

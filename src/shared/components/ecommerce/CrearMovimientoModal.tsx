@@ -1,3 +1,4 @@
+// src/shared/components/ecommerce/movimientos/CrearMovimientoModal.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -32,15 +33,14 @@ export default function CrearMovimientoModal({
   const [sedesDestino, setSedesDestino] = useState<Almacenamiento[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cantidades, setCantidades] = useState<Record<string, number>>({});
-  const [almacenOrigen, setAlmacenOrigen] = useState<string>('');   // id de sede origen
-  const [almacenDestino, setAlmacenDestino] = useState<string>(''); // id de sede destino
+  const [almacenOrigen, setAlmacenOrigen] = useState<string>('');
+  const [almacenDestino, setAlmacenDestino] = useState<string>('');
   const [descripcion, setDescripcion] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (!open || !token) return;
 
-    // Sedes (mezcla: propias + asociadas al courier)
     fetchSedesConRepresentante(token)
       .then((data) => {
         const list: Almacenamiento[] = Array.isArray(data) ? data : [];
@@ -49,101 +49,80 @@ export default function CrearMovimientoModal({
       })
       .catch(console.error);
 
-    // Productos (array plano o { data: [] })
     fetchProductos(token)
-      .then((serverData: any) => {
-        const list: Producto[] = Array.isArray(serverData)
-          ? serverData
-          : Array.isArray(serverData?.data)
-          ? serverData.data
-          : [];
+      .then((rows: any) => {
+        const list: Producto[] = Array.isArray(rows) ? rows : Array.isArray(rows?.data) ? rows.data : [];
         setProductos(list);
       })
       .catch(console.error);
 
-    // Reset al abrir
     setCantidades({});
     setDescripcion('');
     setAlmacenDestino('');
-    setAlmacenOrigen(''); // se autoinferirá si corresponde
+    setAlmacenOrigen('');
   }, [open, token]);
 
-  // Productos seleccionados
   const productosSeleccionados = useMemo(
     () => productos.filter((p) => selectedProducts.includes(p.uuid)),
     [productos, selectedProducts]
   );
 
-  // Sede origen inferida por los productos seleccionados
   const origenInferido = useMemo(() => {
-    const almacenesProductos = productosSeleccionados
+    const almacenIds = productosSeleccionados
       .map((p) => (p.almacenamiento_id != null ? String(p.almacenamiento_id) : ''))
       .filter(Boolean);
-    if (almacenesProductos.length === 0) return '';
-    const base = almacenesProductos[0];
-    const todosIguales = almacenesProductos.every((id) => id === base);
-    return todosIguales ? base : '';
+    if (almacenIds.length === 0) return '';
+    const first = almacenIds[0];
+    return almacenIds.every((id) => id === first) ? first : '';
   }, [productosSeleccionados]);
 
-  // Prefijar origen cuando haya selección consistente
   useEffect(() => {
     if (origenInferido) {
       setAlmacenOrigen(origenInferido);
-      // Si el destino coincide con el nuevo origen, límpialo
-      setAlmacenDestino((dest) => (dest === origenInferido ? '' : dest));
+      setAlmacenDestino((d) => (d === origenInferido ? '' : d));
     }
   }, [origenInferido]);
 
-  // === DESTINO: solo sedes ASOCIADAS (courier), excluyendo la de ORIGEN ===
-  const esSedeAsociada = (s: Almacenamiento) =>
-    s?.entidad?.tipo === 'courier' || !!s?.courier_id;
+  const esSedeAsociada = (s: Almacenamiento) => s?.entidad?.tipo === 'courier' || !!s?.courier_id;
 
-  // Base de destinos: usa sedesDestino si hay; si no, sedesOrigen
   const destinosBase = useMemo(() => {
     const base = (sedesDestino?.length ? sedesDestino : sedesOrigen) || [];
-    return base.filter(esSedeAsociada); // SOLO asociadas
+    return base.filter(esSedeAsociada);
   }, [sedesDestino, sedesOrigen]);
 
-  // Filtradas: excluye el ORIGEN (si hay)
   const destinosFiltrados = useMemo(() => {
     if (!destinosBase.length) return [];
     if (!almacenOrigen) return destinosBase;
     return destinosBase.filter((s) => String(s.id) !== String(almacenOrigen));
   }, [destinosBase, almacenOrigen]);
 
-  const handleCantidadChange = (productoId: string, value: number, stock: number) => {
+  const handleCantidadChange = (uuid: string, value: number, stock: number) => {
     const n = Number.isFinite(value) ? value : 0;
-    const safe = Math.min(Math.max(0, Math.trunc(n)), stock); // enteros [0..stock]
-    setCantidades((prev) => ({ ...prev, [productoId]: safe }));
+    const safe = Math.min(Math.max(0, Math.trunc(n)), stock);
+    setCantidades((prev) => ({ ...prev, [uuid]: safe }));
   };
 
-  const validarAntesDeEnviar = (): boolean => {
-    // 1) Productos deben pertenecer a la misma sede
+  const validarAntesDeEnviar = () => {
     if (!origenInferido) {
       notify('Todos los productos deben pertenecer a la misma sede de origen.', 'error');
       return false;
     }
-    // 2) Sedes válidas
     if (!almacenOrigen || !almacenDestino || almacenOrigen === almacenDestino) {
       notify('Selecciona sedes válidas (origen y destino distintos).', 'error');
       return false;
     }
-    // 3) Origen seleccionado debe coincidir con el inferido
     if (almacenOrigen !== origenInferido) {
       notify('La sede de origen no coincide con los productos seleccionados.', 'error');
       return false;
     }
-    // 4) Cantidades válidas
-    const productosMov = productosSeleccionados
+    const prods = productosSeleccionados
       .filter((p) => (cantidades[p.uuid] ?? 0) > 0)
-      .map((p) => ({ id: p.id, uuid: p.uuid, stock: p.stock, q: cantidades[p.uuid] }));
-
-    if (productosMov.length === 0) {
+      .map((p) => ({ id: p.id, q: cantidades[p.uuid], stock: p.stock }));
+    if (prods.length === 0) {
       notify('Debes ingresar al menos una cantidad válida.', 'error');
       return false;
     }
-    const fueraDeRango = productosMov.find((x) => x.q < 0 || x.q > x.stock);
-    if (fueraDeRango) {
+    if (prods.find((x) => x.q < 0 || x.q > x.stock)) {
       notify('Hay cantidades fuera de rango respecto al stock.', 'error');
       return false;
     }
@@ -152,7 +131,6 @@ export default function CrearMovimientoModal({
 
   const handleSubmit = async () => {
     if (!validarAntesDeEnviar()) return;
-
     const productosMov = productosSeleccionados
       .filter((p) => (cantidades[p.uuid] ?? 0) > 0)
       .map((p) => ({ producto_id: p.id, cantidad: cantidades[p.uuid] }));
@@ -169,31 +147,22 @@ export default function CrearMovimientoModal({
         token!
       );
       notify('Movimiento registrado correctamente.', 'success');
-      // Reset suave tras éxito
       setCantidades({});
       setDescripcion('');
       setAlmacenDestino('');
       setAlmacenOrigen('');
       onClose();
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      console.error(e);
       notify('Error al registrar el movimiento.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Etiqueta legible para sede (incluye origen de entidad si viene)
   const renderSedeLabel = (s: Almacenamiento) => {
-    const rep = s.representante
-      ? ` — ${s.representante.nombres} ${s.representante.apellidos}`
-      : '';
-    const tag =
-      s.entidad?.tipo === 'ecommerce'
-        ? ' [ECOM]'
-        : s.entidad?.tipo === 'courier'
-        ? ' [COURIER]'
-        : '';
+    const rep = s.representante ? ` — ${s.representante.nombres} ${s.representante.apellidos}` : '';
+    const tag = s.entidad?.tipo === 'ecommerce' ? ' [ECOM]' : s.entidad?.tipo === 'courier' ? ' [COURIER]' : '';
     return `${s.nombre_almacen}${rep}${tag}`;
   };
 
@@ -201,7 +170,6 @@ export default function CrearMovimientoModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
-      {/* Panel derecho / ancho fijo */}
       <div
         className="h-screen w-[700px] bg-white shadow-xl flex flex-col gap-5 px-5 py-5"
         onClick={(e) => e.stopPropagation()}
@@ -213,60 +181,90 @@ export default function CrearMovimientoModal({
           description="Selecciona productos y completa los datos para registrar un movimiento."
         />
 
-        {/* Tabla */}
-        <div className="rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full table-fixed text-sm border-separate border-spacing-0">
+        {/* ===== Tabla única (header + body juntos) ===== */}
+        <div className="rounded-md border border-gray-200 overflow-x-auto bg-white">
+          <table className="min-w-full table-fixed text-[12px]">
             <colgroup>
-              <col className="w-[22%]" />
-              <col className="w-[24%]" />
+              <col className="w-[18%]" />
+              <col className="w-[28%]" />
               <col className="w-[34%]" />
               <col className="w-[20%]" />
             </colgroup>
-            <thead className="bg-gray-100 text-gray-700">
-              <tr className="h-12">
-                <th className="px-4 text-left font-medium">Código</th>
-                <th className="px-4 text-left font-medium">Producto</th>
-                <th className="px-4 text-left font-medium">Descripción</th>
-                <th className="px-4 text-right font-medium">Cantidad</th>
+
+            <thead className="bg-[#E5E7EB]">
+              <tr className="text-gray-700 font-roboto font-medium">
+                <th className="px-4 py-3 text-left">Código</th>
+                <th className="px-4 py-3 text-left">Producto</th>
+                <th className="px-4 py-3 text-left">Descripción</th>
+                <th className="px-4 py-3 text-center">Cantidad</th>
               </tr>
             </thead>
-            <tbody className="bg-white">
-              {productosSeleccionados.map((prod) => (
-                <tr key={prod.uuid} className="border-t last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-4 whitespace-nowrap text-gray-900">
-                    {prod.codigo_identificacion}
+
+            <tbody className="divide-y divide-gray-100">
+              {productosSeleccionados.map((p) => (
+                <tr key={p.uuid} className="hover:bg-gray-50 transition-colors">
+                  {/* Código */}
+                  <td className="px-4 py-4 text-gray-900 whitespace-nowrap">
+                    {p.codigo_identificacion}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-gray-900">
-                    {prod.nombre_producto}
+
+                  {/* Producto — 1 línea con “…” */}
+                  <td className="px-4 py-4 text-gray-900">
+                    <div className="min-w-0">
+                      <span
+                        className="w-full overflow-hidden text-ellipsis line-clamp-1"
+                        title={p.nombre_producto ?? undefined}
+                      >
+                        {p.nombre_producto ?? '—'}
+                      </span>
+                    </div>
                   </td>
+
+                  {/* Descripción — 1 línea con “…” */}
                   <td className="px-4 py-4 text-gray-700">
-                    <div className="line-clamp-2 leading-5 break-words">{prod.descripcion}</div>
+                    <div className="min-w-0">
+                      <span
+                        className="w-full overflow-hidden text-ellipsis line-clamp-1"
+                        title={p.descripcion ?? undefined}
+                      >
+                        {p.descripcion ?? '—'}
+                      </span>
+                    </div>
                   </td>
+
+                  {/* Cantidad */}
                   <td className="px-4 py-4">
-                    <div className="ml-auto flex w-full justify-end items-center gap-2">
+                    <div className="ml-auto flex w-full justify-center items-center gap-2">
                       <input
+                        aria-label={`Cantidad para ${p.nombre_producto ?? 'producto'}`}
                         type="number"
                         inputMode="numeric"
                         step={1}
                         min={0}
-                        max={prod.stock}
-                        value={Number.isFinite(cantidades[prod.uuid]) ? cantidades[prod.uuid] : ''}
-                        onChange={(e) =>
-                          handleCantidadChange(prod.uuid, Number(e.target.value), prod.stock)
-                        }
+                        max={p.stock}
+                        value={Number.isFinite(cantidades[p.uuid]) ? cantidades[p.uuid] : ''}
+                        onChange={(e) => handleCantidadChange(p.uuid, Number(e.target.value), p.stock)}
                         className="w-[64px] h-9 rounded-lg border border-gray-300 px-2 text-center text-sm shadow-sm
                                    focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                       />
-                      <span className="text-sm text-gray-600 whitespace-nowrap">/ {prod.stock}</span>
+                      <span className="text-sm text-gray-600 whitespace-nowrap">/ {p.stock}</span>
                     </div>
                   </td>
                 </tr>
               ))}
+
+              {productosSeleccionados.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-gray-500 italic">
+                    No hay productos seleccionados.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Datos adicionales */}
+        {/* ===== Datos adicionales ===== */}
         <div className="flex-1 flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-5">
             <Selectx
@@ -276,7 +274,6 @@ export default function CrearMovimientoModal({
               value={almacenOrigen ?? ''}
               onChange={(e) => setAlmacenOrigen(e.target.value)}
               placeholder="Seleccionar sede"
-              // disabled={Boolean(origenInferido)} // si quieres impedir cambiarla cuando está inferida
             >
               <option value="">Seleccionar sede</option>
               {sedesOrigen.map((s) => (
@@ -329,7 +326,7 @@ export default function CrearMovimientoModal({
             variant="quartery"
             disabled={
               loading ||
-              !origenInferido || // debe existir un origen consistente
+              !origenInferido ||
               !almacenOrigen ||
               !almacenDestino ||
               almacenOrigen === almacenDestino

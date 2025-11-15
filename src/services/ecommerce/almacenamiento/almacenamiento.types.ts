@@ -101,6 +101,7 @@ export interface MovimientoAlmacen {
       id: number;
       nombre_producto: string;
       stock: number;
+      codigo_identificacion: string;
     };
   }[];
 }
