@@ -184,7 +184,7 @@ export default function ValidarMovimientoModal({
                     className="border-t last:border-0 hover:bg-gray-50 relative z-10">
                     {/* Código */}
                     <td className="px-4 py-3 whitespace-nowrap text-gray-900">
-                      {det.producto?.id ?? '-'}
+                      {det.producto?.codigo_identificacion ?? '-'}
                     </td>
                     <td
                       className="px-4 py-3 text-gray-900 align-top relative"

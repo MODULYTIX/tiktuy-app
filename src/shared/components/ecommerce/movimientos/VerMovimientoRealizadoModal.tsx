@@ -128,8 +128,12 @@ export default function VerMovimientoRealizadoModal(props: Props) {
 
   const codigo = toText(data.codigo ?? data.id ?? '');
   const estado = nombreEstado(data.estado);
-  const fechaGeneracion = fechaLegible(data.meta?.fecha_generacion ?? (data as any).fecha);
-  const fechaValidacion = fechaLegible(data.meta?.fecha_validacion ?? (data as any).fecha);
+  const fechaGeneracion = fechaLegible(
+    data.meta?.fecha_generacion ?? data.fecha
+  );
+  const fecha_validacion = fechaLegible(
+    data.meta?.fecha_validacion ?? data.fecha
+  );
 
   // días transcurridos si hay ambas fechas
   let diasTranscurridos: string | null = null;
@@ -234,88 +238,105 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                         <div className="mt-3 text-slate-600 text-[14px]">{fechaGeneracion || '—'}</div>
                       </div>
 
-                      {/* CARRITO (centro) */}
-                      <div className="w-full h-full flex flex-col items-center justify-center text-center">
-                        <div className="w-16 h-16 flex items-center justify-center">
+                      {/* Línea con camión y tiempo transcurrido */}
+                      <div className="relative flex flex-col justify-center items-center mt-6 mx-4">
+                        <div className="h-0.5 bg-slate-300 mx-4 absolute top-1/3 left-0 right-0" />
+                        <div className="absolute top-0">
                           <video
-                            src={truckLoop}
-                            className="w-16 h-16 rounded-md"
+                            src={truckLoop} // Animación o gif
+                            className="w-12 h-12 rounded-md"
                             autoPlay
                             loop
                             muted
                             playsInline
-                            preload="auto"
                           />
                         </div>
-                        <div className="mt-3 text-gray-600 text-[14px]">Tiempo transcurrido</div>
-                        <div className="mt-1 flex items-center gap-2 text-[14px] text-gray-700">
+                        <div className="text-xs text-slate-500 -mt-10">Tiempo transcurrido</div>
+                        <div className="flex items-center gap-1 text-xs text-slate-700 mt-1">
                           <HiClock className="w-4 h-4" />
-                          <span>
-                            {diasTranscurridos ? `${diasTranscurridos} día${diasTranscurridos === '01' ? '' : 's'}` : '—'}
-                          </span>
+                          {diasTranscurridos && `${diasTranscurridos} día${diasTranscurridos !== '1' ? 's' : ''}`}
                         </div>
                       </div>
 
-                      {/* HACIA */}
-                      <div className="text-center">
+                      {/* Sección Hacia */}
+                      <div className="flex flex-col items-center">
                         <div className="text-slate-500 font-semibold mb-2">Hacia</div>
-                        <div className="mx-auto w-[160px] h-[160px]">
-                          <img src={AlmacenHacia} alt="Almacén hacia" className="object-contain w-full h-full" />
+                        <div className="w-20 h-20">
+                          <img
+                            src={AlmacenHacia} // Ruta de la imagen
+                            alt="Almacen Hacia"
+                            className="object-contain"
+                          />
                         </div>
-                        <div className="mt-2 text-[20px] font-semibold text-slate-800">
-                          {nombreAlmacen((data as any)?.almacen_destino) || 'Almacén Destino'}
+                        <div className="mt-2 text-lg font-semibold text-slate-800">
+                          {nombreAlmacen(data.almacen_destino) || 'Almacén Destino'}
                         </div>
-                        <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#FFF1BF] px-3 py-2">
-                          <span className="text-[#B98900] text-[12px] font-semibold">Fecha de Validación</span>
+                        <div className="mt-3 inline-flex items-center gap-2 rounded-sm bg-amber-50 px-3 py-1">
+                          <span className="text-amber-700 text-xs font-semibold">Fecha de Validación</span>
                         </div>
-                        <div className="mt-3 text-slate-600 text-[14px]">{fechaValidacion || '—'}</div>
+                        <div className="mt-2 text-slate-600 text-sm">{fecha_validacion}</div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Tarjeta inferior vacía */}
-                <div className="mt-6 mb-4 border rounded-sm bg-white border-gray-400">
-                  <div className="p-10 text-center text-slate-400">
-                    <p>Sin datos que mostrar, no hay</p>
-                    <p>descripción ni archivo adjuntado.</p>
+                  {/* HACIA */}
+                  <div className="text-center">
+                    <div className="text-slate-500 font-semibold mb-2">Hacia</div>
+                    <div className="mx-auto w-[160px] h-[160px]">
+                      <img src={AlmacenHacia} alt="Almacén hacia" className="object-contain w-full h-full" />
+                    </div>
+                    <div className="mt-2 text-[20px] font-semibold text-slate-800">
+                      {nombreAlmacen((data as any)?.almacen_destino) || 'Almacén Destino'}
+                    </div>
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#FFF1BF] px-3 py-2">
+                      <span className="text-[#B98900] text-[12px] font-semibold">Fecha de Validación</span>
+                    </div>
+                    <div className="mt-3 text-slate-600 text-[14px]">{fecha_validacion || '—'}</div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Derecha: Tabla de detalle */}
-              <div className="lg:col-span-7">
-                <div className="h-full border rounded-sm overflow-hidden bg-white border-gray-400">
-                  <table className="items-start w-full text-sm ">
-                    <thead className="bg-slate-100 text-slate-700">
-                      <tr>
-                        <th className="p-3 text-left font-semibold">Código</th>
-                        <th className="p-3 text-left font-semibold">Producto</th>
-                        <th className="p-3 text-left font-semibold">Descripción</th>
-                        <th className="p-3 text-right font-semibold">Cantidad</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(data.items ?? []).length > 0 ? (
-                        (data.items as MovimientoItem[]).map((it, idx) => (
-                          <tr key={`${it.producto_uuid ?? it.producto_id ?? idx}`} className="border-t">
-                            <td className="p-3">{toText(it.codigo_identificacion ?? '')}</td>
-                            <td className="p-3">{toText(it.nombre_producto ?? '')}</td>
-                            <td className="p-3 text-slate-600">{toText(it.descripcion ?? '')}</td>
-                            <td className="p-3 text-right">{Number(it.cantidad ?? 0)}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td className="p-6 text-center text-slate-500 italic" colSpan={4}>
-                            Sin ítems en este movimiento.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+            {/* Tarjeta inferior vacía */}
+            <div className="mt-6 mb-4 border rounded-sm bg-white border-gray-400">
+              <div className="p-10 text-center text-slate-400">
+                <p>Sin datos que mostrar, no hay</p>
+                <p>descripción ni archivo adjuntado.</p>
               </div>
+            </div>
+          </div>
+
+          {/* Derecha: Tabla de detalle */}
+          <div className="lg:col-span-7">
+            <div className="h-full border rounded-sm overflow-hidden bg-white border-gray-400">
+              <table className="items-start w-full text-sm ">
+                <thead className="bg-slate-100 text-slate-700">
+                  <tr>
+                    <th className="p-3 text-left font-semibold">Código</th>
+                    <th className="p-3 text-left font-semibold">Producto</th>
+                    <th className="p-3 text-left font-semibold">Descripción</th>
+                    <th className="p-3 text-right font-semibold">Cantidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.items ?? []).length > 0 ? (
+                    (data.items as MovimientoItem[]).map((it, idx) => (
+                      <tr key={`${it.producto_uuid ?? it.producto_id ?? idx}`} className="border-t">
+                        <td className="p-3">{toText(it.codigo_identificacion ?? '')}</td>
+                        <td className="p-3">{toText(it.nombre_producto ?? '')}</td>
+                        <td className="p-3 text-slate-600">{toText(it.descripcion ?? '')}</td>
+                        <td className="p-3 text-right">{Number(it.cantidad ?? 0)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="p-6 text-center text-slate-500 italic" colSpan={4}>
+                        Sin ítems en este movimiento.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
