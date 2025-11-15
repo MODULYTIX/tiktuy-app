@@ -5,7 +5,7 @@ import {
   listarEcommercesAsociados,
   getAuthToken,
 } from "@/services/courier/panel_control/panel_control.api";
-import type { EcommerceCourier } from "@/services/courier/panel_control/panel_control.types";
+import type { EcommerceSede } from "@/services/courier/panel_control/panel_control.types";
 
 //  Importa el modal de invitación (renombrado a Ecommer)
 import PanelControlInviteEcommer from "@/shared/components/courier/panelControl/PanelControlInviteEcommer";
@@ -14,7 +14,7 @@ import { Inputx, InputxNumber } from "@/shared/common/Inputx";
 type EstadoTexto = "activo" | "pendiente";
 
 interface EcommerceRow {
-  id: number;
+  ecommerce_id: number;          // <- usamos ecommerce_id para acciones (invitación)
   nombre_comercial: string;
   ruc: string;
   ciudad: string;
@@ -23,7 +23,7 @@ interface EcommerceRow {
   estado: EstadoTexto;
   fecha_asociacion: string;
   hasWhatsapp: boolean;
-  _raw: EcommerceCourier;
+  _raw: EcommerceSede;
 }
 
 const PAGE_SIZE = 5;
@@ -39,16 +39,18 @@ function formatDateLikeDDMMYYYY(dateInput?: string | Date | null): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-function toRow(item: EcommerceCourier): EcommerceRow {
-  const e: any = (item as any).ecommerce ?? item;
-  const u: any = e?.usuario ?? {};
+function toRow(item: EcommerceSede): EcommerceRow {
+  const e = item.ecommerce as any;
+  const u = (e?.usuario ?? {}) as any;
 
+  // Si contrasena === "" => pendiente, de lo contrario activo
   const estado: EstadoTexto =
     typeof u?.contrasena === "string" && u.contrasena.length === 0
       ? "pendiente"
       : "activo";
 
   const fecha =
+    (item as any).fecha_asociacion ||
     (item as any).createdAt ||
     (item as any).created_at ||
     e?.createdAt ||
@@ -57,15 +59,16 @@ function toRow(item: EcommerceCourier): EcommerceRow {
     u?.created_at ||
     null;
 
-  // Detecta si la asociación ya tiene link de WhatsApp
-  const hasWhatsapp = Boolean((item as any).link_whatsapp && String((item as any).link_whatsapp).trim().length > 0);
+  const hasWhatsapp = Boolean(
+    (item as any).link_whatsapp && String((item as any).link_whatsapp).trim().length > 0
+  );
 
   return {
-    id: e?.id ?? (item as any).id,
+    ecommerce_id: e?.id ?? 0,
     nombre_comercial: e?.nombre_comercial ?? "-",
     ruc: e?.ruc ?? "-",
     ciudad: e?.ciudad ?? "-",
-    dni_ci: u?.dni ?? u?.DNI_CI ?? "-",
+    dni_ci: u?.DNI_CI ?? u?.dni ?? "-",
     telefono: u?.telefono ?? "-",
     estado,
     fecha_asociacion: formatDateLikeDDMMYYYY(fecha),
@@ -105,11 +108,11 @@ function DetalleEcommerceModal({
 }: {
   open: boolean;
   onClose: () => void;
-  data: EcommerceCourier | null;
+  data: EcommerceSede | null;
 }) {
   if (!open || !data) return null;
 
-  const e: any = (data as any).ecommerce ?? data;
+  const e: any = data.ecommerce ?? {};
   const u: any = e?.usuario ?? {};
 
   const nombres = u?.nombres ?? "-";
@@ -137,84 +140,49 @@ function DetalleEcommerceModal({
     >
       {/* Drawer derecho */}
       <div
-        className=" max-w-[520px] h-full bg-white overflow-y-auto"
+        className="max-w-[520px] h-full bg-white overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-
-          <div className="flex flex-col gap-1 p-5">
-            {/* Fila superior: icono + título + estado alineados */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-primaryDark">
-                <Icon icon="lucide:layout-panel-top" width={22} height={22} color="#1E3A8A"/>
-                <h2 className="text-primary text-[20px] font-bold uppercase font-roboto">
-                  DETALLE DEL ECOMMERCE
-                </h2>
-              </div>
-              <div className="flex items-center gap-2 text-sm whitespace-nowrap">
-                <span className="text-gray60 leading-none">Estado:</span>
-                <span
-                  className={[
-                    "inline-flex items-center h-7 px-3 rounded-[4px] text-sm font-medium leading-none",
-                    estado === "activo"
-                      ? "bg-gray90 text-white"
-                      : "bg-gray30 text-gray80",
-                  ].join(" ")}
-                >
-                  {estado === "activo" ? "Activo" : "Pendiente"}
-                </span>
-              </div>
+        <div className="flex flex-col gap-1 p-5">
+          {/* Fila superior: icono + título + estado */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-primaryDark">
+              <Icon icon="lucide:layout-panel-top" width={22} height={22} color="#1E3A8A" />
+              <h2 className="text-primary text-[20px] font-bold uppercase font-roboto">
+                DETALLE DEL ECOMMERCE
+              </h2>
             </div>
-            {/* Descripción debajo */}
-            <p className="text-sm text-gray60 leading-relaxed mt-1">
-              Consulta toda la información registrada de este comercio electrónico,
-              incluyendo sus datos generales, ubicación, contacto comercial y rubro de
-              actividad.
-            </p>
+            <div className="flex items-center gap-2 text-sm whitespace-nowrap">
+              <span className="text-gray60 leading-none">Estado:</span>
+              <span
+                className={[
+                  "inline-flex items-center h-7 px-3 rounded-[4px] text-sm font-medium leading-none",
+                  estado === "activo" ? "bg-gray90 text-white" : "bg-gray30 text-gray80",
+                ].join(" ")}
+              >
+                {estado === "activo" ? "Activo" : "Pendiente"}
+              </span>
+            </div>
           </div>
-
+          <p className="text-sm text-gray60 leading-relaxed mt-1">
+            Consulta la información del comercio electrónico: datos generales, ubicación,
+            contacto y rubro de actividad.
+          </p>
+        </div>
 
         {/* Body */}
         <div className="p-5 grid gap-5">
           {/* fila 1 */}
           <div className="w-full flex flex-col-2 gap-5">
-            <Inputx
-              name="nombre"
-              label="Nombre"
-              value={nombres}
-              readOnly
-              disabled
-              type="text"
-            />
-            <Inputx
-              name="apellido"
-              label="Apellido"
-              value={apellidos}
-              readOnly
-              disabled
-              type="text"
-            />
+            <Inputx name="nombre" label="Nombre" value={nombres} readOnly disabled type="text" />
+            <Inputx name="apellido" label="Apellido" value={apellidos} readOnly disabled type="text" />
           </div>
 
           {/* fila 2 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-            <Inputx
-              name="DNI / CI"
-              label="DNI / CI"
-              value={dni_ci}
-              readOnly
-              disabled
-              type="text"
-            />
-            <Inputx
-              name="Correo"
-              label="Correo"
-              value={correo}
-              readOnly
-              disabled
-              type="text"
-            />
+            <Inputx name="DNI / CI" label="DNI / CI" value={dni_ci} readOnly disabled type="text" />
+            <Inputx name="Correo" label="Correo" value={correo} readOnly disabled type="text" />
           </div>
 
           {/* fila 3 */}
@@ -225,8 +193,8 @@ function DetalleEcommerceModal({
               value={phoneLocal}
               readOnly
               disabled
-              decimals={0}  // Asumiendo que el teléfono no necesita decimales
-              step={1}      // Teléfonos normalmente no tienen fracciones
+              decimals={0}
+              step={1}
               placeholder="Ingrese el número"
             />
 
@@ -242,42 +210,14 @@ function DetalleEcommerceModal({
 
           {/* fila 4 */}
           <div className="w-full flex flex-col-2 gap-5">
-            <Inputx
-              name="ruc"
-              label="RUC"
-              value={ruc}
-              readOnly
-              disabled
-              type="text"
-            />
-            <Inputx
-              name="ciudad"
-              label="Ciudad"
-              value={ciudad}
-              readOnly
-              disabled
-              type="text"
-            />
+            <Inputx name="ruc" label="RUC" value={ruc} readOnly disabled type="text" />
+            <Inputx name="ciudad" label="Ciudad" value={ciudad} readOnly disabled type="text" />
           </div>
 
           {/* fila 5 */}
           <div className="w-full flex flex-col-2 gap-5">
-            <Inputx
-              name="direccion"
-              label="Dirección"
-              value={direccion}
-              readOnly
-              disabled
-              type="text"
-            />
-            <Inputx
-              name="rubro"
-              label="Rubro"
-              value={rubro}
-              readOnly
-              disabled
-              type="text"
-            />
+            <Inputx name="direccion" label="Dirección" value={direccion} readOnly disabled type="text" />
+            <Inputx name="rubro" label="Rubro" value={rubro} readOnly disabled type="text" />
           </div>
         </div>
       </div>
@@ -295,13 +235,13 @@ export default function PanelControlTable() {
 
   // Detalle
   const [detailOpen, setDetailOpen] = useState(false);
-  const [detailData, setDetailData] = useState<EcommerceCourier | null>(null);
+  const [detailData, setDetailData] = useState<EcommerceSede | null>(null);
 
   // Modal de WhatsApp (invitar / actualizar link)
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteOtherId, setInviteOtherId] = useState<number | null>(null);
 
-  // Factorizo la carga para reutilizar tras guardar en el modal
+  // Carga
   const loadRows = async () => {
     setLoading(true);
     setErr(null);
@@ -315,7 +255,7 @@ export default function PanelControlTable() {
 
     const res = await listarEcommercesAsociados(token);
     if ((res as any).ok) {
-      const mapped = ((res as any).data as EcommerceCourier[]).map(toRow);
+      const mapped = ((res as any).data as EcommerceSede[]).map(toRow);
       setRows(mapped);
     } else {
       setErr((res as any).error || "Error al listar ecommerces.");
@@ -450,7 +390,7 @@ export default function PanelControlTable() {
                   <>
                     {currentData.map((entry) => (
                       <tr
-                        key={entry.id}
+                        key={`${entry.ecommerce_id}`}
                         className="hover:bg-gray10 transition-colors"
                       >
                         <td className="px-4 py-3 text-gray70 font-[400]">
@@ -485,10 +425,11 @@ export default function PanelControlTable() {
                         {/* ESTADO */}
                         <td className="px-4 py-3 text-center">
                           <span
-                            className={`inline-flex items-center justify-center h-7 px-3 rounded-[10px] text-[12px] font-medium shadow-sm ${entry.estado === "activo"
-                              ? "bg-gray90 text-white"
-                              : "bg-gray30 text-gray80"
-                              }`}
+                            className={`inline-flex items-center justify-center h-7 px-3 rounded-[10px] text-[12px] font-medium shadow-sm ${
+                              entry.estado === "activo"
+                                ? "bg-gray90 text-white"
+                                : "bg-gray30 text-gray80"
+                            }`}
                           >
                             {entry.estado}
                           </span>
@@ -515,7 +456,7 @@ export default function PanelControlTable() {
                             <button
                               type="button"
                               onClick={() => {
-                                setInviteOtherId(entry.id); // otherId = ecommerce_id (Courier invita)
+                                setInviteOtherId(entry.ecommerce_id); // otherId = ecommerce_id
                                 setInviteOpen(true);
                               }}
                               className="p-1 rounded hover:bg-gray10"
@@ -597,10 +538,9 @@ export default function PanelControlTable() {
       {/* Snackbar flotante */}
       <div
         aria-live="polite"
-        className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 transition-all duration-300 ${snackbar.open
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-3 pointer-events-none"
-          }`}
+        className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 transition-all duration-300 ${
+          snackbar.open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3 pointer-events-none"
+        }`}
       >
         <div className="rounded-full px-4 py-2 bg-gray90 text-white shadow-lg text-[12px]">
           {snackbar.message}
@@ -621,8 +561,7 @@ export default function PanelControlTable() {
           otherId={inviteOtherId ?? undefined} // Courier -> otherId = ecommerce_id
           onClose={() => setInviteOpen(false)}
           onSaved={async () => {
-            // recarga para actualizar el color del ícono
-            await loadRows();
+            await loadRows(); // recarga para actualizar color del ícono
             snackbar.show("Cambios guardados");
           }}
         />
