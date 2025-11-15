@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  HiClock,
-  HiX,
-} from 'react-icons/hi';
+import { createPortal } from 'react-dom';
+import { HiClock, HiX } from 'react-icons/hi';
+import { Icon } from '@iconify/react/dist/iconify.js';
 import { useAuth } from '@/auth/context';
 import type {
   AlmacenRef,
@@ -11,19 +10,15 @@ import type {
   MovimientoItem,
 } from '@/services/ecommerce/movimiento/movimiento.types';
 import { fetchMovimientoDetalle } from '@/services/ecommerce/movimiento/movimiento.api';
-import { Icon } from '@iconify/react/dist/iconify.js';
 
-import truckLoop  from "@/assets/video/delivery-truck.mp4"
-import AlmacenDesde from "@/assets/images/almacen_desde.webp"
-import AlmacenHacia from "@/assets/images/almacen_hacia.webp"
+import truckLoop from '@/assets/video/delivery-truck.mp4';
+import AlmacenDesde from '@/assets/images/almacen_desde.webp';
+import AlmacenHacia from '@/assets/images/almacen_hacia.webp';
 
 /** ---------------- Props: soporta uuid (fetch interno) o data directa ---------------- */
 type BaseProps = { open: boolean; onClose: () => void };
 type PropsWithUuid = BaseProps & { uuid: string; data?: undefined };
-type PropsWithData = BaseProps & {
-  data: MovimientoDetalle | null;
-  uuid?: undefined;
-};
+type PropsWithData = BaseProps & { data: MovimientoDetalle | null; uuid?: undefined };
 type Props = PropsWithUuid | PropsWithData;
 
 /** ---------------- Helpers ---------------- */
@@ -33,15 +28,11 @@ const nombreAlmacen = (ref?: AlmacenRef | number | string | null) =>
   !ref && ref !== 0
     ? ''
     : typeof ref === 'object'
-    ? toText(ref?.nombre_almacen ?? (ref as any)?.id)
-    : toText(ref);
+      ? toText((ref as any)?.nombre_almacen ?? (ref as any)?.nombre ?? (ref as any)?.id)
+      : toText(ref);
 
 const nombreEstado = (ref?: EstadoRef | string | null) =>
-  !ref
-    ? ''
-    : typeof ref === 'object'
-    ? toText(ref?.nombre ?? (ref as any)?.id)
-    : toText(ref);
+  !ref ? '' : typeof ref === 'object' ? toText((ref as any)?.nombre ?? (ref as any)?.id) : toText(ref);
 
 const fechaLegible = (iso?: string, sep: string = ' - ') => {
   if (!iso) return '';
@@ -55,15 +46,22 @@ const fechaLegible = (iso?: string, sep: string = ' - ') => {
   return `${dd}/${mm}/${yyyy}${sep}${hh}:${min}`;
 };
 
-function estadoBadgeClasses(estado: string) {
-  const e = estado.toLowerCase();
-  if (e.includes('valida'))
-    return 'bg-green-100 text-green-700 ring-1 ring-green-200';
-  if (e.includes('observ'))
-    return 'bg-amber-100 text-amber-700 ring-1 ring-amber-200';
-  if (e.includes('rechaz') || e.includes('anula'))
-    return 'bg-red-100 text-red-700 ring-1 ring-red-200';
-  return 'bg-gray-100 text-gray-700 ring-1 ring-gray-200';
+function estadoPillUI(estadoRaw: string) {
+  const e = (estadoRaw || '').toLowerCase().trim();
+  let label = estadoRaw || '—';
+  let classes = 'bg-gray-100 text-gray-600';
+
+  if (e.startsWith('vali')) {
+    label = 'Validado';
+    classes = 'bg-[#EAF8EF] text-[#139A43]';
+  } else if (e.includes('proceso') || e.startsWith('proc')) {
+    label = 'Proceso';
+    classes = 'bg-[#FFF7D6] text-[#B98900]';
+  } else if (e.startsWith('obser')) {
+    label = 'Observado';
+    classes = 'bg-[#FFE3E3] text-[#D64040]';
+  }
+  return { label, classes };
 }
 
 /** ---------------- Modal ---------------- */
@@ -76,7 +74,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
   const [loading, setLoading] = useState(false);
 
   // Resolver la fuente del detalle (data directa o la que obtengamos por fetch)
-  const resolved = useMemo<MovimientoDetalle | null>(() => {
+  const data = useMemo<MovimientoDetalle | null>(() => {
     if ('data' in props) return props.data ?? null;
     return detail;
   }, [props, detail]);
@@ -104,206 +102,177 @@ export default function VerMovimientoRealizadoModal(props: Props) {
 
   if (!open) return null;
 
-  const data = resolved;
+  // Placeholder sin datos
   if (!data) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 z-50">
         <div className="absolute inset-0 bg-black/40" onClick={onClose} />
         <div className="relative z-10 flex min-h-full items-center justify-center p-4">
-          <div className="w-full max-w-[1200px] bg-white rounded-sm shadow-xl overflow-hidden">
-            <div className="flex items-start justify-between px-6 pt-5 pb-2 ">
+          <div className="w-full max-w-[1500px] bg-white rounded-sm shadow-xl overflow-hidden">
+            <div className="flex items-start justify-between px-6 pt-5 pb-2">
               <div className="flex items-center gap-2">
-                <Icon
-                  icon="icon-park-outline:cycle-movement"
-                  width="24"
-                  height="24"
-                  className="text-primary "
-                />
-                <h2 className="text-2xl font-bold tracking-tight text-primary">
-                  DETALLES DEL MOVIMIENTO
-                </h2>
+                <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" className="text-primary" />
+                <h2 className="text-2xl font-bold tracking-tight text-primary">DETALLES DEL MOVIMIENTO</h2>
               </div>
-              <button
-                aria-label="Cerrar"
-                onClick={onClose}
-                className="p-2 rounded hover:bg-gray-100">
-                <HiX className="h-5 w-5 "  />
+              <button aria-label="Cerrar" onClick={onClose} className="p-2 rounded hover:bg-gray-100">
+                <HiX className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-8 text-center text-slate-500">
-              {loading ? 'Cargando…' : 'Sin datos'}
-            </div>
+            <div className="p-8 text-center text-slate-500">{loading ? 'Cargando…' : 'Sin datos'}</div>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   const codigo = toText(data.codigo ?? data.id ?? '');
   const estado = nombreEstado(data.estado);
-  const fechaGeneracion = fechaLegible(
-    data.meta?.fecha_generacion ?? data.fecha
-  );
-  const fechaValidacion = fechaLegible(
-    data.meta?.fecha_validacion ?? data.fecha
-  );
+  const fechaGeneracion = fechaLegible(data.meta?.fecha_generacion ?? (data as any).fecha);
+  const fechaValidacion = fechaLegible(data.meta?.fecha_validacion ?? (data as any).fecha);
 
   // días transcurridos si hay ambas fechas
   let diasTranscurridos: string | null = null;
   try {
-    const g = data.meta?.fecha_generacion
-      ? new Date(data.meta.fecha_generacion)
-      : null;
-    const v = data.meta?.fecha_validacion
-      ? new Date(data.meta.fecha_validacion)
-      : null;
+    const g = data.meta?.fecha_generacion ? new Date(data.meta.fecha_generacion) : null;
+    const v = data.meta?.fecha_validacion ? new Date(data.meta.fecha_validacion) : null;
     if (g && v && !isNaN(g.getTime()) && !isNaN(v.getTime())) {
-      const diff = Math.max(
-        0,
-        Math.round((v.getTime() - g.getTime()) / (1000 * 60 * 60 * 24))
-      );
+      const diff = Math.max(0, Math.round((v.getTime() - g.getTime()) / (1000 * 60 * 60 * 24)));
       diasTranscurridos = diff.toString().padStart(2, '0');
     }
   } catch {
     diasTranscurridos = null;
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
-      {/* Contenido CENTRADO */}
+      {/* Contenido CENTRADO tipo modal */}
       <div className="relative z-10 flex max-h-full items-center justify-center p-4">
-        <div className="w-full max-w-[1180px] bg-white rounded-sm shadow-xl overflow-hidden max-h-[92vh]">
-          {/* Header con título + botón cerrar */}
+        <div className="w-full max-w-[1500px] bg-white rounded-sm shadow-xl overflow-hidden max-h-[92vh]">
+          {/* Header */}
           <div className="flex items-start justify-between px-6 pt-5">
             <div className="flex items-center gap-2">
-              <Icon
-                icon="icon-park-outline:cycle-movement"
-                width="24"
-                height="24"
-                className="text-primary"
-              />
-              <h2 className="text-2xl font-bold tracking-tight text-primary">
-                DETALLES DEL MOVIMIENTO
-              </h2>
+              <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" className="text-primary" />
+              <h2 className="text-2xl font-bold tracking-tight text-primary">DETALLES DEL MOVIMIENTO</h2>
             </div>
-            <button
-              aria-label="Cerrar"
-              onClick={onClose}
-              className="p-2 rounded hover:bg-gray-100">
+            <button aria-label="Cerrar" onClick={onClose} className="p-2 rounded hover:bg-gray-100">
               <HiX className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Subheader: Código (izq) + Estado (der) */}
-          <div className="flex items-center justify-between px-6">
+          {/* Subheader: Código + Estado (estilo base) */}
+          <div className="flex items-center justify-between px-6 pb-2">
+            {/* Código */}
             <div className="flex items-center gap-2 text-sm">
               <span className="text-slate-500 font-semibold">Código :</span>
-              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
-                {codigo}
-              </span>
-              <button
-                type="button"
-                className="ml-1 p-1 rounded hover:bg-slate-100 text-slate-400"
-                onClick={() => navigator.clipboard?.writeText(codigo)}
-                title="Copiar código">
-                <Icon icon="uiw:copy" width="12" height="12" />
-              </button>
+              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">{codigo || '—'}</span>
+              {!!codigo && (
+                <button
+                  type="button"
+                  className="ml-1 p-1 rounded hover:bg-slate-100 text-slate-400"
+                  onClick={() => navigator.clipboard?.writeText(codigo)}
+                  title="Copiar código"
+                >
+                  <Icon icon="uiw:copy" width="12" height="12" />
+                </button>
+              )}
             </div>
 
-            {!!estado && (
-              <div
-                className={`text-sm px-3 py-1  ${estadoBadgeClasses(
-                  estado
-                )}`}>
-                Estado : <span className="font-semibold ml-1">{estado}</span>
-              </div>
-            )}
+            {/* Estado : [Pill grande] */}
+            {(() => {
+              const { label, classes } = estadoPillUI(estado);
+              return (
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-500 font-bold text-[12px] leading-none">Estado :</span>
+                  <span className={[
+                    'inline-flex items-center rounded-[16px] px-6 py-2',
+                    'text-[12px] font-bold leading-none',
+                    classes,
+                  ].join(' ')}>
+                    {label}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Body */}
-          <div className="overflow-y-auto px-6  space-y-4">
+          <div className="overflow-y-auto px-6 space-y-4 pb-6">
             {/* Descripción */}
             <div>
               <div className="text-slate-800 font-semibold">Descripción</div>
               <p className="text-slate-600 mt-1">
                 {toText(
-                  data.descripcion ??
-                    'Movimiento hecho para reabastecer el stock en el almacén destino.'
+                  data.descripcion ?? 'Movimiento hecho para reabastecer el stock en el almacén destino.'
                 )}
               </p>
             </div>
 
             {/* GRID principal 5/7 */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Izquierda: Tarjeta Desde/Hacia */}
+              {/* Izquierda: tarjeta con 3 DIVS (Desde / Carrito / Hacia) */}
               <div className="lg:col-span-5">
-                <div className="border rounded-lg bg-white shadow-lg p-5">
-  <div className="flex justify-between items-center mb-4">
-    {/* Sección Desde */}
-    <div className="flex flex-col items-center">
-      <div className="text-slate-500 font-semibold mb-2">Desde</div>
-      <div className="w-20 h-20">
-        <img
-          src={AlmacenDesde} // Ruta de la imagen
-          alt="Almacen Desde"
-          className="object-contain"
-        />
-      </div>
-      <div className="mt-2 text-lg font-semibold text-slate-800">
-        {nombreAlmacen(data.almacen_origen) || 'Almacén Origen'}
-      </div>
-      <div className="mt-3 inline-flex items-center gap-2 rounded-sm bg-sky-50 px-3 py-1">
-        <span className="text-sky-700 text-xs font-semibold">
-          Fecha de Generación
-        </span>
-      </div>
-      <div className="mt-2 text-slate-600 text-sm">{fechaGeneracion}</div>
-    </div>
+                <div className="border rounded-sm h-auto bg-white border-gray-400">
+                  <div className="px-8 py-6">
+                    {/* === Tres columnas, cada una centrada horizontal y vertical === */}
+                    <div className="grid grid-cols-3 gap-10 place-items-center min-h-[300px]">
+                      {/* DESDE */}
+                      <div className="text-center">
+                        <div className="text-slate-500 font-semibold mb-2">Desde</div>
+                        <div className="mx-auto w-[160px] h-[160px]">
+                          <img src={AlmacenDesde} alt="Almacén desde" className="object-contain w-full h-full" />
+                        </div>
+                        <div className="mt-2 text-[20px] font-semibold text-slate-800">
+                          {nombreAlmacen((data as any)?.almacen_origen) || 'Almacén Origen'}
+                        </div>
+                        <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#E7F0FF] px-3 py-2">
+                          <span className="text-[#2153A3] text-[12px] font-semibold">Fecha de Generación</span>
+                        </div>
+                        <div className="mt-3 text-slate-600 text-[14px]">{fechaGeneracion || '—'}</div>
+                      </div>
 
-    {/* Línea con camión y tiempo transcurrido */}
-    <div className="relative flex flex-col justify-center items-center mt-6 mx-4">
-      <div className="h-0.5 bg-slate-300 mx-4 absolute top-1/3 left-0 right-0" />
-      <div className="absolute top-0">
-        <video
-          src={truckLoop} // Animación o gif
-          className="w-12 h-12 rounded-md"
-          autoPlay
-          loop
-          muted
-          playsInline
-        />
-      </div>
-      <div className="text-xs text-slate-500 -mt-10">Tiempo transcurrido</div>
-      <div className="flex items-center gap-1 text-xs text-slate-700 mt-1">
-        <HiClock className="w-4 h-4" />
-        {diasTranscurridos && `${diasTranscurridos} día${diasTranscurridos !== '1' ? 's' : ''}`}
-      </div>
-    </div>
+                      {/* CARRITO (centro) */}
+                      <div className="w-full h-full flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 flex items-center justify-center">
+                          <video
+                            src={truckLoop}
+                            className="w-16 h-16 rounded-md"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            preload="auto"
+                          />
+                        </div>
+                        <div className="mt-3 text-gray-600 text-[14px]">Tiempo transcurrido</div>
+                        <div className="mt-1 flex items-center gap-2 text-[14px] text-gray-700">
+                          <HiClock className="w-4 h-4" />
+                          <span>
+                            {diasTranscurridos ? `${diasTranscurridos} día${diasTranscurridos === '01' ? '' : 's'}` : '—'}
+                          </span>
+                        </div>
+                      </div>
 
-    {/* Sección Hacia */}
-    <div className="flex flex-col items-center">
-      <div className="text-slate-500 font-semibold mb-2">Hacia</div>
-      <div className="w-20 h-20">
-        <img
-          src={AlmacenHacia} // Ruta de la imagen
-          alt="Almacen Hacia"
-          className="object-contain"
-        />
-      </div>
-      <div className="mt-2 text-lg font-semibold text-slate-800">
-        {nombreAlmacen(data.almacen_destino) || 'Almacén Destino'}
-      </div>
-      <div className="mt-3 inline-flex items-center gap-2 rounded-sm bg-amber-50 px-3 py-1">
-        <span className="text-amber-700 text-xs font-semibold">Fecha de Validación</span>
-      </div>
-      <div className="mt-2 text-slate-600 text-sm">{fechaValidacion}</div>
-    </div>
-  </div>
-</div>
-
+                      {/* HACIA */}
+                      <div className="text-center">
+                        <div className="text-slate-500 font-semibold mb-2">Hacia</div>
+                        <div className="mx-auto w-[160px] h-[160px]">
+                          <img src={AlmacenHacia} alt="Almacén hacia" className="object-contain w-full h-full" />
+                        </div>
+                        <div className="mt-2 text-[20px] font-semibold text-slate-800">
+                          {nombreAlmacen((data as any)?.almacen_destino) || 'Almacén Destino'}
+                        </div>
+                        <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#FFF1BF] px-3 py-2">
+                          <span className="text-[#B98900] text-[12px] font-semibold">Fecha de Validación</span>
+                        </div>
+                        <div className="mt-3 text-slate-600 text-[14px]">{fechaValidacion || '—'}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Tarjeta inferior vacía */}
                 <div className="mt-6 mb-4 border rounded-sm bg-white border-gray-400">
@@ -316,47 +285,29 @@ export default function VerMovimientoRealizadoModal(props: Props) {
 
               {/* Derecha: Tabla de detalle */}
               <div className="lg:col-span-7">
-                <div className="border rounded-sm overflow-hidden bg-white border-gray-400">
-                  <table className="w-full text-sm">
+                <div className="h-full border rounded-sm overflow-hidden bg-white border-gray-400">
+                  <table className="items-start w-full text-sm ">
                     <thead className="bg-slate-100 text-slate-700">
                       <tr>
                         <th className="p-3 text-left font-semibold">Código</th>
-                        <th className="p-3 text-left font-semibold">
-                          Producto
-                        </th>
-                        <th className="p-3 text-left font-semibold">
-                          Descripción
-                        </th>
-                        <th className="p-3 text-right font-semibold">
-                          Cantidad
-                        </th>
+                        <th className="p-3 text-left font-semibold">Producto</th>
+                        <th className="p-3 text-left font-semibold">Descripción</th>
+                        <th className="p-3 text-right font-semibold">Cantidad</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(data.items ?? []).length > 0 ? (
                         (data.items as MovimientoItem[]).map((it, idx) => (
-                          <tr
-                            key={`${it.producto_uuid ?? it.producto_id ?? idx}`}
-                            className="border-t">
-                            <td className="p-3">
-                              {toText(it.codigo_identificacion ?? '')}
-                            </td>
-                            <td className="p-3">
-                              {toText(it.nombre_producto ?? '')}
-                            </td>
-                            <td className="p-3 text-slate-600">
-                              {toText(it.descripcion ?? '')}
-                            </td>
-                            <td className="p-3 text-right">
-                              {Number(it.cantidad ?? 0)}
-                            </td>
+                          <tr key={`${it.producto_uuid ?? it.producto_id ?? idx}`} className="border-t">
+                            <td className="p-3">{toText(it.codigo_identificacion ?? '')}</td>
+                            <td className="p-3">{toText(it.nombre_producto ?? '')}</td>
+                            <td className="p-3 text-slate-600">{toText(it.descripcion ?? '')}</td>
+                            <td className="p-3 text-right">{Number(it.cantidad ?? 0)}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td
-                            className="p-6 text-center text-slate-500 italic"
-                            colSpan={4}>
+                          <td className="p-6 text-center text-slate-500 italic" colSpan={4}>
                             Sin ítems en este movimiento.
                           </td>
                         </tr>
@@ -367,9 +318,9 @@ export default function VerMovimientoRealizadoModal(props: Props) {
               </div>
             </div>
           </div>
-
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

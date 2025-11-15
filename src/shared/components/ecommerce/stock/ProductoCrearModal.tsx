@@ -21,8 +21,8 @@ import {
   SelectxCreatable,
   type CreatableOption,
 } from '@/shared/common/SelectxCreatable';
-import { Icon } from '@iconify/react';
 import { Selectx } from '@/shared/common/Selectx';
+import ImageUploadx from '@/shared/common/ImageUploadx';
 
 // ========================
 // Utilidades / Tipos
@@ -59,17 +59,17 @@ type BasePayload = {
 
 type CreateProductoPayload =
   | ({
-    categoria_id: number;
-    categoria?: undefined;
-  } & BasePayload)
+      categoria_id: number;
+      categoria?: undefined;
+    } & BasePayload)
   | ({
-    categoria?: {
-      nombre: string;
-      descripcion?: string | null;
-      es_global: true;
-    };
-    categoria_id?: undefined;
-  } & BasePayload);
+      categoria?: {
+        nombre: string;
+        descripcion?: string | null;
+        es_global: true;
+      };
+      categoria_id?: undefined;
+    } & BasePayload);
 
 function generarCodigoConFecha(): string {
   const now = new Date();
@@ -119,7 +119,6 @@ const getInitialForm = (almacenamientoId: number): FormState => ({
   fecha_registro: new Date().toISOString(),
 });
 
-
 function canonical(s: string) {
   return s.normalize('NFKC').toLowerCase().trim().replace(/\s+/g, ' ');
 }
@@ -142,9 +141,8 @@ export default function ProductoCrearModal({
   const [form, setForm] = useState<FormState>(getInitialForm(almacenamientoId));
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  // Imagen (UI + envío opcional)
+  // Imagen (UI + envío opcional) — ahora solo File
   const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Cargar categorías
   useEffect(() => {
@@ -157,20 +155,8 @@ export default function ProductoCrearModal({
     if (open) {
       setForm(getInitialForm(almacenamientoId));
       setFile(null);
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, almacenamientoId]);
-
-  // Liberar URL object al desmontar o cambiar file
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -181,8 +167,6 @@ export default function ProductoCrearModal({
 
   const handleClose = () => {
     setForm(getInitialForm(almacenamientoId));
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
     setFile(null);
     onClose();
   };
@@ -222,62 +206,28 @@ export default function ProductoCrearModal({
     setForm((p) => ({ ...p, categoriaInput: value, categoriaSelectedId: '' }));
   }
 
-  // Imagen: seleccionar, ver, descargar, eliminar
-  function onPickFile(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null;
-    if (!f) return;
-    if (!f.type.startsWith('image/')) return;
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    const url = URL.createObjectURL(f);
-    setPreviewUrl(url);
-    setFile(f);
-  }
-
-  function onViewImage() {
-    if (!previewUrl) return;
-    window.open(previewUrl, '_blank', 'noopener,noreferrer');
-  }
-
-  async function onDownloadImage() {
-    if (!file || !previewUrl) return;
-    const a = document.createElement('a');
-    a.href = previewUrl;
-    a.download = file.name || 'imagen.png';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
-
-  function onDeleteImage() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    setFile(null);
-  }
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!token || saving) return;
-  
+
     if (!form.nombre_producto.trim()) return;
-  
+
     // Parseo seguro de valores numéricos
     const precio = parseNum(form.precio, 2);
     const stock = parseNum(form.stock, 0);
     const stock_minimo = parseNum(form.stock_minimo, 0);
     const peso = parseNum(form.peso, 3);
-  
+
     if ([precio, stock, stock_minimo, peso].some((n) => Number.isNaN(n))) return;
-  
+
     // Evitar enviar "0" o vacío al backend
     const almacenamiento_id =
       !form.almacenamiento_id || form.almacenamiento_id === '0'
         ? undefined
         : Number(form.almacenamiento_id);
-  
-    console.log('Enviando almacenamiento_id:', almacenamiento_id);
-  
+
     let payload: CreateProductoPayload & { file?: File };
-  
+
     if (form.categoriaSelectedId) {
       payload = {
         categoria_id: Number(form.categoriaSelectedId),
@@ -312,11 +262,11 @@ export default function ProductoCrearModal({
         fecha_registro: new Date(form.fecha_registro).toISOString(),
       } as unknown as CreateProductoPayload;
     }
-  
+
     if (file) {
       (payload as any).file = file;
     }
-  
+
     setSaving(true);
     try {
       // Limpieza antes del envío: elimina claves undefined o vacías
@@ -329,7 +279,7 @@ export default function ProductoCrearModal({
             v !== 'undefined'
         )
       );
-  
+
       // Elimina almacenamiento_id si no es numérico válido
       if (
         !('almacenamiento_id' in cleanPayload) ||
@@ -337,11 +287,9 @@ export default function ProductoCrearModal({
       ) {
         delete (cleanPayload as any).almacenamiento_id;
       }
-  
-      console.log('Payload limpio antes de enviar:', cleanPayload);
-  
+
       const producto = await crearProducto(cleanPayload as unknown as any, token);
-  
+
       if (!form.categoriaSelectedId && (producto as any)?.categoria) {
         const nueva = (producto as any).categoria as Categoria;
         setCategorias((prev) => {
@@ -351,7 +299,7 @@ export default function ProductoCrearModal({
           return dup ? prev : [...prev, nueva];
         });
       }
-  
+
       onCreated?.(producto);
       setForm(getInitialForm(almacenamientoId));
       onClose();
@@ -361,7 +309,7 @@ export default function ProductoCrearModal({
       setSaving(false);
     }
   };
-  
+
   if (!open) return null;
 
   return (
@@ -422,7 +370,7 @@ export default function ProductoCrearModal({
             maxRows={8}
           />
 
-          <div className='flex gap-5'>
+          <div className="flex gap-5">
             {/* Categoría (creatable) */}
             <SelectxCreatable
               label="Categoría"
@@ -440,7 +388,7 @@ export default function ProductoCrearModal({
 
             {/* Estado */}
             <Selectx
-              labelVariant='left'
+              labelVariant="left"
               label="Estado"
               value={form.estado}
               onChange={(e) =>
@@ -459,68 +407,14 @@ export default function ProductoCrearModal({
             </Selectx>
           </div>
 
-          {/* Subir imagen — una sola fila */}
-          <div>
-            <label className="block text-base font-normal text-gray90 text-left">
-              Subir imagen
-            </label>
-
-            <div className="mt-2 flex items-center gap-3 flex-wrap">
-              {/* Botón seleccionar archivo */}
-              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white cursor-pointer hover:bg-gray-50">
-                <Icon icon="tabler:upload" className="text-xl" />
-                <span className="text-sm">Seleccionar archivo</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={onPickFile}
-                  disabled={saving}
-                />
-              </label>
-
-              {/* Preview + acciones (mismos renglón) */}
-              {previewUrl && (
-                <>
-                  <div className="w-12 h-12 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-                    <img
-                      src={previewUrl}
-                      alt="preview"
-                      className="w-full h-full object-cover"
-                      draggable={false}
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                    title="Descargar"
-                    onClick={onDownloadImage}
-                  >
-                    <Icon icon="tabler:download" className="text-lg" />
-                  </button>
-
-                  <button
-                    type="button"
-                    className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                    title="Ver"
-                    onClick={onViewImage}
-                  >
-                    <Icon icon="tabler:eye" className="text-lg" />
-                  </button>
-
-                  <button
-                    type="button"
-                    className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                    title="Eliminar"
-                    onClick={onDeleteImage}
-                  >
-                    <Icon icon="tabler:trash" className="text-lg" />
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+          {/* Subir imagen */}
+          <ImageUploadx
+            label="Subir imagen"
+            value={file}
+            onChange={(f) => setFile(f)}   // File | null
+            maxSizeMB={5}
+            size="md"
+          />
 
           {/* Números */}
           <div className="flex gap-5">

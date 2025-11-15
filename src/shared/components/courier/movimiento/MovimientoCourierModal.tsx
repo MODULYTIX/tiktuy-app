@@ -307,8 +307,8 @@ export default function DetallesMovimientoCourierModal({
 
               {/* Derecha: Tabla de detalle */}
               <div className="lg:col-span-7">
-                <div className="border rounded-sm overflow-hidden bg-white border-gray-400">
-                  <table className="w-full text-sm">
+                <div className="h-full border rounded-sm overflow-hidden bg-white border-gray-400">
+                  <table className="items-start w-full text-sm ">
                     <thead className="bg-slate-100 text-slate-700">
                       <tr>
                         <th className="p-3 text-left font-semibold">Código</th>
