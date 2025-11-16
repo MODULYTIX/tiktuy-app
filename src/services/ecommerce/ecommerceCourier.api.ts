@@ -103,7 +103,7 @@ export async function fetchSedesEcommerceCourierAsociados(
   token: string
 ): Promise<SedeEcommerceAsociada[]> {
   const res = await fetch(
-    `${API_URL}/ecommerce-courier/sedes-ecommerce-courier-asociados`,
+    `${API_URL}/ecommerce-courier/sedes/ecommerce-asociadas`,
     { headers: authHeaders(token) }
   );
 

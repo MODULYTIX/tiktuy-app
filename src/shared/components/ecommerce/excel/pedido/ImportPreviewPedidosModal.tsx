@@ -206,6 +206,17 @@ export default function ImportPreviewPedidosModal({
       )
     );
   };
+  function normalizeGroupForSend(g: PreviewGroupDTO): PreviewGroupDTO {
+    return {
+      ...g,
+      monto_total: Number(g.monto_total ?? 0),
+      fecha_entrega: g.fecha_entrega
+        ? new Date(g.fecha_entrega).toISOString()
+        : '', 
+    };
+  }
+  
+  
 
   const confirmarImportacion = async () => {
     setError(null);
@@ -219,10 +230,10 @@ export default function ImportPreviewPedidosModal({
       ? groups.filter((_, i) => selected[i])
       : groups;
 
-    const payload: ImportPayload = {
-      groups: groupsToSend,
-      // ya no enviamos courierId, el backend resuelve todo por SEDE
-    };
+      const payload: ImportPayload = {
+        groups: groupsToSend.map(normalizeGroupForSend),
+      };      
+      
 
     try {
       setLoading(true);

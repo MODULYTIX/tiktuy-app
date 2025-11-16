@@ -230,7 +230,9 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
                 const fecha = formatearFechaCorta(
                   p.fecha_entrega_programada || p.fecha_creacion
                 );
-                const monto = calcularMonto(p);
+                const monto = Number(p.monto_recaudar ?? 0);
+
+
 
                 return (
                   <tr key={p.id} className="hover:bg-gray10 transition-colors">
@@ -244,6 +246,7 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
                       {p.detalles?.[0]?.cantidad?.toString().padStart(2, '0')}
                     </td>
                     <td className="px-4 py-3 text-center text-gray70">S/. {monto.toFixed(2)}</td>
+
                     <td className="px-4 py-3 text-center">{getEstadoPill(p.estado_pedido)}</td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-4">
