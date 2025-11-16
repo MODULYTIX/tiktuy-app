@@ -4,7 +4,8 @@
 export const validRoles = [
   'admin',
   'ecommerce',
-  'representante', 
+  'representante_ecommerce',
+  'representante_courier',
   'courier',
   'motorizado',
   'trabajador',
@@ -12,11 +13,12 @@ export const validRoles = [
 
 export type Role = (typeof validRoles)[number];
 
-// Rutas por defecto solo para roles principales
+// Rutas por defecto por rol
 export const roleDefaultPaths: Record<Role, string> = {
   admin: '/admin',
   ecommerce: '/ecommerce',
-  representante: '/', 
+  representante_ecommerce: '/ecommerce',
+  representante_courier: '/courier',
   courier: '/courier',
   motorizado: '/motorizado',
   trabajador: '/trabajador',
@@ -26,7 +28,8 @@ export const roleDefaultPaths: Record<Role, string> = {
 export const roleLabels: Record<Role, string> = {
   admin: 'Administrador',
   ecommerce: 'Comercio',
-  representante: 'Representante', 
+  representante_ecommerce: 'Representante Ecommerce',
+  representante_courier: 'Representante Courier',
   courier: 'Courier',
   motorizado: 'Motorizado',
   trabajador: 'Trabajador',

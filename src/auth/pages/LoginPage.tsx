@@ -9,15 +9,29 @@ import {
   roleDefaultPaths,
   type Role,
   moduloAsignadoValues,
-  type ModuloAsignado,
 } from '@/auth/constants/roles';
 
-// Type guards
+// Type guard de rol
 const isRole = (r: unknown): r is Role =>
-  typeof r === 'string' && (validRoles as readonly string[]).includes(r);
+  typeof r === 'string' && (validRoles as readonly string[]).includes(r as Role);
 
-const isModuloAsignado = (m: unknown): m is ModuloAsignado =>
-  typeof m === 'string' && (moduloAsignadoValues as readonly string[]).includes(m);
+// Helper: toma el primer módulo válido desde una cadena con comas o un string simple
+function getPrimerModuloValido(moduloAsignado?: unknown): string | null {
+  if (typeof moduloAsignado !== 'string' || moduloAsignado.trim() === '') return null;
+
+  // Puede venir "stock, movimiento, pedidos" → tomamos el primero válido
+  const partes = moduloAsignado
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  for (const p of partes) {
+    if ((moduloAsignadoValues as readonly string[]).includes(p as any)) {
+      return p;
+    }
+  }
+  return null;
+}
 
 export default function LoginPage() {
   const { user } = useAuth();
@@ -29,32 +43,33 @@ export default function LoginPage() {
     const currentPath =
       (typeof window !== 'undefined' ? window.location.pathname : '/')?.replace(/\/+$/, '') || '/';
 
-    const role = user.rol?.nombre as unknown;
+    // Normaliza el nombre del rol a minúsculas
+    const roleName: unknown =
+      typeof user?.rol?.nombre === 'string' ? user.rol.nombre.toLowerCase() : undefined;
 
-    // 1) Priorizar módulo si es TRABAJADOR
-    if (isRole(role) && role === 'trabajador') {
-      const moduloAsignado: unknown = user.perfil_trabajador?.modulo_asignado;
-      if (isModuloAsignado(moduloAsignado)) {
-        const target = `/${moduloAsignado}`.replace(/\/+$/, '') || '/';
+    // 1) Priorizar módulo si es TRABAJADOR (usa el primer módulo válido)
+    if (isRole(roleName) && roleName === 'trabajador') {
+      const primerModulo = getPrimerModuloValido(user?.perfil_trabajador?.modulo_asignado);
+      if (primerModulo) {
+        const target = (`/${primerModulo}`).replace(/\/+$/, '') || '/';
         if (currentPath !== target) navigate(target, { replace: true });
         return;
       }
-      // Si no tiene módulo, caerá al mapeo de rol más abajo
+      // si no tiene módulo válido, caerá al mapeo por rol (abajo) o se quedará en login si no hay ruta
     }
 
-    // 2) Rol principal (incluye representante con resolución por contexto)
-    if (isRole(role)) {
-      let targetPath = roleDefaultPaths[role];
-
-      if (role === 'representante') {
-        const pt = user.perfil_trabajador;
-        if (user.courier || pt?.courier_id) {
-          targetPath = '/courier';
-        } else if (user.ecommerce || pt?.ecommerce_id || (user as any)?.ecommerce_id) {
-          targetPath = '/ecommerce';
-        }
-      }
-
+    // 2) Rol principal
+    if (isRole(roleName)) {
+      // roleDefaultPaths ya contempla:
+      // - admin → /admin
+      // - ecommerce → /ecommerce
+      // - courier → /courier
+      // - motorizado → /motorizado
+      // - trabajador → /trabajador (si no tiene módulo)
+      // - representante → '/'
+      // - representante_ecommerce → '/ecommerce'
+      // - representante_courier → '/courier'
+      const targetPath = roleDefaultPaths[roleName];
       const normTarget = targetPath.replace(/\/+$/, '') || '/';
       if (currentPath !== normTarget) {
         navigate(normTarget, { replace: true });
@@ -62,7 +77,7 @@ export default function LoginPage() {
       return;
     }
 
-    // 3) Sin rol válido: no redirige (se queda en login)
+    // 3) Sin rol válido: permanece en login
   }, [user, navigate]);
 
   return (

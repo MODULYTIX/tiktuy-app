@@ -12,7 +12,6 @@ import { TIPOS_VEHICULO } from "@/services/courier/panel_control/panel_control.t
 // 🧩 Tus componentes
 import Tittlex from "@/shared/common/Tittlex";
 import { Inputx, InputxPhone } from "@/shared/common/Inputx";
-
 import Buttonx from "@/shared/common/Buttonx";
 import { Selectx } from "@/shared/common/Selectx";
 
@@ -50,7 +49,10 @@ type Errors = Partial<
   >
 >;
 
-export default function PanelControlRegistroRepartidor({ onClose, onCreated }: Props) {
+export default function PanelControlRegistroRepartidor({
+  onClose,
+  onCreated,
+}: Props) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [phoneLocal, setPhoneLocal] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,7 +64,7 @@ export default function PanelControlRegistroRepartidor({ onClose, onCreated }: P
     setForm((p) => ({ ...p, [k]: v }));
 
   const handlePhoneChange = (v: string) =>
-    setPhoneLocal(v.replace(/\D/g, ""));
+    setPhoneLocal(v.replace(/\D/g, "")); // solo dígitos
 
   const validate = (f: FormState, phone: string): Errors => {
     const e: Errors = {};
@@ -84,11 +86,13 @@ export default function PanelControlRegistroRepartidor({ onClose, onCreated }: P
       e.telefono = "El teléfono debe tener 9 dígitos.";
 
     if (!f.licencia.trim()) e.licencia = "Requerido.";
+
     if (!f.placa.trim()) e.placa = "Requerido.";
     else if (f.placa.trim().length < 5)
       e.placa = "La placa debe tener al menos 5 caracteres.";
 
     if (!f.tipo_vehiculo) e.tipo_vehiculo = "Selecciona una opción.";
+
     return e;
   };
 
@@ -185,7 +189,7 @@ export default function PanelControlRegistroRepartidor({ onClose, onCreated }: P
             <Inputx
               label="Licencia"
               name="licencia"
-              placeholder="Ejem. Motorista"
+              placeholder="Ejem. A-1, B-2, etc."
               value={form.licencia}
               onChange={(e) => handleInput("licencia", e.target.value)}
               className={errors.licencia ? "border-red-400" : ""}
@@ -257,7 +261,10 @@ export default function PanelControlRegistroRepartidor({ onClose, onCreated }: P
               labelVariant="left"
               value={form.tipo_vehiculo}
               onChange={(e) =>
-                handleInput("tipo_vehiculo", e.target.value as TipoVehiculo | "")
+                handleInput(
+                  "tipo_vehiculo",
+                  e.target.value as TipoVehiculo | ""
+                )
               }
               placeholder="Selecciona una opción"
               className={errors.tipo_vehiculo ? "border-red-400" : ""}
@@ -302,13 +309,16 @@ export default function PanelControlRegistroRepartidor({ onClose, onCreated }: P
           <Buttonx
             variant="quartery"
             disabled={loading}
-            onClick={() => {}}
+            type="submit"                     // 🔹 ahora sí dispara el submit
             label={loading ? "Creando..." : "Crear nuevo"}
             icon={loading ? "line-md:loading-twotone-loop" : undefined}
-            className={`px-4 text-sm ${loading ? "[&_svg]:animate-spin" : ""}`}
+            className={`px-4 text-sm ${
+              loading ? "[&_svg]:animate-spin" : ""
+            }`}
           />
           <Buttonx
             variant="outlined"
+            type="button"                      // 🔹 para que no dispare submit
             onClick={onClose}
             label="Cancelar"
             className="px-4 text-sm border"

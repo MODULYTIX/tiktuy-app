@@ -11,13 +11,27 @@ type Props = {
   allowModulo?: boolean;
 };
 
-// Mapeo: si el backend devuelve "representante", lo tratamos como "ecommerce"
+// Mapeo: normaliza roles representante_* a su área base
 function normalizeRole(name?: string): Role | undefined {
   if (!name) return undefined;
-  if (name === 'representante') return 'ecommerce';
-  const known: Role[] = ['admin', 'ecommerce', 'courier', 'motorizado', 'trabajador'];
-  return known.includes(name as Role) ? (name as Role) : undefined;
+  const n = name.toLowerCase() as Role;
+
+  // Alias legacy y nuevos representantes
+
+  if (n === 'representante_courier') return 'courier';
+
+  const known: Role[] = [
+    'admin',
+    'ecommerce',
+    'courier',
+    'motorizado',
+    'trabajador',
+    'representante_ecommerce',
+    'representante_courier',
+  ];
+  return known.includes(n) ? n : undefined;
 }
+
 
 export default function PrivateRoute({ children, allowedRoles, allowModulo }: Props) {
   const { user, loading } = useAuth();

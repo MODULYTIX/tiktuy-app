@@ -29,18 +29,20 @@ export default function AuthGuard({ children }: Props) {
 
     const role = user.rol?.nombre;
 
-    // Roles con home por defecto
+    // Roles con home por defecto (incluye representantes nuevos)
     if (
       role === 'admin' ||
       role === 'ecommerce' ||
       role === 'courier' ||
       role === 'motorizado' ||
-      role === 'representante' 
+      role === 'representante' ||              // legacy → /ecommerce
+      role === 'representante_ecommerce' ||    // nuevo → /ecommerce
+      role === 'representante_courier'         // nuevo → /courier
     ) {
-      const target =
-        role === 'representante'
-          ? roleDefaultPaths['ecommerce'] // alias
-          : roleDefaultPaths[role];
+      const roleForPath =
+        role === 'representante' ? 'ecommerce' : role; // mapear legacy a ecommerce
+
+      const target = roleDefaultPaths[roleForPath as keyof typeof roleDefaultPaths];
 
       if (target) {
         navigate(target, { replace: true });
@@ -49,7 +51,7 @@ export default function AuthGuard({ children }: Props) {
       }
     }
 
-    //  Redirección por módulo (trabajador)
+    // Redirección por módulo (trabajador)
     if (role === 'trabajador') {
       const modulos = user.perfil_trabajador?.modulo_asignado?.split(',') || [];
       const primerModulo = modulos[0]?.trim();

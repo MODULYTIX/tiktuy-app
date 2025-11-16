@@ -1,5 +1,3 @@
-// panel_control.types.ts
-
 /** ----------- Resultado genérico de API ----------- **/
 
 export interface ApiSuccess<T> {
@@ -19,7 +17,7 @@ export type ApiResult<T> = ApiSuccess<T> | ApiError;
 
 // Catálogo unificado de tipos de vehículo (usa tilde en "Camión")
 export const TIPOS_VEHICULO = ['Auto', 'Motocicleta', 'Camión'] as const;
-export type TipoVehiculo = typeof TIPOS_VEHICULO[number];
+export type TipoVehiculo = (typeof TIPOS_VEHICULO)[number];
 
 /** ----------- Entidades mínimas (backend) ----------- **/
 
@@ -37,8 +35,17 @@ export interface UsuarioMin {
   created_at?: string;
 }
 
-/* --- Ecommerce --- */
+/* --- Sede (Almacenamiento mínimo) --- */
+export interface SedeMin {
+  id: number;
+  nombre_almacen: string;
+  ciudad: string | null;
+  departamento: string | null;
+  direccion: string | null;
+  es_principal: boolean;
+}
 
+/* --- Ecommerce --- */
 export interface Ecommerce {
   id: number;
   usuario_id: number;
@@ -53,18 +60,19 @@ export interface Ecommerce {
   usuario: UsuarioMin;
 }
 
-export interface EcommerceCourier {
+/* --- EcommerceSede (relación por sede: courier + ecommerce + sede) --- */
+export interface EcommerceSede {
   id: number;
-  courier_id: number;
   ecommerce_id: number;
+  courier_id: number;
+  sede_id: number;
   estado_id: number;
-  createdAt?: string;
-  created_at?: string;
+  fecha_asociacion?: string | null;
   ecommerce: Ecommerce;
+  sede: SedeMin;
 }
 
 /* --- Motorizado --- */
-
 export interface TipVehiculo {
   id: number;
   descripcion: TipoVehiculo; // del catálogo TIPOS_VEHICULO
@@ -74,6 +82,7 @@ export interface Motorizado {
   id: number;
   usuario_id: number;
   courier_id: number;
+  sede_id?: number | null; // asignado a una sede concreta (o null)
   tip_vehiculo_id: number;
   licencia: string;
   placa: string;
@@ -81,9 +90,10 @@ export interface Motorizado {
   createdAt?: string;
   created_at?: string;
 
-  // relaciones opcionales (según tu include en backend)
+  // relaciones opcionales (según include del backend)
   usuario?: UsuarioMin | null;
   tipo_vehiculo?: TipVehiculo | null;
+  sede?: SedeMin | null; // include: { sede: true } en backend
 }
 
 /** ----------- Payloads (DTOs) — ECOMMERCE ----------- **/
@@ -126,7 +136,7 @@ export interface RegistroInvitacionPayload {
 
 /** ----------- Payloads (DTOs) — MOTORIZADO ----------- **/
 
-// Registro manual (hecho por el courier desde su panel)
+// Registro manual (hecho por el courier desde su panel, por sede)
 export interface RegistroManualMotorizadoPayload {
   nombres: string;
   apellidos: string;

@@ -31,7 +31,7 @@ interface MotorizadoRow {
 
 const PAGE_SIZE = 5;
 
-// ---------- Utils ----------
+/* ----------------------------- helpers ----------------------------- */
 function formatDateLikeDDMMYYYY(dateInput?: string | Date | null): string {
   if (!dateInput) return "-";
   const d = new Date(dateInput);
@@ -51,13 +51,16 @@ function pickDate(
   return a ?? b ?? c ?? d ?? null;
 }
 
-// ---------- Normalizador ----------
+/* ------------------------ Normalizador row ------------------------- */
 function toRow(item: Motorizado): MotorizadoRow {
   const u = item.usuario ?? null;
   const v = item.tipo_vehiculo ?? null;
 
   const estado: EstadoTexto =
-    (u?.contrasena ?? "") === "" ? "pendiente" : "activo";
+    typeof u?.contrasena === "string" && u.contrasena.length === 0
+      ? "pendiente"
+      : "activo";
+
   const fecha = pickDate(
     item.createdAt,
     item.created_at,
@@ -81,7 +84,7 @@ function toRow(item: Motorizado): MotorizadoRow {
   };
 }
 
-// ---------- Snackbar simple ----------
+/* ----------------------------- snackbar ---------------------------- */
 function useSnackbar(timeoutMs = 3000) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -94,12 +97,17 @@ function useSnackbar(timeoutMs = 3000) {
     timer.current = window.setTimeout(() => setOpen(false), timeoutMs);
   };
 
-  useEffect(() => () => {
-    if (timer.current) window.clearTimeout(timer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    },
+    []
+  );
+
   return { open, message, show } as const;
 }
 
+/* ----------------------------- Componente ----------------------------- */
 export default function PanelControlRepartidorTable() {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<MotorizadoRow[]>([]);
@@ -111,6 +119,7 @@ export default function PanelControlRepartidorTable() {
   const [openDrawer, setOpenDrawer] = useState(false);
   const [selected, setSelected] = useState<MotorizadoRow | null>(null);
 
+  // Cargar datos
   const load = async () => {
     setLoading(true);
     setErr(null);
@@ -133,6 +142,7 @@ export default function PanelControlRepartidorTable() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalPages = useMemo(
@@ -168,6 +178,7 @@ export default function PanelControlRepartidorTable() {
       }
 
       for (let i = start; i <= end; i++) pages.push(i);
+
       if (start > 1) {
         pages.unshift("...");
         pages.unshift(1);
@@ -177,6 +188,7 @@ export default function PanelControlRepartidorTable() {
         pages.push(totalPages);
       }
     }
+
     return pages;
   }, [totalPages, page]);
 
@@ -214,22 +226,6 @@ export default function PanelControlRepartidorTable() {
     return () => window.removeEventListener("keydown", onKey);
   }, [openDrawer]);
 
-  if (loading) {
-    return (
-      <div className="mt-4 p-4 text-sm text-gray-600 bg-white rounded shadow-sm">
-        Cargando motorizados asociados…
-      </div>
-    );
-  }
-
-  if (err) {
-    return (
-      <div className="mt-4 p-4 text-sm text-red-600 bg-white rounded shadow-sm">
-        {err}
-      </div>
-    );
-  }
-
   return (
     <div className="mt-4">
       {/* Tabla wrapper con borde + sombra, estilo base */}
@@ -260,16 +256,46 @@ export default function PanelControlRepartidorTable() {
               </thead>
 
               <tbody className="divide-y divide-gray20">
-                {currentData.length > 0 ? (
+                {loading ? (
+                  // Skeletons
+                  Array.from({ length: PAGE_SIZE }).map((_, idx) => (
+                    <tr
+                      key={`sk-${idx}`}
+                      className="[&>td]:px-4 [&>td]:py-3 animate-pulse"
+                    >
+                      {Array.from({ length: 7 }).map((__, i) => (
+                        <td key={`sk-${idx}-${i}`}>
+                          <div className="h-4 bg-gray20 rounded w-3/4" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : err ? (
+                  // Error
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-4 py-6 text-center text-red-600 italic"
+                    >
+                      {err}
+                    </td>
+                  </tr>
+                ) : currentData.length > 0 ? (
                   <>
                     {currentData.map((entry) => (
                       <tr
                         key={entry.id}
                         className="hover:bg-gray10 transition-colors"
                       >
-                        <td className="px-4 py-3 text-gray70">{entry.nombres}</td>
-                        <td className="px-4 py-3 text-gray70">{entry.apellidos}</td>
-                        <td className="px-4 py-3 text-gray70">{entry.dni_ci}</td>
+                        <td className="px-4 py-3 text-gray70">
+                          {entry.nombres}
+                        </td>
+                        <td className="px-4 py-3 text-gray70">
+                          {entry.apellidos}
+                        </td>
+                        <td className="px-4 py-3 text-gray70">
+                          {entry.dni_ci}
+                        </td>
                         <td className="px-4 py-3 text-gray70">
                           <div className="flex items-center gap-2">
                             <span>{entry.telefono}</span>
@@ -342,7 +368,7 @@ export default function PanelControlRepartidorTable() {
             </table>
           </div>
 
-          {/* Paginador (pegado a la tabla) */}
+          {/* Paginador */}
           <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
             <button
               onClick={() => goToPage(page - 1)}
@@ -399,7 +425,7 @@ export default function PanelControlRepartidorTable() {
         </div>
       </div>
 
-      {/* Drawer lateral derecho (DETALLE, usando tus componentes) */}
+      {/* Drawer lateral derecho (DETALLE) */}
       {openDrawer && selected && (
         <div
           className="fixed inset-0 z-[60] bg-black/30"
@@ -412,7 +438,7 @@ export default function PanelControlRepartidorTable() {
             className="absolute right-0 top-0 h-full w-[520px] max-w-[92vw] bg-white shadow-2xl border-l border-gray30 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header con Tittlex */}
+            {/* Header */}
             <div className="px-6 pt-6 pb-3 border-b border-gray20">
               <Tittlex
                 variant="modal"
@@ -422,9 +448,8 @@ export default function PanelControlRepartidorTable() {
               />
             </div>
 
-            {/* Body en solo lectura con tus componentes */}
+            {/* Body (solo lectura) */}
             <div className="px-6 py-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 text-[12px]">
-              {/* Nombre */}
               <Inputx
                 label="Nombre"
                 name="nombre"
@@ -434,7 +459,6 @@ export default function PanelControlRepartidorTable() {
                 type="text"
               />
 
-              {/* Apellido */}
               <Inputx
                 label="Apellido"
                 name="apellido"
@@ -444,7 +468,6 @@ export default function PanelControlRepartidorTable() {
                 type="text"
               />
 
-              {/* Licencia */}
               <Inputx
                 label="Licencia"
                 name="licencia"
@@ -454,7 +477,6 @@ export default function PanelControlRepartidorTable() {
                 type="text"
               />
 
-              {/* DNI */}
               <Inputx
                 label="DNI"
                 name="dni_ci"
@@ -464,11 +486,13 @@ export default function PanelControlRepartidorTable() {
                 type="text"
               />
 
-              {/* Teléfono (solo los 9 dígitos, sin +51) */}
               <InputxNumber
                 label="Teléfono"
                 name="telefono"
-                value={String(selected.telefono || "").replace(/^\+?\s*51\s*/i, "")}
+                value={String(selected.telefono || "").replace(
+                  /^\+?\s*51\s*/i,
+                  ""
+                )}
                 readOnly
                 disabled
                 decimals={0}
@@ -476,7 +500,6 @@ export default function PanelControlRepartidorTable() {
                 placeholder="987654321"
               />
 
-              {/* Correo */}
               <Inputx
                 label="Correo"
                 name="correo"
@@ -486,7 +509,6 @@ export default function PanelControlRepartidorTable() {
                 type="text"
               />
 
-              {/* Tipo de Vehículo */}
               <Inputx
                 label="Tipo de Vehículo"
                 name="tipo_vehiculo"
@@ -496,7 +518,6 @@ export default function PanelControlRepartidorTable() {
                 type="text"
               />
 
-              {/* Placa */}
               <Inputx
                 label="Placa"
                 name="placa"

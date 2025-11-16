@@ -66,36 +66,39 @@ export default function AppRouter() {
           <PrivateRoute allowedRoles={['admin']}>
             <PrivateLayout />
           </PrivateRoute>
-        }>
+        }
+      >
         {adminRoutes.map((route, i) => (
           <Route key={i} path={route.path} element={route.element} />
         ))}
       </Route>
 
-      {/* Ecommerce + Representante 👈 AQUI EL CAMBIO */}
+      {/* Ecommerce + Representante Ecommerce */}
       <Route
         path="/ecommerce"
         element={
-          <PrivateRoute allowedRoles={['ecommerce', 'representante']}>
+          <PrivateRoute allowedRoles={['ecommerce', 'representante_ecommerce']}>
             <PrivateLayout />
           </PrivateRoute>
-        }>
+        }
+      >
         {ecommerceRoutes.map((route, i) => (
           <Route key={i} path={route.path} element={route.element} />
         ))}
       </Route>
 
-      {/* Alias opcional para /representante */}
+      {/* Alias opcional para /representante (legacy) */}
       <Route path="/representante/*" element={<Navigate to="/ecommerce" replace />} />
 
-      {/* Courier */}
+      {/* Courier + Representante Courier */}
       <Route
         path="/courier"
         element={
-          <PrivateRoute allowedRoles={['courier']}>
+          <PrivateRoute allowedRoles={['courier', 'representante_courier']}>
             <PrivateLayout />
           </PrivateRoute>
-        }>
+        }
+      >
         {courierRoutes.map((route, i) => (
           <Route key={i} path={route.path} element={route.element} />
         ))}
@@ -108,7 +111,8 @@ export default function AppRouter() {
           <PrivateRoute allowedRoles={['motorizado']}>
             <PrivateLayout />
           </PrivateRoute>
-        }>
+        }
+      >
         {motorizadoRoutes.map((route, i) => (
           <Route key={i} path={route.path} element={route.element} />
         ))}
@@ -121,7 +125,8 @@ export default function AppRouter() {
           <PrivateRoute allowedRoles={['trabajador']}>
             <PrivateLayout />
           </PrivateRoute>
-        }>
+        }
+      >
         {ecommerceRoutes.map((route, i) => (
           <Route key={i} path={route.path} element={route.element} />
         ))}
