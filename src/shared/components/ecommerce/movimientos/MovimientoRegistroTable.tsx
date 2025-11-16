@@ -1,10 +1,11 @@
 // src/shared/components/ecommerce/movimientos/MovimientoRegistroTable.tsx
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { FaEye } from 'react-icons/fa';
-import { useAuth } from '@/auth/context';
-import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
-import type { Producto } from '@/services/ecommerce/producto/producto.types';
-import type { Filters } from '@/shared/components/ecommerce/movimientos/MovimientoRegistroFilters';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FaEye } from "react-icons/fa";
+import { useAuth } from "@/auth/context";
+import { fetchProductos } from "@/services/ecommerce/producto/producto.api";
+import type { Producto } from "@/services/ecommerce/producto/producto.types";
+import type { Filters } from "@/shared/components/ecommerce/movimientos/MovimientoRegistroFilters";
+import Badgex from "@/shared/common/Badgex";
 
 interface Props {
   filters: Filters;
@@ -36,7 +37,8 @@ export default function MovimientoRegistroTable({
           : [];
 
         const productosActivos = list.filter(
-          (p: Producto) => p.estado?.nombre !== 'Inactivo' && Number(p.stock) > 0
+          (p: Producto) =>
+            p.estado?.nombre !== "Inactivo" && Number(p.stock) > 0
         );
         setAllProductos(productosActivos);
       })
@@ -45,7 +47,9 @@ export default function MovimientoRegistroTable({
 
   // Comunicar selección hacia arriba
   useEffect(() => {
-    const seleccionados = allProductos.filter((p: Producto) => selectedIds.includes(p.uuid));
+    const seleccionados = allProductos.filter((p: Producto) =>
+      selectedIds.includes(p.uuid)
+    );
     onSelectProducts(seleccionados);
   }, [selectedIds, allProductos, onSelectProducts]);
 
@@ -53,19 +57,22 @@ export default function MovimientoRegistroTable({
   const filtered = useMemo(() => {
     let data: Producto[] = [...allProductos];
 
-    data = data.filter((p: Producto) => p.estado?.nombre !== 'Inactivo' && Number(p.stock) > 0);
+    data = data.filter(
+      (p: Producto) => p.estado?.nombre !== "Inactivo" && Number(p.stock) > 0
+    );
 
     if (filters.almacenamiento_id) {
       data = data.filter(
         (p: Producto) =>
-          String(p.almacenamiento_id ?? '') === String(filters.almacenamiento_id)
+          String(p.almacenamiento_id ?? "") ===
+          String(filters.almacenamiento_id)
       );
     }
 
     if (filters.categoria_id) {
       data = data.filter(
         (p: Producto) =>
-          String((p as any).categoria_id ?? (p as any)?.categoria?.id ?? '') ===
+          String((p as any).categoria_id ?? (p as any)?.categoria?.id ?? "") ===
           String(filters.categoria_id)
       );
     }
@@ -73,22 +80,25 @@ export default function MovimientoRegistroTable({
     if (filters.estado) {
       data = data.filter(
         (p: Producto) =>
-          (p.estado?.nombre ?? '').toLowerCase() === filters.estado.toLowerCase()
+          (p.estado?.nombre ?? "").toLowerCase() ===
+          filters.estado.toLowerCase()
       );
     }
 
-    const search = (filters.search ?? '').trim();
+    const search = (filters.search ?? "").trim();
     if (search) {
       const needle = search.toLowerCase();
       data = data.filter((p: Producto) =>
-        (p.nombre_producto ?? '').toLowerCase().includes(needle)
+        (p.nombre_producto ?? "").toLowerCase().includes(needle)
       );
     }
 
     if (filters.stock_bajo) {
       data = data.filter((p: Producto) => {
         const min =
-          typeof (p as any).stock_minimo === 'number' ? (p as any).stock_minimo : 5;
+          typeof (p as any).stock_minimo === "number"
+            ? (p as any).stock_minimo
+            : 5;
         return Number(p.stock) <= Number(min);
       });
     }
@@ -102,8 +112,10 @@ export default function MovimientoRegistroTable({
         const p25 = sorted[Math.floor(sorted.length * 0.25)];
         const p75 = sorted[Math.floor(sorted.length * 0.75)];
 
-        if (filters.precio_bajo) data = data.filter((p: Producto) => Number(p.precio) <= p25);
-        if (filters.precio_alto) data = data.filter((p: Producto) => Number(p.precio) >= p75);
+        if (filters.precio_bajo)
+          data = data.filter((p: Producto) => Number(p.precio) <= p25);
+        if (filters.precio_alto)
+          data = data.filter((p: Producto) => Number(p.precio) >= p75);
       }
     }
 
@@ -130,7 +142,7 @@ export default function MovimientoRegistroTable({
 
   const handleView = (prod: Producto) => {
     if (onViewProduct) onViewProduct(prod);
-    else console.warn('onViewProduct no fue proporcionado');
+    else console.warn("onViewProduct no fue proporcionado");
   };
 
   // Paginador base (5 botones con elipsis)
@@ -151,11 +163,11 @@ export default function MovimientoRegistroTable({
       }
       for (let i = start; i <= end; i++) pages.push(i);
       if (start > 1) {
-        pages.unshift('...');
+        pages.unshift("...");
         pages.unshift(1);
       }
       if (end < totalPages) {
-        pages.push('...');
+        pages.push("...");
         pages.push(totalPages);
       }
     }
@@ -169,22 +181,24 @@ export default function MovimientoRegistroTable({
   // Definición de widths
   const COLS = useMemo(
     () => [
-      'w-[4%]',   // checkbox
-      'w-[12%]',  // Código
-      'w-[30%]',  // Producto
-      'w-[20%]',  // Sedes
-      'w-[10%]',  // Stock
-      'w-[8%]',  // Precio
-      'w-[8%]',   // Estado
-      'w-[8%]',   // Acciones
+      "w-[4%]", // checkbox
+      "w-[12%]", // Código
+      "w-[30%]", // Producto
+      "w-[20%]", // Sedes
+      "w-[10%]", // Stock
+      "w-[8%]", // Precio
+      "w-[8%]", // Estado
+      "w-[8%]", // Acciones
     ],
     []
   );
 
   // ✅ NEW: lógica del checkbox maestro (solo página actual)
-  const pageIds = useMemo(() => pageData.map(p => p.uuid), [pageData]);
-  const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id));
-  const somePageSelected = !allPageSelected && pageIds.some(id => selectedIds.includes(id));
+  const pageIds = useMemo(() => pageData.map((p) => p.uuid), [pageData]);
+  const allPageSelected =
+    pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+  const somePageSelected =
+    !allPageSelected && pageIds.some((id) => selectedIds.includes(id));
 
   const masterRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -194,14 +208,14 @@ export default function MovimientoRegistroTable({
   }, [somePageSelected]);
 
   const toggleSelectPage = () => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       if (allPageSelected) {
         // deseleccionar todos los de la página
-        return prev.filter(id => !pageIds.includes(id));
+        return prev.filter((id) => !pageIds.includes(id));
       }
       // seleccionar todos los de la página (mantener los ya fuera de página)
       const set = new Set(prev);
-      pageIds.forEach(id => set.add(id));
+      pageIds.forEach((id) => set.add(id));
       return Array.from(set);
     });
   };
@@ -247,14 +261,19 @@ export default function MovimientoRegistroTable({
 
             <tbody className="h-full divide-y divide-gray20">
               {pageData.map((prod: Producto) => (
-                <tr key={prod.uuid} className="hover:bg-gray10 transition-colors">
+                <tr
+                  key={prod.uuid}
+                  className="hover:bg-gray10 transition-colors"
+                >
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(prod.uuid)}
                       onChange={() => toggleCheckbox(prod.uuid)}
                       className="accent-gray-700 cursor-pointer"
-                      aria-label={`Seleccionar ${prod.nombre_producto ?? 'producto'}`}
+                      aria-label={`Seleccionar ${
+                        prod.nombre_producto ?? "producto"
+                      }`}
                     />
                   </td>
 
@@ -267,13 +286,13 @@ export default function MovimientoRegistroTable({
                       className="font-semibold w-full overflow-hidden text-ellipsis line-clamp-1"
                       title={prod.nombre_producto ?? undefined}
                     >
-                      {prod.nombre_producto ?? '—'}
+                      {prod.nombre_producto ?? "—"}
                     </div>
                     <div
                       className="text-gray-500 text-xs w-full overflow-hidden text-ellipsis line-clamp-1"
                       title={prod.descripcion ?? undefined}
                     >
-                      {prod.descripcion ?? '—'}
+                      {prod.descripcion ?? "—"}
                     </div>
                   </td>
 
@@ -292,15 +311,15 @@ export default function MovimientoRegistroTable({
                   </td>
 
                   <td className="px-4 py-3 text-center">
-                    <span
-                      className={`text-[12px] px-3 py-[6px] rounded-full inline-flex items-center justify-center shadow-sm ${
-                        prod.estado?.nombre === 'Inactivo'
-                          ? 'bg-gray-400 text-white'
-                          : 'bg-black text-white'
-                      }`}
+                    <Badgex
+                      className={
+                        prod.estado?.nombre === "Inactivo"
+                          ? "bg-gray30"
+                          : "bg-gray90 text-white"
+                      }
                     >
-                      {prod.estado?.nombre || 'Desconocido'}
-                    </span>
+                      {prod.estado?.nombre || "Desconocido"}
+                    </Badgex>
                   </td>
 
                   <td className="px-4 py-3">
@@ -310,7 +329,7 @@ export default function MovimientoRegistroTable({
                         onClick={() => handleView(prod)}
                         className="text-blue-600 hover:text-blue-800"
                         title="Ver detalle"
-                        aria-label={`Ver ${prod.nombre_producto ?? 'producto'}`}
+                        aria-label={`Ver ${prod.nombre_producto ?? "producto"}`}
                       >
                         <FaEye size={16} />
                       </button>
@@ -324,14 +343,19 @@ export default function MovimientoRegistroTable({
                 Array.from({ length: emptyRows }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="hover:bg-transparent">
                     {Array.from({ length: 8 }).map((__, i) => (
-                      <td key={i} className="px-4 py-3">&nbsp;</td>
+                      <td key={i} className="px-4 py-3">
+                        &nbsp;
+                      </td>
                     ))}
                   </tr>
                 ))}
 
               {pageData.length === 0 && (
                 <tr>
-                  <td className="px-4 py-6 text-center text-gray70 italic" colSpan={8}>
+                  <td
+                    className="px-4 py-6 text-center text-gray70 italic"
+                    colSpan={8}
+                  >
                     Aún no hay productos registrados.
                   </td>
                 </tr>
@@ -352,7 +376,7 @@ export default function MovimientoRegistroTable({
             </button>
 
             {pagerItems.map((p, i) =>
-              typeof p === 'string' ? (
+              typeof p === "string" ? (
                 <span key={`dots-${i}`} className="px-2 text-gray70">
                   {p}
                 </span>
@@ -360,11 +384,13 @@ export default function MovimientoRegistroTable({
                 <button
                   key={p}
                   onClick={() => setCurrentPage(p)}
-                  aria-current={page === p ? 'page' : undefined}
+                  aria-current={page === p ? "page" : undefined}
                   className={[
-                    'w-8 h-8 flex items-center justify-center rounded',
-                    page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
-                  ].join(' ')}
+                    "w-8 h-8 flex items-center justify-center rounded",
+                    page === p
+                      ? "bg-gray90 text-white"
+                      : "bg-gray10 text-gray70 hover:bg-gray20",
+                  ].join(" ")}
                 >
                   {p}
                 </button>

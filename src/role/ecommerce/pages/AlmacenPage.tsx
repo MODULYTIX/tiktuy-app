@@ -6,6 +6,7 @@ import CrearAlmacenModal from '@/shared/components/ecommerce/CrearAlmacenModal';
 import { FaEdit } from 'react-icons/fa';
 import Buttonx from '@/shared/common/Buttonx';
 import Tittlex from '@/shared/common/Tittlex';
+import Badgex from "@/shared/common/Badgex";
 
 const PAGE_SIZE = 5;
 
@@ -231,9 +232,7 @@ export default function AlmacenPage() {
                           <div className="flex items-center gap-2">
                             <span>{alm.nombre_almacen}</span>
                             {alm.es_principal ? (
-                              <span className="px-2 py-[2px] text-[10px] rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                Principal
-                              </span>
+                              <Badgex size="xs" shape="pill">Principal</Badgex>
                             ) : null}
                           </div>
                           <div className="text-[11px] text-gray-500 mt-0.5">
@@ -247,9 +246,8 @@ export default function AlmacenPage() {
                         <td className="h-12 px-4 py-3 text-gray70 font-[400]">{alm.direccion}</td>
                         <td className="h-12 px-4 py-3 text-gray70 font-[400]">
                           {alm.representante_usuario_id ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-[2px] rounded-full text-[10px] bg-blue-100 text-blue-700 border border-blue-200">
-                              Asignado
-                            </span>
+                            <Badgex>Asignado</Badgex>
+                            
                           ) : (
                             <div className="flex items-center gap-2">
                               <span className="inline-flex items-center gap-1 px-2 py-[2px] rounded-full text-[10px] bg-amber-100 text-amber-700 border border-amber-200">

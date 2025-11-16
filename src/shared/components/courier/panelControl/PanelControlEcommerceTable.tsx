@@ -10,6 +10,7 @@ import type { EcommerceCourier } from "@/services/courier/panel_control/panel_co
 //  Importa el modal de invitación (renombrado a Ecommer)
 import PanelControlInviteEcommer from "@/shared/components/courier/panelControl/PanelControlInviteEcommer";
 import { Inputx, InputxNumber } from "@/shared/common/Inputx";
+import Badgex from "@/shared/common/Badgex";
 
 type EstadoTexto = "activo" | "pendiente";
 
@@ -58,7 +59,10 @@ function toRow(item: EcommerceCourier): EcommerceRow {
     null;
 
   // Detecta si la asociación ya tiene link de WhatsApp
-  const hasWhatsapp = Boolean((item as any).link_whatsapp && String((item as any).link_whatsapp).trim().length > 0);
+  const hasWhatsapp = Boolean(
+    (item as any).link_whatsapp &&
+      String((item as any).link_whatsapp).trim().length > 0
+  );
 
   return {
     id: e?.id ?? (item as any).id,
@@ -142,37 +146,41 @@ function DetalleEcommerceModal({
       >
         {/* Header */}
 
-          <div className="flex flex-col gap-1 p-5">
-            {/* Fila superior: icono + título + estado alineados */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-primaryDark">
-                <Icon icon="lucide:layout-panel-top" width={22} height={22} color="#1E3A8A"/>
-                <h2 className="text-primary text-[20px] font-bold uppercase font-roboto">
-                  DETALLE DEL ECOMMERCE
-                </h2>
-              </div>
-              <div className="flex items-center gap-2 text-sm whitespace-nowrap">
-                <span className="text-gray60 leading-none">Estado:</span>
-                <span
-                  className={[
-                    "inline-flex items-center h-7 px-3 rounded-[4px] text-sm font-medium leading-none",
-                    estado === "activo"
-                      ? "bg-gray90 text-white"
-                      : "bg-gray30 text-gray80",
-                  ].join(" ")}
-                >
-                  {estado === "activo" ? "Activo" : "Pendiente"}
-                </span>
-              </div>
+        <div className="flex flex-col gap-1 p-5">
+          {/* Fila superior: icono + título + estado alineados */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-primaryDark">
+              <Icon
+                icon="lucide:layout-panel-top"
+                width={22}
+                height={22}
+                color="#1E3A8A"
+              />
+              <h2 className="text-primary text-[20px] font-bold uppercase font-roboto">
+                DETALLE DEL ECOMMERCE
+              </h2>
             </div>
-            {/* Descripción debajo */}
-            <p className="text-sm text-gray60 leading-relaxed mt-1">
-              Consulta toda la información registrada de este comercio electrónico,
-              incluyendo sus datos generales, ubicación, contacto comercial y rubro de
-              actividad.
-            </p>
+            <div className="flex items-center gap-2 text-sm whitespace-nowrap">
+              <span className="text-gray60 leading-none">Estado:</span>
+              <span
+                className={[
+                  "inline-flex items-center h-7 px-3 rounded-[4px] text-sm font-medium leading-none",
+                  estado === "activo"
+                    ? "bg-gray90 text-white"
+                    : "bg-gray30 text-gray80",
+                ].join(" ")}
+              >
+                {estado === "activo" ? "Activo" : "Pendiente"}
+              </span>
+            </div>
           </div>
-
+          {/* Descripción debajo */}
+          <p className="text-sm text-gray60 leading-relaxed mt-1">
+            Consulta toda la información registrada de este comercio
+            electrónico, incluyendo sus datos generales, ubicación, contacto
+            comercial y rubro de actividad.
+          </p>
+        </div>
 
         {/* Body */}
         <div className="p-5 grid gap-5">
@@ -198,7 +206,6 @@ function DetalleEcommerceModal({
 
           {/* fila 2 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
             <Inputx
               name="DNI / CI"
               label="DNI / CI"
@@ -225,8 +232,8 @@ function DetalleEcommerceModal({
               value={phoneLocal}
               readOnly
               disabled
-              decimals={0}  // Asumiendo que el teléfono no necesita decimales
-              step={1}      // Teléfonos normalmente no tienen fracciones
+              decimals={0} // Asumiendo que el teléfono no necesita decimales
+              step={1} // Teléfonos normalmente no tienen fracciones
               placeholder="Ingrese el número"
             />
 
@@ -484,14 +491,15 @@ export default function PanelControlTable() {
 
                         {/* ESTADO */}
                         <td className="px-4 py-3 text-center">
-                          <span
-                            className={`inline-flex items-center justify-center h-7 px-3 rounded-[10px] text-[12px] font-medium shadow-sm ${entry.estado === "activo"
-                              ? "bg-gray90 text-white"
-                              : "bg-gray30 text-gray80"
-                              }`}
+                          <Badgex
+                            className={[
+                              entry.estado?.toLowerCase() === "activo"
+                                ? "bg-gray90 text-white"
+                                : "bg-gray30 text-gray80",
+                            ].join(" ")}
                           >
-                            {entry.estado}
-                          </span>
+                            {entry.estado ?? "—"}
+                          </Badgex>
                         </td>
 
                         <td className="px-4 py-3 text-gray70 font-[400]">
@@ -529,7 +537,11 @@ export default function PanelControlTable() {
                                 icon="mdi:whatsapp"
                                 width={20}
                                 height={20}
-                                className={entry.hasWhatsapp ? "text-green-500" : "text-gray-400"}
+                                className={
+                                  entry.hasWhatsapp
+                                    ? "text-green-500"
+                                    : "text-gray-400"
+                                }
                               />
                             </button>
                           </div>
@@ -597,10 +609,11 @@ export default function PanelControlTable() {
       {/* Snackbar flotante */}
       <div
         aria-live="polite"
-        className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 transition-all duration-300 ${snackbar.open
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-3 pointer-events-none"
-          }`}
+        className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 transition-all duration-300 ${
+          snackbar.open
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-3 pointer-events-none"
+        }`}
       >
         <div className="rounded-full px-4 py-2 bg-gray90 text-white shadow-lg text-[12px]">
           {snackbar.message}

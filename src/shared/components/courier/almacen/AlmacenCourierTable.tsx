@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
 import type { AlmacenamientoCourier } from "@/services/courier/almacen/almacenCourier.type";
+import Badgex from "@/shared/common/Badgex";
 
 type Props = {
   items: AlmacenamientoCourier[];
@@ -193,9 +194,7 @@ export default function AlmacenCourierTable({
                           <td className="h-[64px] px-4 py-3">
                             <div className="flex items-center gap-2">
                               {estado === "asignado" ? (
-                                <span className="inline-block text-[12px] px-3 py-1 rounded-full bg-blue-100 text-blue-700">
-                                  Asignado
-                                </span>
+                                <Badgex>Asignado</Badgex>
                               ) : (
                                 <>
                                   <span className="inline-block text-[12px] px-3 py-1 rounded-full bg-yellow-100 text-yellow-700">
