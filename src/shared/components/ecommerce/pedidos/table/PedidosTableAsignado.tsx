@@ -75,11 +75,6 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
     ).padStart(2, '0')}/${d.getFullYear()}`;
   };
 
-  const calcularMonto = (p: Pedido) =>
-    p.detalles?.reduce(
-      (sum, d) => sum + d.cantidad * d.precio_unitario,
-      0
-    ) ?? 0;
 
   const getEstadoPill = (estado: string) => {
     const base =
