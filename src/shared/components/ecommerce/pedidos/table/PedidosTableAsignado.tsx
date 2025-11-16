@@ -43,7 +43,10 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
       .finally(() => setLoading(false));
   }, [token, refreshKey]);
   
-
+  const goToPage = (n: number) => {
+    if (n < 1 || n > totalPages) return;
+    setPage(n);
+  };
   // ===============================
   // Helpers formato fechas
   // ===============================

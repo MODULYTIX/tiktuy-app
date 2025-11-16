@@ -12,6 +12,8 @@ export interface PedidoDetalle {
   cantidad: number;
   precio_unitario: number;
   producto: ProductoInfo;
+  descripcion?: string | null;
+  marca?: string | null;
 }
 
 export interface UsuarioSimple {

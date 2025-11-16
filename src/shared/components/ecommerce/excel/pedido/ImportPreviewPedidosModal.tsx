@@ -42,11 +42,12 @@ export default function ImportPreviewPedidosModal({
   onClose,
   token,
   data,
-  onImported,
+    onImported,
 }: {
   open: boolean;
   onClose: () => void;
   token: string;
+  allowMultiCourier: boolean;
   data: PreviewResponseDTO;
   onImported: () => void;
 }) {
