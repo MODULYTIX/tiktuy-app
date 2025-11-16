@@ -26,7 +26,6 @@ export default function PedidosGenerado({ filtros }: { filtros: Filtros }) {
     setEditarOpen(true);
   }, []);
 
-  // Abrir "Editar" desde el modal "Ver" (sin perder el id)
   const handleEditarDesdeVer = useCallback((id: number) => {
     setSelectedId(id);
     setVerOpen(false);
@@ -40,32 +39,30 @@ export default function PedidosGenerado({ filtros }: { filtros: Filtros }) {
   }, []);
 
   const handleUpdated = useCallback(() => {
-    // refresca tabla tras editar
     setRefreshKey((k) => k + 1);
   }, []);
 
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
       <PedidosTableGenerado
-        onVer={handleVer}
-        onEditar={handleEditar}
         key={`table-${refreshKey}`}
         filtros={filtros}
+        onVer={handleVer}
+        onEditar={handleEditar}
+        refreshKey={refreshKey}  
       />
 
-      {/* Modal Ver */}
       <VerPedidoModal
         open={verOpen}
         onClose={handleClose}
-        pedidoId={selectedId}  // <- pasa number | null
-        onEditar={handleEditarDesdeVer} // <- para abrir "Editar" desde "Ver"
+        pedidoId={selectedId}
+        onEditar={handleEditarDesdeVer}
       />
 
-      {/* Modal Editar */}
       <EditarPedidoGeneradoModal
         open={editarOpen}
         onClose={handleClose}
-        pedidoId={selectedId}  // <- pasa number | null
+        pedidoId={selectedId}
         onUpdated={handleUpdated}
       />
     </div>

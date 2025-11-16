@@ -10,7 +10,6 @@ import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
 import { useAuth } from '@/auth/context';
 import ImportExcelPedidosFlow from '@/shared/components/ecommerce/excel/pedido/ImportExcelPedidosFlow';
 
-// Opciones dinámicas de filtros
 import { fetchPedidos } from '@/services/ecommerce/pedidos/pedidos.api';
 import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
 
@@ -18,7 +17,6 @@ import { Selectx, SelectxDate } from '@/shared/common/Selectx';
 import Buttonx from '@/shared/common/Buttonx';
 import Tittlex from '@/shared/common/Tittlex';
 
-// ⬇️ NUEVO: API de exportación/plantilla de pedidos
 import {
   downloadPedidosTemplate,
   triggerBrowserDownload,
@@ -40,7 +38,6 @@ export default function PedidosPage() {
     () => (localStorage.getItem('pedidos_vista') as Vista) || 'generado'
   );
 
-  // crear/editar (modal genérico)
   const [modalAbierto, setModalAbierto] = useState(false);
   const [pedidoId, setPedidoId] = useState<number | null>(null);
 
@@ -58,17 +55,20 @@ export default function PedidosPage() {
     localStorage.setItem('pedidos_vista', vista);
   }, [vista]);
 
-  // =========================
-  // Opciones dinámicas para filtros
-  // =========================
+  /* ======================================================================
+     OPCIONES PARA FILTROS (courier y productos)
+     Nota: ahora fetchPedidos devuelve {data, pagination}
+     ====================================================================== */
   const [pedidosForFilters, setPedidosForFilters] = useState<Pedido[]>([]);
   const [loadingFilters, setLoadingFilters] = useState(false);
 
   useEffect(() => {
     if (!token) return;
     setLoadingFilters(true);
-    fetchPedidos(token)
-      .then((res) => setPedidosForFilters(res || []))
+
+    // Usamos page small para minimizar carga -> solo necesitamos opciones
+    fetchPedidos(token, undefined, 1, 200)
+      .then((res) => setPedidosForFilters(res?.data || []))
       .catch(() => setPedidosForFilters([]))
       .finally(() => setLoadingFilters(false));
   }, [token, refreshKey]);
@@ -101,31 +101,31 @@ export default function PedidosPage() {
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [pedidosForFilters]);
 
-  // Crear (Generado)
+  /* ======================================================================
+       CREAR / EDITAR
+     ====================================================================== */
   const handleNuevoPedido = () => {
     setPedidoId(null);
     setModalAbierto(true);
   };
+
   const handleCerrarModal = () => {
     setModalAbierto(false);
     setPedidoId(null);
   };
 
-  // Refrescar tablas luego de crear/editar/importar
   const refetchPedidos = () => {
     setModalAbierto(false);
     setPedidoId(null);
     setRefreshKey((k) => k + 1);
   };
 
-  // ⬇️ ACTUALIZADO: usa API en lugar de asset estático
   const handleDescargarPlantilla = async () => {
     try {
       const res = await downloadPedidosTemplate();
       triggerBrowserDownload(res);
     } catch (err) {
-      console.error('Error al descargar plantilla de pedidos:', err);
-      // Si tienes toasts, dispara aquí uno. No cambio tu UI.
+      console.error('Error al descargar plantilla:', err);
     }
   };
 
@@ -135,8 +135,13 @@ export default function PedidosPage() {
     completado: 'Pedidos en su estado final.',
   } as const;
 
+  /* ======================================================================
+       RENDER
+     ====================================================================== */
+
   return (
     <section className="mt-8 flex flex-col gap-[1.25rem]">
+
       {/* Tabs */}
       <div className="flex justify-between items-end pb-5 border-b border-gray30">
         <Tittlex
@@ -150,47 +155,39 @@ export default function PedidosPage() {
             icon="ri:ai-generate"
             variant={vista === 'generado' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('generado')}
-            disabled={false}
           />
-
           <span className="w-[1px] h-10 bg-gray40" />
-
           <Buttonx
             label="Asignado"
             icon="solar:bill-list-broken"
             variant={vista === 'asignado' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('asignado')}
-            disabled={false}
           />
-
           <span className="w-[1px] h-10 bg-gray40" />
-
           <Buttonx
             label="Completado"
             icon="carbon:task-complete"
             variant={vista === 'completado' ? 'secondary' : 'tertiary'}
             onClick={() => setVista('completado')}
-            disabled={false}
           />
         </div>
       </div>
 
-      {/* Título y descripción */}
+      {/* Title section */}
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <h2 className="text-lg font-bold text-primaryDark">
             {vista === 'generado'
               ? 'Pedidos Generados'
               : vista === 'asignado'
-                ? 'Pedidos Asignados'
-                : 'Pedidos Completados'}
+              ? 'Pedidos Asignados'
+              : 'Pedidos Completados'}
           </h2>
           <p className="text-sm text-black font-regular">
             {descripcionVista[vista]}
           </p>
         </div>
 
-        {/* Botones solo en generado */}
         {vista === 'generado' && (
           <div className="flex gap-2 items-center">
             <div className="h-10 flex items-stretch">
@@ -209,7 +206,7 @@ export default function PedidosPage() {
               icon="iconoir:new-tab"
               variant="primary"
               onClick={handleNuevoPedido}
-              className='font-light'
+              className="font-light"
             />
           </div>
         )}
@@ -221,7 +218,7 @@ export default function PedidosPage() {
           id="f-courier"
           label="Courier"
           value={filtros.courier}
-          onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value })) }
+          onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value }))}
           placeholder="Seleccionar courier"
           className="w-full"
         >
@@ -239,7 +236,7 @@ export default function PedidosPage() {
           id="f-producto"
           label="Producto"
           value={filtros.producto}
-          onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value })) }
+          onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value }))}
           placeholder="Seleccionar producto"
           className="w-full"
         >
@@ -257,7 +254,7 @@ export default function PedidosPage() {
           id="f-fecha-inicio"
           label="Fecha Inicio"
           value={filtros.fechaInicio}
-          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value })) }
+          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))}
           placeholder="dd/mm/aaaa"
           className="w-full"
         />
@@ -266,7 +263,7 @@ export default function PedidosPage() {
           id="f-fecha-fin"
           label="Fecha Fin"
           value={filtros.fechaFin}
-          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaFin: e.target.value })) }
+          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))}
           placeholder="dd/mm/aaaa"
           className="w-full"
         />
@@ -292,8 +289,8 @@ export default function PedidosPage() {
         <PedidosAsignado
           key={`asi-${refreshKey}`}
           filtros={filtros}
-          onVer={() => { }}
-          onEditar={() => { }}
+          onVer={() => {}}
+          onEditar={() => {}}
         />
       )}
 
@@ -304,7 +301,7 @@ export default function PedidosPage() {
         />
       )}
 
-      {/* Modal crear/editar genérico */}
+      {/* Modal */}
       {modalAbierto && (
         <CrearPedidoModal
           isOpen={modalAbierto}

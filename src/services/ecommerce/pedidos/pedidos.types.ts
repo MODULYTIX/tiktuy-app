@@ -7,8 +7,6 @@ export interface ProductoInfo {
 }
 
 export interface PedidoDetalle {
-  marca: any;
-  descripcion: any;
   id: number;
   producto_id: number;
   cantidad: number;
@@ -35,7 +33,8 @@ export interface MotorizadoInfo {
 export interface Pedido {
   id: number;
   codigo_pedido: string;
-  estado_pedido: string; // 'Generado' | 'Asignado' | 'Entregado'
+  estado_pedido: string;
+
   nombre_cliente: string;
   numero_cliente: string;
   celular_cliente: string;
@@ -43,11 +42,14 @@ export interface Pedido {
   referencia_direccion?: string;
   distrito: string;
   monto_recaudar: number;
+
   fecha_entrega_programada: string | null;
   fecha_creacion: string;
 
+  sede_id: number;
+
   ecommerce: Empresa;
-  courier: Empresa;
+  courier?: Empresa;   // ahora opcional
   motorizado?: MotorizadoInfo;
 
   detalles: PedidoDetalle[];
