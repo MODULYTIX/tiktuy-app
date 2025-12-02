@@ -20,7 +20,7 @@ export default function StockTable({
 }: Props) {
   const [page, setPage] = useState(1);
 
-  // 👇 AHORA la tabla respeta el ORDEN que ya viene del padre.
+  //  AHORA la tabla respeta el ORDEN que ya viene del padre.
   // Solo aplica (opcionalmente) el filtro de inactivos y stock 0.
   const productosFiltrados = useMemo(() => {
     const base = [...productos]; // respeta el orden recibido desde StockPage

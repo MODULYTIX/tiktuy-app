@@ -91,7 +91,7 @@ export default function StockPage() {
     const norm = (s?: string) => (s ?? '').toLowerCase().trim();
 
     const filtra = (p: Producto) => {
-      // 📌 Filtros normales
+      //  Filtros normales
       if (
         f.almacenamiento_id &&
         String(p.almacenamiento_id) !== String(f.almacenamiento_id)
@@ -113,7 +113,7 @@ export default function StockPage() {
       )
         return false;
 
-      // ✅ Stock bajo: MISMA LÓGICA QUE LA TABLA (renderEstadoStock)
+      //  Stock bajo: MISMA LÓGICA QUE LA TABLA (renderEstadoStock)
       if (f.stock_bajo) {
         const stockRaw = p.stock;
         const minRaw = p.stock_minimo;
@@ -132,7 +132,7 @@ export default function StockPage() {
         if (!(stock < minimo)) return false;
       }
 
-      // 🔍 Búsqueda
+      //  Búsqueda
       if (f.search && f.search.trim()) {
         const q = norm(f.search);
         const nombre = norm(p.nombre_producto);
@@ -218,7 +218,7 @@ export default function StockPage() {
     }
   };
 
-  // ✅ FIX: Evitar NaN y enviar valor seguro
+  //  FIX: Evitar NaN y enviar valor seguro
   let almacenamientoIdCreacion: number | undefined;
   const raw = filters.almacenamiento_id;
 
@@ -229,7 +229,6 @@ export default function StockPage() {
     }
   }
 
-  console.log('🧩 almacenamientoIdCreacion preparado:', almacenamientoIdCreacion);
 
   return (
     <section className="mt-8 space-y-6">

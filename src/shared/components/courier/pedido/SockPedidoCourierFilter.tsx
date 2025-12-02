@@ -20,7 +20,7 @@ type Props = {
   filters?: StockFilters;
   onChange?: Dispatch<SetStateAction<StockFilters>>;
   options?: {
-    almacenes: Option[];   // aquí puedes seguir usando "almacenes" pero son sedes
+    almacenes: Option[];  
     categorias: Option[];
     estados: Option[];
   };
