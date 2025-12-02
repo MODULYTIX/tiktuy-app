@@ -9,6 +9,7 @@ import TableStockProductoCourier from "@/shared/components/courier/stockProducto
 
 export type StockFilters = {
   almacenId: string;
+  sedeId: string;
   categoriaId: string;
   nombre: string;
   estado: string;
@@ -23,6 +24,7 @@ export default function StockPage() {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<StockFilters>({
     almacenId: "",
+    sedeId: "",
     categoriaId: "",
     nombre: "",
     estado: "",
