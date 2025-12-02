@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FaEye, FaBoxOpen } from "react-icons/fa";
 import type { Producto } from "@/services/courier/producto/productoCourier.type";
 import type { StockFilters } from "@/role/courier/pages/StockProducto";
+import Badgex from "@/shared/common/Badgex";
 
 // ---- utilidades
 function toNumber(n: unknown) {
@@ -50,9 +51,7 @@ export default function TableStockProductoCourier({
         const nombre = p.nombre_producto?.toLowerCase() || "";
         const desc = p.descripcion?.toLowerCase() || "";
         const codigo = p.codigo_identificacion?.toLowerCase() || "";
-        return (
-          nombre.includes(q) || desc.includes(q) || codigo.includes(q)
-        );
+        return nombre.includes(q) || desc.includes(q) || codigo.includes(q);
       });
     }
 
@@ -62,19 +61,13 @@ export default function TableStockProductoCourier({
       );
     }
     if (filters.categoriaId) {
-      arr = arr.filter(
-        (p) => String(p.categoria_id) === filters.categoriaId
-      );
+      arr = arr.filter((p) => String(p.categoria_id) === filters.categoriaId);
     }
     if (filters.estado) {
-      arr = arr.filter(
-        (p) => (p.estado?.nombre || "") === filters.estado
-      );
+      arr = arr.filter((p) => (p.estado?.nombre || "") === filters.estado);
     }
     if (filters.stockBajo) {
-      arr = arr.filter(
-        (p) => (p.stock ?? 0) <= (p.stock_minimo ?? 0)
-      );
+      arr = arr.filter((p) => (p.stock ?? 0) <= (p.stock_minimo ?? 0));
     }
     if (filters.precioOrden) {
       arr.sort((a, b) => {
@@ -240,15 +233,15 @@ export default function TableStockProductoCourier({
                           </td>
 
                           <td className="px-4 py-3 text-center">
-                            <span
-                              className={`inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm ${
+                            <Badgex
+                              className={
                                 p.estado?.nombre === "Activo"
                                   ? "bg-black text-white"
                                   : "bg-gray30 text-gray80"
-                              }`}
+                              }
                             >
                               {p.estado?.nombre || "-"}
-                            </span>
+                            </Badgex>
                           </td>
 
                           <td className="px-4 py-3">

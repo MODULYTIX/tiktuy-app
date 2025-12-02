@@ -91,28 +91,48 @@ export default function StockPage() {
     const norm = (s?: string) => (s ?? '').toLowerCase().trim();
 
     const filtra = (p: Producto) => {
+      // 📌 Filtros normales
       if (
         f.almacenamiento_id &&
         String(p.almacenamiento_id) !== String(f.almacenamiento_id)
       )
         return false;
+
       if (f.categoria_id && String(p.categoria_id) !== String(f.categoria_id))
         return false;
+
       if (
         f.estado === 'activo' &&
         p?.estado?.nombre?.toLowerCase() !== 'activo'
       )
         return false;
+
       if (
         f.estado === 'inactivo' &&
         p?.estado?.nombre?.toLowerCase() !== 'inactivo'
       )
         return false;
+
+      // ✅ Stock bajo: MISMA LÓGICA QUE LA TABLA (renderEstadoStock)
       if (f.stock_bajo) {
-        const stock = Number(p.stock ?? 0);
-        const min = Number(p.stock_minimo ?? 0);
-        if (!(stock <= min || stock <= 0)) return false;
+        const stockRaw = p.stock;
+        const minRaw = p.stock_minimo;
+
+        const stock =
+          stockRaw === null || stockRaw === undefined
+            ? NaN
+            : Number(stockRaw);
+        const minimo =
+          minRaw === null || minRaw === undefined ? NaN : Number(minRaw);
+
+        // Si no hay datos válidos de stock/minimo ⇒ NO se considera "stock bajo"
+        if (!Number.isFinite(stock) || !Number.isFinite(minimo)) return false;
+
+        // La tabla considera "Stock bajo" cuando stock < minimo
+        if (!(stock < minimo)) return false;
       }
+
+      // 🔍 Búsqueda
       if (f.search && f.search.trim()) {
         const q = norm(f.search);
         const nombre = norm(p.nombre_producto);
@@ -121,14 +141,17 @@ export default function StockPage() {
         if (!nombre.includes(q) && !desc.includes(q) && !cod.includes(q))
           return false;
       }
+
       return true;
     };
 
     const ordenar = (arr: Producto[]) => {
       if (f.precio_bajo)
         return [...arr].sort((a, b) => Number(a.precio) - Number(b.precio));
+
       if (f.precio_alto)
         return [...arr].sort((a, b) => Number(b.precio) - Number(a.precio));
+
       // default: nuevo primero
       return [...arr].sort((a: any, b: any) => {
         const at = a.created_at ? new Date(a.created_at).getTime() : 0;

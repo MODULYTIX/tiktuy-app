@@ -1,9 +1,11 @@
 // src/shared/components/courier/producto/ProductoDetalleModal.tsx
-import { useEffect } from "react";
-import { Icon } from "@iconify/react";
+import { useEffect, useState } from "react";
+import Tittlex from "@/shared/common/Tittlex";
 import { Inputx, InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
 import Buttonx from "@/shared/common/Buttonx";
 import type { Producto } from "@/services/courier/producto/productoCourier.type";
+import ImageUploadx from "@/shared/common/ImageUploadx";
+import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
 
 type Props = {
   isOpen: boolean;
@@ -51,21 +53,25 @@ export default function ProductoDetalleModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+
   if (!isOpen || !producto) return null;
 
-  // Derivados (solo lectura)
+  // Derivados (solo lectura), alineados al modal base
   const codigo = String(producto.codigo_identificacion ?? "");
   const nombre = String(producto.nombre_producto ?? "");
   const descripcion = String(producto.descripcion ?? "");
 
+  const categoriaId = String(producto.categoria_id ?? "");
   const categoriaLabel =
     producto.categoria?.nombre ??
     producto.categoria?.descripcion ??
-    String(producto.categoria_id ?? "");
+    categoriaId;
 
+  const almacenId = String(producto.almacenamiento_id ?? "");
   const almacenLabel =
-    producto.almacenamiento?.nombre_almacen ??
-    String(producto.almacenamiento_id ?? "");
+    producto.almacenamiento?.nombre_almacen ?? almacenId;
 
   const estadoId =
     normalizarEstado(
@@ -73,95 +79,56 @@ export default function ProductoDetalleModal({
         (producto as any).estado ??
         producto.estado_id
     ) || "";
+  const estadoLabel =
+    (estadoId ? ESTADO_LABEL[estadoId as EstadoId] : "") ?? "";
 
-  const estadoLabel = estadoId ? ESTADO_LABEL[estadoId as EstadoId] : "-";
-  const estadoPill =
-    estadoId === "activo"
-      ? "bg-gray90 text-white"
-      : "bg-gray30 text-gray80";
+  const precioStr =
+    producto.precio != null && !Number.isNaN(Number(producto.precio))
+      ? Number(producto.precio).toFixed(2)
+      : "";
 
-  const precioNum = !Number.isNaN(Number(producto.precio))
-    ? Number(producto.precio)
-    : NaN;
-  const precioStr = !Number.isNaN(precioNum)
-    ? precioNum.toFixed(2)
+  const stockStr =
+    producto.stock != null && !Number.isNaN(Number(producto.stock))
+      ? String(Number(producto.stock))
+      : "";
+
+  const stockMinStr =
+    producto.stock_minimo != null &&
+    !Number.isNaN(Number(producto.stock_minimo))
+      ? String(Number(producto.stock_minimo))
+      : "";
+
+  // Peso: backend lo guarda como decimal string (kg)
+  const pesoStr =
+    producto.peso != null && !Number.isNaN(Number(producto.peso))
+      ? Number(producto.peso).toFixed(3)
+      : "";
+
+  const fechaStr = (producto as any).fecha_registro
+    ? new Date((producto as any).fecha_registro).toLocaleString("es-PE")
     : "";
 
-  const stockNum = !Number.isNaN(Number(producto.stock))
-    ? Number(producto.stock)
-    : NaN;
-  const stockStr = !Number.isNaN(stockNum) ? String(stockNum) : "";
-
-  const stockMinNum = !Number.isNaN(Number(producto.stock_minimo))
-    ? Number(producto.stock_minimo)
-    : NaN;
-  const stockMinStr = !Number.isNaN(stockMinNum)
-    ? String(stockMinNum)
-    : "";
-
-  // Peso: backend lo guarda como Decimal string (ej: "0.45" kg)
-  const pesoNum = !Number.isNaN(Number(producto.peso))
-    ? Number(producto.peso)
-    : NaN;
-  const pesoGr =
-    !Number.isNaN(pesoNum) && pesoNum !== 0
-      ? Math.round(pesoNum * 1000)
-      : null;
-  const pesoDisplay =
-    pesoGr != null ? `${pesoGr} gr.` : pesoNum ? `${pesoNum} kg` : "";
-
-  const handleOverlayClick = () => onClose();
-  const handlePanelClick = (e: React.MouseEvent<HTMLDivElement>) =>
-    e.stopPropagation();
+  const imagenUrl: string | null = (producto as any).imagen_url ?? null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex"
-      onClick={handleOverlayClick}
-      aria-modal="true"
-      role="dialog"
-    >
-      {/* Overlay */}
-      <div className="flex-1 bg-black/40" />
+    <div className="fixed inset-0 z-50 flex">
+      {/* Backdrop */}
+      <div className="flex-1 bg-black/40" onClick={onClose} />
 
-      {/* Panel derecho */}
-      <div
-        className="w-[520px] max-w-[96vw] bg-white shadow-lg h-full flex flex-col gap-5 px-5 py-5"
-        onClick={handlePanelClick}
-      >
-        {/* Header */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-primary">
-              <Icon icon="vaadin:stock" width={22} height={22} />
-              <h2 className="text-primary text-[20px] font-bold uppercase font-roboto">
-                DETALLE DEL PRODUCTO
-              </h2>
-            </div>
-            <div className="flex items-center gap-2 text-[12px] whitespace-nowrap">
-              <span className="text-gray60 leading-none">Estado :</span>
-              <span
-                className={[
-                  "inline-flex items-center h-7 px-3 rounded-[10px] text-[12px] font-medium leading-none",
-                  estadoPill,
-                ].join(" ")}
-                title={`Estado: ${estadoLabel || "-"}`}
-              >
-                {estadoLabel || "-"}
-              </span>
-            </div>
-          </div>
+      {/* Panel derecho (formato base) */}
+      <div className="w-full max-w-xl bg-white h-full flex flex-col gap-5 p-5">
+        {/* Header: Tittlex variante modal */}
+        <Tittlex
+          variant="modal"
+          icon="vaadin:stock"
+          title="DETALLE DEL PRODUCTO"
+          description="Consulta toda la información registrada de este producto, incluyendo sus datos básicos, ubicación en almacén, stock y condiciones asociadas."
+        />
 
-          <p className="text-[12px] text-gray60 leading-relaxed">
-            Consulta toda la información registrada de este producto, incluyendo sus
-            datos básicos, ubicación en almacén, stock y condiciones asociadas.
-          </p>
-        </div>
-
-        {/* Cuerpo */}
-        <div className="flex-1 overflow-y-auto flex flex-col gap-5">
+        {/* Body scrollable */}
+        <div className="h-full flex flex-col gap-5 overflow-y-auto">
           {/* Código + Nombre */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="flex flex-col md:flex-row gap-5">
             <Inputx
               name="codigo_identificacion"
               label="Código"
@@ -192,28 +159,40 @@ export default function ProductoDetalleModal({
             maxRows={8}
           />
 
-          {/* Categoría */}
-          <Inputx
-            name="categoria"
-            label="Categoría"
-            value={categoriaLabel}
-            readOnly
-            disabled
-            type="text"
-          />
+          {/* Categoría + Estado */}
+          <div className="flex flex-col md:flex-row gap-5">
+            <Inputx
+              name="categoria"
+              label="Categoría"
+              value={categoriaLabel}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="estado"
+              label="Estado"
+              value={estadoLabel}
+              readOnly
+              disabled
+              type="text"
+            />
+          </div>
 
-          {/* Almacén / Sede */}
-          <Inputx
-            name="almacen"
-            label="Almacén / Sede"
-            value={almacenLabel}
-            readOnly
-            disabled
-            type="text"
+          {/* Imagen (solo lectura, modo view) */}
+          <ImageUploadx
+            label="Imagen"
+            value={imagenUrl}
+            mode="view"
+            size="md"
+            onView={(url) => {
+              setPreviewSrc(url);
+              setPreviewOpen(true);
+            }}
           />
 
           {/* Precio / Cantidad */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="flex flex-col md:flex-row gap-5">
             <InputxNumber
               label="Precio"
               name="precio"
@@ -238,7 +217,7 @@ export default function ProductoDetalleModal({
           </div>
 
           {/* Stock mínimo / Peso */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="flex flex-col md:flex-row gap-5">
             <InputxNumber
               label="Stock mínimo"
               name="stock_minimo"
@@ -250,10 +229,32 @@ export default function ProductoDetalleModal({
               placeholder="0"
               inputMode="numeric"
             />
-            <Inputx
-              label="Peso"
+            <InputxNumber
+              label="Peso (kg)"
               name="peso"
-              value={pesoDisplay}
+              value={pesoStr}
+              readOnly
+              disabled
+              decimals={3}
+              step={0.001}
+              placeholder="0.000"
+            />
+          </div>
+
+          {/* Sede / Fecha registro (si existe) */}
+          <div className="flex flex-col md:flex-row gap-5">
+            <Inputx
+              name="almacen"
+              label="Sede"
+              value={almacenLabel}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="fecha_registro"
+              label="Fecha Registro"
+              value={fechaStr}
               readOnly
               disabled
               type="text"
@@ -264,13 +265,23 @@ export default function ProductoDetalleModal({
         {/* Footer */}
         <div className="flex items-center gap-5 justify-start">
           <Buttonx
-            variant="outlined"
+            variant="tertiary"
             onClick={onClose}
             label="Cerrar"
-            className="px-4 text-sm border"
+            className="px-4 text-sm text-gray-600 bg-gray-200"
             type="button"
           />
         </div>
+
+        {/* Lightbox para imagen */}
+        <ImagePreviewModalx
+          open={previewOpen}
+          src={previewSrc ?? ""}
+          onClose={() => {
+            setPreviewOpen(false);
+            setPreviewSrc(null);
+          }}
+        />
       </div>
     </div>
   );

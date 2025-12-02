@@ -4,6 +4,7 @@ import Paginator from "../../Paginator";
 import { fetchMisZonas } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
 import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
+import Badgex from "@/shared/common/Badgex";
 
 type Filters = {
   distrito?: string;
@@ -35,7 +36,8 @@ export default function TableZonaMine({
       setErr(null);
       try {
         const token = getAuthToken();
-        if (!token) throw new Error("No se encontró el token de autenticación.");
+        if (!token)
+          throw new Error("No se encontró el token de autenticación.");
         const res = await fetchMisZonas(token);
         if (!mounted) return;
         if (!res.ok) {
@@ -50,12 +52,16 @@ export default function TableZonaMine({
         // meta para los filtros
         const distritos = Array.from(
           new Set(
-            data.map((z) => (z.distrito ?? "").toString().trim()).filter(Boolean)
+            data
+              .map((z) => (z.distrito ?? "").toString().trim())
+              .filter(Boolean)
           )
         ).sort((a, b) => a.localeCompare(b, "es"));
         const zonasVals = Array.from(
           new Set(
-            data.map((z) => (z.zona_tarifario ?? "").toString().trim()).filter(Boolean)
+            data
+              .map((z) => (z.zona_tarifario ?? "").toString().trim())
+              .filter(Boolean)
           )
         ).sort((a, b) => a.localeCompare(b, "es"));
         onLoadedMeta?.({ distritos, zonas: zonasVals });
@@ -115,17 +121,6 @@ export default function TableZonaMine({
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-  }
-
-  function EstadoPill({ nombre }: { nombre?: string | null }) {
-    const text = nombre ?? "—";
-    const isActivo = (nombre || "").toLowerCase() === "activo";
-    const base =
-      "inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm";
-    const cls = isActivo
-      ? "bg-green-100 text-green-700"
-      : "bg-gray-100 text-gray-700";
-    return <span className={`${base} ${cls}`}>{text}</span>;
   }
 
   if (loading)
@@ -188,7 +183,15 @@ export default function TableZonaMine({
                     S/ {formatMoney(z.pago_motorizado)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <EstadoPill nombre={z.estado?.nombre} />
+                    <Badgex
+                      className={
+                        (z.estado?.nombre || "").toLowerCase() === "activo"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-700"
+                      }
+                    >
+                      {z.estado?.nombre ?? "—"}
+                    </Badgex>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center">
@@ -196,7 +199,9 @@ export default function TableZonaMine({
                         className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-700"
                         onClick={() => onEdit?.(z)}
                         title="Editar zona"
-                        aria-label={`Editar ${z.distrito ?? ""} ${z.zona_tarifario ?? ""}`}
+                        aria-label={`Editar ${z.distrito ?? ""} ${
+                          z.zona_tarifario ?? ""
+                        }`}
                       >
                         <FaRegEdit />
                         <span className="sr-only">Editar</span>
@@ -208,7 +213,10 @@ export default function TableZonaMine({
 
               {currentZonas.length === 0 && (
                 <tr>
-                  <td className="px-4 py-6 text-center text-gray70 italic" colSpan={6}>
+                  <td
+                    className="px-4 py-6 text-center text-gray70 italic"
+                    colSpan={6}
+                  >
                     No hay resultados para los filtros aplicados.
                   </td>
                 </tr>

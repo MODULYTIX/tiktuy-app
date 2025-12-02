@@ -16,10 +16,9 @@ interface ButtonProps {
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
-  /** Posición del ícono (izquierda por defecto) */
   iconPosition?: "left" | "right";
-  /** NUEVO: tipo de botón (para permitir submit/reset) */
   type?: "button" | "submit" | "reset";
+  form?: string; // ← agregar esto si quieres
 }
 
 const Buttonx: React.FC<ButtonProps> = ({
