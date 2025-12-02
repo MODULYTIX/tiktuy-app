@@ -4,6 +4,7 @@ import type {
   CreatedRelacion,
   NuevaRelacionInput,
   SedeConEstado,
+  SedeEcommerceAsociada,
 } from "./ecommerceCourier.types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -60,7 +61,7 @@ export async function desasociarCourier(id: number, token: string): Promise<void
   await handleJson(res);
 }
 
-/** POST flexible: envía courier_id o sede_id/sede_uuid (el backend resuelve el courier) */
+/** POST flexible: courier_id o sede_id/sede_uuid */
 export async function crearRelacionCourier(
   input: NuevaRelacionInput,
   token: string
@@ -74,10 +75,10 @@ export async function crearRelacionCourier(
 }
 
 /* =========================
- * Sedes (nueva vista)
+ * Sedes (vistas clásicas)
  * ========================= */
 
-/** Lista sedes con estado (backend filtra sedes con representante asignado) */
+/** Lista sedes con su estado general */
 export async function fetchSedesConEstado(token: string): Promise<SedeConEstado[]> {
   const res = await fetch(`${API_URL}/ecommerce-courier/sedes`, {
     headers: authHeaders(token),
@@ -85,10 +86,26 @@ export async function fetchSedesConEstado(token: string): Promise<SedeConEstado[
   return handleJson<SedeConEstado[]>(res);
 }
 
-/** Lista sedes cuyos couriers están asociados (estado Activo con el ecommerce) */
+/** Lista sedes asociadas al courier en estado Activo */
 export async function fetchSedesAsociadas(token: string): Promise<SedeConEstado[]> {
   const res = await fetch(`${API_URL}/ecommerce-courier/sedes/asociadas`, {
     headers: authHeaders(token),
   });
   return handleJson<SedeConEstado[]>(res);
+}
+
+/* ============================================================
+ * NUEVO ENDPOINT REAL PARA CREAR PEDIDO
+ * SEDES DEL ECOMMERCE cuyos couriers están asociados
+ * ============================================================ */
+
+export async function fetchSedesEcommerceCourierAsociados(
+  token: string
+): Promise<SedeEcommerceAsociada[]> {
+  const res = await fetch(
+    `${API_URL}/ecommerce-courier/sedes/ecommerce-asociadas`,
+    { headers: authHeaders(token) }
+  );
+
+  return handleJson<SedeEcommerceAsociada[]>(res);
 }

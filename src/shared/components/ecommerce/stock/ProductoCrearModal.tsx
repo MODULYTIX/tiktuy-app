@@ -6,23 +6,24 @@ import {
   useMemo,
   type ChangeEvent,
   type FormEvent,
-} from 'react';
-import { crearProducto } from '@/services/ecommerce/producto/producto.api';
-import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
-import { useAuth } from '@/auth/context';
+} from "react";
+import { crearProducto } from "@/services/ecommerce/producto/producto.api";
+import { fetchCategorias } from "@/services/ecommerce/categoria/categoria.api";
+import { useAuth } from "@/auth/context";
 
-import type { Producto } from '@/services/ecommerce/producto/producto.types';
-import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
+import type { Producto } from "@/services/ecommerce/producto/producto.types";
+import type { Categoria } from "@/services/ecommerce/categoria/categoria.types";
 
-import { Inputx, InputxNumber, InputxTextarea } from '@/shared/common/Inputx';
-import Tittlex from '@/shared/common/Tittlex';
-import Buttonx from '@/shared/common/Buttonx';
+import { Inputx, InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
+import Tittlex from "@/shared/common/Tittlex";
+import Buttonx from "@/shared/common/Buttonx";
 import {
   SelectxCreatable,
   type CreatableOption,
-} from '@/shared/common/SelectxCreatable';
-import { Selectx } from '@/shared/common/Selectx';
-import ImageUploadx from '@/shared/common/ImageUploadx';
+} from "@/shared/common/SelectxCreatable";
+import { Selectx } from "@/shared/common/Selectx";
+import ImageUploadx from "@/shared/common/ImageUploadx";
+import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
 
 // ========================
 // Utilidades / Tipos
@@ -35,13 +36,13 @@ type Props = {
   almacenamientoId: number;
 };
 
-type EstadoId = 'activo' | 'inactivo' | 'descontinuado';
+type EstadoId = "activo" | "inactivo" | "descontinuado";
 type EstadoOption = { id: EstadoId; nombre: string };
 
 const ESTADO_OPCIONES: EstadoOption[] = [
-  { id: 'activo', nombre: 'Activo' },
-  { id: 'inactivo', nombre: 'Inactivo' },
-  { id: 'descontinuado', nombre: 'Descontinuado' },
+  { id: "activo", nombre: "Activo" },
+  { id: "inactivo", nombre: "Inactivo" },
+  { id: "descontinuado", nombre: "Descontinuado" },
 ];
 
 type BasePayload = {
@@ -53,7 +54,7 @@ type BasePayload = {
   codigo_identificacion: string;
   nombre_producto: string;
   descripcion: string;
-  estado: 'activo' | 'inactivo' | 'descontinuado';
+  estado: "activo" | "inactivo" | "descontinuado";
   fecha_registro: string;
 };
 
@@ -73,12 +74,14 @@ type CreateProductoPayload =
 
 function generarCodigoConFecha(): string {
   const now = new Date();
-  const hora = String(now.getHours()).padStart(2, '0');
-  const minutos = String(now.getMinutes()).padStart(2, '0');
+  const hora = String(now.getHours()).padStart(2, "0");
+  const minutos = String(now.getMinutes()).padStart(2, "0");
   const year = String(now.getFullYear()).slice(2);
-  const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+  const meses = [
+    "ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC",
+  ];
   const mesAbrev = meses[now.getMonth()];
-  const charset = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789';
+  const charset = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789";
   const aleatorio = charset[Math.floor(Math.random() * charset.length)];
   return `${hora}${mesAbrev}${year}${aleatorio}${minutos}`;
 }
@@ -103,28 +106,27 @@ type FormState = {
 // ✅ Ajuste en getInitialForm → evita poner "0" como string
 const getInitialForm = (almacenamientoId: number): FormState => ({
   codigo_identificacion: generarCodigoConFecha(),
-  nombre_producto: '',
-  descripcion: '',
-  categoriaInput: '',
-  categoriaSelectedId: '',
+  nombre_producto: "",
+  descripcion: "",
+  categoriaInput: "",
+  categoriaSelectedId: "",
   almacenamiento_id:
     !almacenamientoId || Number.isNaN(almacenamientoId)
-      ? '' // 👈 si llega 0 o NaN, se deja vacío
+      ? ""
       : String(almacenamientoId),
-  precio: '',
-  stock: '',
-  stock_minimo: '',
-  peso: '',
-  estado: 'activo',
+  precio: "",
+  stock: "",
+  stock_minimo: "",
+  peso: "",
+  estado: "activo",
   fecha_registro: new Date().toISOString(),
 });
 
 function canonical(s: string) {
-  return s.normalize('NFKC').toLowerCase().trim().replace(/\s+/g, ' ');
+  return s.normalize("NFKC").toLowerCase().trim().replace(/\s+/g, " ");
 }
-
 function parseNum(input: string, decimals = 2): number {
-  const normalized = (input ?? '').toString().replace(',', '.').trim();
+  const normalized = (input ?? "").toString().replace(",", ".").trim();
   const n = Number(normalized);
   return Number.isFinite(n) ? Number(n.toFixed(decimals)) : NaN;
 }
@@ -141,8 +143,15 @@ export default function ProductoCrearModal({
   const [form, setForm] = useState<FormState>(getInitialForm(almacenamientoId));
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  // Imagen (UI + envío opcional) — ahora solo File
+  // Imagen (UI + envío opcional) — solo File
   const [file, setFile] = useState<File | null>(null);
+
+  // Progreso visual para el overlay del uploader (0–100)
+  const [uploadPct, setUploadPct] = useState<number | undefined>(undefined);
+
+  // Preview modal (lightbox)
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
 
   // Cargar categorías
   useEffect(() => {
@@ -155,8 +164,27 @@ export default function ProductoCrearModal({
     if (open) {
       setForm(getInitialForm(almacenamientoId));
       setFile(null);
+      setUploadPct(undefined);
+      setPreviewOpen(false);
+      setPreviewSrc(null);
     }
   }, [open, almacenamientoId]);
+
+  // Simulación de progreso mientras se guarda si hay archivo
+  useEffect(() => {
+    if (saving && file) {
+      setUploadPct(10);
+      const id = window.setInterval(() => {
+        setUploadPct((p) => {
+          const curr = typeof p === "number" ? p : 10;
+          return Math.min(curr + 3, 90); // hasta 90% mientras el backend responde
+        });
+      }, 120);
+      return () => window.clearInterval(id);
+    }
+    // cuando deja de guardar o no hay archivo, ocultar barra
+    setUploadPct(undefined);
+  }, [saving, file]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -168,6 +196,9 @@ export default function ProductoCrearModal({
   const handleClose = () => {
     setForm(getInitialForm(almacenamientoId));
     setFile(null);
+    setUploadPct(undefined);
+    setPreviewOpen(false);
+    setPreviewSrc(null);
     onClose();
   };
 
@@ -177,7 +208,7 @@ export default function ProductoCrearModal({
       categorias
         .slice()
         .sort((a, b) =>
-          a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+          a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
         )
         .map((c) => ({ id: c.id, label: c.nombre })),
     [categorias]
@@ -189,7 +220,7 @@ export default function ProductoCrearModal({
       return {
         ...p,
         categoriaInput: v,
-        categoriaSelectedId: match ? String(match.id) : '',
+        categoriaSelectedId: match ? String(match.id) : "",
       };
     });
   }
@@ -203,7 +234,7 @@ export default function ProductoCrearModal({
   }
 
   function onCategoriaCreate(value: string) {
-    setForm((p) => ({ ...p, categoriaInput: value, categoriaSelectedId: '' }));
+    setForm((p) => ({ ...p, categoriaInput: value, categoriaSelectedId: "" }));
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -212,17 +243,16 @@ export default function ProductoCrearModal({
 
     if (!form.nombre_producto.trim()) return;
 
-    // Parseo seguro de valores numéricos
     const precio = parseNum(form.precio, 2);
     const stock = parseNum(form.stock, 0);
     const stock_minimo = parseNum(form.stock_minimo, 0);
     const peso = parseNum(form.peso, 3);
 
-    if ([precio, stock, stock_minimo, peso].some((n) => Number.isNaN(n))) return;
+    if ([precio, stock, stock_minimo, peso].some((n) => Number.isNaN(n)))
+      return;
 
-    // Evitar enviar "0" o vacío al backend
     const almacenamiento_id =
-      !form.almacenamiento_id || form.almacenamiento_id === '0'
+      !form.almacenamiento_id || form.almacenamiento_id === "0"
         ? undefined
         : Number(form.almacenamiento_id);
 
@@ -263,26 +293,18 @@ export default function ProductoCrearModal({
       } as unknown as CreateProductoPayload;
     }
 
-    if (file) {
-      (payload as any).file = file;
-    }
+    if (file) (payload as any).file = file;
 
     setSaving(true);
     try {
-      // Limpieza antes del envío: elimina claves undefined o vacías
       const cleanPayload = Object.fromEntries(
         Object.entries(payload).filter(
-          ([, v]) =>
-            v !== undefined &&
-            v !== null &&
-            v !== '' &&
-            v !== 'undefined'
+          ([, v]) => v !== undefined && v !== null && v !== "" && v !== "undefined"
         )
       );
 
-      // Elimina almacenamiento_id si no es numérico válido
       if (
-        !('almacenamiento_id' in cleanPayload) ||
+        !("almacenamiento_id" in cleanPayload) ||
         isNaN(Number((cleanPayload as any).almacenamiento_id))
       ) {
         delete (cleanPayload as any).almacenamiento_id;
@@ -304,7 +326,7 @@ export default function ProductoCrearModal({
       setForm(getInitialForm(almacenamientoId));
       onClose();
     } catch (err) {
-      console.error('Error al crear producto:', err);
+      console.error("Error al crear producto:", err);
     } finally {
       setSaving(false);
     }
@@ -410,8 +432,17 @@ export default function ProductoCrearModal({
           {/* Subir imagen */}
           <ImageUploadx
             label="Subir imagen"
+            mode="create"
             value={file}
-            onChange={(f) => setFile(f)}   // File | null
+            onChange={(f) => setFile(f)}
+            onView={(url) => {
+              setPreviewSrc(url);
+              requestAnimationFrame(() => setPreviewOpen(true));
+            }}
+            uploading={saving && !!file}      // ⬅️ overlay solo si hay archivo y se está guardando
+            progress={uploadPct}              // ⬅️ barra 0–90% simulada; se completa al terminar
+            uploadText="Subiendo imagen…"
+            minUploadMs={2000}                // ⬅️ mínimo visible 2s
             maxSizeMB={5}
             size="md"
           />
@@ -476,8 +507,8 @@ export default function ProductoCrearModal({
             variant="quartery"
             onClick={() => formRef.current?.requestSubmit()}
             disabled={saving}
-            label={saving ? 'Creando…' : 'Crear nuevo'}
-            className={`px-4 text-sm ${saving ? '[&_svg]:animate-spin' : ''}`}
+            label={saving ? "Creando…" : "Crear nuevo"}
+            className={`px-4 text-sm ${saving ? "[&_svg]:animate-spin" : ""}`}
             type="button"
           />
           <Buttonx
@@ -489,6 +520,16 @@ export default function ProductoCrearModal({
             type="button"
           />
         </div>
+
+        {/* Lightbox de imagen */}
+        <ImagePreviewModalx
+          open={previewOpen}
+          src={previewSrc ?? ""}
+          onClose={() => {
+            setPreviewOpen(false);
+            setPreviewSrc(null);
+          }}
+        />
       </div>
     </div>
   );

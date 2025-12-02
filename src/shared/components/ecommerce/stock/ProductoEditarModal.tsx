@@ -6,22 +6,23 @@ import {
   useState,
   type ChangeEvent,
   type FormEvent,
-} from 'react';
-import { actualizarProducto } from '@/services/ecommerce/producto/producto.api';
-import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
-import { useAuth } from '@/auth/context';
+} from "react";
+import { actualizarProducto } from "@/services/ecommerce/producto/producto.api";
+import { fetchCategorias } from "@/services/ecommerce/categoria/categoria.api";
+import { useAuth } from "@/auth/context";
 
-import type { Producto } from '@/services/ecommerce/producto/producto.types';
-import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
+import type { Producto } from "@/services/ecommerce/producto/producto.types";
+import type { Categoria } from "@/services/ecommerce/categoria/categoria.types";
 
-import Tittlex from '@/shared/common/Tittlex';
-import { Inputx, InputxNumber, InputxTextarea } from '@/shared/common/Inputx';
-import Buttonx from '@/shared/common/Buttonx';
+import Tittlex from "@/shared/common/Tittlex";
+import { Inputx, InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
+import Buttonx from "@/shared/common/Buttonx";
 import {
   SelectxCreatable,
   type CreatableOption,
-} from '@/shared/common/SelectxCreatable';
-import { Icon } from '@iconify/react';
+} from "@/shared/common/SelectxCreatable";
+import ImageUploadx from "@/shared/common/ImageUploadx";
+import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
 
 type Props = {
   open: boolean;
@@ -30,32 +31,33 @@ type Props = {
   onUpdated?: (producto: Producto) => void;
 };
 
-type EstadoId = 'activo' | 'inactivo' | 'descontinuado';
+type EstadoId = "activo" | "inactivo" | "descontinuado";
 type EstadoOption = { id: EstadoId; nombre: string };
 
 const ESTADO_OPCIONES: EstadoOption[] = [
-  { id: 'activo', nombre: 'Activo' },
-  { id: 'inactivo', nombre: 'Inactivo' },
-  { id: 'descontinuado', nombre: 'Descontinuado' },
+  { id: "activo", nombre: "Activo" },
+  { id: "inactivo", nombre: "Inactivo" },
+  { id: "descontinuado", nombre: "Descontinuado" },
 ];
 
 function canonical(s: string) {
-  return s.normalize('NFKC').toLowerCase().trim().replace(/\s+/g, ' ');
+  return s.normalize("NFKC").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
 function normalizarEstado(value: unknown): EstadoId {
-  if (!value) return 'activo';
-  if (typeof value === 'string') {
+  if (!value) return "activo";
+  if (typeof value === "string") {
     const k = value.toLowerCase().trim();
-    if (k === 'activo' || k === 'inactivo' || k === 'descontinuado') return k as EstadoId;
+    if (k === "activo" || k === "inactivo" || k === "descontinuado")
+      return k as EstadoId;
   }
-  if (typeof value === 'object' && value) {
+  if (typeof value === "object" && value) {
     const v = value as any;
-    if (typeof v.id === 'string') return normalizarEstado(v.id);
-    if (typeof v.nombre === 'string') return normalizarEstado(v.nombre);
-    if (typeof v.estado === 'string') return normalizarEstado(v.estado);
+    if (typeof v.id === "string") return normalizarEstado(v.id);
+    if (typeof v.nombre === "string") return normalizarEstado(v.nombre);
+    if (typeof v.estado === "string") return normalizarEstado(v.estado);
   }
-  return 'activo';
+  return "activo";
 }
 
 type FormState = {
@@ -63,8 +65,8 @@ type FormState = {
   nombre_producto: string;
   descripcion: string;
 
-  categoriaInput: string;     // texto libre
-  categoriaSelectedId: string; // id seleccionado (si no se creará)
+  categoriaInput: string;
+  categoriaSelectedId: string;
 
   precio: string;
   stock: string;
@@ -73,13 +75,12 @@ type FormState = {
   estado: EstadoId;
   fecha_registro: string;
 
-  // imagen
-  imagen_url: string | null;  // la que ya tiene el producto (si hay)
+  imagen_url: string | null;
 };
 
 function parseNum(input: string, decimals = 2): number | undefined {
-  if (input === '' || input == null) return undefined;
-  const n = Number(String(input).replace(',', '.'));
+  if (input === "" || input == null) return undefined;
+  const n = Number(String(input).replace(",", "."));
   if (!Number.isFinite(n)) return undefined;
   return Number(n.toFixed(decimals));
 }
@@ -94,28 +95,30 @@ export default function ProductoEditarModal({
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [saving, setSaving] = useState(false);
-
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  // Imagen (UI local)
+  // Imagen (File local si se cambia)
   const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Progreso visual del uploader (0–100)
+  const [uploadPct, setUploadPct] = useState<number | undefined>(undefined);
+
+  // Lightbox
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormState>({
-    codigo_identificacion: '',
-    nombre_producto: '',
-    descripcion: '',
-
-    categoriaInput: '',
-    categoriaSelectedId: '',
-
-    precio: '',
-    stock: '',
-    stock_minimo: '',
-    peso: '',
-    estado: 'activo',
+    codigo_identificacion: "",
+    nombre_producto: "",
+    descripcion: "",
+    categoriaInput: "",
+    categoriaSelectedId: "",
+    precio: "",
+    stock: "",
+    stock_minimo: "",
+    peso: "",
+    estado: "activo",
     fecha_registro: new Date().toISOString(),
-
     imagen_url: null,
   });
 
@@ -130,37 +133,51 @@ export default function ProductoEditarModal({
     if (!open || !initialData) return;
 
     setForm({
-      codigo_identificacion: String(initialData.codigo_identificacion ?? ''),
-      nombre_producto: String(initialData.nombre_producto ?? ''),
-      descripcion: String(initialData.descripcion ?? ''),
-
-      // si hay include categoria, hidratar ambos campos
-      categoriaInput: initialData.categoria?.nombre ?? '',
-      categoriaSelectedId: initialData.categoria_id ? String(initialData.categoria_id) : '',
-
-      precio: initialData.precio != null ? String(initialData.precio) : '',
-      stock: initialData.stock != null ? String(initialData.stock) : '',
-      stock_minimo: initialData.stock_minimo != null ? String(initialData.stock_minimo) : '',
-      peso: initialData.peso != null ? String(initialData.peso) : '',
-      estado: normalizarEstado(initialData.estado?.nombre ?? initialData.estado),
-      fecha_registro: String(initialData.fecha_registro ?? new Date().toISOString()),
-
+      codigo_identificacion: String(initialData.codigo_identificacion ?? ""),
+      nombre_producto: String(initialData.nombre_producto ?? ""),
+      descripcion: String(initialData.descripcion ?? ""),
+      categoriaInput: initialData.categoria?.nombre ?? "",
+      categoriaSelectedId: initialData.categoria_id
+        ? String(initialData.categoria_id)
+        : "",
+      precio: initialData.precio != null ? String(initialData.precio) : "",
+      stock: initialData.stock != null ? String(initialData.stock) : "",
+      stock_minimo:
+        initialData.stock_minimo != null
+          ? String(initialData.stock_minimo)
+          : "",
+      peso: initialData.peso != null ? String(initialData.peso) : "",
+      estado: normalizarEstado(
+        initialData.estado?.nombre ?? initialData.estado
+      ),
+      fecha_registro: String(
+        initialData.fecha_registro ?? new Date().toISOString()
+      ),
       imagen_url: initialData.imagen_url ?? null,
     });
 
-    // reset selección de archivo/preview
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
+    // reset selección local y progreso
     setFile(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setUploadPct(undefined);
+    setPreviewOpen(false);
+    setPreviewSrc(null);
   }, [initialData, open]);
 
-  // liberar objectURL al desmontar
+  // Simular progreso mientras se guarda si hay archivo nuevo
   useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
+    if (saving && file) {
+      setUploadPct(10);
+      const id = window.setInterval(() => {
+        setUploadPct((p) => {
+          const curr = typeof p === "number" ? p : 10;
+          return Math.min(curr + 3, 90); // sube hasta 90% mientras responde el backend
+        });
+      }, 120);
+      return () => window.clearInterval(id);
+    }
+    // cuando no se guarda o no hay archivo, ocultar barra
+    setUploadPct(undefined);
+  }, [saving, file]);
 
   // Opciones categoría (ordenadas)
   const catOptions: CreatableOption[] = useMemo(
@@ -168,7 +185,7 @@ export default function ProductoEditarModal({
       categorias
         .slice()
         .sort((a, b) =>
-          a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+          a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
         )
         .map((c) => ({ id: c.id, label: c.nombre })),
     [categorias]
@@ -188,7 +205,7 @@ export default function ProductoEditarModal({
       return {
         ...p,
         categoriaInput: v,
-        categoriaSelectedId: match ? String(match.id) : '',
+        categoriaSelectedId: match ? String(match.id) : "",
       };
     });
   }
@@ -200,57 +217,21 @@ export default function ProductoEditarModal({
     }));
   }
   function onCategoriaCreate(value: string) {
-    setForm((p) => ({ ...p, categoriaInput: value, categoriaSelectedId: '' }));
+    setForm((p) => ({ ...p, categoriaInput: value, categoriaSelectedId: "" }));
   }
-
-  // Imagen (solo UI): seleccionar / ver / descargar / eliminar
-  function onPickFile(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null;
-    if (!f) return;
-    if (!f.type.startsWith('image/')) return;
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    const url = URL.createObjectURL(f);
-    setPreviewUrl(url);
-    setFile(f);
-  }
-
-  function onViewImage() {
-    const url = previewUrl || form.imagen_url;
-    if (!url) return;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-
-  async function onDownloadImage() {
-    const url = previewUrl || form.imagen_url;
-    if (!url) return;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'imagen';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
-
-  function onDeleteImage() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    setFile(null);
-    // marca intención de borrar en el submit
-    setForm((p) => ({ ...p, imagen_url: null }));
-  }  
 
   const handleClose = () => {
-    // limpiar estado visual de imagen
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
     setFile(null);
+    setUploadPct(undefined);
+    setPreviewOpen(false);
+    setPreviewSrc(null);
     onClose();
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!token || !initialData || saving) return;
-  
+
     const payload: any = {
       codigo_identificacion: form.codigo_identificacion?.trim(),
       nombre_producto: form.nombre_producto?.trim(),
@@ -259,33 +240,50 @@ export default function ProductoEditarModal({
       ...(form.categoriaSelectedId
         ? { categoria_id: Number(form.categoriaSelectedId) }
         : form.categoriaInput.trim()
-        ? { categoria: { nombre: form.categoriaInput.trim(), descripcion: '', es_global: true } }
+        ? {
+            categoria: {
+              nombre: form.categoriaInput.trim(),
+              descripcion: "",
+              es_global: true,
+            },
+          }
         : {}),
-      ...(parseNum(form.precio, 2) !== undefined && { precio: parseNum(form.precio, 2) }),
-      ...(parseNum(form.stock, 0) !== undefined && { stock: parseNum(form.stock, 0) }),
-      ...(parseNum(form.stock_minimo, 0) !== undefined && { stock_minimo: parseNum(form.stock_minimo, 0) }),
-      ...(parseNum(form.peso, 3) !== undefined && { peso: parseNum(form.peso, 3) }),
+      ...(parseNum(form.precio, 2) !== undefined && {
+        precio: parseNum(form.precio, 2),
+      }),
+      ...(parseNum(form.stock, 0) !== undefined && {
+        stock: parseNum(form.stock, 0),
+      }),
+      ...(parseNum(form.stock_minimo, 0) !== undefined && {
+        stock_minimo: parseNum(form.stock_minimo, 0),
+      }),
+      ...(parseNum(form.peso, 3) !== undefined && {
+        peso: parseNum(form.peso, 3),
+      }),
     };
-  
-    // ⬅️ Nuevo: subir imagen si la hay
+
+    // Imagen: subir/borrar
     if (file) {
-      payload.file = file;              // ↩ hace que actualizarProducto use FormData y envíe 'imagen'
+      payload.file = file;
     } else if (form.imagen_url === null) {
-      payload.imagen_url_remove = true; // ↩ borrar imagen existente
+      payload.imagen_url_remove = true;
     }
-  
+
     setSaving(true);
     try {
-      const updated = await actualizarProducto(initialData.uuid, payload, token);
+      const updated = await actualizarProducto(
+        initialData.uuid,
+        payload,
+        token
+      );
       onUpdated?.(updated);
       handleClose();
     } catch (err) {
-      console.error('Error al actualizar producto:', err);
+      console.error("Error al actualizar producto:", err);
     } finally {
       setSaving(false);
     }
   };
-  
 
   if (!open || !initialData) return null;
 
@@ -311,7 +309,7 @@ export default function ProductoEditarModal({
           className="flex-1 overflow-y-auto px-5 pb-24"
         >
           <div className="flex flex-col gap-5">
-            {/* Código / Nombre (igual que crear) */}
+            {/* Código / Nombre */}
             <div className="grid grid-cols-2 gap-5">
               <Inputx
                 name="codigo_identificacion"
@@ -346,7 +344,7 @@ export default function ProductoEditarModal({
               maxRows={8}
             />
 
-            {/* Categoría (creatable) — mismo control que crear */}
+            {/* Categoría (creatable) */}
             <SelectxCreatable
               label="Categoría"
               labelVariant="left"
@@ -361,7 +359,7 @@ export default function ProductoEditarModal({
               onCreateFromInput={onCategoriaCreate}
             />
 
-            {/* Estado (igual que crear) */}
+            {/* Estado */}
             <div>
               <label className="block text-base font-normal text-gray90 text-left">
                 Estado
@@ -370,10 +368,13 @@ export default function ProductoEditarModal({
                 <select
                   value={form.estado}
                   onChange={(e) =>
-                    setForm((p) => ({ ...p, estado: e.target.value as EstadoId }))
+                    setForm((p) => ({
+                      ...p,
+                      estado: e.target.value as EstadoId,
+                    }))
                   }
                   className={`w-full h-10 px-4 rounded-md border border-gray-300 bg-white
-                    ${!form.estado ? 'text-gray-500' : 'text-gray90'}
+                    ${!form.estado ? "text-gray-500" : "text-gray90"}
                     placeholder:text-gray-300 font-roboto text-sm appearance-none pr-9
                     focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-300`}
                   disabled={saving}
@@ -387,64 +388,34 @@ export default function ProductoEditarModal({
               </div>
             </div>
 
-            {/* Subir imagen — MISMA FILA (sin “Título de la imagen”) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
-              <div className="sm:col-span-2">
-                <label className="block text-base font-normal text-gray90 text-left">
-                  Subir imagen
-                </label>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white cursor-pointer hover:bg-gray-50">
-                    <Icon icon="tabler:upload" className="text-xl" />
-                    <span className="text-sm">Seleccionar archivo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={onPickFile}
-                      disabled={saving}
-                    />
-                  </label>
-
-                  {(previewUrl || form.imagen_url) && (
-                    <>
-                      <div className="w-12 h-12 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-                        <img
-                          src={previewUrl || form.imagen_url || ''}
-                          alt="preview"
-                          className="w-full h-full object-cover"
-                          draggable={false}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                        title="Descargar"
-                        onClick={onDownloadImage}
-                      >
-                        <Icon icon="tabler:download" className="text-lg" />
-                      </button>
-                      <button
-                        type="button"
-                        className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                        title="Ver"
-                        onClick={onViewImage}
-                      >
-                        <Icon icon="tabler:eye" className="text-lg" />
-                      </button>
-                      <button
-                        type="button"
-                        className="w-9 h-9 rounded-md bg-gray-900 text-white inline-flex items-center justify-center"
-                        title="Eliminar"
-                        onClick={onDeleteImage}
-                      >
-                        <Icon icon="tabler:trash" className="text-lg" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Imagen (ImageUploadx en modo edición) */}
+            <ImageUploadx
+              label="Subir imagen"
+              mode="edit"
+              value={file ?? form.imagen_url}
+              onChange={(f) => {
+                setFile(f);
+                // Si el usuario borra y había URL previa -> marcar borrado
+                if (!f && form.imagen_url) {
+                  setForm((p) => ({ ...p, imagen_url: null }));
+                }
+              }}
+              onDelete={() => {
+                setFile(null);
+                setForm((p) => ({ ...p, imagen_url: null }));
+              }}
+              onView={(url) => {
+                setPreviewSrc(url);
+                setPreviewOpen(true);
+              }}
+              maxSizeMB={5}
+              size="md"
+              // ⬇️ Overlay de carga solo si hay archivo nuevo y se está guardando
+              uploading={saving && !!file}
+              progress={uploadPct}
+              uploadText="Subiendo imagen…"
+              minUploadMs={2000}
+            />
 
             {/* Números */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -508,9 +479,13 @@ export default function ProductoEditarModal({
               variant="quartery"
               onClick={() => formRef.current?.requestSubmit()}
               disabled={saving}
-              label={saving ? 'Guardando…' : 'Guardar cambios'}
-              icon={saving ? 'line-md:loading-twotone-loop' : 'mdi:content-save-outline'}
-              className={`px-4 text-sm ${saving ? '[&_svg]:animate-spin' : ''}`}
+              label={saving ? "Guardando…" : "Guardar cambios"}
+              icon={
+                saving
+                  ? "line-md:loading-twotone-loop"
+                  : "mdi:content-save-outline"
+              }
+              className={`px-4 text-sm ${saving ? "[&_svg]:animate-spin" : ""}`}
               type="button"
             />
             <Buttonx
@@ -523,6 +498,16 @@ export default function ProductoEditarModal({
             />
           </div>
         </div>
+
+        {/* Lightbox */}
+        <ImagePreviewModalx
+          open={previewOpen}
+          src={previewSrc ?? ""}
+          onClose={() => {
+            setPreviewOpen(false);
+            setPreviewSrc(null);
+          }}
+        />
       </div>
     </div>
   );

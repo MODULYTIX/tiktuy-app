@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import PedidosTableCompletado from './table/PedidosTableCompletado';
-import VerPedidoCompletadoModal from './Asignado/VerPedidoAsignadoModal';
+import VerPedidoCompletadoModal from './Completado/VerPedidoModal';
 
 type Filtros = {
   courier: string;
@@ -29,9 +29,11 @@ export default function PedidosCompletado({ filtros }: PedidosCompletadoProps) {
 
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
-      <PedidosTableCompletado onVer={handleVer} filtros={filtros} />
+      <PedidosTableCompletado
+        filtros={filtros}
+        onVer={handleVer}
+      />
 
-      {/* Modal Ver (solo lectura) */}
       <VerPedidoCompletadoModal
         isOpen={verOpen}
         onClose={handleClose}

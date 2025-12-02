@@ -19,6 +19,7 @@ import type {
 import { Selectx } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import Tittlex from "@/shared/common/Tittlex";
+import Badgex from "@/shared/common/Badgex";
 
 /** Adaptador para el modal (espera un CourierAsociado) */
 function sedeToCourierAsociado(s: SedeConEstado): CourierAsociado {
@@ -31,7 +32,8 @@ function sedeToCourierAsociado(s: SedeConEstado): CourierAsociado {
     departamento: s.departamento ?? "",
     direccion: s.direccion ?? "",
     nombre_usuario: "",
-    estado_asociacion: s.estado_asociacion === "Activo" ? "Activo" : "No Asociado",
+    estado_asociacion:
+      s.estado_asociacion === "Activo" ? "Activo" : "No Asociado",
     id_relacion: s.id_relacion ?? null,
   };
 
@@ -69,7 +71,11 @@ export default function EcommerceHomePage() {
   const [loading, setLoading] = useState(true);
   const [, setErrorMsg] = useState("");
 
-  const [filtros, setFiltros] = useState({ ciudad: "", courier: "", estado: "" });
+  const [filtros, setFiltros] = useState({
+    ciudad: "",
+    courier: "",
+    estado: "",
+  });
 
   const [openModal, setOpenModal] = useState(false);
   const [selected, setSelected] = useState<CourierAsociado | null>(null);
@@ -102,7 +108,8 @@ export default function EcommerceHomePage() {
   const handleChangeFiltro = (e: React.ChangeEvent<HTMLSelectElement>) =>
     setFiltros((p) => ({ ...p, [e.target.name]: e.target.value }));
 
-  const limpiarFiltros = () => setFiltros({ ciudad: "", courier: "", estado: "" });
+  const limpiarFiltros = () =>
+    setFiltros({ ciudad: "", courier: "", estado: "" });
 
   const closeModal = () => {
     setOpenModal(false);
@@ -125,14 +132,21 @@ export default function EcommerceHomePage() {
   );
 
   const ciudades = useMemo(
-    () => [...new Set(data.map((d) => d.ciudad ?? "").filter(Boolean))] as string[],
+    () =>
+      [...new Set(data.map((d) => d.ciudad ?? "").filter(Boolean))] as string[],
     [data]
   );
   const couriersUnicos = useMemo(
-    () => [...new Set(data.map((d) => d.courier_nombre ?? "").filter(Boolean))] as string[],
+    () =>
+      [
+        ...new Set(data.map((d) => d.courier_nombre ?? "").filter(Boolean)),
+      ] as string[],
     [data]
   );
-  const estados = useMemo(() => ["Activo", "No Asociado", "Inactivo", "Eliminado"], []);
+  const estados = useMemo(
+    () => ["Activo", "No Asociado", "Inactivo", "Eliminado"],
+    []
+  );
 
   // Total de páginas y slice visible
   const totalPages = Math.max(1, Math.ceil(dataFiltrada.length / PAGE_SIZE));
@@ -277,7 +291,10 @@ export default function EcommerceHomePage() {
               <tbody className="divide-y divide-gray20">
                 {loading ? (
                   Array.from({ length: PAGE_SIZE }).map((_, idx) => (
-                    <tr key={`sk-${idx}`} className="[&>td]:px-4 [&>td]:py-3 animate-pulse">
+                    <tr
+                      key={`sk-${idx}`}
+                      className="[&>td]:px-4 [&>td]:py-3 animate-pulse"
+                    >
                       {Array.from({ length: 6 }).map((__, i) => (
                         <td key={`sk-${idx}-${i}`}>
                           <div className="h-4 bg-gray20 rounded w-3/4" />
@@ -313,18 +330,22 @@ export default function EcommerceHomePage() {
                                 className="p-1 rounded hover:bg-gray10"
                                 title="Copiar teléfono"
                               >
-                                <Icon icon="mdi:content-copy" width="16" height="16" />
+                                <Icon
+                                  icon="mdi:content-copy"
+                                  width="16"
+                                  height="16"
+                                />
                               </button>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <span
-                              className={`inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm ${
-                                asociado ? "bg-black text-white" : "bg-gray30 text-gray80"
-                              }`}
+                            <Badgex
+                              className={
+                                asociado ? "" : "bg-gray30 text-gray80"
+                              }
                             >
                               {asociado ? "Asociado" : "No Asociado"}
-                            </span>
+                            </Badgex>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-center gap-3">
@@ -337,7 +358,10 @@ export default function EcommerceHomePage() {
                                 className="p-1 hover:bg-gray10 rounded"
                                 type="button"
                               >
-                                <Icon icon="mdi:eye-outline" className="text-blue-700" />
+                                <Icon
+                                  icon="mdi:eye-outline"
+                                  className="text-blue-700"
+                                />
                               </button>
                               {!asociado && (
                                 <button
@@ -379,7 +403,10 @@ export default function EcommerceHomePage() {
                     {/* Filas vacías para altura consistente */}
                     {emptyRowsCount > 0 &&
                       Array.from({ length: emptyRowsCount }).map((_, idx) => (
-                        <tr key={`empty-${idx}`} className="hover:bg-transparent">
+                        <tr
+                          key={`empty-${idx}`}
+                          className="hover:bg-transparent"
+                        >
                           {Array.from({ length: 6 }).map((__, i) => (
                             <td key={i} className="px-4 py-3">
                               &nbsp;

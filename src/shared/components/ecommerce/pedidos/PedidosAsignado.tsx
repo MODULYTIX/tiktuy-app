@@ -12,8 +12,8 @@ type Filtros = {
 
 interface Props {
   filtros: Filtros;
-  onVer: (pedidoId: number) => void;     // (se conserva la firma)
-  onEditar: (pedidoId: number) => void;  // (se conserva la firma)
+  onVer: (pedidoId: number) => void;
+  onEditar: (pedidoId: number) => void;
 }
 
 export default function PedidosAsignado({ filtros }: Props) {
@@ -32,7 +32,6 @@ export default function PedidosAsignado({ filtros }: Props) {
     setEditarOpen(true);
   }, []);
 
-  // Abrir Editar desde Ver sin perder el id
   const handleEditarDesdeVer = useCallback((id: number) => {
     setSelectedId(id);
     setVerOpen(false);
@@ -46,28 +45,27 @@ export default function PedidosAsignado({ filtros }: Props) {
   }, []);
 
   const handleUpdated = useCallback(() => {
-    // refresca tabla tras editar
     setRefreshKey((k) => k + 1);
   }, []);
 
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
+
       <PedidosTableAsignado
         key={`asi-table-${refreshKey}`}
+        filtros={filtros}
         onVer={handleVer}
         onEditar={handleEditar}
-        filtros={filtros}
+        refreshKey={refreshKey}
       />
 
-      {/* Modal Ver (Asignado) */}
       <VerPedidoModal
         isOpen={verOpen}
         onClose={handleClose}
         pedidoId={selectedId}
-        onEditar={handleEditarDesdeVer} // botón Editar en el footer (derecha)
-        />
+        onEditar={handleEditarDesdeVer}
+      />
 
-      {/* Modal Editar (Asignado) */}
       <EditarPedidoAsignadoModal
         isOpen={editarOpen}
         onClose={handleClose}

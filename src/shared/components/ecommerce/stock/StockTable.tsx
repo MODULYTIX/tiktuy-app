@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaEye, FaEdit } from "react-icons/fa";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
+import Badgex from "@/shared/common/Badgex";
 
 interface Props {
   productos: Producto[];
@@ -44,7 +45,10 @@ export default function StockTable({
   }, [productosOrdenados, filtrarInactivos]);
 
   // Paginación
-  const totalPages = Math.max(1, Math.ceil(productosFiltrados.length / PAGE_SIZE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(productosFiltrados.length / PAGE_SIZE)
+  );
 
   useEffect(() => {
     setPage((prev) => Math.min(prev, totalPages));
@@ -100,7 +104,9 @@ export default function StockTable({
     const texto = bajo ? "Stock bajo" : "Stock normal";
     return (
       <>
-        <span className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}>
+        <span
+          className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}
+        >
           📦 {stock}
         </span>
         <div className="text-xs text-gray-500">{texto}</div>
@@ -120,14 +126,14 @@ export default function StockTable({
 
   // Col widths: nueva 1ª columna es la miniatura
   const colClasses = [
-    "w-[6%]",  // Miniatura
+    "w-[6%]", // Miniatura
     "w-[12%]", // Código
     "w-[28%]", // Producto
     "w-[18%]", // Almacén
     "w-[12%]", // Stock
     "w-[10%]", // Precio
-    "w-[8%]",  // Estado
-    "w-[6%]",  // Acciones
+    "w-[8%]", // Estado
+    "w-[6%]", // Acciones
   ];
 
   // Pequeño helper de miniatura
@@ -176,7 +182,10 @@ export default function StockTable({
 
             <tbody className="divide-y divide-gray20">
               {currentData.map((prod: any) => (
-                <tr key={prod.uuid ?? prod.id} className="hover:bg-gray10 transition-colors">
+                <tr
+                  key={prod.uuid ?? prod.id}
+                  className="hover:bg-gray10 transition-colors"
+                >
                   {/* Miniatura */}
                   <td className="px-4 py-3 align-middle">
                     <Thumb url={prod.imagen_url} alt={prod.nombre_producto} />
@@ -187,7 +196,9 @@ export default function StockTable({
                   </td>
 
                   <td className="px-4 py-3 text-gray70 font-[400]">
-                    <div className="font-semibold line-clamp-2 ">{prod.nombre_producto}</div>
+                    <div className="font-semibold line-clamp-2 ">
+                      {prod.nombre_producto}
+                    </div>
                     <div className="text-gray-500 text-xs line-clamp-2">
                       {prod.descripcion}
                     </div>
@@ -208,13 +219,13 @@ export default function StockTable({
                   </td>
 
                   <td className="px-4 py-3 text-center">
-                    <span
-                      className={`text-white text-[12px] px-3 py-[6px] rounded-full inline-flex items-center justify-center ${
-                        prod?.estado?.nombre === "Inactivo" ? "bg-gray-400" : "bg-black"
-                      }`}
+                    <Badgex
+                      className={
+                        prod?.estado?.nombre === "Inactivo" ? "bg-gray30" : ""
+                      }
                     >
                       {prod?.estado?.nombre || "Desconocido"}
-                    </span>
+                    </Badgex>
                   </td>
 
                   <td className="px-4 py-3">

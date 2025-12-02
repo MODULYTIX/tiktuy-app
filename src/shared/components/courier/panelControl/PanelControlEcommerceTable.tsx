@@ -10,6 +10,7 @@ import type { EcommerceSede } from "@/services/courier/panel_control/panel_contr
 //  Importa el modal de invitación (renombrado a Ecommer)
 import PanelControlInviteEcommer from "@/shared/components/courier/panelControl/PanelControlInviteEcommer";
 import { Inputx, InputxNumber } from "@/shared/common/Inputx";
+import Badgex from "@/shared/common/Badgex";
 
 type EstadoTexto = "activo" | "pendiente";
 
@@ -424,15 +425,15 @@ export default function PanelControlTable() {
 
                         {/* ESTADO */}
                         <td className="px-4 py-3 text-center">
-                          <span
-                            className={`inline-flex items-center justify-center h-7 px-3 rounded-[10px] text-[12px] font-medium shadow-sm ${
-                              entry.estado === "activo"
+                          <Badgex
+                            className={[
+                              entry.estado?.toLowerCase() === "activo"
                                 ? "bg-gray90 text-white"
-                                : "bg-gray30 text-gray80"
-                            }`}
+                                : "bg-gray30 text-gray80",
+                            ].join(" ")}
                           >
-                            {entry.estado}
-                          </span>
+                            {entry.estado ?? "—"}
+                          </Badgex>
                         </td>
 
                         <td className="px-4 py-3 text-gray70 font-[400]">
@@ -470,7 +471,11 @@ export default function PanelControlTable() {
                                 icon="mdi:whatsapp"
                                 width={20}
                                 height={20}
-                                className={entry.hasWhatsapp ? "text-green-500" : "text-gray-400"}
+                                className={
+                                  entry.hasWhatsapp
+                                    ? "text-green-500"
+                                    : "text-gray-400"
+                                }
                               />
                             </button>
                           </div>

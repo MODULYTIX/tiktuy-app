@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { FaEye } from 'react-icons/fa';
-import { useAuth } from '@/auth/context';
-import { fetchMovimientos } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
-import type { MovimientoAlmacen } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
-import VerMovimientoRealizadoModal from './VerMovimientoRealizadoModal';
-import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
-import ValidarMovimientoModal from './modal/MovimientoValidacionModal';
-import { Icon } from '@iconify/react/dist/iconify.js';
+import { useEffect, useMemo, useState } from "react";
+import { FaEye } from "react-icons/fa";
+import { useAuth } from "@/auth/context";
+import { fetchMovimientos } from "@/services/ecommerce/almacenamiento/almacenamiento.api";
+import type { MovimientoAlmacen } from "@/services/ecommerce/almacenamiento/almacenamiento.types";
+import VerMovimientoRealizadoModal from "./VerMovimientoRealizadoModal";
+import { useNotification } from "@/shared/context/notificacionesDeskop/useNotification";
+import ValidarMovimientoModal from "./modal/MovimientoValidacionModal";
+import { Icon } from "@iconify/react/dist/iconify.js";
+import Badgex from "@/shared/common/Badgex";
 
 const PAGE_SIZE = 6;
 
@@ -54,7 +55,7 @@ export default function MovimientoValidacionTable() {
         // No incluyas notify en deps; úsalo aquí sin meterlo en el array
         // (si tu linter se queja, desactiva la regla para esta línea)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        notify('No se pudieron cargar los movimientos.', 'error');
+        notify("No se pudieron cargar los movimientos.", "error");
         setMovimientos([]);
       } finally {
         if (alive) setLoading(false);
@@ -69,40 +70,37 @@ export default function MovimientoValidacionTable() {
 
   // Alias de compatibilidad: "Activo" → "Proceso"
   const normalizeEstado = (nombre?: string) => {
-    if (!nombre) return '-';
-    if (nombre.toLowerCase() === 'activo') return 'Proceso';
+    if (!nombre) return "-";
+    if (nombre.toLowerCase() === "activo") return "Proceso";
     return nombre;
   };
 
   const renderEstado = (estado?: { nombre?: string }) => {
     const nombreNorm = normalizeEstado(estado?.nombre);
-    const nombre = nombreNorm.toLowerCase();
-    const base =
-      'inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm whitespace-nowrap';
+    const k = nombreNorm.toLowerCase();
 
-    if (nombre === 'validado')
-      return <span className={`${base} bg-black text-white`}>Validado</span>;
-    if (nombre === 'proceso' || nombre === 'en proceso')
+    if (k === "validado") {
+      return <Badgex className="bg-gray90 text-white">{nombreNorm}</Badgex>;
+    }
+    if (k === "proceso" || k === "en proceso") {
       return (
-        <span className={`${base} bg-yellow-100 text-yellow-700`}>Proceso</span>
+        <Badgex className="bg-yellow-100 text-yellow-700">{nombreNorm}</Badgex>
       );
-    if (nombre === 'observado')
-      return (
-        <span className={`${base} bg-red-100 text-red-700`}>Observado</span>
-      );
-    return (
-      <span className={`${base} bg-gray30 text-gray80`}>{nombreNorm}</span>
-    );
+    }
+    if (k === "observado") {
+      return <Badgex className="bg-red-100 text-red-700">{nombreNorm}</Badgex>;
+    }
+    return <Badgex className="bg-gray30 text-gray80">{nombreNorm}</Badgex>;
   };
 
   const fmtFecha = (iso?: string) =>
     iso
-      ? new Intl.DateTimeFormat('es-PE', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
+      ? new Intl.DateTimeFormat("es-PE", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
         }).format(new Date(iso))
-      : '-';
+      : "-";
 
   const handleVerClick = (mov: MovimientoAlmacen) => {
     setVerUuid(mov.uuid);
@@ -111,7 +109,7 @@ export default function MovimientoValidacionTable() {
 
   const handleAbrirValidar = (mov: MovimientoAlmacen) => {
     const estado = normalizeEstado(mov.estado?.nombre).toLowerCase();
-    if (estado !== 'proceso' && estado !== 'en proceso') return;
+    if (estado !== "proceso" && estado !== "en proceso") return;
     setMovAValidar(mov);
     setValidarOpen(true);
   };
@@ -161,11 +159,11 @@ export default function MovimientoValidacionTable() {
       }
       for (let i = start; i <= end; i++) pages.push(i);
       if (start > 1) {
-        pages.unshift('...');
+        pages.unshift("...");
         pages.unshift(1);
       }
       if (end < totalPages) {
-        pages.push('...');
+        pages.push("...");
         pages.push(totalPages);
       }
     }
@@ -209,23 +207,24 @@ export default function MovimientoValidacionTable() {
                   m.estado?.nombre
                 ).toLowerCase();
                 const puedeValidar =
-                  estadoNorm === 'proceso' || estadoNorm === 'en proceso';
+                  estadoNorm === "proceso" || estadoNorm === "en proceso";
 
                 return (
                   <tr
                     key={m.uuid}
-                    className="hover:bg-gray10 transition-colors">
+                    className="hover:bg-gray10 transition-colors"
+                  >
                     <td className="px-4 py-3 text-gray70 font-[400]">
                       {m.uuid.slice(0, 8).toUpperCase()}
                     </td>
                     <td className="px-4 py-3 text-gray70 font-[400]">
-                      {m.almacen_origen?.nombre_almacen || '-'}
+                      {m.almacen_origen?.nombre_almacen || "-"}
                     </td>
                     <td className="px-4 py-3 text-gray70 font-[400]">
-                      {m.almacen_destino?.nombre_almacen || '-'}
+                      {m.almacen_destino?.nombre_almacen || "-"}
                     </td>
                     <td className="px-4 py-3 text-gray70 font-[400]">
-                      {m.descripcion || '-'}
+                      {m.descripcion || "-"}
                     </td>
                     <td className="px-4 py-3 text-gray70 font-[400]">
                       {fmtFecha(m.fecha_movimiento as unknown as string)}
@@ -240,7 +239,8 @@ export default function MovimientoValidacionTable() {
                           className="text-blue-600 hover:text-blue-800"
                           onClick={() => handleVerClick(m)}
                           title="Ver detalle"
-                          aria-label={`Ver ${m.uuid}`}>
+                          aria-label={`Ver ${m.uuid}`}
+                        >
                           <FaEye />
                         </button>
 
@@ -250,8 +250,9 @@ export default function MovimientoValidacionTable() {
                             className="text-emerald-600 hover:text-emerald-800"
                             onClick={() => handleAbrirValidar(m)}
                             title="Validar movimiento"
-                            aria-label={`Validar ${m.uuid}`}>
-                            <Icon icon="ci:check-big" width="18" height="18" />{' '}
+                            aria-label={`Validar ${m.uuid}`}
+                          >
+                            <Icon icon="ci:check-big" width="18" height="18" />{" "}
                           </button>
                         )}
                       </div>
@@ -276,7 +277,8 @@ export default function MovimientoValidacionTable() {
                 <tr>
                   <td
                     className="px-4 py-6 text-center text-gray70 italic"
-                    colSpan={7}>
+                    colSpan={7}
+                  >
                     No hay movimientos.
                   </td>
                 </tr>
@@ -291,12 +293,13 @@ export default function MovimientoValidacionTable() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10">
+              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+            >
               &lt;
             </button>
 
             {pagerItems.map((p, i) =>
-              typeof p === 'string' ? (
+              typeof p === "string" ? (
                 <span key={`dots-${i}`} className="px-2 text-gray70">
                   {p}
                 </span>
@@ -304,13 +307,14 @@ export default function MovimientoValidacionTable() {
                 <button
                   key={p}
                   onClick={() => setPage(p)}
-                  aria-current={page === p ? 'page' : undefined}
+                  aria-current={page === p ? "page" : undefined}
                   className={[
-                    'w-8 h-8 flex items-center justify-center rounded',
+                    "w-8 h-8 flex items-center justify-center rounded",
                     page === p
-                      ? 'bg-gray90 text-white'
-                      : 'bg-gray10 text-gray70 hover:bg-gray20',
-                  ].join(' ')}>
+                      ? "bg-gray90 text-white"
+                      : "bg-gray10 text-gray70 hover:bg-gray20",
+                  ].join(" ")}
+                >
                   {p}
                 </button>
               )
@@ -319,7 +323,8 @@ export default function MovimientoValidacionTable() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10">
+              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+            >
               &gt;
             </button>
           </div>
@@ -333,7 +338,7 @@ export default function MovimientoValidacionTable() {
           setVerOpen(false);
           setVerUuid(null);
         }}
-        uuid={verUuid ?? ''}
+        uuid={verUuid ?? ""}
       />
 
       {/* Modal de VALIDAR */}
