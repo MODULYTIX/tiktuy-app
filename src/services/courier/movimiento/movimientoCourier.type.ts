@@ -1,8 +1,9 @@
 // src/services/courier-movimientos/courier-movimientos.types.ts
+
 export interface CourierMovimientoItem {
   id: number;
   uuid: string;
-  descripcion: string;
+  descripcion: string; // si en tu DB puede ser null, cámbialo a: string | null
   fecha_movimiento: string;
   estado: { id: number; nombre: string }; // 'Proceso' | 'Observado' | 'Validado'
   almacen_origen: { id: number; nombre_almacen: string };

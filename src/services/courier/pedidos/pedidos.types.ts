@@ -11,7 +11,8 @@ export interface ListByEstadoQuery {
   // filtros opcionales
   desde?: string | Date;
   hasta?: string | Date;
-  sortBy?: 'programada' | 'real' | 'creacion'; // campo a ordenar
+  // Backend usa: 'programada' | 'actualizada' | 'creacion'
+  sortBy?: 'programada' | 'actualizada' | 'creacion';
   order?: 'asc' | 'desc';
 }
 
@@ -118,12 +119,12 @@ export interface ReassignPedidoResultCore {
   codigo_pedido_nuevo: string;
 }
 
-/** Lo que responde tu controller: { ok, message, data } */
-export interface ReassignPedidoApiResponse {
-  ok: boolean;
-  message: string;
-  data: ReassignPedidoResultCore;
-}
+/**
+ * Lo que responde tu controller actualmente:
+ * res.status(200).json(result)  // result = ReassignPedidoResultCore
+ */
+export type ReassignPedidoApiResponse = ReassignPedidoResultCore;
+
 /* ----- Detalle de pedido (para el ojito 👁️) ----- */
 export interface PedidoDetalle {
   id: number;

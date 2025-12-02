@@ -7,7 +7,7 @@ import type {
   AssignPedidosPayload,
   AssignPedidosResponse,
   ReassignPedidoPayload,
-  ReassignPedidoApiResponse, // 👈 usamos este
+  ReassignPedidoApiResponse,
   PedidoDetalle,
 } from './pedidos.types';
 
@@ -101,8 +101,8 @@ function normalizePaginated<T>(raw: any): Paginated<T> {
 }
 
 /* --------------------------
-   GET: ASIGNADOS (solo estado Asignado)
-   Endpoint esperado: GET /courier-pedidos/hoy
+   GET: ASIGNADOS HOY
+   GET /courier-pedidos/hoy
 ---------------------------*/
 export async function fetchPedidosAsignadosHoy(
   token: string,
@@ -118,8 +118,8 @@ export async function fetchPedidosAsignadosHoy(
 }
 
 /* --------------------------
-   GET: PENDIENTES (agregado de estados)
-   Endpoint esperado: GET /courier-pedidos/pendientes
+   GET: PENDIENTES
+   GET /courier-pedidos/pendientes
 ---------------------------*/
 export async function fetchPedidosPendientes(
   token: string,
@@ -135,8 +135,42 @@ export async function fetchPedidosPendientes(
 }
 
 /* --------------------------
-   GET: TERMINADOS (Entregados)
-   Endpoint esperado: GET /courier-pedidos/entregados
+   GET: REPROGRAMADOS
+   GET /courier-pedidos/reprogramados
+---------------------------*/
+export async function fetchPedidosReprogramados(
+  token: string,
+  query: ListByEstadoQuery = {},
+  opts?: { signal?: AbortSignal }
+): Promise<Paginated<PedidoListItem>> {
+  const res = await fetch(`${BASE_URL}/reprogramados${toQueryEstado(query)}`, {
+    headers: authHeaders(token),
+    signal: opts?.signal,
+  });
+  const data = await handle<any>(res, 'Error al obtener pedidos reprogramados');
+  return normalizePaginated<PedidoListItem>(data);
+}
+
+/* --------------------------
+   GET: RECHAZADOS
+   GET /courier-pedidos/rechazados
+---------------------------*/
+export async function fetchPedidosRechazados(
+  token: string,
+  query: ListByEstadoQuery = {},
+  opts?: { signal?: AbortSignal }
+): Promise<Paginated<PedidoListItem>> {
+  const res = await fetch(`${BASE_URL}/rechazados${toQueryEstado(query)}`, {
+    headers: authHeaders(token),
+    signal: opts?.signal,
+  });
+  const data = await handle<any>(res, 'Error al obtener pedidos rechazados');
+  return normalizePaginated<PedidoListItem>(data);
+}
+
+/* --------------------------
+   GET: ENTREGADOS
+   GET /courier-pedidos/entregados
 ---------------------------*/
 export async function fetchPedidosEntregados(
   token: string,
@@ -169,7 +203,6 @@ export async function assignPedidos(
     signal: opts?.signal,
   });
 
-  // Log de error si el backend devolvió mensaje
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({ message: 'Sin cuerpo de error' }));
     console.error('❌ Error al asignar pedidos - backend:', errBody);
@@ -179,15 +212,13 @@ export async function assignPedidos(
 
 /* --------------------------
    POST: Reasignar uno
-   IMPORTANTE: NO pasar signal para evitar "signal is aborted without reason"
-   cuando el modal se desmonta o cambia la vista.
 ---------------------------*/
 export async function reassignPedido(
   token: string,
   payload: ReassignPedidoPayload,
-  _opts?: { signal?: AbortSignal } // mantenemos la firma por compatibilidad
+  _opts?: { signal?: AbortSignal }
 ): Promise<ReassignPedidoApiResponse> {
-  void _opts; // 👈 evita el warning de no-used-vars sin usarlo realmente
+  void _opts;
 
   let res: Response;
   try {
@@ -198,7 +229,6 @@ export async function reassignPedido(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
-      // NO pasar "signal" aquí
     });
   } catch (err: any) {
     if (err?.name === 'AbortError') {
@@ -216,7 +246,7 @@ export async function reassignPedido(
 
 /* --------------------------
    GET: DETALLE DE PEDIDO (ojito 👁️)
-   Endpoint esperado: GET /courier-pedidos/:id/detalle
+   GET /courier-pedidos/:id/detalle
 ---------------------------*/
 export async function fetchPedidoDetalle(
   token: string,
@@ -230,7 +260,10 @@ export async function fetchPedidoDetalle(
   return handle<PedidoDetalle>(res, 'Error al obtener detalle del pedido');
 }
 
-/* (opcional) Si usas una ruta /terminados distinta a /entregados */
+/* --------------------------
+   GET: TERMINADOS (Entregado + Rechazado + Reasignado)
+   GET /courier-pedidos/terminados
+---------------------------*/
 export async function fetchPedidosTerminados(
   token: string,
   query: ListByEstadoQuery = {},
@@ -240,5 +273,6 @@ export async function fetchPedidosTerminados(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  return handle<Paginated<PedidoListItem>>(res, 'Error al obtener pedidos terminados');
+  const data = await handle<any>(res, 'Error al obtener pedidos terminados');
+  return normalizePaginated<PedidoListItem>(data);
 }

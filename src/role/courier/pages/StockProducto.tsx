@@ -1,9 +1,11 @@
-import { getCourierProductos } from '@/services/courier/producto/productoCourier.api';
-import type { Producto } from '@/services/courier/producto/productoCourier.type';
-import StockPedidoFilterCourier from '@/shared/components/courier/pedido/SockPedidoCourierFilter';
-import ProductoDetalleModal from '@/shared/components/courier/stockProducto/ProductoCourierDetalleModal';
-import TableStockProductoCourier from '@/shared/components/courier/stockProducto/TableStockProductoCourier';
-import { useEffect, useMemo, useState } from 'react';
+// src/role/courier/pages/StockProducto.tsx
+import { useEffect, useMemo, useState } from "react";
+import { getCourierProductos } from "@/services/courier/producto/productoCourier.api";
+import type { Producto } from "@/services/courier/producto/productoCourier.type";
+
+import StockPedidoFilterCourier from "@/shared/components/courier/pedido/SockPedidoCourierFilter";
+import ProductoDetalleModal from "@/shared/components/courier/stockProducto/ProductoCourierDetalleModal";
+import TableStockProductoCourier from "@/shared/components/courier/stockProducto/TableStockProductoCourier";
 
 export type StockFilters = {
   almacenId: string;
@@ -11,7 +13,7 @@ export type StockFilters = {
   nombre: string;
   estado: string;
   stockBajo: boolean;
-  precioOrden: '' | 'asc' | 'desc';
+  precioOrden: "" | "asc" | "desc";
   q: string;
 };
 
@@ -20,13 +22,13 @@ export default function StockPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<StockFilters>({
-    almacenId: '',
-    categoriaId: '',
-    nombre: '',
-    estado: '',
+    almacenId: "",
+    categoriaId: "",
+    nombre: "",
+    estado: "",
     stockBajo: false,
-    precioOrden: '',
-    q: '',
+    precioOrden: "",
+    q: "",
   });
 
   // estado del modal
@@ -34,39 +36,63 @@ export default function StockPage() {
   const [selected, setSelected] = useState<Producto | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token') || '';
     let active = true;
+
     (async () => {
       try {
         setLoading(true);
+        setError(null);
+
+        const token = localStorage.getItem("token") || "";
+        if (!token) {
+          if (!active) return;
+          setError("Sesión no válida. Vuelve a iniciar sesión.");
+          setRaw([]);
+          return;
+        }
+
         const data = await getCourierProductos(token);
         if (!active) return;
         setRaw(data);
-        setError(null);
       } catch (e: any) {
         if (!active) return;
-        setError(e?.message || 'No se pudo cargar el stock');
+        setError(e?.message || "No se pudo cargar el stock");
       } finally {
         if (active) setLoading(false);
       }
     })();
-    return () => { active = false; };
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const options = useMemo(() => {
-    const almacenes = Array.from(new Map(
-      raw.filter(p => p.almacenamiento)
-         .map(p => [String(p.almacenamiento!.id), p.almacenamiento!.nombre_almacen])
-    ).entries()).map(([value, label]) => ({ value, label }));
+    const almacenes = Array.from(
+      new Map(
+        raw
+          .filter((p) => p.almacenamiento)
+          .map((p) => [
+            String(p.almacenamiento!.id),
+            p.almacenamiento!.nombre_almacen || "Sin nombre",
+          ])
+      ).entries()
+    ).map(([value, label]) => ({ value, label }));
 
-    const categorias = Array.from(new Map(
-      raw.filter(p => p.categoria)
-         .map(p => [String(p.categoria!.id), p.categoria!.nombre])
-    ).entries()).map(([value, label]) => ({ value, label }));
+    const categorias = Array.from(
+      new Map(
+        raw
+          .filter((p) => p.categoria)
+          .map((p) => [
+            String(p.categoria!.id),
+            p.categoria!.nombre || p.categoria!.descripcion || "Sin nombre",
+          ])
+      ).entries()
+    ).map(([value, label]) => ({ value, label }));
 
     const estados = [
-      { value: 'Activo', label: 'Activo' },
-      { value: 'Descontinuado', label: 'Descontinuado' },
+      { value: "Activo", label: "Activo" },
+      { value: "Descontinuado", label: "Descontinuado" },
     ];
 
     return { almacenes, categorias, estados };
@@ -87,7 +113,7 @@ export default function StockPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-primary">Stock de Producto</h1>
-          <p className="text-gray-500">Control de stock y movimiento</p>
+          <p className="text-gray-500">Control de stock y movimiento por sede</p>
         </div>
       </div>
 

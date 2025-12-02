@@ -2,9 +2,21 @@
 import type {
   CourierMovimientosResponse,
   CourierMovimientoDetalle,
-} from './movimientoCourier.type';
+} from "./movimientoCourier.type";
 
-const BASE_URL = `${import.meta.env.VITE_API_URL}`;
+// Normalizamos BASE_URL (sin barra final)
+const BASE_URL =
+  (import.meta as any).env?.VITE_API_URL?.replace(/\/+$/, "") ||
+  "http://localhost:3000/api";
+
+// Helper para parsear error JSON si existe
+async function safeJson(res: Response) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
 
 // Lista paginada (grilla)
 export async function fetchCourierMovimientos(
@@ -14,15 +26,23 @@ export async function fetchCourierMovimientos(
   const page = opts.page ?? 1;
   const limit = opts.limit ?? 100;
 
-  const url = new URL('/courier-movimientos/mis-movimientos', BASE_URL);
-  url.searchParams.set('page', String(page));
-  url.searchParams.set('limit', String(limit));
+  const url = new URL("/courier-movimientos/mis-movimientos", BASE_URL);
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("limit", String(limit));
 
   const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 
-  if (!res.ok) throw new Error('Error al obtener movimientos del courier');
+  if (!res.ok) {
+    const err = await safeJson(res);
+    throw new Error(
+      err?.message || "Error al obtener movimientos del courier"
+    );
+  }
+
   return res.json();
 }
 
@@ -31,11 +51,22 @@ export async function fetchCourierMovimientoDetalle(
   uuid: string,
   token: string
 ): Promise<CourierMovimientoDetalle> {
-  const res = await fetch(`${BASE_URL}/courier-movimientos/${uuid}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await fetch(
+    `${BASE_URL}/courier-movimientos/${uuid}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
-  if (!res.ok) throw new Error('Error al obtener el detalle del movimiento');
+  if (!res.ok) {
+    const err = await safeJson(res);
+    throw new Error(
+      err?.message || "Error al obtener el detalle del movimiento"
+    );
+  }
+
   return res.json();
 }
 
@@ -46,15 +77,24 @@ export async function validarCourierMovimiento(
   data: { observaciones?: string; evidencia?: File | null }
 ): Promise<CourierMovimientoDetalle> {
   const form = new FormData();
-  if (data.observaciones) form.append('observaciones', data.observaciones);
-  if (data.evidencia) form.append('evidencia', data.evidencia);
+  if (data.observaciones) form.append("observaciones", data.observaciones);
+  if (data.evidencia) form.append("evidencia", data.evidencia);
 
-  const res = await fetch(`${BASE_URL}/courier-movimientos/validar/${uuid}`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}` }, // NO pongas Content-Type, lo maneja el navegador
-    body: form,
-  });
+  const res = await fetch(
+    `${BASE_URL}/courier-movimientos/validar/${uuid}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`, // NO pongas Content-Type, lo maneja el navegador
+      },
+      body: form,
+    }
+  );
 
-  if (!res.ok) throw new Error('Error al validar el movimiento');
+  if (!res.ok) {
+    const err = await safeJson(res);
+    throw new Error(err?.message || "Error al validar el movimiento");
+  }
+
   return res.json();
 }

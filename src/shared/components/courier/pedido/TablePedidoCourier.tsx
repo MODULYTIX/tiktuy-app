@@ -13,9 +13,9 @@ import type {
 import {
   fetchPedidosAsignadosHoy,
   fetchPedidosPendientes,
-  fetchPedidosEntregados,
+  fetchPedidosTerminados,   // 👈 usamos terminados
   fetchPedidoDetalle,
-  reassignPedido, // fallback si NO se pasa onReasignar
+  reassignPedido,
 } from '@/services/courier/pedidos/pedidos.api';
 
 import DetallePedidoDrawer from './DetallePedidoDrawer';
@@ -31,7 +31,6 @@ interface Props {
   token: string;
   onVerDetalle?: (id: number) => void;
   onAsignar?: (ids: number[]) => void;
-  /** Si se provee, abre tu modal y NO se usa window.prompt */
   onReasignar?: (pedido: PedidoListItem) => void;
 }
 
@@ -42,9 +41,6 @@ const PEN = new Intl.NumberFormat('es-PE', {
   minimumFractionDigits: 2,
 });
 const two = (n: number) => String(n).padStart(2, '0');
-
-
-
 
 export default function TablePedidoCourier({ view, token, onAsignar, onReasignar }: Props) {
   /* paginación (server-side) */
@@ -106,7 +102,8 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
         } else if (view === 'pendientes') {
           resp = await fetchPedidosPendientes(token, qEstado, { signal: ac.signal });
         } else {
-          resp = await fetchPedidosEntregados(token, qEstado, { signal: ac.signal });
+          // 👇 aquí cambiamos a /terminados
+          resp = await fetchPedidosTerminados(token, qEstado, { signal: ac.signal });
         }
         setData(resp);
       } catch (e) {
@@ -164,8 +161,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
 
   const totalPages = data?.totalPages ?? 1;
 
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  // Paginador: páginas a mostrar
+  // Paginador
   const pagerItems = useMemo<(number | string)[]>(() => {
     const maxButtons = 5;
     const pages: (number | string)[] = [];
@@ -197,7 +193,6 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
     }
     return pages;
   }, [page, totalPages]);
-  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   const goToPage = (p: number) => {
     if (!totalPages) return;
@@ -218,10 +213,8 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
 
   // 🔁 Reasignar
   const handleReasignar = async (p: PedidoListItem) => {
-    // Si el padre pasó un modal, úsalo:
     if (onReasignar) return onReasignar(p);
 
-    // Fallback (prompt) solo si NO hay modal conectado:
     try {
       const raw = window.prompt(
         `Reasignar pedido ${p.codigo_pedido}\n\nIngrese el ID del nuevo repartidor:`,
@@ -236,7 +229,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
       setLoading(true);
       setError('');
       await reassignPedido(token, { pedido_id: p.id, motorizado_id: nuevoId });
-      setReloadTick((t) => t + 1); // fuerza recarga
+      setReloadTick((t) => t + 1);
     } catch (e: any) {
       setError(e?.message ?? 'Error al reasignar pedido');
     } finally {
@@ -262,7 +255,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
               ? 'Selecciona y asigna pedidos a un repartidor.'
               : view === 'pendientes'
                 ? 'Pedidos en gestión con el cliente (contacto, reprogramación, etc.).'
-                : 'Pedidos completados (mostrar método de pago y evidencia si corresponde).'
+                : 'Pedidos completados o cerrados.'
           }
         />
 
@@ -285,7 +278,6 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
           value={filtroDistrito}
           onChange={(e) => setFiltroDistrito(e.target.value)}
           placeholder="Seleccionar distrito"
-        /* Estilos originales conservados */
         >
           {distritos.map((d) => (
             <option key={d} value={d}>
@@ -301,7 +293,6 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
           value={filtroCantidad}
           onChange={(e) => setFiltroCantidad(e.target.value)}
           placeholder="Seleccionar cantidad"
-        /* Estilos originales conservados */
         >
           {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
             <option key={n} value={n}>
@@ -310,8 +301,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
           ))}
         </Selectx>
 
-
-        {/* Búsqueda (SearchInputx sin label interno → añadimos label externo como en tu UI) */}
+        {/* Búsqueda */}
         <div className="w-full flex flex-col gap-[10px]">
           <label className="text-sm font-medium text-black block">
             Buscar productos por nombre
@@ -320,20 +310,21 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
             placeholder="Buscar productos por nombre..."
             value={searchProducto}
             onChange={(e) => setSearchProducto(e.target.value)}
-          /* Estilos originales conservados (override sobre los defaults del componente) */
           />
         </div>
 
-        {/* Limpiar (tu botón por componente) */}
+        {/* Limpiar */}
         <Buttonx
           variant="outlined"
-          onClick={() => { setFiltroDistrito(''); setFiltroCantidad(''); setSearchProducto(''); }}
+          onClick={() => {
+            setFiltroDistrito('');
+            setFiltroCantidad('');
+            setSearchProducto('');
+          }}
           label="Limpiar Filtros"
           icon="mynaui:delete"
-        /* Mismo look & feel que tu botón previo */
         />
       </div>
-
 
       {/* Estados */}
       {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
@@ -341,7 +332,6 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
 
       {/* Tabla */}
       {!loading && !error && (
-
         <div className="bg-white rounded-md overflow-hidden shadow-default">
           <div className="overflow-x-auto bg-white">
             <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
@@ -506,7 +496,6 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
             </div>
           )}
         </div>
-
       )}
 
       {/* Drawer del detalle */}

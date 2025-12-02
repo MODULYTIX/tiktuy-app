@@ -29,7 +29,7 @@ function buildHeaders(token?: string): HeadersInit {
   return h;
 }
 
-/** Helper: manejo de respuesta estándar del backend { ok, data } | { data } | puro objeto */
+/** Helper: manejo de respuesta estándar del backend { ok, data } | { data } | objeto puro */
 async function handle<T>(res: Response): Promise<ApiResult<T>> {
   let body: any = null;
   try {
@@ -179,8 +179,8 @@ export async function listarEcommercesAsociados(
  * POST /courier-motorizado/registro-manual
  * Requiere token del courier.
  * El backend resuelve la sede:
- *  - Admin: su sede principal.
- *  - Representante: su sede fija.
+ *  - Dueño del courier: sede principal.
+ *  - Representante de sede: su sede fija.
  */
 export async function registrarManualMotorizado(
   payload: RegistroManualMotorizadoPayload,
@@ -218,7 +218,7 @@ export async function completarRegistroMotorizado(
 /**
  * POST /courier-motorizado/invitar
  * Genera link de invitación. Requiere token del courier.
- * El backend guarda courier_id + sede_id correspondiente al usuario (admin/rep).
+ * El backend guarda courier_id + sede_id que corresponde al usuario (dueño o representante).
  */
 export async function generarLinkInvitacionMotorizado(
   token: string
@@ -255,7 +255,6 @@ export async function registrarDesdeInvitacionMotorizado(
  * GET /courier-motorizado/motorizados
  * - Dueño del courier: lista todos los motorizados del courier.
  * - Representante de sede: lista solo los motorizados de su sede.
- * (Lógica resuelta en el backend).
  */
 export async function listarMotorizadosAsociados(
   token: string
