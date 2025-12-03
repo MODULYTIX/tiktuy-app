@@ -1,19 +1,16 @@
-// src/shared/components/admin/panel/modals/ModalDetalleSolicitud.tsx
-import type { SolicitudCourier } from "@/role/user/service/solicitud-courier.types";
+import type { SolicitudCourierCompleto } from "@/role/user/service/solicitud-courier.types";
 import Buttonx from "@/shared/common/Buttonx";
 import { Inputx, InputxPhone } from "@/shared/common/Inputx";
 import Tittlex from "@/shared/common/Tittlex";
 
-
 type Props = {
   open: boolean;
-  data: SolicitudCourier;
+  data: SolicitudCourierCompleto;
   onClose: () => void;
 };
 
 export default function ModalDetalleSolicitud({ open, data, onClose }: Props) {
   if (!open) return null;
-
   return (
     <div className="fixed inset-0 z-[60]">
       {/* Backdrop */}
@@ -25,6 +22,7 @@ export default function ModalDetalleSolicitud({ open, data, onClose }: Props) {
 
       {/* Drawer */}
       <div className="absolute top-0 right-0 h-full w-[560px] max-w-[92vw] bg-white shadow-xl flex flex-col p-5">
+
         {/* Header */}
         <Tittlex
           variant="modal"
@@ -34,6 +32,7 @@ export default function ModalDetalleSolicitud({ open, data, onClose }: Props) {
         />
 
         <div className="h-full flex flex-col gap-5">
+
           <div className="flex gap-5">
             <Inputx
               label="Nombre"
@@ -68,11 +67,7 @@ export default function ModalDetalleSolicitud({ open, data, onClose }: Props) {
             <Inputx
               label="Apellido"
               placeholder="Ejem. Maguiña"
-              value={
-                data.apellido_paterno || data.apellido_materno
-                  ? `${data.apellido_paterno ?? ""} ${data.apellido_materno ?? ""}`.trim()
-                  : "—"
-              }
+              value={data.apellidos ?? "—"}
               disabled
             />
             <InputxPhone
@@ -88,7 +83,7 @@ export default function ModalDetalleSolicitud({ open, data, onClose }: Props) {
             <Inputx
               label="Nombre Comercial"
               placeholder="Ejem. Electrosur"
-              value={data.courier ?? data.nombre_comercial ?? "—"}
+              value={data.nombre_comercial ?? "—"}
               disabled
             />
             <Inputx
@@ -98,6 +93,7 @@ export default function ModalDetalleSolicitud({ open, data, onClose }: Props) {
               disabled
             />
           </div>
+
         </div>
 
         {/* Footer */}
@@ -108,6 +104,7 @@ export default function ModalDetalleSolicitud({ open, data, onClose }: Props) {
             label="Cerrar"
           />
         </div>
+
       </div>
     </div>
   );

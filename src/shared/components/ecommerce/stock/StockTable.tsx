@@ -20,29 +20,20 @@ export default function StockTable({
 }: Props) {
   const [page, setPage] = useState(1);
 
-  // Orden "nuevo primero"
-  const productosOrdenados = useMemo(() => {
-    const byNewest = [...productos].sort((a: any, b: any) => {
-      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
-      if (aTime !== 0 || bTime !== 0) return bTime - aTime;
-      const aId = typeof a.id === "number" ? a.id : 0;
-      const bId = typeof b.id === "number" ? b.id : 0;
-      return bId - aId;
-    });
-    return byNewest;
-  }, [productos]);
-
-  // Filtrado en memoria (si lo usas)
+  //  AHORA la tabla respeta el ORDEN que ya viene del padre.
+  // Solo aplica (opcionalmente) el filtro de inactivos y stock 0.
   const productosFiltrados = useMemo(() => {
-    if (!filtrarInactivos) return productosOrdenados;
-    return productosOrdenados.filter(
+    const base = [...productos]; // respeta el orden recibido desde StockPage
+
+    if (!filtrarInactivos) return base;
+
+    return base.filter(
       (p: any) =>
         p?.estado?.nombre !== "Inactivo" &&
         typeof p?.stock === "number" &&
         p.stock > 0
     );
-  }, [productosOrdenados, filtrarInactivos]);
+  }, [productos, filtrarInactivos]);
 
   // Paginación
   const totalPages = Math.max(

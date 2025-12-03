@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FaEye, FaBoxOpen } from "react-icons/fa";
 import type { Producto } from "@/services/courier/producto/productoCourier.type";
 import type { StockFilters } from "@/role/courier/pages/StockProducto";
+import Badgex from "@/shared/common/Badgex";
 
 // ---- utilidades
 function toNumber(n: unknown) {
@@ -31,6 +32,26 @@ interface Props {
   onView?: (row: Producto) => void;
 }
 
+// ---- Thumb (Miniatura de imagen)
+const Thumb = ({ url, alt }: { url?: string | null; alt: string }) => {
+  return url ? (
+    <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
+      <img
+        src={url}
+        alt={alt}
+        className="w-full h-full object-cover"
+        draggable={false}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+      />
+    </div>
+  ) : (
+    <div className="w-12 h-12 rounded-md bg-gray-100 border border-gray-200 flex items-center justify-center text-[14px]">
+      <span className="opacity-60">📦</span>
+    </div>
+  );
+};
+
 export default function TableStockProductoCourier({
   data,
   filters,
@@ -50,9 +71,7 @@ export default function TableStockProductoCourier({
         const nombre = p.nombre_producto?.toLowerCase() || "";
         const desc = p.descripcion?.toLowerCase() || "";
         const codigo = p.codigo_identificacion?.toLowerCase() || "";
-        return (
-          nombre.includes(q) || desc.includes(q) || codigo.includes(q)
-        );
+        return nombre.includes(q) || desc.includes(q) || codigo.includes(q);
       });
     }
 
@@ -62,19 +81,13 @@ export default function TableStockProductoCourier({
       );
     }
     if (filters.categoriaId) {
-      arr = arr.filter(
-        (p) => String(p.categoria_id) === filters.categoriaId
-      );
+      arr = arr.filter((p) => String(p.categoria_id) === filters.categoriaId);
     }
     if (filters.estado) {
-      arr = arr.filter(
-        (p) => (p.estado?.nombre || "") === filters.estado
-      );
+      arr = arr.filter((p) => (p.estado?.nombre || "") === filters.estado);
     }
     if (filters.stockBajo) {
-      arr = arr.filter(
-        (p) => (p.stock ?? 0) <= (p.stock_minimo ?? 0)
-      );
+      arr = arr.filter((p) => (p.stock ?? 0) <= (p.stock_minimo ?? 0));
     }
     if (filters.precioOrden) {
       arr.sort((a, b) => {
@@ -88,10 +101,8 @@ export default function TableStockProductoCourier({
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
-  // Resetear página al cambiar filtros
   useEffect(() => setPage(1), [filters]);
 
-  // Ajustar página si se reduce el total
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [totalPages, page]);
@@ -151,7 +162,6 @@ export default function TableStockProductoCourier({
 
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
-      {/* Mensajes */}
       {loading && (
         <div className="px-4 py-3 text-sm text-gray-500">
           Cargando productos…
@@ -165,8 +175,9 @@ export default function TableStockProductoCourier({
         <section className="flex-1 overflow-auto">
           <div className="overflow-x-auto bg-white">
             <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-              {/* Porcentajes por columna */}
+              {/* Agregamos la columna Miniatura */}
               <colgroup>
+                <col className="w-[8%]" /> {/* Miniatura */}
                 <col className="w-[12%]" /> {/* Código */}
                 <col className="w-[32%]" /> {/* Producto */}
                 <col className="w-[18%]" /> {/* Sede */}
@@ -178,6 +189,7 @@ export default function TableStockProductoCourier({
 
               <thead className="bg-[#E5E7EB]">
                 <tr className="text-gray70 font-roboto font-medium">
+                  <th className="px-4 py-3 text-left"></th>
                   <th className="px-4 py-3 text-left">Código</th>
                   <th className="px-4 py-3 text-left">Producto</th>
                   <th className="px-4 py-3 text-left">Sede</th>
@@ -192,7 +204,7 @@ export default function TableStockProductoCourier({
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-4 py-4 text-center text-gray70 italic"
                     >
                       No hay productos para mostrar.
@@ -207,6 +219,11 @@ export default function TableStockProductoCourier({
                           key={p.id}
                           className="hover:bg-gray10 transition-colors"
                         >
+                          {/* Miniatura */}
+                          <td className="px-4 py-3 align-middle">
+                            <Thumb url={p.imagen_url} alt={p.nombre_producto} />
+                          </td>
+
                           <td className="px-4 py-3 text-gray70 font-[400]">
                             {p.codigo_identificacion}
                           </td>
@@ -240,15 +257,15 @@ export default function TableStockProductoCourier({
                           </td>
 
                           <td className="px-4 py-3 text-center">
-                            <span
-                              className={`inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm ${
+                            <Badgex
+                              className={
                                 p.estado?.nombre === "Activo"
                                   ? "bg-black text-white"
                                   : "bg-gray30 text-gray80"
-                              }`}
+                              }
                             >
                               {p.estado?.nombre || "-"}
-                            </span>
+                            </Badgex>
                           </td>
 
                           <td className="px-4 py-3">
@@ -271,14 +288,13 @@ export default function TableStockProductoCourier({
                       );
                     })}
 
-                    {/* Relleno para mantener altura */}
                     {emptyRows > 0 &&
                       Array.from({ length: emptyRows }).map((_, idx) => (
                         <tr
                           key={`empty-${idx}`}
                           className="hover:bg-transparent"
                         >
-                          {Array.from({ length: 7 }).map((__, i) => (
+                          {Array.from({ length: 8 }).map((__, i) => (
                             <td key={i} className="px-4 py-3">
                               &nbsp;
                             </td>
@@ -291,7 +307,6 @@ export default function TableStockProductoCourier({
             </table>
           </div>
 
-          {/* Paginador del modelo base */}
           {filtered.length > 0 && (
             <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
               <button

@@ -32,6 +32,7 @@ export interface SolicitudEcommerce {
   /** Alias del nombre comercial en el mapper del service */
   ecommerce: string;
   telefono: string | null;
+  correo: string;
   /** 'Asociado' | 'No asociado' según tenga o no contraseña real */
   estado: 'Asociado' | 'No asociado';
   tiene_password?: boolean;

@@ -3,6 +3,7 @@ import type {
   SolicitudCourier,
   SolicitudResponse,
   CambioEstadoResponse,
+  SolicitudCourierCompleto,
 } from './solicitud-courier.types';
 
 import type {
@@ -139,5 +140,22 @@ export async function confirmarPasswordEcommerce(params: {
     }
   );
   if (!res.ok) throw new Error('Error al confirmar la contraseña del ecommerce');
+  return res.json();
+}
+
+/**
+ * Listar couriers con datos completos (admin)
+ * GET /admin/solicitudes/couriers/completo
+ */
+export async function fetchSolicitudesCourierCompleto(
+  token: string
+): Promise<SolicitudCourierCompleto[]> {
+  const res = await fetch(
+    `${import.meta.env.VITE_API_URL}/admin/solicitudes/couriers/completo`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  if (!res.ok) throw new Error('Error al obtener solicitudes completas de courier');
   return res.json();
 }

@@ -17,6 +17,7 @@ import type { MovimientoCourierFilters } from "../../movimiento/MovimientoFilter
 // Modales
 import ValidarMovimientoCourierModal from "./ValidarMovimientoCourierModal";
 import DetallesMovimientoCourierModal from "./MovimientoCourierModal";
+import Badgex from "@/shared/common/Badgex";
 
 interface Props {
   filters: MovimientoCourierFilters;
@@ -95,31 +96,37 @@ export default function TableMovimientoCourier({ filters }: Props) {
 
   // badge estado
   const renderEstado = (estado?: string) => {
-    const name = (estado || "").toLowerCase();
-    const base =
-      "inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm";
+  const name = (estado || "").toLowerCase();
 
-    if (name === "validado")
-      return (
-        <span className={`${base} bg-green-100 text-green-700`}>Validado</span>
-      );
-    if (name === "proceso" || name === "en proceso")
-      return (
-        <span className={`${base} bg-yellow-100 text-yellow-700`}>
-          Proceso
-        </span>
-      );
-    if (name === "observado")
-      return (
-        <span className={`${base} bg-red-100 text-red-700`}>Observado</span>
-      );
-
+  if (name === "validado")
     return (
-      <span className={`${base} bg-blue-100 text-blue-700`}>
-        {estado || "-"}
-      </span>
+      <Badgex className="bg-green-100 text-green-700">
+        Validado
+      </Badgex>
     );
-  };
+
+  if (name === "proceso" || name === "en proceso")
+    return (
+      <Badgex className="bg-yellow-100 text-yellow-700">
+        Proceso
+      </Badgex>
+    );
+
+  if (name === "observado")
+    return (
+      <Badgex className="bg-red-100 text-red-700">
+        Observado
+      </Badgex>
+    );
+
+  return (
+    <Badgex className="bg-blue-100 text-blue-700">
+      {estado || "-"}
+    </Badgex>
+  );
+};
+
+
 
   const fmtFecha = (iso: string) =>
     new Intl.DateTimeFormat("es-PE", {

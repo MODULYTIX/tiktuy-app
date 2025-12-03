@@ -140,7 +140,7 @@ export default function StockFilters({ onFilterChange }: Props) {
     });
   }, []);
 
-  /* Opciones memoizadas (opcional, por limpieza) */
+  /* Opciones memoizadas */
   const disponibilidadAlmacenes = useMemo(
     () => (Array.isArray(almacenes) ? almacenes : []),
     [almacenes]
@@ -149,6 +149,14 @@ export default function StockFilters({ onFilterChange }: Props) {
     () => (Array.isArray(categorias) ? categorias : []),
     [categorias]
   );
+
+  /* === LÓGICA TIPO MODELO BASE PARA PRECIO === */
+  // Solo uno activo entre precios bajos / altos
+  const precioOrden: '' | 'asc' | 'desc' = filters.precio_bajo
+    ? 'asc'
+    : filters.precio_alto
+    ? 'desc'
+    : '';
 
   return (
     <div className="bg-white p-5 rounded-md shadow-default border-b-4 border-gray90 ">
@@ -215,10 +223,13 @@ export default function StockFilters({ onFilterChange }: Props) {
           <option value="inactivo">Inactivo</option>
         </Selectx>
 
-        {/* Filtros exclusivos */}
+        {/* Filtros exclusivos (MISMA LÓGICA Y ESTILO QUE MODELO BASE) */}
         <div className="min-w-0">
-          <div className="text-center font-medium text-gray-700 mb-2">Filtros exclusivos</div>
+          <div className="text-center font-medium text-gray-700 mb-2">
+            Filtros exclusivos
+          </div>
           <div className="h-10 flex items-center justify-center lg:justify-start gap-4">
+            {/* Stock bajo (independiente) */}
             <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
                 type="checkbox"
@@ -229,23 +240,40 @@ export default function StockFilters({ onFilterChange }: Props) {
               />
               <span>Stock bajo</span>
             </label>
+
+            {/* Precios bajos (exclusivo) */}
             <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
-                type="checkbox"
-                name="precio_bajo"
-                checked={filters.precio_bajo}
-                onChange={handleCheckboxChange}
-                className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                type="radio"
+                name="precioOrden"
+                className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                checked={precioOrden === 'asc'}
+                onChange={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    // si ya estaba en "asc", lo apago; si no, lo activo
+                    precio_bajo: precioOrden === 'asc' ? false : true,
+                    precio_alto: false,
+                  }))
+                }
               />
               <span>Precios bajos</span>
             </label>
+
+            {/* Precios altos (exclusivo) */}
             <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
-                type="checkbox"
-                name="precio_alto"
-                checked={filters.precio_alto}
-                onChange={handleCheckboxChange}
-                className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                type="radio"
+                name="precioOrden"
+                className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                checked={precioOrden === 'desc'}
+                onChange={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    precio_alto: precioOrden === 'desc' ? false : true,
+                    precio_bajo: false,
+                  }))
+                }
               />
               <span>Precios altos</span>
             </label>
@@ -256,7 +284,9 @@ export default function StockFilters({ onFilterChange }: Props) {
         <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <SearchInputx
             value={filters.search}
-            onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, search: e.target.value }))
+            }
             placeholder="Buscar productos por nombre, código o descripción"
             className="w-full"
             name="search"

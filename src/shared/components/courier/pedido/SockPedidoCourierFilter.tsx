@@ -5,6 +5,7 @@ import { SearchInputx } from "@/shared/common/SearchInputx";
 import Buttonx from "@/shared/common/Buttonx";
 
 export type StockFilters = {
+  almacenId: string;
   sedeId: string;          // antes: almacenId
   categoriaId: string;
   estado: string;
@@ -20,7 +21,7 @@ type Props = {
   filters?: StockFilters;
   onChange?: Dispatch<SetStateAction<StockFilters>>;
   options?: {
-    almacenes: Option[];   // aquí puedes seguir usando "almacenes" pero son sedes
+    almacenes: Option[];  
     categorias: Option[];
     estados: Option[];
   };
@@ -29,6 +30,7 @@ type Props = {
 
 const DEFAULT_FILTERS: StockFilters = {
   sedeId: "",
+  almacenId: "",
   categoriaId: "",
   estado: "",
   nombre: "",

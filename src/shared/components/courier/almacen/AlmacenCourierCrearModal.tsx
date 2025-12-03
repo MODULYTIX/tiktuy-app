@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
+import Tittlex from "@/shared/common/Tittlex";
+import { Inputx, InputxPhone } from "@/shared/common/Inputx";
+import { Selectx } from "@/shared/common/Selectx";
+import Buttonx from "@/shared/common/Buttonx";
 
 /** =========================
  *  DTO para crear sede + invitación de representante (Courier)
@@ -83,7 +87,12 @@ export default function AlmacenCourierCrearModalInvitacion({
             const distritosObj = provinciasObj[provName];
             for (const distName of Object.keys(distritosObj)) {
               const meta = distritosObj[distName];
-              tmp.push({ code: meta.ubigeo, dep: depName, prov: provName, dist: distName });
+              tmp.push({
+                code: meta.ubigeo,
+                dep: depName,
+                prov: provName,
+                dist: distName,
+              });
             }
           }
         }
@@ -142,7 +151,9 @@ export default function AlmacenCourierCrearModalInvitacion({
   const provincias = useMemo(() => {
     if (!form.departamento) return [];
     return Array.from(
-      new Set(ubigeos.filter((u) => u.dep === form.departamento).map((u) => u.prov))
+      new Set(
+        ubigeos.filter((u) => u.dep === form.departamento).map((u) => u.prov)
+      )
     ).sort();
   }, [form.departamento, ubigeos]);
 
@@ -181,18 +192,30 @@ export default function AlmacenCourierCrearModalInvitacion({
   };
 
   const validar = (): string | null => {
-    const { nombre_sede, departamento, provincia, distrito, direccion, representante } = form;
+    const {
+      nombre_sede,
+      departamento,
+      provincia,
+      distrito,
+      direccion,
+      representante,
+    } = form;
     if (!nombre_sede.trim()) return "El nombre de la sede es obligatorio.";
     if (!departamento.trim()) return "El departamento es obligatorio.";
     if (!provincia.trim()) return "La provincia es obligatoria.";
     if (!distrito.trim()) return "El distrito es obligatorio.";
     if (!direccion.trim()) return "La dirección es obligatoria.";
 
-    if (!representante.nombres.trim()) return "Los nombres del representante son obligatorios.";
-    if (!representante.apellidos.trim()) return "Los apellidos del representante son obligatorios.";
-    if (!representante.dni.trim()) return "El DNI del representante es obligatorio.";
-    if (!representante.correo.trim()) return "El correo del representante es obligatorio.";
-    if (!/^\S+@\S+\.\S+$/.test(representante.correo.trim())) return "El correo del representante no es válido.";
+    if (!representante.nombres.trim())
+      return "Los nombres del representante son obligatorios.";
+    if (!representante.apellidos.trim())
+      return "Los apellidos del representante son obligatorios.";
+    if (!representante.dni.trim())
+      return "El DNI del representante es obligatorio.";
+    if (!representante.correo.trim())
+      return "El correo del representante es obligatorio.";
+    if (!/^\S+@\S+\.\S+$/.test(representante.correo.trim()))
+      return "El correo del representante no es válido.";
     return null;
   };
 
@@ -206,7 +229,14 @@ export default function AlmacenCourierCrearModalInvitacion({
       return;
     }
 
-    const { nombre_sede, departamento, provincia, distrito, direccion, representante } = form;
+    const {
+      nombre_sede,
+      departamento,
+      provincia,
+      distrito,
+      direccion,
+      representante,
+    } = form;
     const selectedDist = distritos.find((d) => d.code === distrito);
     const ciudad = selectedDist?.name || "";
 
@@ -230,8 +260,8 @@ export default function AlmacenCourierCrearModalInvitacion({
         },
       };
 
-      await onSubmit(payload);       // Debe llamar al endpoint /almacenamientocourier/sedes
-      onClose();                     // Solo cierra si fue exitoso
+      await onSubmit(payload); // Debe llamar al endpoint /almacenamientocourier/sedes
+      onClose(); // Solo cierra si fue exitoso
     } catch (e: any) {
       // Intenta leer message del backend si vino como JSON string
       try {
@@ -245,13 +275,6 @@ export default function AlmacenCourierCrearModalInvitacion({
     }
   };
 
-  // 🎨 Estilos
-  const fieldClass =
-    "w-full h-11 px-3 rounded-md border border-gray-200 bg-gray-50 text-gray-900 " +
-    "placeholder:text-gray-400 outline-none focus:border-gray-400 focus:ring-2 focus:ring-[#1A253D] transition-colors " +
-    (isSubmitting ? "opacity-70 pointer-events-none select-none" : "");
-  const labelClass = "block text-gray-700 font-medium mb-1";
-
   return !isOpen ? null : (
     <div
       ref={overlayRef}
@@ -260,213 +283,190 @@ export default function AlmacenCourierCrearModalInvitacion({
         isSubmitting ? "cursor-wait" : ""
       }`}
     >
-      <div className="w-[520px] max-w-[92vw] h-full bg-white rounded-l-md shadow-lg flex flex-col">
+      <div className="w-[520px] max-w-[92vw] h-full bg-white rounded-l-md shadow-lg flex flex-col gap-5 p-5 ">
         {/* Header */}
-        <div className="p-5 border-b border-gray20">
-          <div className="flex items-center gap-2 mb-2">
-            <Icon icon="mdi:warehouse" width={22} className="text-primaryDark" />
-            <h2 className="text-xl font-bold uppercase text-[#1A253D]">Registrar nueva Sede</h2>
-          </div>
-          <p className="text-sm text-gray-600">
-            Completa la información de la sede e invita a su representante por correo.
-          </p>
-        </div>
+        <Tittlex
+          variant="modal"
+          icon="hugeicons:warehouse"
+          title="Registrar nueva Sede"
+          description="Completa la información de la sede e invita a su representante por correo."
+        />
 
         {/* Body */}
-        <form id="form-crear-sede" onSubmit={handleSubmit} className="flex-1 overflow-auto p-5 space-y-6 text-sm">
+        <form
+          id="form-crear-sede"
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-5 h-full"
+        >
           {/* Datos de sede */}
-          <section className="space-y-4">
+          <section className="flex flex-col gap-5">
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-              <Icon icon="mdi:office-building" />
-              Datos de la sede
+              {" "}
+              <Icon icon="mdi:office-building" /> Datos de la sede{" "}
             </h3>
 
-            <div>
-              <label className={labelClass}>Nombre de la sede</label>
-              <input
-                type="text"
-                name="nombre_sede"
-                placeholder="Ej. Sede Secundaria"
-                value={form.nombre_sede}
-                onChange={handleChange}
-                className={fieldClass}
-                disabled={isSubmitting}
-                required
-              />
-            </div>
+            <Inputx
+              label="Nombre de la sede"
+              name="nombre_sede"
+              placeholder="Ej. Sede Secundaria"
+              value={form.nombre_sede}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              required
+            />
 
-            <div>
-              <label className={labelClass}>Departamento</label>
-              <div className="relative">
-                <select
-                  name="departamento"
-                  value={form.departamento}
-                  onChange={handleChange}
-                  className={`${fieldClass} appearance-none pr-9`}
-                  required
-                  disabled={loadingUbigeo || isSubmitting}
-                >
-                  <option value="">
-                    {loadingUbigeo ? "Cargando..." : "Seleccionar departamento"}
+            <div className="flex gap-5">
+              {/* DEPARTAMENTO */}
+              <Selectx
+                label="Departamento"
+                labelVariant="left"
+                name="departamento"
+                value={form.departamento}
+                onChange={handleChange}
+                placeholder={
+                  loadingUbigeo ? "Cargando..." : "Seleccionar departamento"
+                }
+                disabled={loadingUbigeo || isSubmitting}
+                required
+              >
+                {departamentos.map((dep) => (
+                  <option key={dep} value={dep}>
+                    {dep}
                   </option>
-                  {departamentos.map((dep) => (
-                    <option key={dep} value={dep}>
-                      {dep}
-                    </option>
-                  ))}
-                </select>
-                <Icon
-                  icon="mdi:chevron-down"
-                  width={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                />
-              </div>
-            </div>
+                ))}
+              </Selectx>
 
-            <div>
-              <label className={labelClass}>Provincia</label>
-              <div className="relative">
-                <select
-                  name="provincia"
-                  value={form.provincia}
-                  onChange={handleChange}
-                  className={`${fieldClass} appearance-none pr-9 disabled:opacity-50 disabled:cursor-not-allowed`}
-                  disabled={!form.departamento || loadingUbigeo || provincias.length === 0 || isSubmitting}
-                  required
-                >
-                  <option value="">Seleccionar provincia</option>
-                  {provincias.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-                <Icon
-                  icon="mdi:chevron-down"
-                  width={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>Distrito (se guarda como ciudad)</label>
-              <div className="relative">
-                <select
-                  name="distrito"
-                  value={form.distrito}
-                  onChange={handleChange}
-                  className={`${fieldClass} appearance-none pr-9 disabled:opacity-50 disabled:cursor-not-allowed`}
-                  disabled={!form.provincia || loadingUbigeo || distritos.length === 0 || isSubmitting}
-                  required
-                >
-                  <option value="">Seleccionar distrito</option>
-                  {distritos.map((d) => (
-                    <option key={d.code} value={d.code}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-                <Icon
-                  icon="mdi:chevron-down"
-                  width={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>Dirección</label>
-              <input
-                type="text"
-                name="direccion"
-                placeholder="Av. Los Próceres 1234, Urb. Santa Catalina, La Victoria, Lima"
-                value={form.direccion}
+              {/* PROVINCIA */}
+              <Selectx
+                label="Provincia"
+                labelVariant="left"
+                name="provincia"
+                value={form.provincia}
                 onChange={handleChange}
-                className={fieldClass}
-                disabled={isSubmitting}
+                placeholder="Seleccionar provincia"
+                disabled={
+                  !form.departamento ||
+                  loadingUbigeo ||
+                  provincias.length === 0 ||
+                  isSubmitting
+                }
                 required
-              />
+              >
+                {provincias.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </Selectx>
             </div>
+
+            {/* DISTRITO */}
+            <Selectx
+              label="Distrito (se guarda como ciudad)"
+              labelVariant="left"
+              name="distrito"
+              value={form.distrito}
+              onChange={handleChange}
+              placeholder="Seleccionar distrito"
+              disabled={
+                !form.provincia ||
+                loadingUbigeo ||
+                distritos.length === 0 ||
+                isSubmitting
+              }
+              required
+            >
+              {distritos.map((d) => (
+                <option key={d.code} value={d.code}>
+                  {d.name}
+                </option>
+              ))}
+            </Selectx>
+
+            {/* DIRECCIÓN */}
+            <Inputx
+              label="Dirección"
+              name="direccion"
+              placeholder="Av. Los Próceres 1234, Urb. Santa Catalina, La Victoria, Lima"
+              value={form.direccion}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              required
+            />
           </section>
 
           {/* Datos del representante */}
-          <section className="space-y-4">
-            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-              <Icon icon="mdi:account-badge" />
-              Datos del representante
-            </h3>
+          <section className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                <Icon icon="mdi:account-badge" />
+                Datos del representante
+              </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Nombres</label>
-                <input
-                  type="text"
-                  name="rep.nombres"
-                  value={form.representante.nombres}
-                  onChange={handleChange}
-                  className={fieldClass}
-                  disabled={isSubmitting}
-                  placeholder="Juan Carlos"
-                  required
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Apellidos</label>
-                <input
-                  type="text"
-                  name="rep.apellidos"
-                  value={form.representante.apellidos}
-                  onChange={handleChange}
-                  className={fieldClass}
-                  disabled={isSubmitting}
-                  placeholder="Pérez Flores"
-                  required
-                />
-              </div>
-              <div>
-                <label className={labelClass}>DNI</label>
-                <input
-                  type="text"
-                  name="rep.dni"
-                  value={form.representante.dni}
-                  onChange={handleChange}
-                  className={fieldClass}
-                  disabled={isSubmitting}
-                  placeholder="12345678"
-                  required
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Celular (opcional)</label>
-                <input
-                  type="text"
-                  name="rep.celular"
-                  value={form.representante.celular}
-                  onChange={handleChange}
-                  className={fieldClass}
-                  disabled={isSubmitting}
-                  placeholder="9xxxxxxxx"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Correo</label>
-                <input
-                  type="email"
-                  name="rep.correo"
-                  value={form.representante.correo}
-                  onChange={handleChange}
-                  className={fieldClass}
-                  disabled={isSubmitting}
-                  placeholder="correo@dominio.com"
-                  required
-                />
-              </div>
+              <p className="text-xs text-gray-500">
+                Se enviará una invitación al correo del representante para que
+                cree su contraseña y active su cuenta.
+              </p>
             </div>
 
-            <p className="text-xs text-gray-500">
-              Se enviará una invitación al correo del representante para que cree su contraseña y active su cuenta.
-            </p>
+            <div className="flex gap-5">
+              <Inputx
+                label="Nombres"
+                name="rep.nombres"
+                value={form.representante.nombres}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                placeholder="Juan Carlos"
+                required
+              />
+
+              {/* APELLIDOS */}
+              <Inputx
+                label="Apellidos"
+                name="rep.apellidos"
+                value={form.representante.apellidos}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                placeholder="Pérez Flores"
+                required
+              />
+            </div>
+
+            <div className="flex gap-5">
+              <Inputx
+                label="DNI"
+                name="rep.dni"
+                value={form.representante.dni}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                placeholder="12345678"
+                required
+              />
+
+              {/* CELULAR (usa Inputx o InputxPhone) */}
+              <InputxPhone
+                label="Celular (opcional)"
+                countryCode="+51"
+                name="rep.celular"
+                value={form.representante.celular}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                placeholder="9xxxxxxxx"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <Inputx
+                label="Correo"
+                type="email"
+                name="rep.correo"
+                value={form.representante.correo}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                placeholder="correo@dominio.com"
+                required
+              />
+            </div>
           </section>
 
           {errorMsg && (
@@ -477,34 +477,26 @@ export default function AlmacenCourierCrearModalInvitacion({
         </form>
 
         {/* Footer */}
-        <div className="p-5 border-t border-gray20 flex items-center gap-2">
-          <button
+        <div className="flex gap-5">
+          <Buttonx
             type="submit"
             form="form-crear-sede"
-            className={`text-white px-4 py-2 rounded hover:opacity-95 flex items-center gap-2 ${
-              isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-[#1A253D]"
-            }`}
+            variant="secondary"
             disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Icon icon="svg-spinners:180-ring" width={18} />
-                Creando...
-              </>
-            ) : (
-              "Crear nuevo"
-            )}
-          </button>
-          <button
+            className="px-4"
+            label={isSubmitting ? "Creando..." : "Crear nuevo"}
+            icon={isSubmitting ? "svg-spinners:180-ring" : undefined}
+            iconPosition="left"
+          />
+
+          <Buttonx
             type="button"
+            variant="outlinedw"
             onClick={onClose}
-            className={`px-4 py-2 text-sm border rounded ${
-              isSubmitting ? "opacity-60 cursor-not-allowed" : "hover:bg-gray-100"
-            }`}
             disabled={isSubmitting}
-          >
-            Cancelar
-          </button>
+            className="px-4"
+            label="Cancelar"
+          />
         </div>
       </div>
     </div>
