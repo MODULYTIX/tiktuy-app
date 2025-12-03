@@ -4,11 +4,11 @@ import Paginator from '@/shared/components/Paginator';
 import type { SolicitudEcommerce } from '@/role/user/service/solicitud-ecommerce.types';
 
 // Si ya tienes un modal de detalle genérico, mantenlo. Si no, puedes quitarlo sin romper nada.
-import ModalDetalleSolicitud from './ModalDetalleSolicitudAdmin';
 
 //  usa los modales que enviaste (nuevas rutas bajo /modals)
 import ModalConfirmAsociar from '@/shared/components/admin/panel/ecommerce/ModalConfirmAsociar';
 import ModalConfirmDesasociar from '@/shared/components/admin/panel/ecommerce/ModalConfirmDesasociar';
+import ModalDetalleSolicitudAdminEcommerce from './ModalDetalleSolicitudAdminEcommer';
 
 type Props = {
   data: SolicitudEcommerce[];
@@ -87,7 +87,7 @@ export default function TablePanelAdminEcommerce({
   const copy = async (text?: string | null) => {
     try {
       if (text) await navigator.clipboard.writeText(text);
-    } catch { /* empty */}
+    } catch { /* empty */ }
   };
 
   // Acciones
@@ -213,9 +213,8 @@ export default function TablePanelAdminEcommerce({
 
       {/* Drawer detalle (opcional) */}
       {viewItem && (
-        <ModalDetalleSolicitud
+        <ModalDetalleSolicitudAdminEcommerce
           open={!!viewItem}
-          // @ts-expect-error: el modal puede esperar shape de courier; ajusta si tienes uno propio para ecom
           data={viewItem}
           onClose={() => setViewItem(null)}
         />

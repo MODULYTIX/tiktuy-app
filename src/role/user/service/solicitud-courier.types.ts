@@ -23,7 +23,7 @@ export interface SolicitudCourier {
   departamento: string;
   ciudad: string;
   direccion: string;
-  dni_ci : string;
+  dni_ci: string;
   correo: string;
   apellido_paterno: string;
   apellido_materno: string;
@@ -45,4 +45,29 @@ export interface CambioEstadoResponse {
   ok: boolean;
   accion: 'asociar' | 'desasociar';
   passwordSetupUrl?: string | null;
+}
+
+export interface SolicitudCourierCompleto {
+  uuid: string;
+
+  // Datos de empresa
+  nombre_comercial: string;
+  ruc: string;
+  representante: string;
+  departamento: string;
+  ciudad: string;
+  direccion: string;
+
+  // Datos personales del usuario
+  nombres: string;
+  apellidos: string;
+  dni_ci: string;
+  correo: string;
+  telefono: string | null;
+
+  // Estados
+  estado_usuario: string | null;
+  estado_courier: string | null;
+
+  tiene_password: boolean;
 }
