@@ -91,11 +91,21 @@ export default function ImportProductosPreviewModal({
     return Number.isFinite(n) ? Math.trunc(n) : NaN;
   };
 
+  // Extrae el número de cosas como "0.17 kg", "0,17kg", "  1.2 KG "
+  const parsePeso = (v: any) => {
+    if (v === '' || v == null) return NaN;
+    const text = String(v).trim();
+    const match = text.match(/[\d.,]+/); // primera parte tipo 0.17 o 0,17
+    if (!match) return NaN;
+    return toNumber(match[0]); // reutiliza tu normalizador
+  };
+
+
   const invalidField = (g: PreviewProductoDTO) => {
     const precio = toNumber(g.precio);
     const cantidad = toInt(g.cantidad);
     const stockMin = toInt(g.stock_minimo);
-    const peso = toNumber(g.peso);
+    const peso = parsePeso(g.peso);
     return {
       nombre_producto: isEmpty(g.nombre_producto),
       categoria: isEmpty(g.categoria),
@@ -490,15 +500,24 @@ export default function ImportProductosPreviewModal({
                   {/* Peso */}
                   <td className="border-b border-gray-200 px-3 py-2 align-middle text-right tabular-nums">
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
                       min={0}
-                      value={g.peso ?? 0}
-                      onChange={(e) => patchGroup(gi, { peso: Number(e.target.value) })}
-                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isFinite(toNumber(g.peso)) || toNumber(g.peso) < 0 ? 'bg-red-50' : ''}`}
+                      value={g.peso ?? ''} // si viene 0.17 del backend, se ve "0.17"
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const n = parsePeso(raw);
+                        // guardamos como número si es válido
+                        patchGroup(gi, { peso: Number.isFinite(n) ? (n as any) : (raw as any) });
+                      }}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isFinite(parsePeso(g.peso)) || parsePeso(g.peso) < 0
+                        ? 'bg-red-50'
+                        : ''
+                        }`}
                       title={String(g.peso ?? '')}
                     />
                   </td>
+
                 </tr>
               );
             })}
