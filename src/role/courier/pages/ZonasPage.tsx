@@ -26,7 +26,6 @@ export default function ZonasPage() {
       setDistritosOptions(meta.distritos);
       setZonasOptions(meta.zonas);
       // Mantener selección actual si sigue existiendo en las nuevas opciones;
-      // si no existe, limpiamos ese filtro para evitar estados inválidos.
       setDistrito((prev) => (meta.distritos.includes(prev) ? prev : ""));
       setZona((prev) => (meta.zonas.includes(prev) ? prev : ""));
     },
@@ -37,14 +36,18 @@ export default function ZonasPage() {
     <section className="mt-8">
       <div className="flex justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-primary mb-1">Zonas de Atención</h1>
-          <p className="text-gray-500">Listado y creación por tu usuario (mías).</p>
+          <h1 className="text-3xl font-bold text-primary mb-1">
+            Zonas de Atención
+          </h1>
+          <p className="text-gray-500">
+            Listado y creación de zonas asociadas a tu usuario (todas tus sedes).
+          </p>
         </div>
 
         <div className="flex items-end">
           <button
             className="flex gap-2 items-center bg-primaryDark text-white px-3 py-2 rounded-sm"
-            onClick={() => setDrawerOpen(true)}
+            onClick={() => setDrawerOpen(true)}        // 👈 ya no está deshabilitado
           >
             <Icon icon="iconoir:new-tab" width="24" height="24" />
             <span>Nuevo Distrito de Atención</span>
@@ -71,7 +74,7 @@ export default function ZonasPage() {
 
       <div>
         <TableZonaMine
-          key={refreshKey} // se mantiene tu patrón
+          key={refreshKey}
           filters={{ distrito, zona }}
           onLoadedMeta={handleLoadedMeta}
           onEdit={(z) => {
