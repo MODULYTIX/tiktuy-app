@@ -5,7 +5,7 @@ import StockFilters, {
 } from '@/shared/components/ecommerce/stock/StockFilters';
 import StockTable from '@/shared/components/ecommerce/stock/StockTable';
 import { useAuth } from '@/auth/context';
-import { fetchProductosFiltrados } from '@/services/ecommerce/producto/producto.api';
+import { fetchProductosFiltrados, fetchProductosMovidos } from '@/services/ecommerce/producto/producto.api';
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
 import ImportExcelFlow from '@/shared/components/ecommerce/excel/ImportExcelFlow';
 
@@ -46,6 +46,7 @@ export default function StockPage() {
     precio_bajo: false,
     precio_alto: false,
     search: '',
+    movimientos_sedes: '',
     order: 'new_first',
   });
 
@@ -55,22 +56,54 @@ export default function StockPage() {
   const cargarProductos = async (filtros = filters) => {
     if (!token) return;
     try {
+
+      // ================================
+      // NUEVO BLOQUE: productos movidos
+      // ================================
+      if (filtros.movimientos_sedes && Number(filtros.movimientos_sedes) > 0) {
+        try {
+          const movidosResp = await fetchProductosMovidos(token, {
+            almacen_id: Number(filtros.movimientos_sedes),
+            page: 1,
+            perPage: 200,
+          });
+
+          const list = Array.isArray(movidosResp?.data)
+            ? movidosResp.data
+            : [];
+
+          setProductosAll(list);
+          return; // ← evita cargar productos normales
+        } catch (err) {
+          console.error("Error al cargar productos movidos:", err);
+        }
+      }
+
+      // ================================
+      // LO QUE YA TENÍAS, NO TOCO NADA
+      // ================================
       const serverData = await fetchProductosFiltrados(
-        { ...filtros, order: filtros.order ?? 'new_first' },
+        {
+          ...filtros,
+          movimientos_sedes: filtros.movimientos_sedes || undefined,
+          order: filtros.order ?? 'new_first'
+        },
         token
       );
 
       const list = Array.isArray(serverData)
         ? serverData
         : Array.isArray(serverData?.data)
-        ? serverData.data
-        : [];
+          ? serverData.data
+          : [];
 
       setProductosAll(list);
+
     } catch (err) {
       console.error('Error cargando productos:', err);
     }
   };
+
 
   // Debounce al cambiar filtros/token
   useEffect(() => {
@@ -266,6 +299,7 @@ export default function StockPage() {
         filtrarInactivos={false}
         onVer={handleVerProducto}
         onEditar={handleEditarProducto}
+        soloLectura={Boolean(filters.movimientos_sedes)}
       />
 
       {/* Crear */}
