@@ -5,6 +5,7 @@ import type {
   ProductoListQuery,
   ProductoCreateInput,
   ProductoUpdateInput,
+  PaginatedProductosMovidos,
 } from './producto.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -292,5 +293,36 @@ export async function fetchProductosFiltrados(
     const txt = await res.text().catch(() => '');
     throw new Error(txt || 'Error al obtener productos filtrados');
   }
+  return res.json();
+}
+// ===============================
+// LISTAR PRODUCTOS MOVIDOS (NEW)
+// ===============================
+export async function fetchProductosMovidos(
+  token: string,
+  params: { almacen_id: number; page?: number; perPage?: number }
+): Promise<PaginatedProductosMovidos> {
+  if (!params.almacen_id) throw new Error("almacen_id es obligatorio");
+
+  const query = {
+    almacen_id: params.almacen_id,
+    page: params.page ?? 1,
+    perPage: params.perPage ?? 10,
+  };
+
+  const res = await fetch(buildURL(`${BASE}/movimientos`, query), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
+    },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(txt || 'Error al obtener productos movidos');
+  }
+
   return res.json();
 }

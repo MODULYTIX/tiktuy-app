@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
-import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
+import { fetchSedesConRepresentante } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { useAuth } from '@/auth/context';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
@@ -18,6 +18,7 @@ interface Filters {
   precio_bajo: boolean;
   precio_alto: boolean;
   search: string;
+  movimientos_sedes: string;
 }
 
 interface Props {
@@ -45,7 +46,7 @@ export default function StockFilters({ onFilterChange }: Props) {
 
   /* UI state */
   const [loadingCats, setLoadingCats] = useState(false);
-  const [loadingAlm, setLoadingAlm] = useState(false);
+  const [, setLoadingAlm] = useState(false);
   const [errorCats, setErrorCats] = useState<string | null>(null);
   const [errorAlm, setErrorAlm] = useState<string | null>(null);
 
@@ -59,6 +60,7 @@ export default function StockFilters({ onFilterChange }: Props) {
     precio_bajo: false,
     precio_alto: false,
     search: '',
+    movimientos_sedes: '',
   });
 
   /* Evitar setState en desmontaje */
@@ -91,7 +93,7 @@ export default function StockFilters({ onFilterChange }: Props) {
 
     setLoadingAlm(true);
     setErrorAlm(null);
-    fetchAlmacenes(token)
+    fetchSedesConRepresentante(token)
       .then((res) => {
         if (!mountedRef.current) return;
         setAlmacenes(toArray<Almacenamiento>(res));
@@ -137,6 +139,7 @@ export default function StockFilters({ onFilterChange }: Props) {
       precio_bajo: false,
       precio_alto: false,
       search: '',
+      movimientos_sedes: '',
     });
   }, []);
 
@@ -155,8 +158,8 @@ export default function StockFilters({ onFilterChange }: Props) {
   const precioOrden: '' | 'asc' | 'desc' = filters.precio_bajo
     ? 'asc'
     : filters.precio_alto
-    ? 'desc'
-    : '';
+      ? 'desc'
+      : '';
 
   return (
     <div className="bg-white p-5 rounded-md shadow-default border-b-4 border-gray90 ">
@@ -165,15 +168,17 @@ export default function StockFilters({ onFilterChange }: Props) {
 
         {/* Ecommerce */}
         <Selectx
-          label="Ecommerce"
-          value={filters.almacenamiento_id}
+          label="Almacen"
+          value={filters.movimientos_sedes}
           onChange={(e) =>
-            setFilters((prev) => ({ ...prev, almacenamiento_id: e.target.value }))
+            setFilters((prev) => ({
+              ...prev,
+              movimientos_sedes: e.target.value,
+            }))
           }
-          placeholder={loadingAlm ? 'Cargando...' : 'Seleccionar ecommerce'}
-          id="f-ecommerce"
-          disabled={loadingAlm}
-          name="almacenamiento_id"
+          placeholder="Seleccionar sede"
+          id="f-movsede"
+          name="movimientos_sedes"
         >
           <option value="">Todos</option>
           {disponibilidadAlmacenes.map((a) => (

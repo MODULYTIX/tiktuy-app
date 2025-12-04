@@ -139,10 +139,11 @@ export default function ValidarMovimientoCourierModal({
       await validarCourierMovimiento(uuid, token, {
         observaciones: obs,
         evidencia: file || undefined,
+        cantidades,
       });
 
       if (editoAlgo || obs) {
-        notify("Movimiento observado. No se actualizó stock.", "error");
+        notify("Movimiento observado", "error");
       } else {
         notify("Movimiento validado correctamente. Stock actualizado.", "success");
       }

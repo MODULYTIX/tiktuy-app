@@ -71,21 +71,34 @@ export async function fetchCourierMovimientoDetalle(
 }
 
 // Validar (courier) → pasa a "Observado" y adjunta evidencia/observaciones opcionalmente
+// Validar (courier)
 export async function validarCourierMovimiento(
   uuid: string,
   token: string,
-  data: { observaciones?: string; evidencia?: File | null }
+  data: {
+    observaciones?: string;
+    evidencia?: File | null;
+    cantidades?: Record<number, number>;
+  }
 ): Promise<CourierMovimientoDetalle> {
   const form = new FormData();
-  if (data.observaciones) form.append("observaciones", data.observaciones);
-  if (data.evidencia) form.append("evidencia", data.evidencia);
+
+  if (data.observaciones)
+    form.append("observaciones", data.observaciones);
+
+  if (data.evidencia)
+    form.append("evidencia", data.evidencia);
+
+  // << NUEVO >>
+  if (data.cantidades)
+    form.append("cantidades", JSON.stringify(data.cantidades));
 
   const res = await fetch(
     `${BASE_URL}/courier-movimientos/validar/${uuid}`,
     {
       method: "PATCH",
       headers: {
-        Authorization: `Bearer ${token}`, // NO pongas Content-Type, lo maneja el navegador
+        Authorization: `Bearer ${token}`,
       },
       body: form,
     }
