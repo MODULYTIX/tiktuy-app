@@ -31,6 +31,7 @@ const nombreAlmacen = (ref?: AlmacenRef | number | string | null) =>
       ? toText((ref as any)?.nombre_almacen ?? (ref as any)?.nombre ?? (ref as any)?.id)
       : toText(ref);
 
+
 const nombreEstado = (ref?: EstadoRef | string | null) =>
   !ref ? '' : typeof ref === 'object' ? toText((ref as any)?.nombre ?? (ref as any)?.id) : toText(ref);
 
@@ -104,6 +105,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
 
   // Placeholder sin datos
   if (!data) {
+
     return createPortal(
       <div className="fixed inset-0 z-50">
         <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -233,7 +235,9 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                         <div className="mt-2 text-[20px] font-semibold text-slate-800">
                           {nombreAlmacen((data as any)?.almacen_origen) || 'Almacén Origen'}
                         </div>
-
+                        <div className="mt-2 text-[20px] font-semibold text-slate-800">
+                          {data.almacen_origen?.ciudad_origen ?? '—'}
+                        </div>
                         <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#E7F0FF] px-3 py-2">
                           <span className="text-[#2153A3] text-[12px] font-semibold">Fecha de Generación</span>
                         </div>
@@ -267,6 +271,9 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                         <div className="mt-2 text-lg font-semibold text-slate-800">
                           {nombreAlmacen(data.almacen_destino) || 'Almacén Destino'}
                         </div>
+                        <div className="mt-2 text-lg font-semibold text-slate-800">
+                          {data.almacen_destino?.ciudad_destino ?? 'Ciudad Destino'}
+                        </div>
                         <div className="mt-3 inline-flex items-center gap-2 rounded-sm bg-amber-50 px-3 py-1">
                           <span className="text-amber-700 text-xs font-semibold">Fecha de Validación</span>
                         </div>
@@ -278,7 +285,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                   {/* HACIA 2 (NO ELIMINO NADA) */}
                   <div className="text-center">
                     <div className="text-slate-500 font-semibold mb-2">Hacia</div>
-                        <div className="mx-auto w-[100px] h-[100px]">
+                    <div className="mx-auto w-[100px] h-[100px]">
                       <img src={AlmacenHacia} className="object-contain w-full h-full" />
                     </div>
                     <div className="mt-2 text-[20px] font-semibold text-slate-800">
@@ -318,7 +325,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                         (data.items as MovimientoItem[]).map((it, idx) => (
                           <tr key={`${it.producto_uuid ?? it.producto_id ?? idx}`} className="border-t">
                             <td className="p-3">
-                              <img src={it.imagen_url?? ''} className="w-12 h-12" />
+                              <img src={it.imagen_url ?? ''} className="w-12 h-12" />
                             </td>
                             <td className="p-3">{toText(it.codigo_identificacion ?? '')}</td>
                             <td className="p-3">{toText(it.nombre_producto ?? '')}</td>
