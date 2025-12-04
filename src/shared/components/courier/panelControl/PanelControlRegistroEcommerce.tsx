@@ -74,7 +74,9 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
       "direccion",
       "rubro",
     ];
-    const missing = required.filter((k) => String(payload[k] ?? "").trim() === "");
+    const missing = required.filter(
+      (k) => String(payload[k] ?? "").trim() === ""
+    );
     if (missing.length > 0) {
       setErrorMsg("Por favor completa todos los campos obligatorios.");
       return;
@@ -183,7 +185,9 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
               name="comercial"
               placeholder="Ejem. Electrosur"
               value={form.nombre_comercial}
-              onChange={(e) => handleInput("nombre_comercial", e.target.value)}
+              onChange={(e) =>
+                handleInput("nombre_comercial", e.target.value)
+              }
               required
             />
           </div>
@@ -229,16 +233,17 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
           </div>
         </div>
 
-
         {/* Botones (siempre abajo/izquierda) */}
         <div className="flex items-center gap-5">
           <Buttonx
+            type="submit"               // 👈 CLAVE: esto dispara handleSubmit
             variant="quartery"
             disabled={loading}
-            onClick={() => { }}
-            label={loading ? 'Creando...' : 'Crear nuevo'}
-            icon={loading ? 'line-md:loading-twotone-loop' : undefined}
-            className={`px-4 text-sm ${loading ? '[&_svg]:animate-spin' : ''}`}
+            label={loading ? "Creando..." : "Crear nuevo"}
+            icon={loading ? "line-md:loading-twotone-loop" : undefined}
+            className={`px-4 text-sm ${
+              loading ? "[&_svg]:animate-spin" : ""
+            }`}
           />
           <Buttonx
             variant="outlined"
