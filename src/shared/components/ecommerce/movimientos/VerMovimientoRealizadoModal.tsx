@@ -155,7 +155,8 @@ export default function VerMovimientoRealizadoModal(props: Props) {
 
       {/* Contenido CENTRADO tipo modal */}
       <div className="relative z-10 flex max-h-full items-center justify-center p-4">
-        <div className="w-full max-w-[1500px] bg-white rounded-sm shadow-xl overflow-hidden max-h-[92vh]">
+        <div className="w-full max-w-[1500px] bg-white rounded-sm shadow-xl overflow-hidden max-h-[92vh] flex flex-col">
+
           {/* Header */}
           <div className="flex items-start justify-between px-6 pt-5">
             <div className="flex items-center gap-2">
@@ -167,12 +168,13 @@ export default function VerMovimientoRealizadoModal(props: Props) {
             </button>
           </div>
 
-          {/* Subheader: Código + Estado (estilo base) */}
-          <div className="flex items-center justify-between px-6 pb-2">
+          {/* Subheader */}
+          <div className="flex flex-wrap items-center justify-between px-6 pb-2 gap-3">
             {/* Código */}
             <div className="flex items-center gap-2 text-sm">
               <span className="text-slate-500 font-semibold">Código :</span>
               <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">{codigo || '—'}</span>
+
               {!!codigo && (
                 <button
                   type="button"
@@ -185,7 +187,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
               )}
             </div>
 
-            {/* Estado : [Pill grande] */}
+            {/* Estado */}
             {(() => {
               const { label, classes } = estadoPillUI(estado);
               return (
@@ -203,70 +205,64 @@ export default function VerMovimientoRealizadoModal(props: Props) {
             })()}
           </div>
 
-          {/* Body */}
-          <div className="overflow-y-auto px-6 space-y-4 pb-6">
-            {/* Descripción */}
-            <div>
-              <div className="text-slate-800 font-semibold">Descripción</div>
-              <p className="text-slate-600 mt-1">
-                {toText(
-                  data.descripcion ?? 'Movimiento hecho para reabastecer el stock en el almacén destino.'
-                )}
-              </p>
-            </div>
+          {/* Body con grid responsive */}
+          <div className="overflow-y-auto px-6 pb-6 flex-1">
+            <div className="text-slate-800 font-semibold">Descripción</div>
+            <p className="text-slate-600 mt-1">
+              {toText(
+                data.descripcion ?? 'Movimiento hecho para reabastecer el stock en el almacén destino.'
+              )}
+            </p>
 
-            {/* GRID principal 5/7 */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Izquierda: tarjeta con 3 DIVS (Desde / Carrito / Hacia) */}
+            {/* GRID 5/7 RESPONSIVE */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+
+              {/* IZQUIERDA */}
               <div className="lg:col-span-5">
-                <div className="border rounded-sm h-auto bg-white border-gray-400">
+                <div className="border rounded-sm bg-white border-gray-400">
                   <div className="px-8 py-6">
-                    {/* === Tres columnas, cada una centrada horizontal y vertical === */}
+
                     <div className="grid grid-cols-3 gap-10 place-items-center min-h-[300px]">
+
                       {/* DESDE */}
                       <div className="text-center">
                         <div className="text-slate-500 font-semibold mb-2">Desde</div>
-                        <div className="mx-auto w-[160px] h-[160px]">
-                          <img src={AlmacenDesde} alt="Almacén desde" className="object-contain w-full h-full" />
+                        <div className="mx-auto w-[100px] h-[100px]">
+                          <img src={AlmacenDesde} className="object-contain w-full h-full" />
                         </div>
                         <div className="mt-2 text-[20px] font-semibold text-slate-800">
                           {nombreAlmacen((data as any)?.almacen_origen) || 'Almacén Origen'}
                         </div>
+
                         <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#E7F0FF] px-3 py-2">
                           <span className="text-[#2153A3] text-[12px] font-semibold">Fecha de Generación</span>
                         </div>
+
                         <div className="mt-3 text-slate-600 text-[14px]">{fechaGeneracion || '—'}</div>
                       </div>
 
-                      {/* Línea con camión y tiempo transcurrido */}
-                      <div className="relative flex flex-col justify-center items-center mt-6 mx-4">
-                        <div className="h-0.5 bg-slate-300 mx-4 absolute top-1/3 left-0 right-0" />
-                        <div className="absolute top-0">
-                          <video
-                            src={truckLoop} // Animación o gif
-                            className="w-12 h-12 rounded-md"
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                          />
-                        </div>
-                        <div className="text-xs text-slate-500 -mt-10">Tiempo transcurrido</div>
+                      {/* CAMIÓN */}
+                      <div className="relative flex flex-col items-center mt-6 mx-4">
+                        <video
+                          src={truckLoop}
+                          className="w-12 h-12 rounded-md"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                        />
+                        <div className="text-xs text-slate-500 mt-2">Tiempo transcurrido</div>
                         <div className="flex items-center gap-1 text-xs text-slate-700 mt-1">
                           <HiClock className="w-4 h-4" />
                           {diasTranscurridos && `${diasTranscurridos} día${diasTranscurridos !== '1' ? 's' : ''}`}
                         </div>
                       </div>
 
-                      {/* Sección Hacia */}
+                      {/* HACIA 1 */}
                       <div className="flex flex-col items-center">
                         <div className="text-slate-500 font-semibold mb-2">Hacia</div>
                         <div className="w-20 h-20">
-                          <img
-                            src={AlmacenHacia} // Ruta de la imagen
-                            alt="Almacen Hacia"
-                            className="object-contain"
-                          />
+                          <img src={AlmacenHacia} className="object-contain" />
                         </div>
                         <div className="mt-2 text-lg font-semibold text-slate-800">
                           {nombreAlmacen(data.almacen_destino) || 'Almacén Destino'}
@@ -279,11 +275,11 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                     </div>
                   </div>
 
-                  {/* HACIA */}
+                  {/* HACIA 2 (NO ELIMINO NADA) */}
                   <div className="text-center">
                     <div className="text-slate-500 font-semibold mb-2">Hacia</div>
-                    <div className="mx-auto w-[160px] h-[160px]">
-                      <img src={AlmacenHacia} alt="Almacén hacia" className="object-contain w-full h-full" />
+                        <div className="mx-auto w-[100px] h-[100px]">
+                      <img src={AlmacenHacia} className="object-contain w-full h-full" />
                     </div>
                     <div className="mt-2 text-[20px] font-semibold text-slate-800">
                       {nombreAlmacen((data as any)?.almacen_destino) || 'Almacén Destino'}
@@ -294,51 +290,57 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                     <div className="mt-3 text-slate-600 text-[14px]">{fecha_validacion || '—'}</div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Tarjeta inferior vacía */}
-            <div className="mt-6 mb-4 border rounded-sm bg-white border-gray-400">
-              <div className="p-10 text-center text-slate-400">
-                <p>Sin datos que mostrar, no hay</p>
-                <p>descripción ni archivo adjuntado.</p>
+                {/* TARJETA INFERIOR */}
+                <div className="mt-6 mb-4 border rounded-sm bg-white border-gray-400">
+                  <div className="p-10 text-center text-slate-400">
+                    <p>Sin datos que mostrar, no hay</p>
+                    <p>descripción ni archivo adjuntado.</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Derecha: Tabla de detalle */}
-          <div className="lg:col-span-7">
-            <div className="h-full border rounded-sm overflow-hidden bg-white border-gray-400">
-              <table className="items-start w-full text-sm ">
-                <thead className="bg-slate-100 text-slate-700">
-                  <tr>
-                    <th className="p-3 text-left font-semibold">Código</th>
-                    <th className="p-3 text-left font-semibold">Producto</th>
-                    <th className="p-3 text-left font-semibold">Descripción</th>
-                    <th className="p-3 text-right font-semibold">Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data.items ?? []).length > 0 ? (
-                    (data.items as MovimientoItem[]).map((it, idx) => (
-                      <tr key={`${it.producto_uuid ?? it.producto_id ?? idx}`} className="border-t">
-                        <td className="p-3">{toText(it.codigo_identificacion ?? '')}</td>
-                        <td className="p-3">{toText(it.nombre_producto ?? '')}</td>
-                        <td className="p-3 text-slate-600">{toText(it.descripcion ?? '')}</td>
-                        <td className="p-3 text-right">{Number(it.cantidad ?? 0)}</td>
+              {/* DERECHA TABLA */}
+              <div className="lg:col-span-7">
+                <div className="h-full border rounded-sm overflow-hidden bg-white border-gray-400">
+                  <table className="items-start w-full text-sm">
+                    <thead className="bg-slate-100 text-slate-700">
+                      <tr>
+                        <th className="p-3 text-left font-semibold"></th>
+                        <th className="p-3 text-left font-semibold">Código</th>
+                        <th className="p-3 text-left font-semibold">Producto</th>
+                        <th className="p-3 text-left font-semibold">Descripción</th>
+                        <th className="p-3 text-right font-semibold">Cantidad</th>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td className="p-6 text-center text-slate-500 italic" colSpan={4}>
-                        Sin ítems en este movimiento.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {(data.items ?? []).length > 0 ? (
+                        (data.items as MovimientoItem[]).map((it, idx) => (
+                          <tr key={`${it.producto_uuid ?? it.producto_id ?? idx}`} className="border-t">
+                            <td className="p-3">
+                              <img src={it.imagen_url?? ''} className="w-12 h-12" />
+                            </td>
+                            <td className="p-3">{toText(it.codigo_identificacion ?? '')}</td>
+                            <td className="p-3">{toText(it.nombre_producto ?? '')}</td>
+                            <td className="p-3 text-slate-600">{toText(it.descripcion ?? '')}</td>
+                            <td className="p-3 text-right">{Number(it.cantidad ?? 0)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td className="p-6 text-center text-slate-500 italic" colSpan={4}>
+                            Sin ítems en este movimiento.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
             </div>
           </div>
+
         </div>
       </div>
     </div>,

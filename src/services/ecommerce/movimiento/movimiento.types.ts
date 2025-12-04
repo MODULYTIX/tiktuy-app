@@ -7,6 +7,7 @@ export type MovimientoItem = {
     cantidad?: number;
     stock_previo?: number;
     stock_posterior?: number;
+    imagen_url?: string;
   };
   
   export type AlmacenRef = {
