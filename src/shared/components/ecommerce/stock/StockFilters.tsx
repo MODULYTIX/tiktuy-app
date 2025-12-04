@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
-import { fetchAlmacenes, fetchSedesConRepresentante } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
+import { fetchSedesConRepresentante } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { useAuth } from '@/auth/context';
 import type { Categoria } from '@/services/ecommerce/categoria/categoria.types';
 import type { Almacenamiento } from '@/services/ecommerce/almacenamiento/almacenamiento.types';
@@ -46,7 +46,7 @@ export default function StockFilters({ onFilterChange }: Props) {
 
   /* UI state */
   const [loadingCats, setLoadingCats] = useState(false);
-  const [loadingAlm, setLoadingAlm] = useState(false);
+  const [, setLoadingAlm] = useState(false);
   const [errorCats, setErrorCats] = useState<string | null>(null);
   const [errorAlm, setErrorAlm] = useState<string | null>(null);
 
