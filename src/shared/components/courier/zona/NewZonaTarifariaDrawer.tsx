@@ -1,7 +1,14 @@
 // src/shared/components/courier/zona-tarifaria/NewZonaTarifariaDrawer.tsx
 import { useEffect, useState } from "react";
-import { crearZonaTarifariaParaMiUsuario, fetchMisZonas } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
-import type { ApiResult, ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
+import type React from "react";
+import {
+  crearZonaTarifariaParaMiUsuario,
+  fetchMisZonas,
+} from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
+import type {
+  ApiResult,
+  ZonaTarifaria,
+} from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
 
 //  Tus componentes
@@ -12,7 +19,7 @@ import { InputxNumber } from "@/shared/common/Inputx";
 
 type Props = {
   open: boolean;
-  zonasOpciones?: string[];
+  zonasOpciones?: string[];      // SOLO para el combo de "Zona"
   onClose: () => void;
   onCreated?: () => void;
 };
@@ -25,8 +32,6 @@ type CreateForm = {
   estado_id: string;
 };
 
-const DEFAULT_ZONAS = ["1", "2", "3", "4", "5", "6"];
-
 const ESTADOS_ZONA = [
   { id: 28, nombre: "Activo" },
   { id: 29, nombre: "Inactivo" },
@@ -34,11 +39,11 @@ const ESTADOS_ZONA = [
 
 export default function NewZonaTarifariaDrawer({
   open,
-  zonasOpciones = DEFAULT_ZONAS,
+  zonasOpciones = ["1", "2", "3", "4", "5", "6"], // ← SOLO para campo Zona
   onClose,
   onCreated,
 }: Props) {
-  const [, setSugerenciasDistritos] = useState<string[]>([]);
+  const [sugerenciasDistritos, setSugerenciasDistritos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -50,6 +55,7 @@ export default function NewZonaTarifariaDrawer({
     estado_id: String(ESTADOS_ZONA[0].id),
   });
 
+  // Reset al cerrar
   useEffect(() => {
     if (!open) {
       setErr(null);
@@ -63,6 +69,7 @@ export default function NewZonaTarifariaDrawer({
     }
   }, [open]);
 
+  // Cargar sugerencias de distritos desde MIS zonas (todas las sedes del courier)
   useEffect(() => {
     let mounted = true;
     async function load() {
@@ -70,9 +77,17 @@ export default function NewZonaTarifariaDrawer({
       try {
         const token = getAuthToken();
         if (!token) return;
+
         const res: ApiResult<ZonaTarifaria[]> = await fetchMisZonas(token);
         if (!mounted || !res.ok) return;
-        const uniques = Array.from(new Set(res.data.map((z) => z.distrito.trim()))).sort((a, b) =>
+
+        const uniques = Array.from(
+          new Set(
+            res.data
+              .map((z) => (z.distrito ?? "").toString().trim())
+              .filter(Boolean)
+          )
+        ).sort((a, b) =>
           a.localeCompare(b, "es", { sensitivity: "base" })
         );
         setSugerenciasDistritos(uniques);
@@ -134,6 +149,9 @@ export default function NewZonaTarifariaDrawer({
 
   if (!open) return null;
 
+  // 🔹 AHORA: solo usamos distritos reales, sin fallback a números
+  const distritosOptions = sugerenciasDistritos;
+
   return (
     <div className="fixed inset-0 z-50">
       {/* Overlay */}
@@ -141,7 +159,7 @@ export default function NewZonaTarifariaDrawer({
 
       {/* Drawer derecho */}
       <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl p-5 flex flex-col gap-5 overflow-y-auto">
-        {/* Header sin botón X */}
+        {/* Header */}
         <Tittlex
           variant="modal"
           icon="solar:point-on-map-broken"
@@ -165,9 +183,10 @@ export default function NewZonaTarifariaDrawer({
               onChange={(e) => handleChange("distrito", e.target.value)}
               labelVariant="left"
             >
-              {(zonasOpciones || []).map((z) => (
-                <option key={z} value={z}>
-                  {z}
+              {/* Solo mostramos opciones si hay distritos sugeridos */}
+              {distritosOptions.map((d) => (
+                <option key={d} value={d}>
+                  {d}
                 </option>
               ))}
             </Selectx>
@@ -176,7 +195,12 @@ export default function NewZonaTarifariaDrawer({
               label="Zona"
               placeholder="Seleccionar zona"
               value={form.zona_tarifario}
-              onChange={(e) => handleChange("zona_tarifario", (e.target as HTMLSelectElement).value)}
+              onChange={(e) =>
+                handleChange(
+                  "zona_tarifario",
+                  (e.target as HTMLSelectElement).value
+                )
+              }
               labelVariant="left"
             >
               {(zonasOpciones || []).map((z) => (
@@ -192,7 +216,9 @@ export default function NewZonaTarifariaDrawer({
               name="tarifa_cliente"
               label="Tarifa Cliente"
               value={form.tarifa_cliente}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange("tarifa_cliente", e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                handleChange("tarifa_cliente", e.target.value)
+              }
               placeholder="0.00"
               decimals={2}
               step={0.01}
@@ -203,7 +229,9 @@ export default function NewZonaTarifariaDrawer({
               name="pago_motorizado"
               label="Pago a Motorizado"
               value={form.pago_motorizado}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange("pago_motorizado", e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                handleChange("pago_motorizado", e.target.value)
+              }
               placeholder="0.00"
               decimals={2}
               step={0.01}
@@ -211,7 +239,6 @@ export default function NewZonaTarifariaDrawer({
             />
           </div>
         </div>
-
 
         {/* Acciones */}
         <div className="mt-6 flex gap-3">
@@ -231,6 +258,6 @@ export default function NewZonaTarifariaDrawer({
           />
         </div>
       </div>
-    </div >
+    </div>
   );
 }

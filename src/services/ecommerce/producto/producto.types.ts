@@ -40,6 +40,32 @@ export interface Producto {
   estado?: EstadoBasico | null;
 }
 
+/** Movimiento resumido para productos movidos */
+export type MovimientoBasico = {
+  uuid: string;
+  fecha_movimiento: string;
+
+  almacen_origen?: {
+    nombre_almacen: string;
+  } | null;
+
+  almacen_destino?: {
+    nombre_almacen: string;
+  } | null;
+
+  estado: {
+    nombre: string;
+  };
+};
+
+/** Producto incluido con su último movimiento */
+export interface ProductoMovido extends Producto {
+  ultimo_movimiento: MovimientoBasico;
+}
+
+/** Respuesta paginada de productos movidos */
+export type PaginatedProductosMovidos = Paginated<ProductoMovido>;
+
 /** Filtros de listado (query params) */
 export type ProductoListQuery = {
   q?: string;

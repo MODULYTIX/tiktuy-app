@@ -1,8 +1,9 @@
 // src/shared/components/courier/zona-tarifaria/EditZonaTarifariaDrawer.tsx
 import { useEffect, useMemo, useState } from "react";
+import type React from "react";
 import {
   actualizarZonaTarifaria,
-  fetchMisZonas,
+  fetchZonasBySedePrivado,
 } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
 import type {
   ApiResult,
@@ -27,7 +28,7 @@ type Props = {
 type EditForm = {
   distrito: string;
   zona_tarifario: string;
-  tarifa_cliente: string;   // mantengo como string y parseo al enviar
+  tarifa_cliente: string; // mantengo como string y parseo al enviar
   pago_motorizado: string;
 };
 
@@ -79,29 +80,44 @@ export default function EditZonaTarifariaDrawer({
     }
   }, [open, zona]);
 
-  // Cargar sugerencias de distritos (por si luego quieres autocompletar)
+  // Cargar sugerencias de distritos SOLO de la sede de la zona
   useEffect(() => {
     let mounted = true;
+
     async function load() {
-      if (!open) return;
+      if (!open || !zona) return;
+
+      // por seguridad, por si existe alguna zona antigua sin sede
+      const sedeId = zona.sede_id;
+      if (!sedeId) return;
+
       try {
         const token = getAuthToken();
         if (!token) return;
-        const res: ApiResult<ZonaTarifaria[]> = await fetchMisZonas(token);
+
+        const res: ApiResult<ZonaTarifaria[]> = await fetchZonasBySedePrivado(
+          sedeId,
+          token
+        );
         if (!mounted || !res.ok) return;
+
         const uniques = Array.from(
           new Set(res.data.map((z) => (z.distrito || "").trim()))
-        ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+        )
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
         setSugerenciasDistritos(uniques);
       } catch {
         /* silent */
       }
     }
+
     load();
     return () => {
       mounted = false;
     };
-  }, [open]);
+  }, [open, zona]);
 
   function handleChange<K extends keyof EditForm>(k: K, v: EditForm[K]) {
     setForm((p) => ({ ...p, [k]: v }));
@@ -145,10 +161,16 @@ export default function EditZonaTarifariaDrawer({
     if (!form.distrito.trim()) return setErr("El distrito es obligatorio.");
     if (!form.zona_tarifario.trim()) return setErr("La zona es obligatoria.");
 
-    if (form.tarifa_cliente.trim() !== "" && Number.isNaN(Number(form.tarifa_cliente))) {
+    if (
+      form.tarifa_cliente.trim() !== "" &&
+      Number.isNaN(Number(form.tarifa_cliente))
+    ) {
       return setErr("Tarifa Cliente debe ser numérico válido.");
     }
-    if (form.pago_motorizado.trim() !== "" && Number.isNaN(Number(form.pago_motorizado))) {
+    if (
+      form.pago_motorizado.trim() !== "" &&
+      Number.isNaN(Number(form.pago_motorizado))
+    ) {
       return setErr("Pago a Motorizado debe ser numérico válido.");
     }
 
@@ -183,9 +205,8 @@ export default function EditZonaTarifariaDrawer({
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
-      {/* Drawer derecho (misma estructura que “Nuevo”) */}
+      {/* Drawer derecho */}
       <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl p-5 flex flex-col gap-5 overflow-y-auto">
-        {/* Header con Tittlex (sin botón X) */}
         <Tittlex
           variant="modal"
           icon="solar:point-on-map-broken"
@@ -199,7 +220,7 @@ export default function EditZonaTarifariaDrawer({
           </div>
         )}
 
-        {/* Formulario (gap-5) */}
+        {/* Formulario */}
         <div className="h-full flex flex-col gap-5">
           {/* Fila 1: Distrito / Zona */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -207,28 +228,34 @@ export default function EditZonaTarifariaDrawer({
               label="Distrito"
               placeholder="Seleccionar distrito"
               value={form.distrito}
-              onChange={(e) => handleChange("distrito", (e.target as HTMLSelectElement).value)}
+              onChange={(e) =>
+                handleChange(
+                  "distrito",
+                  (e.target as HTMLSelectElement).value
+                )
+              }
               labelVariant="left"
             >
-              {/* Si quieres usar sugerencias reales de tus zonas: */}
-              {sugerenciasDistritos.length > 0
-                ? sugerenciasDistritos.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))
-                : (zonasOpciones || []).map((z) => (
-                    <option key={z} value={z}>
-                      {z}
-                    </option>
-                  ))}
+              {(sugerenciasDistritos.length > 0
+                ? sugerenciasDistritos
+                : zonasOpciones
+              ).map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
             </Selectx>
 
             <Selectx
               label="Zona"
               placeholder="Seleccionar zona"
               value={form.zona_tarifario}
-              onChange={(e) => handleChange("zona_tarifario", (e.target as HTMLSelectElement).value)}
+              onChange={(e) =>
+                handleChange(
+                  "zona_tarifario",
+                  (e.target as HTMLSelectElement).value
+                )
+              }
               labelVariant="left"
             >
               {(zonasOpciones || []).map((z) => (

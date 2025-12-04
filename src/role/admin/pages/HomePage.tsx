@@ -6,10 +6,11 @@ import TablePanelAdminEcommerce from '@/shared/components/admin/panel/TablePanel
 import { useAuth } from '@/auth/context/useAuth';
 
 // Courier
-import type { SolicitudCourier } from '@/role/user/service/solicitud-courier.types';
+import type { SolicitudCourier, SolicitudCourierCompleto } from '@/role/user/service/solicitud-courier.types';
 import {
   cambiarEstadoCourier,
   fetchSolicitudesCourier,
+  fetchSolicitudesCourierCompleto,   // ✅ AGREGADO CORRECTO
 } from '@/role/user/service/solitud-courier.api';
 
 // Ecommerce
@@ -29,6 +30,7 @@ export default function AdminHomePage() {
 
   // Data
   const [rowsCourier, setRowsCourier] = useState<SolicitudCourier[]>([]);
+  const [rowsCourierCompleto, setRowsCourierCompleto] = useState<SolicitudCourierCompleto[]>([]); // ✅ ya existía
   const [rowsEcom, setRowsEcom] = useState<SolicitudEcommerce[]>([]);
 
   // UI
@@ -43,6 +45,10 @@ export default function AdminHomePage() {
       if (tab === 'courier') {
         const data = await fetchSolicitudesCourier(token);
         setRowsCourier(data);
+
+        const dataCompleto = await fetchSolicitudesCourierCompleto(token); // ✅ AGREGADO
+        setRowsCourierCompleto(dataCompleto);                              // ✅ AGREGADO
+
       } else {
         const data = await fetchSolicitudesEcommerce(token);
         setRowsEcom(data);
@@ -115,7 +121,6 @@ export default function AdminHomePage() {
       return r ? { passwordSetupUrl: r.passwordSetupUrl ?? undefined } : undefined;
     }
   };
-  
 
   const onDesassociate = async (uuid: string) => {
     if (!token) return;
@@ -139,7 +144,7 @@ export default function AdminHomePage() {
           }
         />
 
-        {/* Botonera (como la imagen): derecha, dos pestañas */}
+        {/* Botonera */}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -156,7 +161,7 @@ export default function AdminHomePage() {
           >
             <span className="inline-flex w-5 h-5 items-center justify-center">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                <path d="M3 7h18v2H3V7zm2 4h14v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-8zm2 2v6h10v-6H7zM7 3h10a2 2 0 0 1 2 2v1H5V5a2 2 0 0 1 2-2z"/>
+                <path d="M3 7h18v2H3V7zm2 4h14v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-8zm2 2v6h10v-6H7zM7 3h10a2 2 0 0 1 2 2v1H5V5a2 2 0 0 1 2-2z" />
               </svg>
             </span>
             Ecommerce
@@ -179,7 +184,7 @@ export default function AdminHomePage() {
           >
             <span className="inline-flex w-5 h-5 items-center justify-center">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                <path d="M21 8l-9-5-9 5 9 5 9-5zm-9 7l-9-5v7l9 5 9-5v-7l-9 5z"/>
+                <path d="M21 8l-9-5-9 5 9 5 9-5zm-9 7l-9-5v7l9 5 9-5v-7l-9 5z" />
               </svg>
             </span>
             Courier
@@ -201,6 +206,7 @@ export default function AdminHomePage() {
           <TablePanelAdmin
             loading={loading}
             data={filteredCourier}
+            dataCompleta={rowsCourierCompleto}  
             onAssociate={onAssociate}
             onDesassociate={onDesassociate}
           />
@@ -212,6 +218,7 @@ export default function AdminHomePage() {
             onDesassociate={onDesassociate}
           />
         )}
+
       </div>
     </div>
   );

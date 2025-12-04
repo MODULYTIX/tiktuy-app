@@ -32,10 +32,13 @@ export interface MotorizadoInfo {
   usuario: UsuarioSimple;
 }
 
+// Estados que usamos en la app
+export type EstadoPedido = 'Asignado' | 'Pendiente' | 'Entregado' | 'Generado'; // Generado solo legacy
+
 export interface Pedido {
   id: number;
   codigo_pedido: string;
-  estado_pedido: string;
+  estado_pedido: EstadoPedido; // <─ antes era string a secas
 
   nombre_cliente: string;
   numero_cliente: string;
@@ -51,8 +54,32 @@ export interface Pedido {
   sede_id: number;
 
   ecommerce: Empresa;
-  courier?: Empresa;   // ahora opcional
+  courier?: Empresa;   // sigue opcional (puede venir null desde el backend)
   motorizado?: MotorizadoInfo;
 
   detalles: PedidoDetalle[];
+}
+
+/* =========================================================
+ * DTO para CREAR pedido desde el ecommerce
+ * (sin courier_id, usando sede_id)
+ * ======================================================= */
+export interface CrearPedidoDTO {
+  codigo_pedido: string;
+  sede_id: number; // el backend obtiene el courier a partir de esta sede
+
+  nombre_cliente: string;
+  numero_cliente: string;
+  celular_cliente: string;
+  direccion_envio: string;
+  referencia_direccion?: string;
+  distrito: string;
+  monto_recaudar: number;
+  fecha_entrega_programada?: string | null;
+
+  detalles: {
+    producto_id: number;
+    cantidad: number;
+    precio_unitario: number;
+  }[];
 }

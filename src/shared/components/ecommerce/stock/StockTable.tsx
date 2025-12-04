@@ -8,6 +8,7 @@ interface Props {
   onVer: (producto: Producto) => void;
   onEditar: (producto: Producto) => void;
   filtrarInactivos?: boolean;
+  soloLectura?: boolean;
 }
 
 const PAGE_SIZE = 5;
@@ -17,10 +18,11 @@ export default function StockTable({
   onVer,
   onEditar,
   filtrarInactivos = true,
+  soloLectura = false,
 }: Props) {
   const [page, setPage] = useState(1);
 
-  // 👇 AHORA la tabla respeta el ORDEN que ya viene del padre.
+  //  AHORA la tabla respeta el ORDEN que ya viene del padre.
   // Solo aplica (opcionalmente) el filtro de inactivos y stock 0.
   const productosFiltrados = useMemo(() => {
     const base = [...productos]; // respeta el orden recibido desde StockPage
@@ -221,6 +223,8 @@ export default function StockTable({
 
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-3">
+
+                      {/* Botón VER siempre visible */}
                       <button
                         onClick={() => onVer(prod)}
                         title="Ver producto"
@@ -229,16 +233,22 @@ export default function StockTable({
                       >
                         <FaEye size={16} />
                       </button>
-                      <button
-                        onClick={() => onEditar(prod)}
-                        title="Editar producto"
-                        aria-label={`Editar ${prod.nombre_producto}`}
-                        className="text-amber-600 hover:text-amber-800"
-                      >
-                        <FaEdit size={16} />
-                      </button>
+
+                      {/* Botón EDITAR solo si NO estamos en modo soloLectura */}
+                      {!soloLectura && (
+                        <button
+                          onClick={() => onEditar(prod)}
+                          title="Editar producto"
+                          aria-label={`Editar ${prod.nombre_producto}`}
+                          className="text-amber-600 hover:text-amber-800"
+                        >
+                          <FaEdit size={16} />
+                        </button>
+                      )}
+
                     </div>
                   </td>
+
                 </tr>
               ))}
 

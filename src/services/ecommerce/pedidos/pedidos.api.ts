@@ -1,9 +1,13 @@
 // pedidos.api.ts
-import type { Pedido } from './pedidos.types';
+import type { Pedido, CrearPedidoDTO } from './pedidos.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-type EstadoTab = 'Generado' | 'Asignado' | 'Entregado';
+// Estados que se usan ahora en el filtro del ecommerce
+// Asignado  -> recién creado (ecommerce + courier lo ven aquí)
+// Pendiente -> ya tiene motorizado asignado
+// Entregado -> completado
+type EstadoTab = 'Asignado' | 'Pendiente' | 'Entregado';
 
 /* ==========================================================
    OBTENER CON PAGINACIÓN
@@ -15,7 +19,7 @@ export async function fetchPedidos(
   perPage = 10
 ): Promise<{ data: Pedido[]; pagination: any }> {
   const url = new URL(`${API_URL}/pedido`);
-  
+
   url.searchParams.set('page', String(page));
   url.searchParams.set('perPage', String(perPage));
   if (estado) url.searchParams.set('estado', estado);
@@ -28,17 +32,27 @@ export async function fetchPedidos(
   return res.json();
 }
 
-// Aliases viejos siguen funcionando
-export const fetchPedidosGenerados = (t: string, p = 1, pp = 10) =>
-  fetchPedidos(t, 'Generado', p, pp);
-
+// Tabs nuevas (o actualizadas)
 export const fetchPedidosAsignados = (t: string, p = 1, pp = 10) =>
   fetchPedidos(t, 'Asignado', p, pp);
 
+export const fetchPedidosPendientes = (t: string, p = 1, pp = 10) =>
+  fetchPedidos(t, 'Pendiente', p, pp);
+
+// "Completados" en la UI = estado Entregado en BD
 export const fetchPedidosCompletados = (t: string, p = 1, pp = 10) =>
   fetchPedidos(t, 'Entregado', p, pp);
 
-export async function fetchPedidoById(id: number, token: string): Promise<Pedido> {
+// Si aún tienes algo usando "Generados", puedes:
+// - O bien apuntarlo a Asignado
+// - O eliminarlo cuando limpies el código legacy
+// export const fetchPedidosGenerados = (t: string, p = 1, pp = 10) =>
+//   fetchPedidos(t, 'Asignado', p, pp);
+
+export async function fetchPedidoById(
+  id: number,
+  token: string
+): Promise<Pedido> {
   const res = await fetch(`${API_URL}/pedido/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -46,13 +60,12 @@ export async function fetchPedidoById(id: number, token: string): Promise<Pedido
   return res.json();
 }
 
-
 /* ==========================================================
    CREAR
    ========================================================== */
-
+// El pedido se crea SIEMPRE en estado "Asignado" en el backend
 export async function crearPedido(
-  data: any, // viene del formulario
+  data: CrearPedidoDTO, // viene del formulario (usa sede_id, NO courier_id)
   token: string
 ): Promise<Pedido> {
   console.log('🚀 Enviando payload a /pedido:', data);
@@ -75,11 +88,11 @@ export async function crearPedido(
   return res.json();
 }
 
-
 /* ==========================================================
-   EDITAR ESTADO: GENERADO
+   EDITAR ESTADO: GENERADO (LEGACY)
+   Si ya no usas "Generado" en ninguna parte, puedes borrar
+   este bloque y la ruta /pedido/generado/:id en el backend.
    ========================================================== */
-
 export type UpdatePedidoGeneradoPayload = {
   nombre_cliente?: string;
   numero_cliente?: string | null;
@@ -119,17 +132,15 @@ export async function actualizarPedidoGenerado(
   return res.json();
 }
 
-
 /* ==========================================================
    EDITAR ESTADO: ASIGNADO
+   (cuando el ecommerce edita datos mientras está en Asignado)
    ========================================================== */
-
 export async function actualizarPedidoAsignado(
   id: number,
   data: Partial<Pedido>,
   token: string
 ): Promise<Pedido> {
-
   // courier_id ya NO se manda desde frontend
   if ('courier_id' in data) delete (data as any).courier_id;
 

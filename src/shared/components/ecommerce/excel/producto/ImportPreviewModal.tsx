@@ -15,7 +15,7 @@ type Props = {
   token: string;
   data: PreviewProductosResponseDTO;
   onImported: () => void;
-  preloadedAlmacenOptions?: Option[];     
+  preloadedAlmacenOptions?: Option[];
   preloadedCategoriaOptions?: Option[];
 };
 
@@ -26,7 +26,7 @@ function toArray<T>(val: unknown): T[] {
   if (val && typeof val === 'object') {
     const obj = val as any;
     if (Array.isArray(obj.items)) return obj.items as T[];
-    if (Array.isArray(obj.data))  return obj.data  as T[];
+    if (Array.isArray(obj.data)) return obj.data as T[];
   }
   return [];
 }
@@ -56,7 +56,7 @@ export default function ImportProductosPreviewModal({
   );
 
   const [selected, setSelected] = useState<Record<number, boolean>>({});
-  const allSelected  = groups.length > 0 && groups.every((_, i) => selected[i]);
+  const allSelected = groups.length > 0 && groups.every((_, i) => selected[i]);
   const someSelected = groups.some((_, i) => selected[i]);
   const headerChkRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -65,33 +65,54 @@ export default function ImportProductosPreviewModal({
     }
   }, [allSelected, someSelected]);
 
-  const toggleRow  = (idx: number) => setSelected(prev => ({ ...prev, [idx]: !prev[idx] }));
-  const toggleAll  = () => setSelected(allSelected ? {} : Object.fromEntries(groups.map((_, i) => [i, true])));
+  const toggleRow = (idx: number) => setSelected(prev => ({ ...prev, [idx]: !prev[idx] }));
+  const toggleAll = () => setSelected(allSelected ? {} : Object.fromEntries(groups.map((_, i) => [i, true])));
 
   // ----------------- VALIDATION (misma lógica, sin 'almacen') -----------------
   const norm = (s: string) =>
     (s ?? '').toString().trim().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
   const categoriaSet = useMemo(() => new Set(categoriaNames.map(norm)), [categoriaNames]);
 
-  const isEmpty  = (s: unknown) => String(s ?? '').trim().length === 0;
-  const toNumber = (v: any) => (v === '' || v == null ? NaN : Number(v));
-  const toInt    = (v: any) => {
+  const isEmpty = (s: unknown) => String(s ?? '').trim().length === 0;
+  const toNumber = (v: any) => {
+    if (v === '' || v == null) return NaN;
+    let s = String(v).trim();
+    s = s.replace(/,/g, '');
+    if (/^\d{1,3}(\.\d{3})+,\d+$/.test(s)) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    }
+
+    const n = Number(s);
+    return Number.isFinite(n) ? n : NaN;
+  };
+
+  const toInt = (v: any) => {
     const n = toNumber(v);
     return Number.isFinite(n) ? Math.trunc(n) : NaN;
   };
 
+  // Extrae el número de cosas como "0.17 kg", "0,17kg", "  1.2 KG "
+  const parsePeso = (v: any) => {
+    if (v === '' || v == null) return NaN;
+    const text = String(v).trim();
+    const match = text.match(/[\d.,]+/); // primera parte tipo 0.17 o 0,17
+    if (!match) return NaN;
+    return toNumber(match[0]); // reutiliza tu normalizador
+  };
+
+
   const invalidField = (g: PreviewProductoDTO) => {
-    const precio    = toNumber(g.precio);
-    const cantidad  = toInt(g.cantidad);
-    const stockMin  = toInt(g.stock_minimo);
-    const peso      = toNumber(g.peso);
+    const precio = toNumber(g.precio);
+    const cantidad = toInt(g.cantidad);
+    const stockMin = toInt(g.stock_minimo);
+    const peso = parsePeso(g.peso);
     return {
       nombre_producto: isEmpty(g.nombre_producto),
       categoria: isEmpty(g.categoria),
-      precio:    !(Number.isFinite(precio)    && precio    >= 0),
-      cantidad:  !(Number.isInteger(cantidad) && cantidad  >= 0),
+      precio: !(Number.isFinite(precio) && precio >= 0),
+      cantidad: !(Number.isInteger(cantidad) && cantidad >= 0),
       stock_minimo: !(Number.isInteger(stockMin) && stockMin >= 0),
-      peso:      !(Number.isFinite(peso)      && peso      >= 0),
+      peso: !(Number.isFinite(peso) && peso >= 0),
     };
   };
 
@@ -111,11 +132,11 @@ export default function ImportProductosPreviewModal({
     const inv = invalidField(g);
     const e: string[] = [];
     if (inv.nombre_producto) e.push('Campo requerido: Nombre');
-    if (inv.categoria)       e.push('Campo requerido: Categoria');
-    if (inv.precio)          e.push('Precio inválido (>= 0)');
-    if (inv.cantidad)        e.push('Cantidad inválida (≥ 0)');
-    if (inv.stock_minimo)    e.push('Stock mínimo inválido (≥ 0)');
-    if (inv.peso)            e.push('Peso inválido (≥ 0)');
+    if (inv.categoria) e.push('Campo requerido: Categoria');
+    if (inv.precio) e.push('Precio inválido (>= 0)');
+    if (inv.cantidad) e.push('Cantidad inválida (≥ 0)');
+    if (inv.stock_minimo) e.push('Stock mínimo inválido (≥ 0)');
+    if (inv.peso) e.push('Peso inválido (≥ 0)');
     return e;
   };
 
@@ -286,14 +307,24 @@ export default function ImportProductosPreviewModal({
           {/* Precio */}
           <div className="relative">
             <input
-              type="number"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               placeholder="Seleccionar"
               className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  const n = Number((e.target as HTMLInputElement).value);
-                  if (!Number.isNaN(n)) applyToSelected({ precio: n });
+                  const raw = (e.target as HTMLInputElement).value;
+                  const normalized = raw
+                    .replace(/,/g, '')
+                    .replace(/\.(?=\d{3}\b)/g, '')
+                    .replace(/,/, '.');
+
+                  const n = Number(normalized);
+
+                  if (!Number.isNaN(n)) {
+                    applyToSelected({ precio: n });
+                  }
+
                   (e.target as HTMLInputElement).value = '';
                 }
               }}
@@ -469,15 +500,24 @@ export default function ImportProductosPreviewModal({
                   {/* Peso */}
                   <td className="border-b border-gray-200 px-3 py-2 align-middle text-right tabular-nums">
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
                       min={0}
-                      value={g.peso ?? 0}
-                      onChange={(e) => patchGroup(gi, { peso: Number(e.target.value) })}
-                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isFinite(toNumber(g.peso)) || toNumber(g.peso) < 0 ? 'bg-red-50' : ''}`}
+                      value={g.peso ?? ''} // si viene 0.17 del backend, se ve "0.17"
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const n = parsePeso(raw);
+                        // guardamos como número si es válido
+                        patchGroup(gi, { peso: Number.isFinite(n) ? (n as any) : (raw as any) });
+                      }}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isFinite(parsePeso(g.peso)) || parsePeso(g.peso) < 0
+                        ? 'bg-red-50'
+                        : ''
+                        }`}
                       title={String(g.peso ?? '')}
                     />
                   </td>
+
                 </tr>
               );
             })}

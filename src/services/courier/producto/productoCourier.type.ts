@@ -51,6 +51,9 @@ export type Producto = {
   categoria_id: number;
   almacenamiento_id: number;
 
+  //Cloudinary
+  imagen_url?: string | null;
+
   // Prisma Decimal suele llegar como string en JSON
   precio: string;       // ej. "25.50"
   stock: number;

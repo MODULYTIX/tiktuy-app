@@ -42,13 +42,15 @@ export default function PedidosTableGenerado({
 
   /* ==========================================================
      FETCH PAGINADO DEL BACKEND
+     AHORA TRAE ESTADO "Asignado"
      ========================================================== */
   useEffect(() => {
     if (!token) return;
 
     setLoading(true);
 
-    fetchPedidos(token, 'Generado', page, PAGE_SIZE)
+    // 👇 Antes: fetchPedidos(token, 'Generado', ...)
+    fetchPedidos(token, 'Asignado', page, PAGE_SIZE)
       .then((res) => {
         setPedidos(res.data || []);
         setServerPagination(res.pagination || serverPagination);
@@ -101,7 +103,7 @@ export default function PedidosTableGenerado({
 
       return true;
     });
-  }, [pedidos, filtros]);
+  }, [pedidos, filtros, start, end]);
 
   const visiblePedidos = filteredPedidos;
 
@@ -151,7 +153,7 @@ export default function PedidosTableGenerado({
   const emptyRowsCount = PAGE_SIZE - visiblePedidos.length;
 
   /* ==========================================================
-     TABLA — ESTILO ASIGNADO APLICADO
+     TABLA
      ========================================================== */
   return (
     <div className="overflow-x-auto">
@@ -196,7 +198,8 @@ export default function PedidosTableGenerado({
                 colSpan={7}
                 className="px-4 py-4 text-center text-gray70 italic"
               >
-                No hay pedidos generados.
+                {/* 👇 mensaje actualizado */}
+                No hay pedidos asignados.
               </td>
             </tr>
           ) : (
@@ -230,7 +233,9 @@ export default function PedidosTableGenerado({
                     </td>
 
                     <td className="px-4 py-3 text-center text-gray70">
-                      {p.detalles?.[0]?.cantidad?.toString().padStart(2, '0')}
+                      {p.detalles?.[0]?.cantidad
+                        ?.toString()
+                        .padStart(2, '0')}
                     </td>
 
                     <td className="px-4 py-3 text-center text-gray70">

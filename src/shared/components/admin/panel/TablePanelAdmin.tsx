@@ -1,13 +1,14 @@
 // src/shared/components/admin/panel/TablePanelAdmin.tsx
 import { useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
-import type { SolicitudCourier } from "@/role/user/service/solicitud-courier.types";
+import type { SolicitudCourier, SolicitudCourierCompleto } from "@/role/user/service/solicitud-courier.types";
 import ModalDetalleSolicitud from "./ModalDetalleSolicitudAdmin";
 import ModalConfirmAsociar from "./ModalConfirmAsociarAdmin";
 import ModalConfirmDesasociar from "./ModalConfirmDesasociarAdmin";
 
 type Props = {
   data: SolicitudCourier[];
+  dataCompleta: SolicitudCourierCompleto[];
   loading?: boolean;
   errorMsg?: string | null;
   itemsPerPage?: number;
@@ -19,6 +20,7 @@ type Props = {
 
 export default function TablePanelAdmin({
   data,
+  dataCompleta,
   loading = false,
   errorMsg = null,
   itemsPerPage = 6,
@@ -27,7 +29,7 @@ export default function TablePanelAdmin({
 }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [viewItem, setViewItem] = useState<SolicitudCourier | null>(null);
+  const [viewItem, setViewItem] = useState<SolicitudCourierCompleto | null>(null);
   const [assocUuid, setAssocUuid] = useState<string | null>(null);
   const [desassocUuid, setDesassocUuid] = useState<string | null>(null);
 
@@ -51,7 +53,7 @@ export default function TablePanelAdmin({
   const copy = async (text?: string | null) => {
     try {
       if (text) await navigator.clipboard.writeText(text);
-    } catch {}
+    } catch { }
   };
 
   async function handleAssociate(uuid: string) {
@@ -123,7 +125,7 @@ export default function TablePanelAdmin({
                     <td className="px-4 py-3">{r.departamento ?? "-"}</td>
                     <td className="px-4 py-3">{r.ciudad ?? "-"}</td>
                     <td className="px-4 py-3">{r.direccion ?? "-"}</td>
-                    <td className="px-4 py-3">{r.courier ?? "-"}</td>
+                    <td className="px-4 py-3">{r.nombre_comercial ?? "-"}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span>{r.telefono || "—"}</span>
@@ -146,11 +148,10 @@ export default function TablePanelAdmin({
 
                     <td className="px-4 py-3 text-center">
                       <span
-                        className={`inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm ${
-                          isAsociado
-                            ? "bg-black text-white"
-                            : "bg-gray30 text-gray80"
-                        }`}
+                        className={`inline-flex items-center justify-center px-3 py-[6px] rounded-full text-[12px] font-medium shadow-sm ${isAsociado
+                          ? "bg-black text-white"
+                          : "bg-gray30 text-gray80"
+                          }`}
                       >
                         {isAsociado ? "Asociado" : "No Asociado"}
                       </span>
@@ -160,7 +161,12 @@ export default function TablePanelAdmin({
                       <div className="flex items-center justify-center gap-3">
                         {/* Ver detalle */}
                         <button
-                          onClick={() => setViewItem(r)}
+                          onClick={() => {
+                            const full = dataCompleta.find((x) => x.uuid === r.uuid);
+                            if (!full) return;          
+                            setViewItem(full);
+                          }}
+
                           className="p-1 hover:bg-gray10 rounded"
                           type="button"
                         >
@@ -223,11 +229,10 @@ export default function TablePanelAdmin({
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
-                className={`w-8 h-8 flex items-center justify-center rounded ${
-                  currentPage === p
-                    ? "bg-gray90 text-white"
-                    : "bg-gray10 text-gray70 hover:bg-gray20"
-                }`}
+                className={`w-8 h-8 flex items-center justify-center rounded ${currentPage === p
+                  ? "bg-gray90 text-white"
+                  : "bg-gray10 text-gray70 hover:bg-gray20"
+                  }`}
               >
                 {p}
               </button>

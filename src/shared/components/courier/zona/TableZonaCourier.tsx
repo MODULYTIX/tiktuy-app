@@ -2,18 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
 import Paginator from "../../Paginator";
 
-import { fetchZonasByCourierPrivado } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
+import { fetchZonasBySedePrivado } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
 import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
 
 type Props = {
-  courierId: number;
+  sedeId: number;          // <-- antes courierId
   itemsPerPage?: number;
   onEdit?: (zona: ZonaTarifaria) => void;
 };
 
 export default function TableZonaCourier({
-  courierId,
+  sedeId,
   itemsPerPage = 6,
   onEdit,
 }: Props) {
@@ -33,7 +33,7 @@ export default function TableZonaCourier({
         const token = getAuthToken();
         if (!token) throw new Error("No se encontró el token de autenticación.");
 
-        const res = await fetchZonasByCourierPrivado(courierId, token);
+        const res = await fetchZonasBySedePrivado(sedeId, token);
         if (!mounted) return;
         if (!res.ok) {
           setErr(res.error || "Error al cargar zonas tarifarias.");
@@ -44,7 +44,6 @@ export default function TableZonaCourier({
         setCurrentPage(1); // reset paginación al recargar
       } catch (e: any) {
         if (!mounted) return;
-        // Si fue cancelado, no mostramos error
         if (e?.name === "AbortError") return;
         setErr(e?.message || "Error al cargar zonas tarifarias.");
         setZonas([]);
@@ -53,13 +52,20 @@ export default function TableZonaCourier({
       }
     }
 
-    load();
+    // Si por alguna razón viene un sedeId inválido, evitamos llamar al backend
+    if (sedeId) {
+      load();
+    } else {
+      setZonas([]);
+      setLoading(false);
+      setErr("Sede no seleccionada.");
+    }
 
     return () => {
       mounted = false;
       controller.abort();
     };
-  }, [courierId]);
+  }, [sedeId]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(zonas.length / itemsPerPage)),
