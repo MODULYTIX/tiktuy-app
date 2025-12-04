@@ -1,5 +1,5 @@
 import { useAuth } from '@/auth/context';
-import { fetchPedidosAsignados } from '@/services/ecommerce/pedidos/pedidos.api';
+import { fetchPedidos } from '@/services/ecommerce/pedidos/pedidos.api';
 import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
 import { Icon } from '@iconify/react/dist/iconify.js';
 import { useEffect, useMemo, useState } from 'react';
@@ -19,7 +19,12 @@ interface Props {
   refreshKey: number;
 }
 
-export default function PedidosTableAsignado({ onVer, onEditar, filtros, refreshKey }: Props) {
+export default function PedidosTableAsignado({
+  onVer,
+  onEditar,
+  filtros,
+  refreshKey,
+}: Props) {
   const { token } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,25 +33,26 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
   const [page, setPage] = useState(1);
 
   // ================================
-  // FETCH — Refetch cuando refreshKey cambia
+  // FETCH — ahora trae estado "Pendiente"
   // ================================
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    fetchPedidosAsignados(token)
+
+    // Antes: fetchPedidosAsignados(token)
+    fetchPedidos(token, 'Pendiente', 1, 10)
       .then((res) => {
-        setPedidos(res.data);        // ✔ ahora solo guardas el array
-        // si quieres guardar pagination, crea otro useState para eso:
-        // setPagination(res.pagination);
+        setPedidos(res.data || []);
       })
       .catch(() => setPedidos([]))
       .finally(() => setLoading(false));
   }, [token, refreshKey]);
-  
+
   const goToPage = (n: number) => {
     if (n < 1 || n > totalPages) return;
     setPage(n);
   };
+
   // ===============================
   // Helpers formato fechas
   // ===============================
@@ -75,18 +81,20 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
     ).padStart(2, '0')}/${d.getFullYear()}`;
   };
 
-
   const getEstadoPill = (estado: string) => {
     const base =
       'inline-flex items-center px-2 py-[2px] rounded text-[11px] font-medium border';
+
+    const lower = (estado || '').toLowerCase();
+
     const classes =
-      estado.toLowerCase() === 'asignado'
+      lower === 'pendiente'
         ? 'bg-amber-50 text-amber-700 border-amber-200'
-        : estado.toLowerCase() === 'entregado'
+        : lower === 'entregado'
         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
         : 'bg-gray-50 text-gray-600 border-gray-200';
 
-    const label = estado.toLowerCase() === 'asignado' ? 'En proceso' : estado;
+    const label = lower === 'pendiente' ? 'Pendiente' : estado;
 
     return <span className={`${base} ${classes}`}>{label}</span>;
   };
@@ -137,7 +145,7 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
   }, [filtros]);
 
   // ===============================
-  // PAGINACIÓN
+  // PAGINACIÓN (client-side)
   // ===============================
   const totalPages = Math.max(1, Math.ceil(filteredPedidos.length / PAGE_SIZE));
   const visiblePedidos = useMemo(
@@ -215,8 +223,12 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
             ))
           ) : filteredPedidos.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-4 py-4 text-center text-gray70 italic">
-                No hay pedidos asignados.
+              <td
+                colSpan={8}
+                className="px-4 py-4 text-center text-gray70 italic"
+              >
+                {/* Texto actualizado */}
+                No hay pedidos pendientes.
               </td>
             </tr>
           ) : (
@@ -227,22 +239,35 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
                 );
                 const monto = Number(p.monto_recaudar ?? 0);
 
-
-
                 return (
-                  <tr key={p.id} className="hover:bg-gray10 transition-colors">
-                    <td className="px-2 py-3 text-center text-gray70">{fecha}</td>
-                    <td className="px-4 py-3 text-gray70">{p.courier?.nombre_comercial}</td>
-                    <td className="px-4 py-3 text-gray70">{p.nombre_cliente}</td>
+                  <tr
+                    key={p.id}
+                    className="hover:bg-gray10 transition-colors"
+                  >
+                    <td className="px-2 py-3 text-center text-gray70">
+                      {fecha}
+                    </td>
+                    <td className="px-4 py-3 text-gray70">
+                      {p.courier?.nombre_comercial}
+                    </td>
+                    <td className="px-4 py-3 text-gray70">
+                      {p.nombre_cliente}
+                    </td>
                     <td className="px-4 py-3 text-gray70">
                       {p.detalles?.[0]?.producto?.nombre_producto ?? '-'}
                     </td>
                     <td className="px-4 py-3 text-center text-gray70">
-                      {p.detalles?.[0]?.cantidad?.toString().padStart(2, '0')}
+                      {p.detalles?.[0]?.cantidad
+                        ?.toString()
+                        .padStart(2, '0')}
                     </td>
-                    <td className="px-4 py-3 text-center text-gray70">S/. {monto.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-center text-gray70">
+                      S/. {monto.toFixed(2)}
+                    </td>
 
-                    <td className="px-4 py-3 text-center">{getEstadoPill(p.estado_pedido)}</td>
+                    <td className="px-4 py-3 text-center">
+                      {getEstadoPill(p.estado_pedido)}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-4">
                         <button
@@ -255,7 +280,11 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
                           onClick={() => onEditar(p.id)}
                           className="text-[#CA8A04] hover:opacity-80"
                         >
-                          <Icon icon="fa-regular:edit" width="16" height="16" />
+                          <Icon
+                            icon="fa-regular:edit"
+                            width="16"
+                            height="16"
+                          />
                         </button>
                       </div>
                     </td>
@@ -300,7 +329,9 @@ export default function PedidosTableAsignado({ onVer, onEditar, filtros, refresh
               aria-current={page === p ? 'page' : undefined}
               className={[
                 'w-8 h-8 flex items-center justify-center rounded',
-                page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20'
+                page === p
+                  ? 'bg-gray90 text-white'
+                  : 'bg-gray10 text-gray70 hover:bg-gray20',
               ].join(' ')}
             >
               {p}

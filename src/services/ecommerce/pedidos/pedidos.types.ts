@@ -32,10 +32,13 @@ export interface MotorizadoInfo {
   usuario: UsuarioSimple;
 }
 
+// Estados que usamos en la app
+export type EstadoPedido = 'Asignado' | 'Pendiente' | 'Entregado' | 'Generado'; // Generado solo legacy
+
 export interface Pedido {
   id: number;
   codigo_pedido: string;
-  estado_pedido: string;
+  estado_pedido: EstadoPedido; // <─ antes era string a secas
 
   nombre_cliente: string;
   numero_cliente: string;
@@ -51,7 +54,7 @@ export interface Pedido {
   sede_id: number;
 
   ecommerce: Empresa;
-  courier?: Empresa;   // ahora opcional
+  courier?: Empresa;   // sigue opcional (puede venir null desde el backend)
   motorizado?: MotorizadoInfo;
 
   detalles: PedidoDetalle[];
