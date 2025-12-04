@@ -1,9 +1,15 @@
 // src/shared/components/courier/registroInvitacion/StepDatosVehiculo.tsx
-import { TIPOS_VEHICULO, type TipoVehiculo } from "@/services/courier/panel_control/panel_control.types";
+import { useState } from "react";
+import Buttonx from "@/shared/common/Buttonx";
+import { Inputx } from "@/shared/common/Inputx";
+import { Selectx } from "@/shared/common/Selectx";
+import {
+  TIPOS_VEHICULO,
+  type TipoVehiculo,
+} from "@/services/courier/panel_control/panel_control.types";
 
 type Values = {
   licencia: string;
-  // Usa null para representar “sin seleccionar” (evita conflicto con union literal)
   tipo_vehiculo: TipoVehiculo | null;
   placa: string;
 };
@@ -21,76 +27,158 @@ export default function StepDatosVehiculo({
   onBack,
   onNext,
 }: Props) {
-  const canContinue =
-    values.licencia.trim().length > 0 &&
-    values.placa.trim().length > 0 &&
-    values.tipo_vehiculo !== null;
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  function handleTipoVehiculoChange(e: React.ChangeEvent<HTMLSelectElement>) {
+  const handleLicenciaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Normalizamos a mayúsculas y sin espacios extremos
+    const v = e.target.value.toUpperCase();
+    onChange({ licencia: v });
+  };
+
+  const handlePlacaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Normalizamos a mayúsculas y limitamos un poco la longitud
+    const v = e.target.value.toUpperCase().slice(0, 10);
+    onChange({ placa: v });
+  };
+
+  function handleTipoVehiculoChange(
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) {
     const v = e.target.value as "" | TipoVehiculo;
     onChange({ tipo_vehiculo: v === "" ? null : v });
   }
 
+  const handleNextClick = () => {
+    if (isProcessing) return;
+
+    const errs: string[] = [];
+    const { licencia, tipo_vehiculo, placa } = values;
+
+    if (licencia.trim().length < 5) {
+      errs.push("• Licencia: ingresa un número de licencia válido (mín. 5 caracteres).");
+    }
+
+    if (!tipo_vehiculo) {
+      errs.push("• Tipo de vehículo: selecciona una opción.");
+    }
+
+    // Validación básica de placa: al menos 6 caracteres y sin espacios
+    const placaTrim = placa.trim();
+    if (placaTrim.length < 6) {
+      errs.push("• Placa: ingresa una placa válida (mín. 6 caracteres, ej. XYZ-123).");
+    }
+
+    if (/\s/.test(placaTrim)) {
+      errs.push("• Placa: no debe contener espacios.");
+    }
+
+    if (errs.length > 0) {
+      setSuccessMsg(null);
+      setErrorMsg(
+        "Por favor revisa los siguientes campos antes de continuar:\n" +
+          errs.join("\n")
+      );
+      return;
+    }
+
+    setErrorMsg(null);
+    setSuccessMsg("Datos del vehículo rellenados correctamente. Validando información...");
+    setIsProcessing(true);
+
+    setTimeout(() => {
+      setIsProcessing(false);
+      setSuccessMsg(null);
+      onNext();
+    }, 800);
+  };
+
   return (
-    <div>
-      <h3 className="text-lg font-semibold mb-4">Datos del vehículo</h3>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Licencia</label>
-          <input
-            type="text"
-            className="w-full border rounded px-3 py-2 text-sm"
-            value={values.licencia}
-            onChange={(e) => onChange({ licencia: e.target.value })}
-            placeholder="ABC12345"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-700 mb-1 block">Tipo de vehículo</label>
-          <select
-            className="w-full border rounded px-3 py-2 text-sm bg-white"
-            value={values.tipo_vehiculo ?? ""}  
-            onChange={handleTipoVehiculoChange}
-          >
-            <option value="">Seleccione…</option>
-            {TIPOS_VEHICULO.map((tv) => (
-              <option key={tv} value={tv}>
-                {tv}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="md:col-span-2">
-          <label className="text-sm text-gray-700 mb-1 block">Placa</label>
-          <input
-            type="text"
-            className="w-full border rounded px-3 py-2 text-sm"
-            value={values.placa}
-            onChange={(e) => onChange({ placa: e.target.value })}
-            placeholder="XYZ-123"
-          />
-        </div>
+    <div className="space-y-6">
+      {/* Título + descripción */}
+      <div className="text-center space-y-1">
+        <h2 className="text-xl md:text-2xl font-extrabold text-[#1A237E] tracking-wide">
+          DATOS DEL VEHÍCULO
+        </h2>
+        <p className="text-sm md:text-base text-gray-600">
+          Ingresa los datos de tu vehículo para continuar con el registro.
+        </p>
       </div>
 
-      <div className="mt-4 flex justify-between">
-        <button
-          type="button"
+      {/* Card de campos */}
+      <div className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-5 md:px-6 md:py-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="w-full">
+            <Inputx
+              label="Licencia"
+              placeholder="Ejem. B123456"
+              value={values.licencia}
+              onChange={handleLicenciaChange}
+              required
+            />
+          </div>
+
+          <div className="w-full">
+            <Selectx
+              label="Tipo de vehículo"
+              labelVariant="left"
+              value={values.tipo_vehiculo ?? ""}
+              onChange={handleTipoVehiculoChange}
+              placeholder="Seleccione..."
+              required
+            >
+              <option value="">Seleccione…</option>
+              {TIPOS_VEHICULO.map((tv) => (
+                <option key={tv} value={tv}>
+                  {tv}
+                </option>
+              ))}
+            </Selectx>
+          </div>
+
+          <div className="w-full md:col-span-2">
+            <Inputx
+              label="Placa"
+              placeholder="Ejem. XYZ-123"
+              value={values.placa}
+              onChange={handlePlacaChange}
+              required
+            />
+          </div>
+        </div>
+
+        {/* Alertas */}
+        {errorMsg && (
+          <div className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2 whitespace-pre-line">
+            {errorMsg}
+          </div>
+        )}
+
+        {successMsg && !errorMsg && (
+          <div className="mt-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Botones */}
+      <div className="flex justify-between items-center">
+        <Buttonx
+          label="Volver"
+          icon="majesticons:arrow-left-line"
+          variant="outlinedw"
           onClick={onBack}
-          className="border px-4 py-2 rounded text-sm hover:bg-gray-100"
-        >
-          Atrás
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!canContinue}
-          className="bg-[#1A237E] text-white px-4 py-2 rounded text-sm disabled:opacity-60"
-        >
-          Siguiente
-        </button>
+        />
+        <Buttonx
+          label={isProcessing ? "Validando..." : "Siguiente"}
+          icon="majesticons:arrow-right-line"
+          iconPosition="right"
+          variant="quartery"
+          onClick={handleNextClick}
+          disabled={isProcessing}
+        />
       </div>
     </div>
   );
