@@ -6,8 +6,8 @@ import type {
   PreviewResponseDTO,
 } from '@/services/ecommerce/importexcelPedido/importexcelPedido.type';
 import {
-  fetchZonasByCourierPublic,
-  fetchZonasByCourierPrivado,
+  fetchZonasBySedePublic,
+  fetchZonasBySedePrivado,
 } from '@/services/courier/zonaTarifaria/zonaTarifaria.api';
 import { fetchCouriersAsociados } from '@/services/ecommerce/ecommerceCourier.api';
 import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
@@ -146,7 +146,7 @@ export default function ImportPreviewModal({
         return;
       }
       try {
-        const zonasPub = await fetchZonasByCourierPublic(Number(courierId));
+        const zonasPub = await fetchZonasBySedePublic(Number(courierId));
         if (cancel) return;
 
         const uniqPub: string[] = toDistritoList(zonasPub);
@@ -155,7 +155,7 @@ export default function ImportPreviewModal({
           return;
         }
 
-        const zonasPriv = await fetchZonasByCourierPrivado(
+        const zonasPriv = await fetchZonasBySedePrivado(
           Number(courierId),
           token
         );
