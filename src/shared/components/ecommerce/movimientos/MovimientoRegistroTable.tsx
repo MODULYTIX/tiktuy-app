@@ -33,8 +33,8 @@ export default function MovimientoRegistroTable({
         const list: Producto[] = Array.isArray(rows)
           ? rows
           : Array.isArray((rows as any)?.data)
-          ? (rows as any).data
-          : [];
+            ? (rows as any).data
+            : [];
 
         const productosActivos = list.filter(
           (p: Producto) =>
@@ -181,10 +181,11 @@ export default function MovimientoRegistroTable({
   // Definición de widths
   const COLS = useMemo(
     () => [
+      "w-[2%]", // Imagen
       "w-[4%]", // checkbox
-      "w-[12%]", // Código
-      "w-[30%]", // Producto
-      "w-[20%]", // Sedes
+      "w-[10%]", // Código
+      "w-[32%]", // Producto
+      "w-[18%]", // Sedes
       "w-[10%]", // Stock
       "w-[8%]", // Precio
       "w-[8%]", // Estado
@@ -193,7 +194,7 @@ export default function MovimientoRegistroTable({
     []
   );
 
-  // ✅ NEW: lógica del checkbox maestro (solo página actual)
+  //  lógica del checkbox maestro (solo página actual)
   const pageIds = useMemo(() => pageData.map((p) => p.uuid), [pageData]);
   const allPageSelected =
     pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
@@ -219,8 +220,26 @@ export default function MovimientoRegistroTable({
       return Array.from(set);
     });
   };
-  // ✅ END NEW
 
+  // Pequeño helper de miniatura
+  const Thumb = ({ url, alt }: { url?: string | null; alt: string }) => {
+    return url ? (
+      <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
+        <img
+          src={url}
+          alt={alt}
+          className="w-full h-full object-cover"
+          draggable={false}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      </div>
+    ) : (
+      <div className="w-12 h-12 rounded-md bg-gray-100 border border-gray-200 flex items-center justify-center text-[14px]">
+        <span className="opacity-60">📦</span>
+      </div>
+    );
+  };
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default">
       <section className="flex-1 overflow-auto">
@@ -235,7 +254,7 @@ export default function MovimientoRegistroTable({
             <thead className="bg-[#E5E7EB]">
               <tr className="text-gray70 font-roboto font-medium">
                 <th className="px-4 py-3 text-left">
-                  {/* ✅ NEW: checkbox maestro en header */}
+                  {/* checkbox maestro en header */}
                   <label className="inline-flex items-center gap-2">
                     <input
                       ref={masterRef}
@@ -249,6 +268,7 @@ export default function MovimientoRegistroTable({
                     />
                   </label>
                 </th>
+                <th className="px-4 py-3 text-center"></th>
                 <th className="px-4 py-3 text-left">Código</th>
                 <th className="px-4 py-3 text-left">Producto</th>
                 <th className="px-4 py-3 text-left">Sedes</th>
@@ -265,16 +285,21 @@ export default function MovimientoRegistroTable({
                   key={prod.uuid}
                   className="hover:bg-gray10 transition-colors"
                 >
+
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(prod.uuid)}
                       onChange={() => toggleCheckbox(prod.uuid)}
                       className="accent-gray-700 cursor-pointer"
-                      aria-label={`Seleccionar ${
-                        prod.nombre_producto ?? "producto"
-                      }`}
+                      aria-label={`Seleccionar ${prod.nombre_producto ?? "producto"
+                        }`}
                     />
+                  </td>
+
+                  {/* Miniatura */}
+                  <td className="px-4 py-3">
+                    <Thumb url={prod.imagen_url} alt={prod.nombre_producto} />
                   </td>
 
                   <td className="px-4 py-3 text-gray70 font-[400]">
