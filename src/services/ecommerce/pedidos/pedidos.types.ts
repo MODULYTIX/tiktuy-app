@@ -56,3 +56,27 @@ export interface Pedido {
 
   detalles: PedidoDetalle[];
 }
+
+/* =========================================================
+ * DTO para CREAR pedido desde el ecommerce
+ * (sin courier_id, usando sede_id)
+ * ======================================================= */
+export interface CrearPedidoDTO {
+  codigo_pedido: string;
+  sede_id: number; // el backend obtiene el courier a partir de esta sede
+
+  nombre_cliente: string;
+  numero_cliente: string;
+  celular_cliente: string;
+  direccion_envio: string;
+  referencia_direccion?: string;
+  distrito: string;
+  monto_recaudar: number;
+  fecha_entrega_programada?: string | null;
+
+  detalles: {
+    producto_id: number;
+    cantidad: number;
+    precio_unitario: number;
+  }[];
+}
