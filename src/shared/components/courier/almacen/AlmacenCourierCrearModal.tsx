@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import Tittlex from "@/shared/common/Tittlex";
 import { Inputx, InputxPhone } from "@/shared/common/Inputx";
@@ -43,7 +43,7 @@ type FormData = {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  // onSubmit debe llamar a crearSedeSecundariaConInvitacion(payload, token)
+  // onSubmit debe llamar a crearSedeSecundariaConInvitacion(payload)
   onSubmit: (payload: CrearSedeSecundariaCourierDTO) => Promise<void> | void;
 }
 
@@ -275,7 +275,9 @@ export default function AlmacenCourierCrearModalInvitacion({
     }
   };
 
-  return !isOpen ? null : (
+  if (!isOpen) return null;
+
+  return (
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
@@ -292,7 +294,7 @@ export default function AlmacenCourierCrearModalInvitacion({
           description="Completa la información de la sede e invita a su representante por correo."
         />
 
-        {/* Body */}
+        {/* Body + Footer dentro del FORM */}
         <form
           id="form-crear-sede"
           onSubmit={handleSubmit}
@@ -301,8 +303,7 @@ export default function AlmacenCourierCrearModalInvitacion({
           {/* Datos de sede */}
           <section className="flex flex-col gap-5">
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-              {" "}
-              <Icon icon="mdi:office-building" /> Datos de la sede{" "}
+              <Icon icon="mdi:office-building" /> Datos de la sede
             </h3>
 
             <Inputx
@@ -443,7 +444,7 @@ export default function AlmacenCourierCrearModalInvitacion({
                 required
               />
 
-              {/* CELULAR (usa Inputx o InputxPhone) */}
+              {/* CELULAR */}
               <InputxPhone
                 label="Celular (opcional)"
                 countryCode="+51"
@@ -474,30 +475,29 @@ export default function AlmacenCourierCrearModalInvitacion({
               {errorMsg}
             </div>
           )}
+
+          {/* Footer dentro del form */}
+          <div className="flex gap-5 mt-2">
+            <Buttonx
+              type="submit"
+              variant="secondary"
+              disabled={isSubmitting}
+              className="px-4"
+              label={isSubmitting ? "Creando..." : "Crear nuevo"}
+              icon={isSubmitting ? "svg-spinners:180-ring" : undefined}
+              iconPosition="left"
+            />
+
+            <Buttonx
+              type="button"
+              variant="outlinedw"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-4"
+              label="Cancelar"
+            />
+          </div>
         </form>
-
-        {/* Footer */}
-        <div className="flex gap-5">
-          <Buttonx
-            type="submit"
-            form="form-crear-sede"
-            variant="secondary"
-            disabled={isSubmitting}
-            className="px-4"
-            label={isSubmitting ? "Creando..." : "Crear nuevo"}
-            icon={isSubmitting ? "svg-spinners:180-ring" : undefined}
-            iconPosition="left"
-          />
-
-          <Buttonx
-            type="button"
-            variant="outlinedw"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="px-4"
-            label="Cancelar"
-          />
-        </div>
       </div>
     </div>
   );
