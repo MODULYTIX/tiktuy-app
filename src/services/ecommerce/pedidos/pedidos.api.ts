@@ -1,5 +1,5 @@
 // pedidos.api.ts
-import type { Pedido } from './pedidos.types';
+import type { Pedido, CrearPedidoDTO } from './pedidos.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -15,7 +15,7 @@ export async function fetchPedidos(
   perPage = 10
 ): Promise<{ data: Pedido[]; pagination: any }> {
   const url = new URL(`${API_URL}/pedido`);
-  
+
   url.searchParams.set('page', String(page));
   url.searchParams.set('perPage', String(perPage));
   if (estado) url.searchParams.set('estado', estado);
@@ -46,13 +46,11 @@ export async function fetchPedidoById(id: number, token: string): Promise<Pedido
   return res.json();
 }
 
-
 /* ==========================================================
    CREAR
    ========================================================== */
-
 export async function crearPedido(
-  data: any, // viene del formulario
+  data: CrearPedidoDTO, // viene del formulario (usa sede_id, NO courier_id)
   token: string
 ): Promise<Pedido> {
   console.log('🚀 Enviando payload a /pedido:', data);
@@ -75,11 +73,9 @@ export async function crearPedido(
   return res.json();
 }
 
-
 /* ==========================================================
    EDITAR ESTADO: GENERADO
    ========================================================== */
-
 export type UpdatePedidoGeneradoPayload = {
   nombre_cliente?: string;
   numero_cliente?: string | null;
@@ -119,17 +115,14 @@ export async function actualizarPedidoGenerado(
   return res.json();
 }
 
-
 /* ==========================================================
    EDITAR ESTADO: ASIGNADO
    ========================================================== */
-
 export async function actualizarPedidoAsignado(
   id: number,
   data: Partial<Pedido>,
   token: string
 ): Promise<Pedido> {
-
   // courier_id ya NO se manda desde frontend
   if ('courier_id' in data) delete (data as any).courier_id;
 
