@@ -13,20 +13,22 @@ export default function ZonasPage() {
   const [selectedZona, setSelectedZona] = useState<ZonaTarifaria | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Estado del filtro (controlado aquí)
-  const [distrito, setDistrito] = useState<string>("");
+  // Estado del filtro (ciudad / zona)
+  const [ciudad, setCiudad] = useState<string>("");
   const [zona, setZona] = useState<string>("");
 
   // Opciones dinámicas derivadas de los datos reales
-  const [distritosOptions, setDistritosOptions] = useState<string[]>([]);
+  const [ciudadesOptions, setCiudadesOptions] = useState<string[]>([]);
   const [zonasOptions, setZonasOptions] = useState<string[]>([]);
 
+  // Meta que viene de TableZonaMine (usa 'distritos' pero en UI es ciudad)
   const handleLoadedMeta = useCallback(
     (meta: { distritos: string[]; zonas: string[] }) => {
-      setDistritosOptions(meta.distritos);
+      setCiudadesOptions(meta.distritos); // distritos == ciudades en UI
       setZonasOptions(meta.zonas);
-      // Mantener selección actual si sigue existiendo en las nuevas opciones;
-      setDistrito((prev) => (meta.distritos.includes(prev) ? prev : ""));
+
+      // Mantener selección actual si sigue existiendo en las nuevas opciones
+      setCiudad((prev) => (meta.distritos.includes(prev) ? prev : ""));
       setZona((prev) => (meta.zonas.includes(prev) ? prev : ""));
     },
     []
@@ -40,33 +42,34 @@ export default function ZonasPage() {
             Zonas de Atención
           </h1>
           <p className="text-gray-500">
-            Listado y creación de zonas asociadas a tu usuario (todas tus sedes).
+            Listado y creación de zonas asociadas a tu usuario (todas las sedes de tu
+            courier).
           </p>
         </div>
 
         <div className="flex items-end">
           <button
             className="flex gap-2 items-center bg-primaryDark text-white px-3 py-2 rounded-sm"
-            onClick={() => setDrawerOpen(true)}        // 👈 ya no está deshabilitado
+            onClick={() => setDrawerOpen(true)}
           >
             <Icon icon="iconoir:new-tab" width="24" height="24" />
-            <span>Nuevo Distrito de Atención</span>
+            <span>Nueva Ciudad de Atención</span>
           </button>
         </div>
       </div>
 
       <div className="my-8">
         <ZonaFilterCourier
-          distrito={distrito}
+          ciudad={ciudad}
           zona={zona}
-          distritosOptions={distritosOptions}
+          ciudadesOptions={ciudadesOptions}
           zonasOptions={zonasOptions}
-          onChange={({ distrito: d, zona: z }) => {
-            setDistrito(d);
+          onChange={({ ciudad: c, zona: z }) => {
+            setCiudad(c);
             setZona(z);
           }}
           onClear={() => {
-            setDistrito("");
+            setCiudad("");
             setZona("");
           }}
         />
@@ -75,7 +78,8 @@ export default function ZonasPage() {
       <div>
         <TableZonaMine
           key={refreshKey}
-          filters={{ distrito, zona }}
+          // filtro por la ciudad (en BD es campo distrito)
+          filters={{ ciudad, zona }}
           onLoadedMeta={handleLoadedMeta}
           onEdit={(z) => {
             setSelectedZona(z);
