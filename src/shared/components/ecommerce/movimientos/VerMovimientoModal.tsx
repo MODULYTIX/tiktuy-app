@@ -3,6 +3,9 @@ import Tittlex from "@/shared/common/Tittlex";
 import { Inputx, InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
 import Buttonx from "@/shared/common/Buttonx";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
+import ImageUploadx from "@/shared/common/ImageUploadx";
+import { useState } from "react";
+import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
 
 type Props = {
   open: boolean;
@@ -34,6 +37,9 @@ const ESTADO_LABEL: Record<EstadoId, string> = {
 };
 
 export default function VerMovimientoModal({ open, onClose, data }: Props) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+
   if (!open || !data) return null;
 
   // Derivados (solo lectura)
@@ -70,6 +76,8 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
     (data as any).peso != null && !Number.isNaN(Number((data as any).peso))
       ? Number((data as any).peso).toFixed(3)
       : "";
+
+  const imagenUrl: string | null = (data as any).imagen_url ?? null;
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -191,6 +199,18 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
               placeholder="0.000"
             />
           </div>
+          {/* Imagen (solo-lectura, usa el nuevo modo) */}
+          <ImageUploadx
+            label="Imagen"
+            value={imagenUrl ?? null}
+            mode="view"
+            size="md"
+            onView={(url) => {
+              setPreviewSrc(url);
+              setPreviewOpen(true);
+            }}
+          />
+
         </div>
 
         {/* Footer */}
@@ -202,6 +222,12 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
             className="px-4 text-sm border"
           />
         </div>
+        {/* Lightbox */}
+        <ImagePreviewModalx
+          open={previewOpen}
+          src={previewSrc ?? ""}
+          onClose={() => { setPreviewOpen(false); setPreviewSrc(null); }}
+        />
       </div>
     </div>
   );
