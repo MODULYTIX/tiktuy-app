@@ -9,7 +9,8 @@ import Buttonx from '@/shared/common/Buttonx';
 import { SearchInputx } from '@/shared/common/SearchInputx';
 import { Selectx } from '@/shared/common/Selectx';
 
-interface Filters {
+/* === FIX — exportas aquí, no debajo === */
+export interface Filters {
   almacenamiento_id: string;
   categoria_id: string;
   estado: string;
@@ -27,7 +28,6 @@ interface Props {
 
 /* Export para otros archivos */
 export type StockFilterValue = Filters;
-export type { Filters };
 
 /* --- Helpers --- */
 function toArray<T = unknown>(res: any): T[] {
@@ -78,31 +78,31 @@ export default function StockFilters({ onFilterChange }: Props) {
 
     setLoadingCats(true);
     setErrorCats(null);
+
     fetchCategorias(token)
       .then((res) => {
         if (!mountedRef.current) return;
         setCategorias(toArray<Categoria>(res));
       })
-      .catch((err) => {
-        console.error('Error al cargar categorías:', err);
+      .catch(() => {
         if (!mountedRef.current) return;
         setErrorCats('No se pudieron cargar las categorías');
-        setCategorias([]); // defensivo
+        setCategorias([]);
       })
       .finally(() => mountedRef.current && setLoadingCats(false));
 
     setLoadingAlm(true);
     setErrorAlm(null);
+
     fetchSedesConRepresentante(token)
       .then((res) => {
         if (!mountedRef.current) return;
         setAlmacenes(toArray<Almacenamiento>(res));
       })
-      .catch((err) => {
-        console.error('Error al cargar almacenes:', err);
+      .catch(() => {
         if (!mountedRef.current) return;
         setErrorAlm('No se pudieron cargar los almacenes');
-        setAlmacenes([]); // defensivo
+        setAlmacenes([]);
       })
       .finally(() => mountedRef.current && setLoadingAlm(false));
   }, [token]);
@@ -154,19 +154,14 @@ export default function StockFilters({ onFilterChange }: Props) {
   );
 
   /* === LÓGICA TIPO MODELO BASE PARA PRECIO === */
-  // Solo uno activo entre precios bajos / altos
-  const precioOrden: '' | 'asc' | 'desc' = filters.precio_bajo
-    ? 'asc'
-    : filters.precio_alto
-      ? 'desc'
-      : '';
+  const precioOrden: '' | 'asc' | 'desc' =
+    filters.precio_bajo ? 'asc' : filters.precio_alto ? 'desc' : '';
 
   return (
     <div className="bg-white p-5 rounded-md shadow-default border-b-4 border-gray90 ">
-      {/* xs: 1 col, sm: 2 cols, lg: 1fr 1fr 1fr auto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm ">
 
-        {/* Ecommerce */}
+        {/* Sedes */}
         <Selectx
           label="Almacen"
           value={filters.movimientos_sedes}
@@ -187,6 +182,7 @@ export default function StockFilters({ onFilterChange }: Props) {
             </option>
           ))}
         </Selectx>
+
         {errorAlm && (
           <div className="text-xs text-red-600 col-span-full">{errorAlm}</div>
         )}
@@ -209,6 +205,7 @@ export default function StockFilters({ onFilterChange }: Props) {
             </option>
           ))}
         </Selectx>
+
         {errorCats && (
           <div className="text-xs text-red-600 col-span-full">{errorCats}</div>
         )}
@@ -228,35 +225,36 @@ export default function StockFilters({ onFilterChange }: Props) {
           <option value="inactivo">Inactivo</option>
         </Selectx>
 
-        {/* Filtros exclusivos (MISMA LÓGICA Y ESTILO QUE MODELO BASE) */}
+        {/* Filtros exclusivos */}
         <div className="min-w-0">
           <div className="text-center font-medium text-gray-700 mb-2">
             Filtros exclusivos
           </div>
+
           <div className="h-10 flex items-center justify-center lg:justify-start gap-4">
-            {/* Stock bajo (independiente) */}
+
+            {/* Stock bajo */}
             <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
                 type="checkbox"
                 name="stock_bajo"
                 checked={filters.stock_bajo}
                 onChange={handleCheckboxChange}
-                className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D]"
               />
               <span>Stock bajo</span>
             </label>
 
-            {/* Precios bajos (exclusivo) */}
+            {/* Precio bajo */}
             <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
                 type="radio"
                 name="precioOrden"
-                className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                className="h-4 w-4"
                 checked={precioOrden === 'asc'}
                 onChange={() =>
                   setFilters((prev) => ({
                     ...prev,
-                    // si ya estaba en "asc", lo apago; si no, lo activo
                     precio_bajo: precioOrden === 'asc' ? false : true,
                     precio_alto: false,
                   }))
@@ -265,12 +263,12 @@ export default function StockFilters({ onFilterChange }: Props) {
               <span>Precios bajos</span>
             </label>
 
-            {/* Precios altos (exclusivo) */}
+            {/* Precio alto */}
             <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
                 type="radio"
                 name="precioOrden"
-                className="h-4 w-4 border-gray-400 text-[#1A253D] focus:ring-2 focus:ring-[#1A253D]"
+                className="h-4 w-4"
                 checked={precioOrden === 'desc'}
                 onChange={() =>
                   setFilters((prev) => ({
@@ -282,10 +280,11 @@ export default function StockFilters({ onFilterChange }: Props) {
               />
               <span>Precios altos</span>
             </label>
+
           </div>
         </div>
 
-        {/* Buscador + botón */}
+        {/* Buscador */}
         <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <SearchInputx
             value={filters.search}
@@ -302,9 +301,9 @@ export default function StockFilters({ onFilterChange }: Props) {
             icon="mynaui:delete"
             variant="outlined"
             onClick={handleReset}
-            disabled={false}
           />
         </div>
+
       </div>
     </div>
   );

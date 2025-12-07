@@ -79,16 +79,6 @@ export default function CrearPedidoModal({
     stock_max: '',
   });
 
-  /* ===== Click fuera ===== */
-  const handleClickOutside = (e: MouseEvent) => {
-    if (!submitting && modalRef.current && !modalRef.current.contains(e.target as Node)) {
-      onClose();
-    }
-  };
-
-  const handleEsc = (e: KeyboardEvent) => {
-    if (e.key === "Escape" && !submitting) onClose();
-  };
 
   /* ==================== CARGAR SEDES ==================== */
   useEffect(() => {

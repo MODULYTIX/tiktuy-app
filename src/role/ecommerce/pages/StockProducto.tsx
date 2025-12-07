@@ -1,27 +1,25 @@
-import { useState, useEffect, useRef } from 'react';
-import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
-import StockFilters, {
-  type StockFilterValue,
-} from '@/shared/components/ecommerce/stock/StockFilters';
-import StockTable from '@/shared/components/ecommerce/stock/StockTable';
-import { useAuth } from '@/auth/context';
-import { fetchProductosFiltrados, fetchProductosMovidos } from '@/services/ecommerce/producto/producto.api';
-import type { Producto } from '@/services/ecommerce/producto/producto.types';
-import ImportExcelFlow from '@/shared/components/ecommerce/excel/ImportExcelFlow';
+import { useState, useEffect, useRef } from "react";
+import AnimatedExcelMenu from "@/shared/components/ecommerce/AnimatedExcelMenu";
+import StockFilters, { type StockFilterValue } from "@/shared/components/ecommerce/stock/StockFilters";
+import StockTable from "@/shared/components/ecommerce/stock/StockTable";
+import { useAuth } from "@/auth/context";
+import { fetchProductosFiltrados, fetchProductosMovidos } from "@/services/ecommerce/producto/producto.api";
+import type { Producto } from "@/services/ecommerce/producto/producto.types";
+import ImportExcelFlow from "@/shared/components/ecommerce/excel/ImportExcelFlow";
 
-import ProductoCrearModal from '@/shared/components/ecommerce/stock/ProductoCrearModal';
-import ProductoVerModal from '@/shared/components/ecommerce/stock/ProductoVerModal';
-import ProductoEditarModal from '@/shared/components/ecommerce/stock/ProductoEditarModal';
-import Buttonx from '@/shared/common/Buttonx';
-import Tittlex from '@/shared/common/Tittlex';
+import ProductoCrearModal from "@/shared/components/ecommerce/stock/ProductoCrearModal";
+import ProductoVerModal from "@/shared/components/ecommerce/stock/ProductoVerModal";
+import ProductoEditarModal from "@/shared/components/ecommerce/stock/ProductoEditarModal";
+import Buttonx from "@/shared/common/Buttonx";
+import Tittlex from "@/shared/common/Tittlex";
 
 import {
   downloadProductosTemplate,
   triggerBrowserDownload,
-} from '@/services/ecommerce/exportExcel/Producto/exportProductoExcel.api';
+} from "@/services/ecommerce/exportExcel/Producto/exportProductoExcel.api";
 
 type UiFilters = StockFilterValue & {
-  order?: 'new_first' | 'price_asc' | 'price_desc';
+  order?: "new_first" | "price_asc" | "price_desc";
 };
 
 export default function StockPage() {
@@ -37,29 +35,34 @@ export default function StockPage() {
 
   const [productosAll, setProductosAll] = useState<Producto[]>([]);
   const [productosVisibles, setProductosVisibles] = useState<Producto[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false); // 👈 NUEVO
+
   const [filters, setFilters] = useState<UiFilters>({
-    almacenamiento_id: '',
-    categoria_id: '',
-    estado: '',
-    nombre: '',
+    almacenamiento_id: "",
+    categoria_id: "",
+    estado: "",
+    nombre: "",
     stock_bajo: false,
     precio_bajo: false,
     precio_alto: false,
-    search: '',
-    movimientos_sedes: '',
-    order: 'new_first',
+    search: "",
+    movimientos_sedes: "",
+    order: "new_first",
   });
 
   const debounceMs = 100;
   const debounceRef = useRef<number | null>(null);
 
+  /** ========================
+   * CARGA DE PRODUCTOS
+   * ======================== */
   const cargarProductos = async (filtros = filters) => {
     if (!token) return;
-    try {
 
-      // ================================
-      // NUEVO BLOQUE: productos movidos
-      // ================================
+    setLoadingProducts(true); // 👈 INICIA SKELETON
+
+    try {
+      // -------- PRODUCTOS MOVIDOS -------- //
       if (filtros.movimientos_sedes && Number(filtros.movimientos_sedes) > 0) {
         try {
           const movidosResp = await fetchProductosMovidos(token, {
@@ -73,20 +76,18 @@ export default function StockPage() {
             : [];
 
           setProductosAll(list);
-          return; // ← evita cargar productos normales
+          return; // evitar carga normal
         } catch (err) {
           console.error("Error al cargar productos movidos:", err);
         }
       }
 
-      // ================================
-      // LO QUE YA TENÍAS, NO TOCO NADA
-      // ================================
+      // -------- PRODUCTOS NORMALES -------- //
       const serverData = await fetchProductosFiltrados(
         {
           ...filtros,
           movimientos_sedes: filtros.movimientos_sedes || undefined,
-          order: filtros.order ?? 'new_first'
+          order: filtros.order ?? "new_first",
         },
         token
       );
@@ -98,80 +99,66 @@ export default function StockPage() {
           : [];
 
       setProductosAll(list);
-
     } catch (err) {
-      console.error('Error cargando productos:', err);
+      console.error("Error cargando productos:", err);
+    } finally {
+      setLoadingProducts(false); // 👈 TERMINA SKELETON
     }
   };
 
-
-  // Debounce al cambiar filtros/token
+  /** ========================
+   * DEBOUNCE FILTROS
+   * ======================== */
   useEffect(() => {
     if (!token) return;
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
     debounceRef.current = window.setTimeout(() => {
       cargarProductos();
     }, debounceMs);
+
     return () => {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, token]);
 
-  // Filtrado + ordenamiento en cliente
+  /** ========================
+   * FILTRADO + ORDEN CLIENTE
+   * ======================== */
   useEffect(() => {
     const f = filters;
-    const norm = (s?: string) => (s ?? '').toLowerCase().trim();
+    const norm = (s?: string) => (s ?? "").toLowerCase().trim();
 
     const filtra = (p: Producto) => {
-      //  Filtros normales
-      if (
-        f.almacenamiento_id &&
-        String(p.almacenamiento_id) !== String(f.almacenamiento_id)
-      )
+      if (f.almacenamiento_id && String(p.almacenamiento_id) !== String(f.almacenamiento_id))
         return false;
 
       if (f.categoria_id && String(p.categoria_id) !== String(f.categoria_id))
         return false;
 
-      if (
-        f.estado === 'activo' &&
-        p?.estado?.nombre?.toLowerCase() !== 'activo'
-      )
+      if (f.estado === "activo" && p?.estado?.nombre?.toLowerCase() !== "activo")
         return false;
 
-      if (
-        f.estado === 'inactivo' &&
-        p?.estado?.nombre?.toLowerCase() !== 'inactivo'
-      )
+      if (f.estado === "inactivo" && p?.estado?.nombre?.toLowerCase() !== "inactivo")
         return false;
 
-      //  Stock bajo: MISMA LÓGICA QUE LA TABLA (renderEstadoStock)
       if (f.stock_bajo) {
-        const stockRaw = p.stock;
-        const minRaw = p.stock_minimo;
-
-        const stock =
-          stockRaw === null || stockRaw === undefined
-            ? NaN
-            : Number(stockRaw);
-        const minimo =
-          minRaw === null || minRaw === undefined ? NaN : Number(minRaw);
-
-        // Si no hay datos válidos de stock/minimo ⇒ NO se considera "stock bajo"
+        const stock = Number(p.stock);
+        const minimo = Number(p.stock_minimo);
         if (!Number.isFinite(stock) || !Number.isFinite(minimo)) return false;
-
-        // La tabla considera "Stock bajo" cuando stock < minimo
         if (!(stock < minimo)) return false;
       }
 
-      //  Búsqueda
       if (f.search && f.search.trim()) {
         const q = norm(f.search);
-        const nombre = norm(p.nombre_producto);
-        const desc = norm(p.descripcion ?? '');
-        const cod = norm(p.codigo_identificacion ?? '');
-        if (!nombre.includes(q) && !desc.includes(q) && !cod.includes(q))
+
+        if (
+          !norm(p.nombre_producto).includes(q) &&
+          !norm(p.descripcion ?? "").includes(q) &&
+          !norm(p.codigo_identificacion ?? "").includes(q)
+        )
           return false;
       }
 
@@ -179,90 +166,58 @@ export default function StockPage() {
     };
 
     const ordenar = (arr: Producto[]) => {
-      if (f.precio_bajo)
-        return [...arr].sort((a, b) => Number(a.precio) - Number(b.precio));
+      if (f.precio_bajo) return [...arr].sort((a, b) => Number(a.precio) - Number(b.precio));
+      if (f.precio_alto) return [...arr].sort((a, b) => Number(b.precio) - Number(a.precio));
 
-      if (f.precio_alto)
-        return [...arr].sort((a, b) => Number(b.precio) - Number(a.precio));
-
-      // default: nuevo primero
       return [...arr].sort((a: any, b: any) => {
         const at = a.created_at ? new Date(a.created_at).getTime() : 0;
         const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
         if (at !== 0 || bt !== 0) return bt - at;
-        const ai = typeof a.id === 'number' ? a.id : 0;
-        const bi = typeof b.id === 'number' ? b.id : 0;
-        return bi - ai;
+        return (b.id ?? 0) - (a.id ?? 0);
       });
     };
 
     setProductosVisibles(ordenar(productosAll.filter(filtra)));
   }, [productosAll, filters]);
 
-  // Crear: agrega al principio y cierra
+  /** ========================
+   * CRUD
+   * ======================== */
   const handleProductoCreado = (producto: Producto) => {
     setProductosAll((prev) => [producto, ...prev]);
     setOpenCrear(false);
   };
 
-  // Editar: reemplaza en lista por uuid y cierra
   const handleProductoActualizado = (producto: Producto) => {
-    setProductosAll((prev) => {
-      const byUuid = producto.uuid && prev.some(p => p.uuid === producto.uuid);
-      if (byUuid) return prev.map(p => (p.uuid === producto.uuid ? producto : p));
-
-      const byId = typeof producto.id === 'number' && prev.some(p => p.id === producto.id);
-      if (byId) return prev.map(p => (p.id === producto.id ? producto : p));
-
-      return [producto, ...prev];
-    });
+    setProductosAll((prev) =>
+      prev.map((p) =>
+        p.uuid === producto.uuid || p.id === producto.id ? producto : p
+      )
+    );
     setOpenEditar(false);
     setProductoSel(null);
   };
 
-  // Abrir modales
-  const handleAbrirModalNuevo = () => setOpenCrear(true);
-  const handleCloseCrear = () => setOpenCrear(false);
-
-  const handleVerProducto = (producto: Producto) => {
-    setProductoSel(producto);
-    setOpenVer(true);
-  };
-  const handleEditarProducto = (producto: Producto) => {
-    setProductoSel(producto);
-    setOpenEditar(true);
-  };
-
-  const handleCloseVer = () => {
-    setOpenVer(false);
-    setProductoSel(null);
-  };
-  const handleCloseEditar = () => {
-    setOpenEditar(false);
-    setProductoSel(null);
-  };
-
+  /** ========================
+   * HANDLERS
+   * ======================== */
   const handleDescargarPlantilla = async () => {
     try {
       const res = await downloadProductosTemplate();
       triggerBrowserDownload(res);
     } catch (err) {
-      console.error('Error al descargar plantilla:', err);
+      console.error("Error al descargar plantilla:", err);
     }
   };
 
-  //  FIX: Evitar NaN y enviar valor seguro
-  let almacenamientoIdCreacion: number | undefined;
-  const raw = filters.almacenamiento_id;
+  const almacenamientoIdCreacion =
+    filters.almacenamiento_id && !isNaN(Number(filters.almacenamiento_id))
+      ? Number(filters.almacenamiento_id)
+      : 0;
 
-  if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
-    const parsed = Number(raw);
-    if (Number.isFinite(parsed) && !Number.isNaN(parsed)) {
-      almacenamientoIdCreacion = parsed;
-    }
-  }
-
-
+  /** ========================
+   * RENDER
+   * ======================== */
   return (
     <section className="mt-8 space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-end">
@@ -272,9 +227,7 @@ export default function StockPage() {
         />
 
         <div className="flex gap-2 items-end">
-          <ImportExcelFlow
-            token={token ?? ''}
-            onImported={() => cargarProductos()}>
+          <ImportExcelFlow token={token ?? ""} onImported={() => cargarProductos()}>
             {(openPicker) => (
               <AnimatedExcelMenu
                 onTemplateClick={handleDescargarPlantilla}
@@ -282,11 +235,12 @@ export default function StockPage() {
               />
             )}
           </ImportExcelFlow>
+
           <Buttonx
             label="Nuevo Producto"
             icon="tabler:cube-plus"
             variant="secondary"
-            onClick={handleAbrirModalNuevo}
+            onClick={() => setOpenCrear(true)}
             className="font-light"
           />
         </div>
@@ -294,26 +248,34 @@ export default function StockPage() {
 
       <StockFilters onFilterChange={(f) => setFilters(f)} />
 
+      {/* TABLE */}
       <StockTable
         productos={productosVisibles}
+        loading={loadingProducts}   // 👈 SKELETON ACTIVADO
         filtrarInactivos={false}
-        onVer={handleVerProducto}
-        onEditar={handleEditarProducto}
         soloLectura={Boolean(filters.movimientos_sedes)}
+        onVer={(p) => {
+          setProductoSel(p);
+          setOpenVer(true);
+        }}
+        onEditar={(p) => {
+          setProductoSel(p);
+          setOpenEditar(true);
+        }}
       />
 
       {/* Crear */}
       <ProductoCrearModal
         open={openCrear}
-        onClose={handleCloseCrear}
+        onClose={() => setOpenCrear(false)}
         onCreated={handleProductoCreado}
-        almacenamientoId={almacenamientoIdCreacion ?? 0} // 👈 nunca será NaN
+        almacenamientoId={almacenamientoIdCreacion}
       />
 
       {/* Editar */}
       <ProductoEditarModal
         open={openEditar}
-        onClose={handleCloseEditar}
+        onClose={() => setOpenEditar(false)}
         initialData={productoSel}
         onUpdated={handleProductoActualizado}
       />
@@ -321,7 +283,10 @@ export default function StockPage() {
       {/* Ver */}
       <ProductoVerModal
         open={openVer}
-        onClose={handleCloseVer}
+        onClose={() => {
+          setOpenVer(false);
+          setProductoSel(null);
+        }}
         data={productoSel}
       />
     </section>
