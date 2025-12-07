@@ -6,6 +6,8 @@ export interface PreviewItemDTO {
   producto: string;
   cantidad: number | null;
   producto_id?: number; 
+  precio_unitario?: number;
+  stock?: number;
 }
 
 /** Grupo del preview: representa un pedido con cabecera + items */
