@@ -7,10 +7,14 @@ import type {
   AbonarEcommerceFechasPayload,
   AbonarEcommerceFechasResp,
   AbonoEstado,
+  SedesCuadreResponse,
 } from "./cuadreSaldoE.types";
 
 /* ================== Config / Helpers ================== */
-const BASE_URL = `${import.meta.env.VITE_API_URL ?? "http://localhost:4000"}`.replace(/\/$/, "");
+const BASE_URL = `${import.meta.env.VITE_API_URL ?? "http://localhost:4000"}`.replace(
+  /\/$/,
+  ""
+);
 
 function authHeaders(token: string, contentType?: "json") {
   if (!token) throw new Error("Token vacío: falta Authorization.");
@@ -28,7 +32,9 @@ function withQuery(
 ) {
   const url = new URL(basePath, BASE_URL);
   Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
+    if (v !== undefined && v !== null && v !== "") {
+      url.searchParams.set(k, String(v));
+    }
   });
   return url.toString();
 }
@@ -46,7 +52,9 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
           j.message ||
           j.error ||
           j.detail ||
-          (Array.isArray(j.errors) && j.errors.length && (j.errors[0].message || j.errors[0])) ||
+          (Array.isArray(j.errors) &&
+            j.errors.length &&
+            (j.errors[0].message || j.errors[0])) ||
           msg;
       } else if (text) {
         msg = text;
@@ -73,6 +81,23 @@ export async function listEcommercesCourier(token: string): Promise<EcommerceIte
   return request<EcommerceItem[]>(url, { headers: authHeaders(token) });
 }
 
+/**
+ * GET /courier/cuadre-saldo/ecommerce/sedes
+ *
+ * Backend devuelve:
+ * {
+ *   sedeActualId: number;
+ *   canFilterBySede: boolean;
+ *   sedes: [{ id, nombre_almacen, ciudad, es_principal }, ...]
+ * }
+ */
+export async function listCourierSedesCuadre(
+  token: string
+): Promise<SedesCuadreResponse> {
+  const url = `${BASE_URL}/courier/cuadre-saldo/ecommerce/sedes`;
+  return request<SedesCuadreResponse>(url, { headers: authHeaders(token) });
+}
+
 /** GET /courier/cuadre-saldo/ecommerce/resumen */
 export async function getEcommerceResumen(
   token: string,
@@ -80,6 +105,7 @@ export async function getEcommerceResumen(
 ): Promise<ResumenDia[]> {
   const url = withQuery("/courier/cuadre-saldo/ecommerce/resumen", {
     ecommerceId: q.ecommerceId,
+    sedeId: q.sedeId, // filtro por sede si se envía
     desde: q.desde,
     hasta: q.hasta,
   });
@@ -92,45 +118,49 @@ export async function getEcommerceResumen(
       totalCobrado: number;
       totalServicioCourier: number; // courier (efectivo) + motorizado
       totalNeto: number;
-      abonoEstado: AbonoEstado;
+      abonoEstado: AbonoEstado | null;
     }>
   >(url, { headers: authHeaders(token) });
 
   return raw.map((r) => {
-    const iso = typeof r.fecha === "string" ? r.fecha : new Date(r.fecha).toISOString();
+    const iso =
+      typeof r.fecha === "string" ? r.fecha : new Date(r.fecha).toISOString();
     return {
       fecha: iso.slice(0, 10),
       pedidos: Number(r.totalPedidos ?? 0),
       cobrado: Number(r.totalCobrado ?? 0),
-      servicio: Number(r.totalServicioCourier ?? 0), // courier + motorizado
+      servicio: Number(r.totalServicioCourier ?? 0),
       neto: Number(r.totalNeto ?? 0),
       estado: (r.abonoEstado ?? "Sin Validar") as AbonoEstado,
     };
   });
 }
 
-/** GET /courier/cuadre-saldo/ecommerce/:ecommerceId/dia/:fecha/pedidos */
+/**
+ * GET /courier/cuadre-saldo/ecommerce/:ecommerceId/dia/:fecha/pedidos
+ * Admite filtro opcional por sede vía query ?sedeId=...
+ */
 export async function getEcommercePedidosDia(
   token: string,
   ecommerceId: number,
-  fecha: string // YYYY-MM-DD
+  fecha: string, // YYYY-MM-DD
+  sedeId?: number
 ): Promise<PedidoDiaItem[]> {
-  const url = `${BASE_URL}/courier/cuadre-saldo/ecommerce/${ecommerceId}/dia/${fecha}/pedidos`;
+  const path = `/courier/cuadre-saldo/ecommerce/${ecommerceId}/dia/${fecha}/pedidos`;
+  const url = sedeId != null ? withQuery(path, { sedeId }) : `${BASE_URL}${path}`;
 
-  // BE -> [{ id, cliente, metodoPago, monto, servicioCourier, servicioRepartidor, abonado }]
   const raw = await request<
     Array<{
       id: number;
       cliente: string;
       metodoPago: string | null;
       monto: number;
-      servicioCourier: number;     // COALESCE(servicio_courier, tarifa_zona, 0)
-      servicioRepartidor: number;  // puede venir null -> 0
+      servicioCourier: number;
+      servicioRepartidor: number;
       abonado: boolean;
     }>
   >(url, { headers: authHeaders(token) });
 
-  // Normalizamos y añadimos “servicioTotal” para la UI
   return raw.map((r) => ({
     id: r.id,
     cliente: r.cliente,
@@ -138,12 +168,16 @@ export async function getEcommercePedidosDia(
     monto: Number(r.monto ?? 0),
     servicioCourier: Number(r.servicioCourier ?? 0),
     servicioRepartidor: Number(r.servicioRepartidor ?? 0),
-    servicioTotal: Number(r.servicioCourier ?? 0) + Number(r.servicioRepartidor ?? 0),
+    servicioTotal:
+      Number(r.servicioCourier ?? 0) + Number(r.servicioRepartidor ?? 0),
     abonado: Boolean(r.abonado),
-  })) as unknown as PedidoDiaItem[];
+  }));
 }
 
-/** PUT /courier/cuadre-saldo/ecommerce/abonar (abono por FECHAS, con soporte para archivo) */
+/**
+ * PUT /courier/cuadre-saldo/ecommerce/abonar
+ * Abono por fechas, con soporte para archivo y filtro opcional por sedeId.
+ */
 export async function abonarEcommerceFechas(
   token: string,
   payload: AbonarEcommerceFechasPayload | FormData,
@@ -165,7 +199,7 @@ export async function abonarEcommerceFechas(
       const msg = await res.text();
       throw new Error(msg || "Error al abonar (FormData)");
     }
-    return res.json();
+    return res.json() as Promise<AbonarEcommerceFechasResp>;
   }
 
   // ✅ Si no es FormData, asumimos JSON estándar
@@ -173,6 +207,7 @@ export async function abonarEcommerceFechas(
 
   const body: AbonarEcommerceFechasPayload = {
     ecommerceId: jsonPayload.ecommerceId,
+    sedeId: jsonPayload.sedeId, // se envía al BE si viene
     estado: jsonPayload.estado ?? "Por Validar",
     ...(jsonPayload.fechas?.length
       ? { fechas: jsonPayload.fechas }

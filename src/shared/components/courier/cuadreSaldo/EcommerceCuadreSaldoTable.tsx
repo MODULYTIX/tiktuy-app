@@ -1,15 +1,18 @@
+// src/shared/components/courier/cuadreSaldo/EcommerceCuadreSaldoTable.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   listEcommercesCourier,
   getEcommerceResumen,
   getEcommercePedidosDia,
   abonarEcommerceFechas,
+  listCourierSedesCuadre,
 } from "@/services/courier/cuadre_saldo/cuadreSaldoE.api";
 import type {
   EcommerceItem,
   ResumenDia,
   PedidoDiaItem,
   AbonoEstado,
+  SedeCuadreItem,
 } from "@/services/courier/cuadre_saldo/cuadreSaldoE.types";
 
 import ConfirmAbonoModal from "./ConfirmAbonoModal";
@@ -47,7 +50,10 @@ const servicioDe = (i: any) => {
     i?.servicioCourier ?? i?.servicio_courier ?? i?.servicioCourierEfectivo ?? 0
   );
   const sr = Number(
-    i?.servicioRepartidor ?? i?.servicio_repartidor ?? i?.servicioRepartidorEfectivo ?? 0
+    i?.servicioRepartidor ??
+      i?.servicio_repartidor ??
+      i?.servicioRepartidorEfectivo ??
+      0
   );
   if (sc || sr) return sc + sr;
   if (i?.servicioTotal != null) return Number(i.servicioTotal);
@@ -59,10 +65,18 @@ type Props = { token: string };
 type ResumenRow = ResumenDia & { estado?: AbonoEstado };
 
 const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
+  // ==== sedes ====
+  const [sedes, setSedes] = useState<SedeCuadreItem[]>([]);
+  const [sedeId, setSedeId] = useState<number | "">("");
+  const [canFilterBySede, setCanFilterBySede] = useState(false);
+  const [loadingSedes, setLoadingSedes] = useState(false);
+  const [sedesError, setSedesError] = useState<string | null>(null);
+
+  // ==== ecommerce / fechas ====
   const [ecommerces, setEcommerces] = useState<EcommerceItem[]>([]);
   const [ecoId, setEcoId] = useState<number | "">("");
-  const [desde, setDesde] = useState<string>(todayLocal()); // ⬅️ hoy
-  const [hasta, setHasta] = useState<string>(todayLocal()); // ⬅️ hoy
+  const [desde, setDesde] = useState<string>(todayLocal());
+  const [hasta, setHasta] = useState<string>(todayLocal());
 
   const [rows, setRows] = useState<ResumenRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,6 +101,39 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     [ecoId, ecommerces]
   );
 
+  const sedeIdNumber = typeof sedeId === "number" ? sedeId : undefined;
+
+  // ==== cargar sedes para cuadre de saldo ====
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoadingSedes(true);
+        const data = await listCourierSedesCuadre(token);
+
+        setCanFilterBySede(Boolean(data.canFilterBySede));
+        setSedes(data.sedes ?? []);
+
+        // selección por defecto:
+        // - si NO puede filtrar → fija sedeActualId
+        // - si puede filtrar → deja "todas" (sedeId = "")
+        if (!data.canFilterBySede && data.sedeActualId) {
+          setSedeId(data.sedeActualId);
+        } else {
+          setSedeId("");
+        }
+
+        setSedesError(null);
+      } catch (e: any) {
+        setSedesError(e?.message ?? "No se pudieron cargar las sedes");
+      } finally {
+        setLoadingSedes(false);
+      }
+    };
+
+    if (token) void run();
+  }, [token]);
+
+  // ==== cargar ecommerces ====
   useEffect(() => {
     (async () => {
       try {
@@ -108,6 +155,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     try {
       const data = await getEcommerceResumen(token, {
         ecommerceId: ecoId,
+        sedeId: sedeIdNumber,
         desde,
         hasta,
       });
@@ -122,11 +170,12 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     }
   };
 
+  // recarga resumen al cambiar ecommerce, fechas o sede
   useEffect(() => {
     if (!ecoId || typeof ecoId !== "number") return;
     if (!desde || !hasta) return;
     void loadResumen();
-  }, [ecoId, desde, hasta]);
+  }, [ecoId, desde, hasta, sedeIdNumber]);
 
   const toggleFecha = (fecha: string) =>
     setSelectedFechas((prev) =>
@@ -144,7 +193,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     setOpenDetalle(true);
     setDetalleLoading(true);
     try {
-      const arr = await getEcommercePedidosDia(token, ecoId, fecha);
+      const arr = await getEcommercePedidosDia(token, ecoId, fecha, sedeIdNumber);
       const list = Array.isArray(arr) ? arr : (arr as any)?.items ?? [];
       setDetalleItems(list as any[]);
     } catch (e: any) {
@@ -161,7 +210,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       setLoading(true);
       const porFecha = await Promise.all(
         selectedFechas.map(async (f) => {
-          const r = await getEcommercePedidosDia(token, ecoId, f);
+          const r = await getEcommercePedidosDia(token, ecoId, f, sedeIdNumber);
           return (Array.isArray(r) ? r : (r as any)?.items ?? []) as any[];
         })
       );
@@ -212,6 +261,9 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
       const formData = new FormData();
       formData.append("ecommerceId", String(ecoId));
+      if (sedeIdNumber != null) {
+        formData.append("sedeId", String(sedeIdNumber));
+      }
       confirmFechas.forEach((f) => formData.append("fechas[]", f));
       formData.append("estado", "Por Validar");
       formData.append("voucher", voucherFile, voucherFile.name);
@@ -237,7 +289,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       setConfirmCount(0);
 
       alert("✅ Abono enviado correctamente con voucher.");
-      await loadResumen(); // 🔄 recarga tabla actualizada
+      await loadResumen(); // recarga tabla actualizada
     } catch (e: any) {
       console.error("Error al confirmar abono:", e);
       alert(e?.message ?? "No se pudo procesar el abono.");
@@ -253,6 +305,10 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     setHasta(hoy);
     setRows([]);
     setSelectedFechas([]);
+    // sede: si no puede filtrar, se queda con su sede; si puede filtrar, dejamos "todas"
+    setSedeId((prev) =>
+      !canFilterBySede && typeof prev === "number" ? prev : ""
+    );
   };
 
   return (
@@ -284,8 +340,37 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         </button>
       </div>
 
-      {/* Filtros (modelo unificado + auto-búsqueda) */}
+      {/* Filtros (añadimos Sede antes de Ecommerce) */}
       <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
+        {/* Sede */}
+        <Selectx
+          id="f-sede"
+          label="Sede"
+          value={sedeId === "" ? "" : String(sedeId)}
+          onChange={(e) =>
+            setSedeId(e.target.value === "" ? "" : Number(e.target.value))
+          }
+          placeholder={
+            loadingSedes
+              ? "Cargando sedes..."
+              : canFilterBySede
+              ? "Todas las sedes"
+              : "Sede actual"
+          }
+          className="w-full"
+          disabled={loadingSedes || (!canFilterBySede && sedes.length <= 1)}
+        >
+          {canFilterBySede && <option value="">— Todas las sedes —</option>}
+          {sedes.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.nombre_almacen}
+              {s.ciudad ? ` (${s.ciudad})` : ""}{" "}
+              {s.es_principal ? "· Principal" : ""}
+            </option>
+          ))}
+        </Selectx>
+
+        {/* Ecommerce */}
         <Selectx
           id="f-ecommerce"
           label="Ecommerce"
@@ -331,6 +416,9 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         />
       </div>
 
+      {sedesError && (
+        <div className="px-4 text-xs text-red-600">{sedesError}</div>
+      )}
       {error && <div className="px-4 pb-2 text-sm text-red-600">{error}</div>}
 
       {/* Tabla resumen */}
@@ -376,8 +464,8 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                   estado === "Validado"
                     ? "bg-gray-900 text-white"
                     : estado === "Sin Validar"
-                      ? "bg-gray-100 text-gray-800 border border-gray-200"
-                      : "bg-blue-100 text-blue-900 border border-blue-200";
+                    ? "bg-gray-100 text-gray-800 border border-gray-200"
+                    : "bg-blue-100 text-blue-900 border border-blue-200";
                 return (
                   <tr key={r.fecha} className="hover:bg-gray-50">
                     <td className="p-4">
