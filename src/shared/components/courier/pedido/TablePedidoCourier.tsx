@@ -236,7 +236,8 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
       setLoading(false);
     }
   };
-
+  console.log(itemsFiltrados);
+  console.log(data);
   return (
     <div className="flex flex-col gap-5 w-full bg-transparent overflow-visible">
       {/* Header */}
