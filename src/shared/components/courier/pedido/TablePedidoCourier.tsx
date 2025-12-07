@@ -13,7 +13,7 @@ import type {
 import {
   fetchPedidosAsignadosHoy,
   fetchPedidosPendientes,
-  fetchPedidosTerminados,   // 👈 usamos terminados
+  fetchPedidosTerminados, 
   fetchPedidoDetalle,
   reassignPedido,
 } from '@/services/courier/pedidos/pedidos.api';
@@ -207,7 +207,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
       setDetalle(data);
       setDrawerOpen(true);
     } catch (err) {
-      console.error('❌ Error al cargar detalle:', err);
+      console.error(' Error al cargar detalle:', err);
     }
   };
 
@@ -236,8 +236,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
       setLoading(false);
     }
   };
-  console.log(itemsFiltrados);
-  console.log(data);
+
   return (
     <div className="flex flex-col gap-5 w-full bg-transparent overflow-visible">
       {/* Header */}
