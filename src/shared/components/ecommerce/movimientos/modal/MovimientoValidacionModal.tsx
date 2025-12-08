@@ -53,11 +53,15 @@ export default function ValidarMovimientoModal({
     setArchivo(null);
   }, [open, movimiento]);
 
-  const handleCantidadChange = (productoId: number, value: number, max: number) => {
-    const n = Number.isFinite(value) ? Math.trunc(value) : 0;
-    const safe = Math.max(0, Math.min(n, max));
-    setCantidades((prev) => ({ ...prev, [productoId]: safe }));
-  };
+  const handleCantidadChange =
+    (productoId: number,
+      value: number,
+      max: number
+    ) => {
+      const n = Number.isFinite(value) ? Math.trunc(value) : 0;
+      const safe = Math.max(0, Math.min(n, max));
+      setCantidades((prev) => ({ ...prev, [productoId]: safe }));
+    };
 
   if (!open || !movimiento) return null;
 
@@ -66,7 +70,7 @@ export default function ValidarMovimientoModal({
 
   const puedeValidar = enProceso && !!token;
 
-  // ⭐ ENVÍO FINAL: soporta archivo + JSON correctamente
+  // ENVÍO FINAL: soporta archivo + JSON correctamente
   const handleValidar = async () => {
     if (!puedeValidar) return;
 
@@ -83,7 +87,7 @@ export default function ValidarMovimientoModal({
     formData.append("observaciones", observaciones?.trim() || "");
 
     if (archivo) {
-      formData.append("evidencia", archivo); // 🔥 CAMBIO CORRECTO → el backend espera “evidencia”
+      formData.append("evidencia", archivo);
     }
 
     setLoading(true);
@@ -142,8 +146,8 @@ export default function ValidarMovimientoModal({
               enProceso
                 ? 'text-yellow-700'
                 : headerEstado === 'Validado'
-                ? 'text-black'
-                : 'text-red-700'
+                  ? 'text-black'
+                  : 'text-red-700'
             }
           >
             {headerEstado || '-'}
