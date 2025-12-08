@@ -6,6 +6,7 @@ import Paginator from "../../Paginator";
 import { fetchMisZonas } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
 import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
+import Badgex from "@/shared/common/Badgex";
 
 type Filters = {
   ciudad: string; // UI: ciudad, en BD es campo distrito
@@ -134,17 +135,6 @@ export default function TableZonaMine({
     });
   }
 
-  function EstadoPill({ nombre }: { nombre?: string | null }) {
-    const text = nombre ?? "—";
-    const isActivo = (nombre || "").toLowerCase() === "activo";
-    const cls = isActivo
-      ? "bg-green-100 text-green-800 border border-green-200"
-      : "bg-gray-100 text-gray-700 border border-gray-200";
-    return (
-      <span className={`px-2 py-0.5 rounded-full text-xs ${cls}`}>{text}</span>
-    );
-  }
-
   if (loading) {
     return (
       <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
@@ -183,27 +173,41 @@ export default function TableZonaMine({
           </tr>
         </thead>
         <tbody>
-          {currentZonas.map((z) => (
-            <tr key={z.id} className="border-b hover:bg-gray-50">
-              <td className="px-4 py-3">{z.distrito}</td>
-              <td className="px-4 py-3">{z.zona_tarifario}</td>
-              <td className="px-4 py-3">S/ {formatMoney(z.tarifa_cliente)}</td>
-              <td className="px-4 py-3">S/ {formatMoney(z.pago_motorizado)}</td>
-              <td className="px-4 py-3">
-                <EstadoPill nombre={z.estado?.nombre} />
-              </td>
-              <td className="px-4 py-3">
-                <button
-                  className="inline-flex items-center gap-1 text-orange-500 hover:text-orange-700"
-                  onClick={() => onEdit?.(z)}
-                  title="Editar zona"
-                >
-                  <FaRegEdit />
-                  <span className="sr-only">Editar</span>
-                </button>
-              </td>
-            </tr>
-          ))}
+          {currentZonas.map((z) => {
+            const estadoNombre = z.estado?.nombre ?? "—";
+            const isActivo =
+              (z.estado?.nombre || "").toLowerCase() === "activo";
+
+            const badgeClasses = isActivo
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+              : "bg-slate-50 text-slate-600 border border-slate-200";
+
+            return (
+              <tr key={z.id} className="border-b hover:bg-gray-50">
+                <td className="px-4 py-3">{z.distrito}</td>
+                <td className="px-4 py-3">{z.zona_tarifario}</td>
+                <td className="px-4 py-3">S/ {formatMoney(z.tarifa_cliente)}</td>
+                <td className="px-4 py-3">
+                  S/ {formatMoney(z.pago_motorizado)}
+                </td>
+                <td className="px-4 py-3">
+                  <Badgex className={badgeClasses}>
+                    {estadoNombre}
+                  </Badgex>
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    className="inline-flex items-center gap-1 text-orange-500 hover:text-orange-700"
+                    onClick={() => onEdit?.(z)}
+                    title="Editar zona"
+                  >
+                    <FaRegEdit />
+                    <span className="sr-only">Editar</span>
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
