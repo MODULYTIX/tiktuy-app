@@ -298,7 +298,7 @@ export default function AlmacenCourierCrearModalInvitacion({
         <form
           id="form-crear-sede"
           onSubmit={handleSubmit}
-          className="flex flex-col gap-5 h-full"
+          className="flex flex-col gap-5 h-full over overflow-auto"
         >
           {/* Datos de sede */}
           <section className="flex flex-col gap-5">
