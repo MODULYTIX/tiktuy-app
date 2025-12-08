@@ -6,6 +6,7 @@ import ZonaFilterCourier from "@/shared/components/courier/zona/ZonaFilterCourie
 import NewZonaTarifariaDrawer from "@/shared/components/courier/zona/NewZonaTarifariaDrawer";
 import EditZonaTarifariaDrawer from "@/shared/components/courier/zona/EditZonaTarifariaDrawer";
 import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
+import Tittlex from "@/shared/common/Tittlex";
 
 export default function ZonasPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -37,15 +38,11 @@ export default function ZonasPage() {
   return (
     <section className="mt-8">
       <div className="flex justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-primary mb-1">
-            Zonas de Atención
-          </h1>
-          <p className="text-gray-500">
-            Listado y creación de zonas asociadas a tu usuario (todas las sedes de tu
-            courier).
-          </p>
-        </div>
+        <Tittlex
+          title="Zonas de Atención"
+          description="Listado y creación de zonas asociadas a tu usuario (todas las sedes de tu
+            courie"
+        />
 
         <div className="flex items-end">
           <button

@@ -6,6 +6,7 @@ import type { Producto } from "@/services/courier/producto/productoCourier.type"
 import StockPedidoFilterCourier from "@/shared/components/courier/pedido/SockPedidoCourierFilter";
 import ProductoDetalleModal from "@/shared/components/courier/stockProducto/ProductoCourierDetalleModal";
 import TableStockProductoCourier from "@/shared/components/courier/stockProducto/TableStockProductoCourier";
+import Tittlex from "@/shared/common/Tittlex";
 
 export type StockFilters = {
   almacenId: string;
@@ -112,12 +113,10 @@ export default function StockPage() {
 
   return (
     <section className="mt-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-primary">Stock de Producto</h1>
-          <p className="text-gray-500">Control de stock y movimiento por sede</p>
-        </div>
-      </div>
+      <Tittlex
+        title="Stock de Producto"
+        description="Control de stock y movimiento por sede"
+      />
 
       <div className="my-8">
         <StockPedidoFilterCourier

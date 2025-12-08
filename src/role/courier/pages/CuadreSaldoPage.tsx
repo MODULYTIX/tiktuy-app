@@ -11,6 +11,7 @@ import type { MotorizadoItem } from "@/services/courier/cuadre_saldo/cuadreSaldo
 // ⬇️ Importa tus componentes de entrada estilizados (ajusta la ruta)
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
+import Tittlex from "@/shared/common/Tittlex";
 
 /* ============== Iconos ============== */
 const StoreIcon = () => (
@@ -94,10 +95,10 @@ const CuadreSaldoPage: React.FC = () => {
     <div className="flex flex-col gap 5 pt-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Cuadre de Saldo</h1>
-          <p className="mt-1 text-gray-600">Monitorea lo recaudado en el día</p>
-        </div>
+        <Tittlex
+          title="Cuadre de Saldo"
+          description="Monitorea lo recaudado en el día"
+        />
 
         <div className="flex items-center gap-2">
           <ToggleBtn active={tab === "ECOMMERCE"} onClick={() => setTab("ECOMMERCE")}>

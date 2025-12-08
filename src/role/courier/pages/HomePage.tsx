@@ -6,9 +6,12 @@ import PanelControlTable from "@/shared/components/courier/panelControl/PanelCon
 import PanelControlInvitacion from "@/shared/components/courier/panelControl/PanelControlInvitacion";
 import PanelControlRegistroEcommerce from "@/shared/components/courier/panelControl/PanelControlRegistroEcommerce";
 import PanelControlRegistroRepartidor from "@/shared/components/courier/panelControl/PanelControlRegistroRepartidor";
+import Tittlex from "@/shared/common/Tittlex";
 
 export default function CourierHomePage() {
-  const [activeTab, setActiveTab] = useState<"ecommerce" | "motorizado">("ecommerce");
+  const [activeTab, setActiveTab] = useState<"ecommerce" | "motorizado">(
+    "ecommerce"
+  );
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -32,10 +35,10 @@ export default function CourierHomePage() {
     <div className="mt-6 p-5 flex flex-col gap-y-5">
       {/* Encabezado y Tabs */}
       <div className="flex justify-between items-center pb-5 border-b border-gray30">
-        <div>
-          <h1 className="text-3xl font-bold mb-1 text-[#1A237E]">Panel de Control</h1>
-          <p className="text-gray-600 text-sm">Monitoreo de convenios y repartidores</p>
-        </div>
+        <Tittlex
+          title="Panel de Control"
+          description="Monitoreo de convenios y repartidores"
+        />
 
         <div className="flex gap-3">
           {/* Toggle Ecommerce */}
@@ -97,7 +100,9 @@ export default function CourierHomePage() {
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
           >
             <Icon icon="mdi:plus-box-outline" />
-            {activeTab === "ecommerce" ? "Registrar Ecommerce" : "Registrar Repartidor"}
+            {activeTab === "ecommerce"
+              ? "Registrar Ecommerce"
+              : "Registrar Repartidor"}
           </button>
         </div>
       </div>

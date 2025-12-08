@@ -19,6 +19,7 @@ import type {
   AlmacenamientoCourier,
   AlmacenCourierCreateDTO,
 } from "@/services/courier/almacen/almacenCourier.type";
+import Tittlex from "@/shared/common/Tittlex";
 
 export default function AlmacenPage() {
   const [items, setItems] = useState<AlmacenamientoCourier[]>([]);
@@ -27,7 +28,8 @@ export default function AlmacenPage() {
 
   const [modalCrearOpen, setModalCrearOpen] = useState(false);
   const [modalEditarOpen, setModalEditarOpen] = useState(false);
-  const [seleccionado, setSeleccionado] = useState<AlmacenamientoCourier | null>(null);
+  const [seleccionado, setSeleccionado] =
+    useState<AlmacenamientoCourier | null>(null);
 
   const token = useMemo(() => localStorage.getItem("token") ?? "", []);
 
@@ -78,10 +80,11 @@ export default function AlmacenPage() {
   return (
     <section className="mt-8 flex flex-col gap-5">
       <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl text-primary font-bold">Sede</h1>
-          <p className="text-gray-500">Visualice su sede y sus movimientos</p>
-        </div>
+        <Tittlex
+          title="Sede"
+          description="Visualice su sede y sus movimientos"
+        />
+
         <div>
           <button
             onClick={openCrear}
