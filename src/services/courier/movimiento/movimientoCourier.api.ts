@@ -70,14 +70,13 @@ export async function fetchCourierMovimientoDetalle(
   return res.json();
 }
 
-// Validar (courier) → pasa a "Observado" y adjunta evidencia/observaciones opcionalmente
 // Validar (courier)
 export async function validarCourierMovimiento(
   uuid: string,
   token: string,
   data: {
     observaciones?: string;
-    evidencia?: File | null;
+    evidencia?: File | null; // sigue igual
     cantidades?: Record<number, number>;
   }
 ): Promise<CourierMovimientoDetalle> {
@@ -86,10 +85,10 @@ export async function validarCourierMovimiento(
   if (data.observaciones)
     form.append("observaciones", data.observaciones);
 
+  // 👇 CAMBIO ÚNICO IMPORTANTE
   if (data.evidencia)
-    form.append("evidencia", data.evidencia);
+    form.append("file", data.evidencia); // <— antes decía "evidencia"
 
-  // << NUEVO >>
   if (data.cantidades)
     form.append("cantidades", JSON.stringify(data.cantidades));
 
