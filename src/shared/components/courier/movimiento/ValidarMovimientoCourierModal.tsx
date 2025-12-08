@@ -234,7 +234,7 @@ export default function ValidarMovimientoCourierModal({
               </thead>
               <tbody>
                 {detalle?.productos?.map((dp) => {
-                  const max = dp.cantidad_validada ?? 0;
+                  const max = dp.cantidad_validada ?? dp.cantidad ?? 0;
                   const val = cantidades[dp.producto.id] ?? max;
 
                   return (
