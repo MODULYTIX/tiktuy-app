@@ -28,10 +28,8 @@ export default function MovimientoFilterCourier({ value, onChange, onClear }: Pr
             placeholder="Seleccionar estado"
           >
             <option value="">Todos</option>
-            <option value="Activo">Activo</option>
             <option value="Proceso">Proceso</option>
             <option value="Observado">Observado</option>
-            <option value="Inactivo">Inactivo</option>
             <option value="Validado">Validado</option>
           </Selectx>
         </div>
