@@ -82,7 +82,7 @@ export default function RegistroMovimientoPage() {
   }, [modalMode]);
 
   return (
-    <section className="mt-6">
+    <section className="mt-8">
       <div className="flex justify-between items-center mb-6">
         <Tittlex
           title="Movimientos"
