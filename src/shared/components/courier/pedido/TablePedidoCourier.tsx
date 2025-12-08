@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { FaEye } from 'react-icons/fa';
-import { Icon } from '@iconify/react';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FaEye } from "react-icons/fa";
+import { Icon } from "@iconify/react";
 
 import type {
   Paginated,
@@ -8,23 +8,25 @@ import type {
   ListPedidosHoyQuery,
   ListByEstadoQuery,
   PedidoDetalle,
-} from '@/services/courier/pedidos/pedidos.types';
+} from "@/services/courier/pedidos/pedidos.types";
 
 import {
   fetchPedidosAsignadosHoy,
   fetchPedidosPendientes,
-  fetchPedidosTerminados, 
+  fetchPedidosTerminados,
   fetchPedidoDetalle,
   reassignPedido,
-} from '@/services/courier/pedidos/pedidos.api';
+} from "@/services/courier/pedidos/pedidos.api";
 
-import DetallePedidoDrawer from './DetallePedidoDrawer';
-import { Selectx } from '@/shared/common/Selectx';
-import Buttonx from '@/shared/common/Buttonx';
-import { SearchInputx } from '@/shared/common/SearchInputx';
-import Tittlex from '@/shared/common/Tittlex';
+import DetallePedidoDrawer from "./DetallePedidoDrawer";
+import { Selectx } from "@/shared/common/Selectx";
+import Buttonx from "@/shared/common/Buttonx";
+import { SearchInputx } from "@/shared/common/SearchInputx";
+import Tittlex from "@/shared/common/Tittlex";
 
-type View = 'asignados' | 'pendientes' | 'terminados';
+type View = "asignados" | "pendientes" | "terminados";
+
+type Periodo = "hoy" | "pasados" | "futuros" | "todos";
 
 interface Props {
   view: View;
@@ -35,27 +37,37 @@ interface Props {
 }
 
 /* ---- utilidades de formato ---- */
-const PEN = new Intl.NumberFormat('es-PE', {
-  style: 'currency',
-  currency: 'PEN',
+const PEN = new Intl.NumberFormat("es-PE", {
+  style: "currency",
+  currency: "PEN",
   minimumFractionDigits: 2,
 });
-const two = (n: number) => String(n).padStart(2, '0');
+const two = (n: number) => String(n).padStart(2, "0");
 
-export default function TablePedidoCourier({ view, token, onAsignar, onReasignar }: Props) {
+export default function TablePedidoCourier({
+  view,
+  token,
+  onAsignar,
+  onReasignar,
+}: Props) {
   /* paginación (server-side) */
   const [page, setPage] = useState(1);
   const [perPage] = useState(6);
 
   /* filtros (client-side, visuales) */
-  const [filtroDistrito, setFiltroDistrito] = useState('');
-  const [filtroCantidad, setFiltroCantidad] = useState('');
-  const [searchProducto, setSearchProducto] = useState('');
+  const [filtroDistrito, setFiltroDistrito] = useState("");
+  const [filtroCantidad, setFiltroCantidad] = useState("");
+  const [searchProducto, setSearchProducto] = useState("");
+
+  // 👉 nuevo: periodo y rango de fechas
+  const [periodo, setPeriodo] = useState<Periodo>("hoy");
+  const [fechaDesde, setFechaDesde] = useState<string>("");
+  const [fechaHasta, setFechaHasta] = useState<string>("");
 
   /* data */
   const [data, setData] = useState<Paginated<PedidoListItem> | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
 
   /* selección (solo vista "asignados") */
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -71,15 +83,21 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
   useEffect(() => {
     setPage(1);
     setSelectedIds([]);
-    setFiltroDistrito('');
-    setFiltroCantidad('');
-    setSearchProducto('');
+    setFiltroDistrito("");
+    setFiltroCantidad("");
+    setSearchProducto("");
+    setPeriodo("hoy");
+    setFechaDesde("");
+    setFechaHasta("");
   }, [view]);
 
   // querys para backend
-  const qHoy: ListPedidosHoyQuery = useMemo(() => ({ page, perPage }), [page, perPage]);
+  const qHoy: ListPedidosHoyQuery = useMemo(
+    () => ({ page, perPage }),
+    [page, perPage]
+  );
   const qEstado: ListByEstadoQuery = useMemo(
-    () => ({ page, perPage, sortBy: 'programada', order: 'asc' }),
+    () => ({ page, perPage, sortBy: "programada", order: "asc" }),
     [page, perPage]
   );
 
@@ -89,26 +107,25 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
 
     async function load() {
       if (!token) {
-        setError('No hay token');
+        setError("No hay token");
         setLoading(false);
         return;
       }
       setLoading(true);
-      setError('');
+      setError("");
       try {
         let resp: Paginated<PedidoListItem>;
-        if (view === 'asignados') {
+        if (view === "asignados") {
           resp = await fetchPedidosAsignadosHoy(token, qHoy, { signal: ac.signal });
-        } else if (view === 'pendientes') {
+        } else if (view === "pendientes") {
           resp = await fetchPedidosPendientes(token, qEstado, { signal: ac.signal });
         } else {
-          // 👇 aquí cambiamos a /terminados
           resp = await fetchPedidosTerminados(token, qEstado, { signal: ac.signal });
         }
         setData(resp);
       } catch (e) {
-        if ((e as Error).name !== 'AbortError') {
-          setError(e instanceof Error ? e.message : 'Error al cargar pedidos');
+        if ((e as Error).name !== "AbortError") {
+          setError(e instanceof Error ? e.message : "Error al cargar pedidos");
         }
       } finally {
         setLoading(false);
@@ -121,9 +138,26 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
 
   const itemsBase = data?.items ?? [];
 
+  // helper: fecha de referencia de un pedido según vista
+  const getFechaReferencia = (p: PedidoListItem): string | null => {
+    if (view === "terminados") {
+      return p.fecha_entrega_real ?? p.fecha_entrega_programada ?? null;
+    }
+    return p.fecha_entrega_programada ?? null;
+  };
+
+  const toDateOnly = (d: Date) => {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  };
+
   // distritos únicos para el filtro
   const distritos = useMemo(
-    () => Array.from(new Set(itemsBase.map((x) => x.cliente?.distrito).filter(Boolean))).sort(),
+    () =>
+      Array.from(
+        new Set(itemsBase.map((x) => x.cliente?.distrito).filter(Boolean))
+      ).sort(),
     [itemsBase]
   );
 
@@ -131,27 +165,81 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
   const itemsFiltrados = useMemo(() => {
     let arr = [...itemsBase];
 
+    const hoy = toDateOnly(new Date());
+    const dateDesde = fechaDesde ? toDateOnly(new Date(fechaDesde)) : null;
+    const dateHasta = fechaHasta ? toDateOnly(new Date(fechaHasta)) : null;
+
+    // 1) filtro por periodo (hoy / pasados / futuros / todos)
+    if (periodo !== "todos" || dateDesde || dateHasta) {
+      arr = arr.filter((x) => {
+        const fechaStr = getFechaReferencia(x);
+        if (!fechaStr) return false;
+
+        const d = toDateOnly(new Date(fechaStr));
+        let ok = true;
+
+        if (periodo === "hoy") {
+          ok = ok && d.getTime() === hoy.getTime();
+        } else if (periodo === "pasados") {
+          ok = ok && d.getTime() < hoy.getTime();
+        } else if (periodo === "futuros") {
+          ok = ok && d.getTime() > hoy.getTime();
+        }
+
+        if (dateDesde) {
+          ok = ok && d.getTime() >= dateDesde.getTime();
+        }
+        if (dateHasta) {
+          ok = ok && d.getTime() <= dateHasta.getTime();
+        }
+
+        return ok;
+      });
+    }
+
+    // 2) Distrito
     if (filtroDistrito) {
       arr = arr.filter((x) => x.cliente?.distrito === filtroDistrito);
     }
+
+    // 3) Cantidad exacta de productos
     if (filtroCantidad) {
       const cant = Number(filtroCantidad);
       const cantidadDeItems = (x: PedidoListItem) =>
-        x.items_total_cantidad ?? x.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0;
+        x.items_total_cantidad ??
+        x.items?.reduce((s, it) => s + it.cantidad, 0) ??
+        0;
       arr = arr.filter((x) => cantidadDeItems(x) === cant);
     }
+
+    // 4) búsqueda por nombre de producto
     if (searchProducto.trim()) {
       const q = searchProducto.trim().toLowerCase();
-      arr = arr.filter((x) => (x.items ?? []).some((it) => it.nombre.toLowerCase().includes(q)));
+      arr = arr.filter((x) =>
+        (x.items ?? []).some((it) =>
+          it.nombre.toLowerCase().includes(q)
+        )
+      );
     }
 
     return arr;
-  }, [itemsBase, filtroDistrito, filtroCantidad, searchProducto]);
+  }, [
+    itemsBase,
+    filtroDistrito,
+    filtroCantidad,
+    searchProducto,
+    periodo,
+    fechaDesde,
+    fechaHasta,
+    view,
+  ]);
 
   // selección de items visibles
   const pageIds = itemsFiltrados.map((p) => p.id);
-  const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
-  const someSelected = !allSelected && pageIds.some((id) => selectedIds.includes(id));
+  const allSelected =
+    pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+  const someSelected =
+    !allSelected && pageIds.some((id) => selectedIds.includes(id));
 
   // header checkbox indeterminate
   const headerCbRef = useRef<HTMLInputElement>(null);
@@ -183,11 +271,11 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
 
       for (let i = start; i <= end; i++) pages.push(i);
       if (start > 1) {
-        pages.unshift('…');
+        pages.unshift("…");
         pages.unshift(1);
       }
       if (end < totalPages) {
-        pages.push('…');
+        pages.push("…");
         pages.push(totalPages);
       }
     }
@@ -207,7 +295,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
       setDetalle(data);
       setDrawerOpen(true);
     } catch (err) {
-      console.error(' Error al cargar detalle:', err);
+      console.error(" Error al cargar detalle:", err);
     }
   };
 
@@ -218,23 +306,32 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
     try {
       const raw = window.prompt(
         `Reasignar pedido ${p.codigo_pedido}\n\nIngrese el ID del nuevo repartidor:`,
-        ''
+        ""
       );
       if (!raw) return;
       const nuevoId = Number(raw);
       if (!Number.isFinite(nuevoId) || nuevoId <= 0) {
-        setError('ID de repartidor inválido');
+        setError("ID de repartidor inválido");
         return;
       }
       setLoading(true);
-      setError('');
+      setError("");
       await reassignPedido(token, { pedido_id: p.id, motorizado_id: nuevoId });
       setReloadTick((t) => t + 1);
     } catch (e: any) {
-      setError(e?.message ?? 'Error al reasignar pedido');
+      setError(e?.message ?? "Error al reasignar pedido");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClearFilters = () => {
+    setFiltroDistrito("");
+    setFiltroCantidad("");
+    setSearchProducto("");
+    setPeriodo("hoy");
+    setFechaDesde("");
+    setFechaHasta("");
   };
 
   return (
@@ -244,91 +341,149 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
         <Tittlex
           variant="section"
           title={
-            view === 'asignados'
-              ? 'Pedidos Asignados'
-              : view === 'pendientes'
-                ? 'Pedidos Pendientes'
-                : 'Pedidos Terminados'
+            view === "asignados"
+              ? "Pedidos Asignados"
+              : view === "pendientes"
+              ? "Pedidos Pendientes"
+              : "Pedidos Terminados"
           }
           description={
-            view === 'asignados'
-              ? 'Selecciona y asigna pedidos a un repartidor.'
-              : view === 'pendientes'
-                ? 'Pedidos en gestión con el cliente (contacto, reprogramación, etc.).'
-                : 'Pedidos completados o cerrados.'
+            view === "asignados"
+              ? "Selecciona y asigna pedidos a un repartidor."
+              : view === "pendientes"
+              ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
+              : "Pedidos completados o cerrados."
           }
         />
 
         <button
           onClick={() => onAsignar?.(selectedIds)}
           className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-          disabled={!selectedIds.length || loading || view !== 'asignados'}
-          title={view !== 'asignados' ? 'Solo disponible en Asignados' : 'Asignar Repartidor'}
+          disabled={!selectedIds.length || loading || view !== "asignados"}
+          title={
+            view !== "asignados"
+              ? "Solo disponible en Asignados"
+              : "Asignar Repartidor"
+          }
         >
           Asignar Repartidor
         </button>
       </div>
 
       {/* Filtros */}
-      <div className="bg-white p-5 rounded shadow-default flex gap-5 items-end border-b-4 border-gray90">
-        {/* Distrito */}
-        <Selectx
-          label="Distrito"
-          name="filtro_distrito"
-          value={filtroDistrito}
-          onChange={(e) => setFiltroDistrito(e.target.value)}
-          placeholder="Seleccionar distrito"
-        >
-          {distritos.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </Selectx>
+      <div className="bg-white p-5 rounded shadow-default flex flex-col gap-4 border-b-4 border-gray90">
+        {/* Fila 1 */}
+        <div className="flex flex-wrap gap-4 items-end">
+          {/* Periodo */}
+          <div className="min-w-[160px]">
+            <Selectx
+              label="Periodo"
+              name="filtro_periodo"
+              value={periodo}
+              onChange={(e) => setPeriodo(e.target.value as Periodo)}
+              placeholder="Seleccionar periodo"
+            >
+              <option value="hoy">Solo hoy</option>
+              <option value="pasados">Pedidos pasados</option>
+              <option value="futuros">Pedidos futuros</option>
+              <option value="todos">Todos los pedidos</option>
+            </Selectx>
+          </div>
 
-        {/* Cantidad */}
-        <Selectx
-          label="Cantidad"
-          name="filtro_cantidad"
-          value={filtroCantidad}
-          onChange={(e) => setFiltroCantidad(e.target.value)}
-          placeholder="Seleccionar cantidad"
-        >
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>
-              {two(n)}
-            </option>
-          ))}
-        </Selectx>
+          {/* Distrito */}
+          <div className="min-w-[180px]">
+            <Selectx
+              label="Distrito"
+              name="filtro_distrito"
+              value={filtroDistrito}
+              onChange={(e) => setFiltroDistrito(e.target.value)}
+              placeholder="Seleccionar distrito"
+            >
+              {distritos.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </Selectx>
+          </div>
 
-        {/* Búsqueda */}
-        <div className="w-full flex flex-col gap-[10px]">
-          <label className="text-sm font-medium text-black block">
-            Buscar productos por nombre
-          </label>
-          <SearchInputx
-            placeholder="Buscar productos por nombre..."
-            value={searchProducto}
-            onChange={(e) => setSearchProducto(e.target.value)}
-          />
+          {/* Cantidad */}
+          <div className="min-w-[160px]">
+            <Selectx
+              label="Cantidad de productos"
+              name="filtro_cantidad"
+              value={filtroCantidad}
+              onChange={(e) => setFiltroCantidad(e.target.value)}
+              placeholder="Seleccionar cantidad"
+            >
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {two(n)}
+                </option>
+              ))}
+            </Selectx>
+          </div>
+
+          {/* Búsqueda */}
+          <div className="flex-1 min-w-[220px] flex flex-col gap-[10px]">
+            <label className="text-sm font-medium text-black block">
+              Buscar productos por nombre
+            </label>
+            <SearchInputx
+              placeholder="Buscar productos por nombre..."
+              value={searchProducto}
+              onChange={(e) => setSearchProducto(e.target.value)}
+            />
+          </div>
         </div>
 
-        {/* Limpiar */}
-        <Buttonx
-          variant="outlined"
-          onClick={() => {
-            setFiltroDistrito('');
-            setFiltroCantidad('');
-            setSearchProducto('');
-          }}
-          label="Limpiar Filtros"
-          icon="mynaui:delete"
-        />
+        {/* Fila 2 */}
+        <div className="flex flex-wrap gap-4 items-end">
+          {/* Fecha desde */}
+          <div className="min-w-[180px] flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-800">
+              Fecha desde
+            </label>
+            <input
+              type="date"
+              value={fechaDesde}
+              onChange={(e) => setFechaDesde(e.target.value)}
+              className="h-10 px-3 rounded-md border border-gray-300 bg-white text-sm text-gray-900 outline-none"
+            />
+          </div>
+
+          {/* Fecha hasta */}
+          <div className="min-w-[180px] flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-800">
+              Fecha hasta
+            </label>
+            <input
+              type="date"
+              value={fechaHasta}
+              onChange={(e) => setFechaHasta(e.target.value)}
+              className="h-10 px-3 rounded-md border border-gray-300 bg-white text-sm text-gray-900 outline-none"
+            />
+          </div>
+
+          {/* Limpiar */}
+          <div className="flex items-end">
+            <Buttonx
+              variant="outlined"
+              onClick={handleClearFilters}
+              label="Limpiar filtros"
+              icon="mynaui:delete"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Estados */}
-      {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
-      {!loading && error && <div className="py-10 text-center text-red-600">{error}</div>}
+      {loading && (
+        <div className="py-10 text-center text-gray-500">Cargando...</div>
+      )}
+      {!loading && error && (
+        <div className="py-10 text-center text-red-600">{error}</div>
+      )}
 
       {/* Tabla */}
       {!loading && !error && (
@@ -355,21 +510,29 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
                       className="cursor-pointer"
                       checked={allSelected}
                       onChange={(e) => {
-                        if (view !== 'asignados') return;
+                        if (view !== "asignados") return;
                         if (e.target.checked) {
-                          setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+                          setSelectedIds((prev) =>
+                            Array.from(new Set([...prev, ...pageIds]))
+                          );
                         } else {
-                          setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+                          setSelectedIds((prev) =>
+                            prev.filter((id) => !pageIds.includes(id))
+                          );
                         }
                       }}
-                      disabled={view !== 'asignados'}
+                      disabled={view !== "asignados"}
                     />
                   </th>
                   <th className="px-4 py-3 text-left">Fec. Entrega</th>
                   <th className="px-4 py-3 text-left">Ecommerce</th>
                   <th className="px-4 py-3 text-left">Cliente</th>
-                  <th className="px-4 py-3 text-left">Dirección de Entrega</th>
-                  <th className="px-4 py-3 text-center">Cant. de productos</th>
+                  <th className="px-4 py-3 text-left">
+                    Dirección de Entrega
+                  </th>
+                  <th className="px-4 py-3 text-center">
+                    Cant. de productos
+                  </th>
                   <th className="px-4 py-3 text-left">Monto</th>
                   <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
@@ -378,43 +541,61 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
               <tbody className="divide-y divide-gray20">
                 {itemsFiltrados.map((p) => {
                   const fecha =
-                    view === 'terminados'
+                    view === "terminados"
                       ? p.fecha_entrega_real ?? p.fecha_entrega_programada
                       : p.fecha_entrega_programada;
 
                   const cantidad =
-                    p.items_total_cantidad ?? p.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0;
-                  const direccion = p.cliente?.direccion ?? '';
+                    p.items_total_cantidad ??
+                    p.items?.reduce((s, it) => s + it.cantidad, 0) ??
+                    0;
+                  const direccion = p.cliente?.direccion ?? "";
                   const montoNumber = Number(p.monto_recaudar || 0);
 
                   return (
-                    <tr key={p.id} className="hover:bg-gray10 transition-colors">
+                    <tr
+                      key={p.id}
+                      className="hover:bg-gray10 transition-colors"
+                    >
                       <td className="h-12 px-4 py-3">
                         <input
                           type="checkbox"
                           className="cursor-pointer"
                           checked={selectedIds.includes(p.id)}
                           onChange={(e) => {
-                            if (view !== 'asignados') return;
+                            if (view !== "asignados") return;
                             setSelectedIds((prev) =>
-                              e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id)
+                              e.target.checked
+                                ? [...prev, p.id]
+                                : prev.filter((x) => x !== p.id)
                             );
                           }}
-                          disabled={view !== 'asignados'}
+                          disabled={view !== "asignados"}
                         />
                       </td>
                       <td className="h-12 px-4 py-3 text-gray70">
-                        {fecha ? new Date(fecha).toLocaleDateString('es-PE') : '—'}
+                        {fecha
+                          ? new Date(fecha).toLocaleDateString("es-PE")
+                          : "—"}
                       </td>
                       <td className="h-12 px-4 py-3 text-gray70">
-                        {p.ecommerce?.nombre_comercial ?? '—'}
+                        {p.ecommerce?.nombre_comercial ?? "—"}
                       </td>
-                      <td className="h-12 px-4 py-3 text-gray70">{p.cliente?.nombre ?? '—'}</td>
-                      <td className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]" title={direccion}>
-                        {direccion || '—'}
+                      <td className="h-12 px-4 py-3 text-gray70">
+                        {p.cliente?.nombre ?? "—"}
                       </td>
-                      <td className="h-12 px-4 py-3 text-center text-gray70">{two(cantidad)}</td>
-                      <td className="h-12 px-4 py-3 text-gray70">{PEN.format(montoNumber)}</td>
+                      <td
+                        className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]"
+                        title={direccion}
+                      >
+                        {direccion || "—"}
+                      </td>
+                      <td className="h-12 px-4 py-3 text-center text-gray70">
+                        {two(cantidad)}
+                      </td>
+                      <td className="h-12 px-4 py-3 text-gray70">
+                        {PEN.format(montoNumber)}
+                      </td>
                       <td className="h-12 px-4 py-3">
                         <div className="flex items-center justify-center gap-3">
                           <button
@@ -426,7 +607,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
                             <FaEye />
                           </button>
 
-                          {view === 'pendientes' && (
+                          {view === "pendientes" && (
                             <button
                               className="text-indigo-600 hover:text-indigo-800 transition-colors"
                               onClick={() => handleReasignar(p)}
@@ -444,8 +625,12 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
 
                 {!itemsFiltrados.length && (
                   <tr className="hover:bg-transparent">
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray70 italic">
-                      No hay pedidos para esta etapa.
+                    <td
+                      colSpan={8}
+                      className="px-4 py-8 text-center text-gray70 italic"
+                    >
+                      No hay pedidos para esta etapa con los filtros
+                      seleccionados.
                     </td>
                   </tr>
                 )}
@@ -465,7 +650,7 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
               </button>
 
               {pagerItems.map((p, i) =>
-                typeof p === 'string' ? (
+                typeof p === "string" ? (
                   <span key={`dots-${i}`} className="px-2 text-gray70">
                     {p}
                   </span>
@@ -473,11 +658,13 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
                   <button
                     key={p}
                     onClick={() => goToPage(p)}
-                    aria-current={page === p ? 'page' : undefined}
+                    aria-current={page === p ? "page" : undefined}
                     className={[
-                      'w-8 h-8 flex items-center justify-center rounded',
-                      page === p ? 'bg-gray90 text-white' : 'bg-gray10 text-gray70 hover:bg-gray20',
-                    ].join(' ')}
+                      "w-8 h-8 flex items-center justify-center rounded",
+                      page === p
+                        ? "bg-gray90 text-white"
+                        : "bg-gray10 text-gray70 hover:bg-gray20",
+                    ].join(" ")}
                     disabled={loading}
                   >
                     {p}
@@ -499,7 +686,11 @@ export default function TablePedidoCourier({ view, token, onAsignar, onReasignar
       )}
 
       {/* Drawer del detalle */}
-      <DetallePedidoDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} detalle={detalle} />
+      <DetallePedidoDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        detalle={detalle}
+      />
     </div>
   );
 }
