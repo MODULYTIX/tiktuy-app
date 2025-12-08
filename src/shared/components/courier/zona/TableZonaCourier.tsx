@@ -134,7 +134,7 @@ export default function TableZonaCourier({
       <table className="w-full text-sm text-left text-gray-600">
         <thead className="bg-gray-100 text-gray-700 text-xs uppercase">
           <tr>
-            <th className="px-4 py-3">Ciudad</th> {/* label UI, campo real = distrito */}
+            <th className="px-4 py-3">Distrito</th> {/* label UI, campo real = distrito */}
             <th className="px-4 py-3">Zona</th>
             <th className="px-4 py-3">Tarifa Cliente</th>
             <th className="px-4 py-3">Pago a Motorizado</th>

@@ -29,11 +29,11 @@ export default function ZonaFilterCourier({
     >
       {/* cols = Ciudad | Zona | Botón, con buenas proporciones en desktop */}
       <div className="flex gap-5 items-end flex-wrap">
-        {/* Ciudad */}
+        {/* Distrito */}
         <div className="w-[280px] sm:min-w-[140px] md:min-w-[140px]">
           <Selectx
-            label="Ciudad"
-            placeholder="Seleccionar ciudad"
+            label="Distrito"
+            placeholder="Seleccionar distrito"
             value={ciudad}
             onChange={(e) =>
               onChange({

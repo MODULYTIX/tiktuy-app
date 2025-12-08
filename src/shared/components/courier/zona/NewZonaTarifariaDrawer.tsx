@@ -74,7 +74,7 @@ export default function NewZonaTarifariaDrawer({
     }
 
     if (!form.ciudad.trim()) {
-      setErr("La ciudad es obligatoria.");
+      setErr("El distrito es obligatorio.");
       return;
     }
     if (!form.zona_tarifario.trim()) {
@@ -128,8 +128,8 @@ export default function NewZonaTarifariaDrawer({
         <Tittlex
           variant="modal"
           icon="solar:point-on-map-broken"
-          title="NUEVA CIUDAD DE ATENCIÓN"
-          description="Registra una nueva ciudad en la que brindaremos atención logística. Asigna su zona correspondiente, define el tarifario por envío y especifica el pago destinado al motorizado que realizará las entregas."
+          title="NUEVO DISTRITO DE ATENCIÓN"
+          description="Registra una nueva distrito en la que brindaremos atención logística. Asigna su zona correspondiente, define el tarifario por envío y especifica el pago destinado al motorizado que realizará las entregas."
         />
 
         {err && (
@@ -142,7 +142,7 @@ export default function NewZonaTarifariaDrawer({
         <div className="h-full flex flex-col gap-5">
           <div className="flex gap-5">
             <Inputx
-              label="Ciudad"
+              label="Distrito"
               placeholder="Ej. Arequipa, Lima, Cusco"
               value={form.ciudad}
               onChange={(e) => handleChange("ciudad", e.target.value)}

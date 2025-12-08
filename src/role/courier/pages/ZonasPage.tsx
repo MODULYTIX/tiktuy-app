@@ -53,7 +53,7 @@ export default function ZonasPage() {
             onClick={() => setDrawerOpen(true)}
           >
             <Icon icon="iconoir:new-tab" width="24" height="24" />
-            <span>Nueva Ciudad de Atención</span>
+            <span>Nuevo Distrito de Atención</span>
           </button>
         </div>
       </div>

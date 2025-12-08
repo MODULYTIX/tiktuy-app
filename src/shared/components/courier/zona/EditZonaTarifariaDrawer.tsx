@@ -142,7 +142,7 @@ export default function EditZonaTarifariaDrawer({
     if (!zona) return;
 
     // Validaciones mínimas
-    if (!form.ciudad.trim()) return setErr("La ciudad es obligatoria.");
+    if (!form.ciudad.trim()) return setErr("El distrito es obligatorio.");
     if (!form.zona_tarifario.trim()) return setErr("La zona es obligatoria.");
 
     if (
@@ -198,7 +198,7 @@ export default function EditZonaTarifariaDrawer({
           variant="modal"
           icon="solar:point-on-map-broken"
           title={titulo}
-          description="Actualiza la ciudad, su zona, la tarifa al cliente y el pago al motorizado según la política de tu servicio."
+          description="Actualiza el distrito, su zona, la tarifa al cliente y el pago al motorizado según la política de tu servicio."
         />
 
         {err && (
@@ -213,7 +213,7 @@ export default function EditZonaTarifariaDrawer({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <Inputx
               label="Ciudad"
-              placeholder="Escribe la ciudad"
+              placeholder="Escribe el distrito"
               value={form.ciudad}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleChange("ciudad", e.target.value)
