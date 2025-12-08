@@ -66,7 +66,7 @@ export default function MovimientoValidacionTable() {
       alive = false;
       ac.abort();
     };
-  }, [token]); // 👈 solo token
+  }, [token]); 
 
   // Alias de compatibilidad: "Activo" → "Proceso"
   const normalizeEstado = (nombre?: string) => {

@@ -282,27 +282,13 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                     </div>
                   </div>
 
-                  {/* HACIA 2 (NO ELIMINO NADA) */}
-                  <div className="text-center">
-                    <div className="text-slate-500 font-semibold mb-2">Hacia</div>
-                    <div className="mx-auto w-[100px] h-[100px]">
-                      <img src={AlmacenHacia} className="object-contain w-full h-full" />
-                    </div>
-                    <div className="mt-2 text-[20px] font-semibold text-slate-800">
-                      {nombreAlmacen((data as any)?.almacen_destino) || 'Almacén Destino'}
-                    </div>
-                    <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#FFF1BF] px-3 py-2">
-                      <span className="text-[#B98900] text-[12px] font-semibold">Fecha de Validación</span>
-                    </div>
-                    <div className="mt-3 text-slate-600 text-[14px]">{fecha_validacion || '—'}</div>
-                  </div>
+
                 </div>
 
                 {/* TARJETA INFERIOR */}
                 <div className="mt-6 mb-4 border rounded-sm bg-white border-gray-400">
                   <div className="p-10 text-center text-slate-400">
-                    <p>Sin datos que mostrar, no hay</p>
-                    <p>descripción ni archivo adjuntado.</p>
+                    <p>{data.evidencia_url ? 'Ver evidencia' : 'Sin evidencia'}</p>
                   </div>
                 </div>
               </div>

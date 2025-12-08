@@ -40,6 +40,7 @@ export type MovimientoDetalle = {
   codigo?: string;
   fecha?: string;
   descripcion?: string;
+  evidencia_url?: string;
   almacen_origen?: AlmacenRef | null;
   almacen_destino?: AlmacenRef | null;
   estado?: EstadoRef | string | null;
