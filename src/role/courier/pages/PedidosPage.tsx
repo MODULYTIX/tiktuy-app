@@ -6,6 +6,7 @@ import { useAuth } from '@/auth/context';
 import AsignarRepartidor from '@/shared/components/courier/pedido/AsignarRepartidor';
 import ReasignarRepartidorModal from '@/shared/components/courier/pedido/ReasignarRepartidorModal';
 import type { PedidoListItem } from '@/services/courier/pedidos/pedidos.types';
+import Tittlex from '@/shared/common/Tittlex';
 
 type Vista = 'asignados' | 'pendientes' | 'terminados';
 
@@ -59,10 +60,10 @@ export default function PedidosPage() {
     <section className="mt-8 flex flex-col gap-[1.25rem]">
       {/* Header con tabs */}
       <div className="flex justify-between items-end pb-5 border-b border-gray30">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-[1.75rem] font-bold text-primary">Gestión de Pedidos</h1>
-          <p className="text-gray60">Administra y visualiza el estado de tus pedidos en cada etapa del proceso</p>
-        </div>
+        <Tittlex
+          title="Gestión de Pedidos"
+          description="Administra y visualiza el estado de tus pedidos en cada etapa del proceso"
+        />
 
         <div className="flex gap-3 items-center">
           <button

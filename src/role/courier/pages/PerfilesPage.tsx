@@ -1,11 +1,12 @@
 // src/app/(courier)/perfiles/page.tsx
-import { useCallback, useEffect, useState } from 'react';
-import { CiUser } from 'react-icons/ci';
-import { useAuth } from '@/auth/context';
-import { fetchPerfilTrabajadores } from '@/services/ecommerce/perfiles/perfilesTrabajador.api';
-import type { PerfilTrabajador } from '@/services/ecommerce/perfiles/perfilesTrabajador.types';
-import PerfilesCourierTable from '@/shared/components/courier/perfiles/PerfilesCourierTable';
-import PerfilesCourierModal from '@/shared/components/courier/perfiles/PerfilerCourierModal';
+import { useCallback, useEffect, useState } from "react";
+import { CiUser } from "react-icons/ci";
+import { useAuth } from "@/auth/context";
+import { fetchPerfilTrabajadores } from "@/services/ecommerce/perfiles/perfilesTrabajador.api";
+import type { PerfilTrabajador } from "@/services/ecommerce/perfiles/perfilesTrabajador.types";
+import PerfilesCourierTable from "@/shared/components/courier/perfiles/PerfilesCourierTable";
+import PerfilesCourierModal from "@/shared/components/courier/perfiles/PerfilerCourierModal";
+import Tittlex from "@/shared/common/Tittlex";
 
 export default function PerfilesPage() {
   const { token } = useAuth();
@@ -20,7 +21,7 @@ export default function PerfilesPage() {
       const res = await fetchPerfilTrabajadores(token);
       setData(res || []);
     } catch (e) {
-      console.error('Error al cargar perfiles courier', e);
+      console.error("Error al cargar perfiles courier", e);
     } finally {
       setLoading(false);
     }
@@ -33,9 +34,10 @@ export default function PerfilesPage() {
   return (
     <section className="mt-8">
       <div className="flex justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-primary mb-1">Perfiles</h1>
-        </div>
+        <Tittlex
+          title="Perfiles"
+          description="Aquí podrá registrar los encargados específicos por módulos."
+        />
         <div className="flex items-end">
           <button
             onClick={() => setModalOpen(true)}
