@@ -1,5 +1,5 @@
 // pedidos.api.ts
-import type { Pedido, CrearPedidoDTO } from './pedidos.types';
+import type { Pedido, CrearPedidoDTO, ProductoSede } from './pedidos.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -159,4 +159,24 @@ export async function actualizarPedidoAsignado(
     throw new Error('Error al actualizar pedido asignado');
   }
   return res.json();
+}
+
+export async function fetchProductosPorSede(
+  sedeId: number,
+  token: string
+): Promise<ProductoSede[]> {
+  const res = await fetch(`${API_URL}/pedido/sede/${sedeId}/productos`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: "Sin cuerpo de error" }));
+    console.error("❌ Error al obtener productos de la sede:", error);
+    throw new Error("Error al obtener productos de la sede");
+  }
+
+  const data = await res.json();
+  return data as ProductoSede[];
 }

@@ -83,3 +83,12 @@ export interface CrearPedidoDTO {
     precio_unitario: number;
   }[];
 }
+export interface ProductoSede {
+  id: number;
+  nombre_producto: string;
+  precio: number;
+  stock: number;
+  descripcion?: string | null;
+  codigo_identificacion?: string | null;
+  imagen_url?: string | null;
+}

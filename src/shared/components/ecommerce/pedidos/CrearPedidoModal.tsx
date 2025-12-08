@@ -2,23 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import {
   crearPedido,
   fetchPedidoById,
+  fetchProductosPorSede,
 } from '@/services/ecommerce/pedidos/pedidos.api';
-import { useAuth } from '@/auth/context/AuthContext';
 
-import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
+import { useAuth } from '@/auth/context/AuthContext';
 import { fetchSedesEcommerceCourierAsociados } from '@/services/ecommerce/ecommerceCourier.api';
 
 import { Selectx } from '@/shared/common/Selectx';
 import { Inputx, InputxPhone, InputxNumber } from '@/shared/common/Inputx';
 import Tittlex from '@/shared/common/Tittlex';
 
-/* ============================================================
- * Tipos
- * ============================================================ */
+/* ===== Tipos ===== */
 type ProductoUI = {
   id: number;
   nombre_producto: string;
   precio: number;
+  stock: number;
 };
 
 type CreatePedidoDto = {
@@ -29,7 +28,7 @@ type CreatePedidoDto = {
   celular_cliente: string;
   direccion_envio: string;
   referencia_direccion?: string;
-  distrito: string; // ← se completa automáticamente
+  distrito: string;
   monto_recaudar: number;
   fecha_entrega_programada: string;
   detalles: Array<{
@@ -47,9 +46,7 @@ interface CrearPedidoModalProps {
   modo?: 'crear' | 'editar' | 'ver';
 }
 
-/* ============================================================
- * COMPONENTE
- * ============================================================ */
+/* ===== Componente ===== */
 
 export default function CrearPedidoModal({
   isOpen,
@@ -58,6 +55,7 @@ export default function CrearPedidoModal({
   pedidoId,
   modo = 'crear',
 }: CrearPedidoModalProps) {
+
   const { token, user } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -72,49 +70,22 @@ export default function CrearPedidoModal({
     celular_cliente: '',
     direccion_envio: '',
     referencia_direccion: '',
-    distrito: '', // ← ahora se llena solo con ciudad
+    distrito: '',
     monto_recaudar: '',
     fecha_entrega_programada: '',
     producto_id: '',
     cantidad: '',
     precio_unitario: '',
+    stock_max: '',
   });
 
-  /* ================= CLICK FUERA ================= */
-  const handleClickOutside = (e: MouseEvent) => {
-    if (!submitting && modalRef.current && !modalRef.current.contains(e.target as Node)) {
-      onClose();
-    }
-  };
 
-  const handleEsc = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !submitting) onClose();
-  };
-
-  /* ==================== CARGAR PRODUCTOS Y SEDES ==================== */
+  /* ==================== CARGAR SEDES ==================== */
   useEffect(() => {
     if (!isOpen || !token) return;
-
     (async () => {
       try {
-        const [prodsRaw, sedesRaw] = await Promise.all([
-          fetchProductos(token),
-          fetchSedesEcommerceCourierAsociados(token),
-        ]);
-
-        const listRaw = Array.isArray(prodsRaw)
-          ? prodsRaw
-          : Array.isArray((prodsRaw as any)?.data)
-          ? (prodsRaw as any).data
-          : [];
-
-        const prodsUI: ProductoUI[] = listRaw.map((p: any) => ({
-          id: Number(p.id),
-          nombre_producto: p.nombre_producto || '',
-          precio: Number(p.precio || 0),
-        }));
-
-        setProductos(prodsUI);
+        const sedesRaw = await fetchSedesEcommerceCourierAsociados(token);
         setSedes(sedesRaw);
       } catch (e) {
         console.error(e);
@@ -122,36 +93,41 @@ export default function CrearPedidoModal({
     })();
   }, [isOpen, token]);
 
-  /* ==================== LISTENERS ==================== */
+  /* ==================== CARGAR PRODUCTOS POR SEDE ==================== */
   useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEsc);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEsc);
-    };
-  }, [isOpen, submitting]);
+    if (!form.sede_id || !token) return;
 
-  /* ============================================================
-   * SETEAR DISTRITO AUTOMÁTICO SEGÚN LA SEDE
-   * ============================================================ */
+    (async () => {
+      try {
+        const list = await fetchProductosPorSede(Number(form.sede_id), token);
+
+        const parsed: ProductoUI[] = list.map((p: any) => ({
+          id: p.id,
+          nombre_producto: p.nombre_producto,
+          precio: p.precio,
+          stock: p.stock,
+        }));
+
+        setProductos(parsed);
+      } catch (e) {
+        console.error("Error cargando productos por sede:", e);
+      }
+    })();
+  }, [form.sede_id, token]);
+
+  /* ===== distrito automático ===== */
   useEffect(() => {
     if (!form.sede_id) return;
 
     const sede = sedes.find((s) => s.sede_id === Number(form.sede_id));
     if (sede) {
-      setForm((prev) => ({
-        ...prev,
-        distrito: sede.ciudad ?? '',
-      }));
+      setForm((prev) => ({ ...prev, distrito: sede.ciudad ?? '' }));
     }
   }, [form.sede_id, sedes]);
 
-  /* ==================== EDITAR PEDIDO ==================== */
+  /* ===== editar pedido ===== */
   useEffect(() => {
-    if (modo === 'crear' || !pedidoId || !token) return;
+    if (modo === "crear" || !pedidoId || !token) return;
 
     (async () => {
       try {
@@ -173,79 +149,88 @@ export default function CrearPedidoModal({
           producto_id: String(detalle.producto_id ?? ''),
           cantidad: String(detalle.cantidad ?? ''),
           precio_unitario: String(detalle.precio_unitario ?? ''),
+          stock_max: "",
         });
       } catch (e) {
-        console.error('Error cargando pedido:', e);
+        console.error("Error cargando pedido:", e);
       }
     })();
   }, [modo, pedidoId, token]);
 
-  /* ==================== AUTO PRECIO ==================== */
+  /* ===== activar precio y stock al elegir producto ===== */
   useEffect(() => {
     const prod = productos.find((p) => p.id === Number(form.producto_id));
     if (prod) {
-      setForm((prev) => ({ ...prev, precio_unitario: String(prod.precio) }));
+      setForm((prev) => ({
+        ...prev,
+        precio_unitario: String(prod.precio),
+        stock_max: String(prod.stock),
+      }));
     }
   }, [form.producto_id, productos]);
 
-  /* ==================== AUTO MONTO ==================== */
+  /* ===== actualizar monto ===== */
   useEffect(() => {
     const c = Number(form.cantidad);
     const p = Number(form.precio_unitario);
 
     if (!isNaN(c) && !isNaN(p)) {
-      setForm((prev) => ({ ...prev, monto_recaudar: String(c * p) }));
+      setForm((prev) => ({
+        ...prev,
+        monto_recaudar: String(c * p),
+      }));
     }
   }, [form.cantidad, form.precio_unitario]);
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: any) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
 
   /* ==================== SUBMIT ==================== */
   const handleSubmit = async () => {
     if (submitting || !token || !user) return;
 
-    const sedeId = Number(form.sede_id);
+    const cantidad = Number(form.cantidad);
+    const stock = Number(form.stock_max);
 
-    if (!sedeId) return console.error('Debe seleccionar sede');
+    // 🔥 VALIDAR STOCK
+    if (cantidad > stock) {
+      alert(`Stock insuficiente. Disponible: ${stock}`);
+      return;
+    }
 
     const payload: CreatePedidoDto = {
       codigo_pedido: `PED-${Date.now()}`,
-      sede_id: sedeId,
+      sede_id: Number(form.sede_id),
       nombre_cliente: form.nombre_cliente,
       numero_cliente: form.numero_cliente,
       celular_cliente: form.celular_cliente,
       direccion_envio: form.direccion_envio,
       referencia_direccion: form.referencia_direccion,
-      distrito: form.distrito, // ← viene automático
+      distrito: form.distrito,
       monto_recaudar: Number(form.monto_recaudar),
       fecha_entrega_programada: `${form.fecha_entrega_programada}T12:00:00.000Z`,
-
-    
       detalles: [
         {
           producto_id: Number(form.producto_id),
-          cantidad: Number(form.cantidad),
+          cantidad,
           precio_unitario: Number(form.precio_unitario),
         },
       ],
     };
 
     setSubmitting(true);
-
     try {
       await crearPedido(payload as any, token);
       onPedidoCreado();
       onClose();
     } catch (e) {
-      console.error('Error creando pedido', e);
+      console.error("Error creando pedido", e);
     } finally {
       setSubmitting(false);
     }
   };
 
-  /* ==================== RENDER ==================== */
+  /* ======== UI ======== */
   if (!isOpen) return null;
 
   return (
@@ -262,7 +247,7 @@ export default function CrearPedidoModal({
         />
 
         <div className="flex flex-col gap-5">
-          {/* ====================== SEDE ====================== */}
+
           <Selectx
             label="Sede"
             name="sede_id"
@@ -278,7 +263,6 @@ export default function CrearPedidoModal({
             ))}
           </Selectx>
 
-          {/* ====================== NOMBRE ====================== */}
           <Inputx
             label="Nombre"
             name="nombre_cliente"
@@ -287,7 +271,6 @@ export default function CrearPedidoModal({
             placeholder="Ejem. Alvaro"
           />
 
-          {/* ====================== TELÉFONO ====================== */}
           <InputxPhone
             label="Teléfono"
             name="celular_cliente"
@@ -297,7 +280,6 @@ export default function CrearPedidoModal({
             placeholder="987654321"
           />
 
-          {/* ====================== DIRECCIÓN ====================== */}
           <Inputx
             label="Dirección"
             name="direccion_envio"
@@ -306,7 +288,6 @@ export default function CrearPedidoModal({
             placeholder="Av. Grau J 499"
           />
 
-          {/* ====================== REFERENCIA ====================== */}
           <Inputx
             label="Referencia"
             name="referencia_direccion"
@@ -315,8 +296,8 @@ export default function CrearPedidoModal({
             placeholder="Al lado del supermercado UNO"
           />
 
-          {/* ====================== PRODUCTO + CANTIDAD ====================== */}
           <div className="flex gap-5">
+
             <Selectx
               label="Producto"
               name="producto_id"
@@ -333,7 +314,7 @@ export default function CrearPedidoModal({
             </Selectx>
 
             <InputxNumber
-              label="Cantidad"
+              label={`Cantidad (Stock: ${form.stock_max || 0})`}
               name="cantidad"
               value={form.cantidad}
               onChange={handleChange}
@@ -341,7 +322,6 @@ export default function CrearPedidoModal({
             />
           </div>
 
-          {/* ====================== MONTO + FECHA ====================== */}
           <div className="flex gap-5">
             <InputxNumber
               label="Monto"
@@ -361,14 +341,13 @@ export default function CrearPedidoModal({
           </div>
         </div>
 
-        {/* ====================== ACCIONES ====================== */}
         <div className="flex gap-4">
           <button
             onClick={handleSubmit}
             disabled={submitting}
             className="bg-gray-900 text-white px-4 py-2 rounded"
           >
-            {submitting ? 'Guardando…' : 'Guardar cambios'}
+            {submitting ? "Guardando…" : "Guardar cambios"}
           </button>
 
           <button

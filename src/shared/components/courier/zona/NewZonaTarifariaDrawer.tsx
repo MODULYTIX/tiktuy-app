@@ -1,35 +1,27 @@
 // src/shared/components/courier/zona-tarifaria/NewZonaTarifariaDrawer.tsx
 import { useEffect, useState } from "react";
 import type React from "react";
-import {
-  crearZonaTarifariaParaMiUsuario,
-  fetchMisZonas,
-} from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
-import type {
-  ApiResult,
-  ZonaTarifaria,
-} from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
+import { crearZonaTarifariaParaMiUsuario } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
 
-//  Tus componentes
 import { Selectx } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import Tittlex from "@/shared/common/Tittlex";
-import { InputxNumber } from "@/shared/common/Inputx";
+import { Inputx, InputxNumber } from "@/shared/common/Inputx";
 
 type Props = {
   open: boolean;
-  zonasOpciones?: string[];      // SOLO para el combo de "Zona"
+  zonasOpciones?: string[];
   onClose: () => void;
   onCreated?: () => void;
 };
 
 type CreateForm = {
-  distrito: string;
+  ciudad: string;          // se envía como "ciudad" al backend (se guarda en distrito)
   zona_tarifario: string;
   tarifa_cliente: string;
   pago_motorizado: string;
-  estado_id: string;
+  estado_id: string;       // opcional: si no lo mandas, backend usa "Activo/zona"
 };
 
 const ESTADOS_ZONA = [
@@ -39,66 +31,33 @@ const ESTADOS_ZONA = [
 
 export default function NewZonaTarifariaDrawer({
   open,
-  zonasOpciones = ["1", "2", "3", "4", "5", "6"], // ← SOLO para campo Zona
+  zonasOpciones = ["1", "2", "3", "4", "5", "6"],
   onClose,
   onCreated,
 }: Props) {
-  const [sugerenciasDistritos, setSugerenciasDistritos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const [form, setForm] = useState<CreateForm>({
-    distrito: "",
+    ciudad: "",
     zona_tarifario: "",
     tarifa_cliente: "",
     pago_motorizado: "",
     estado_id: String(ESTADOS_ZONA[0].id),
   });
 
-  // Reset al cerrar
+  // Reset cuando se cierra
   useEffect(() => {
     if (!open) {
       setErr(null);
       setForm({
-        distrito: "",
+        ciudad: "",
         zona_tarifario: "",
         tarifa_cliente: "",
         pago_motorizado: "",
         estado_id: String(ESTADOS_ZONA[0].id),
       });
     }
-  }, [open]);
-
-  // Cargar sugerencias de distritos desde MIS zonas (todas las sedes del courier)
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      if (!open) return;
-      try {
-        const token = getAuthToken();
-        if (!token) return;
-
-        const res: ApiResult<ZonaTarifaria[]> = await fetchMisZonas(token);
-        if (!mounted || !res.ok) return;
-
-        const uniques = Array.from(
-          new Set(
-            res.data
-              .map((z) => (z.distrito ?? "").toString().trim())
-              .filter(Boolean)
-          )
-        ).sort((a, b) =>
-          a.localeCompare(b, "es", { sensitivity: "base" })
-        );
-        setSugerenciasDistritos(uniques);
-      } catch {
-        /* silencioso */
-      }
-    }
-    load();
-    return () => {
-      mounted = false;
-    };
   }, [open]);
 
   function handleChange<K extends keyof CreateForm>(k: K, v: CreateForm[K]) {
@@ -113,8 +72,15 @@ export default function NewZonaTarifariaDrawer({
       setErr("No se encontró el token de autenticación.");
       return;
     }
-    if (!form.distrito.trim()) return setErr("El distrito es obligatorio.");
-    if (!form.zona_tarifario.trim()) return setErr("La zona es obligatoria.");
+
+    if (!form.ciudad.trim()) {
+      setErr("La ciudad es obligatoria.");
+      return;
+    }
+    if (!form.zona_tarifario.trim()) {
+      setErr("La zona es obligatoria.");
+      return;
+    }
 
     const tarifa = Number(form.tarifa_cliente);
     const pago = Number(form.pago_motorizado);
@@ -128,11 +94,11 @@ export default function NewZonaTarifariaDrawer({
     setSaving(true);
     const res = await crearZonaTarifariaParaMiUsuario(
       {
-        distrito: form.distrito.trim(),
+        ciudad: form.ciudad.trim(),
         zona_tarifario: form.zona_tarifario.trim(),
         tarifa_cliente: tarifa,
         pago_motorizado: pago,
-        estado_id: estadoId,
+        estado_id: estadoId, // si quieres que backend decida por defecto, podrías omitirlo
       },
       token
     );
@@ -149,22 +115,21 @@ export default function NewZonaTarifariaDrawer({
 
   if (!open) return null;
 
-  // 🔹 AHORA: solo usamos distritos reales, sin fallback a números
-  const distritosOptions = sugerenciasDistritos;
-
   return (
     <div className="fixed inset-0 z-50">
       {/* Overlay */}
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={() => !saving && onClose()}
+      />
 
       {/* Drawer derecho */}
       <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl p-5 flex flex-col gap-5 overflow-y-auto">
-        {/* Header */}
         <Tittlex
           variant="modal"
           icon="solar:point-on-map-broken"
-          title="NUEVO DISTRITO DE ATENCIÓN"
-          description="Registra un nuevo distrito en el que brindaremos atención logística. Asigna su zona correspondiente, define el tarifario por envío y especifica el pago destinado al motorizado que realizará las entregas."
+          title="NUEVA CIUDAD DE ATENCIÓN"
+          description="Registra una nueva ciudad en la que brindaremos atención logística. Asigna su zona correspondiente, define el tarifario por envío y especifica el pago destinado al motorizado que realizará las entregas."
         />
 
         {err && (
@@ -174,22 +139,14 @@ export default function NewZonaTarifariaDrawer({
         )}
 
         {/* Formulario */}
-        <div className="h-full flex flex-col md:grid-cols-2 gap-5">
+        <div className="h-full flex flex-col gap-5">
           <div className="flex gap-5">
-            <Selectx
-              label="Distrito"
-              placeholder="Seleccionar distrito"
-              value={form.distrito}
-              onChange={(e) => handleChange("distrito", e.target.value)}
-              labelVariant="left"
-            >
-              {/* Solo mostramos opciones si hay distritos sugeridos */}
-              {distritosOptions.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </Selectx>
+            <Inputx
+              label="Ciudad"
+              placeholder="Ej. Arequipa, Lima, Cusco"
+              value={form.ciudad}
+              onChange={(e) => handleChange("ciudad", e.target.value)}
+            />
 
             <Selectx
               label="Zona"
@@ -201,7 +158,6 @@ export default function NewZonaTarifariaDrawer({
                   (e.target as HTMLSelectElement).value
                 )
               }
-              labelVariant="left"
             >
               {(zonasOpciones || []).map((z) => (
                 <option key={z} value={z}>
@@ -237,6 +193,22 @@ export default function NewZonaTarifariaDrawer({
               step={0.01}
               inputMode="decimal"
             />
+          </div>
+
+          <div className="flex gap-5">
+            <Selectx
+              label="Estado"
+              value={form.estado_id}
+              onChange={(e) =>
+                handleChange("estado_id", (e.target as HTMLSelectElement).value)
+              }
+            >
+              {ESTADOS_ZONA.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nombre}
+                </option>
+              ))}
+            </Selectx>
           </div>
         </div>
 

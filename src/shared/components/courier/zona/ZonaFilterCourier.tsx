@@ -1,20 +1,20 @@
-// src/shared/components/courier/zona/ZonaFilterCourier.tsx
+// src/shared/components/courier/zona-tarifaria/ZonaFilterCourier.tsx
 import { Selectx } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 
 type Props = {
-  distrito: string;
+  ciudad: string;
   zona: string;
-  distritosOptions: string[];
+  ciudadesOptions: string[];
   zonasOptions: string[];
-  onChange: (next: { distrito: string; zona: string }) => void;
+  onChange: (next: { ciudad: string; zona: string }) => void;
   onClear: () => void;
 };
 
 export default function ZonaFilterCourier({
-  distrito,
+  ciudad,
   zona,
-  distritosOptions,
+  ciudadesOptions,
   zonasOptions,
   onChange,
   onClear,
@@ -27,24 +27,24 @@ export default function ZonaFilterCourier({
         after:h-[6px] after:bg-gray90 after:rounded-b-md
       "
     >
-      {/* cols = Distrito | Zona | Botón, con buenas proporciones en desktop */}
-      <div className="flex gap-5 items-end">
-        {/* Distrito */}
+      {/* cols = Ciudad | Zona | Botón, con buenas proporciones en desktop */}
+      <div className="flex gap-5 items-end flex-wrap">
+        {/* Ciudad */}
         <div className="w-[280px] sm:min-w-[140px] md:min-w-[140px]">
           <Selectx
-            label="Distrito"
-            placeholder="Seleccionar distrito"
-            value={distrito}
+            label="Ciudad"
+            placeholder="Seleccionar ciudad"
+            value={ciudad}
             onChange={(e) =>
               onChange({
-                distrito: (e.target as HTMLSelectElement).value,
-                zona: "", // al cambiar distrito, limpiamos zona
+                ciudad: (e.target as HTMLSelectElement).value,
+                zona: "", // al cambiar ciudad, limpiamos zona
               })
             }
           >
-            {distritosOptions.map((d) => (
-              <option key={d} value={d}>
-                {d}
+            {ciudadesOptions.map((c) => (
+              <option key={c} value={c}>
+                {c}
               </option>
             ))}
           </Selectx>
@@ -56,10 +56,10 @@ export default function ZonaFilterCourier({
             label="Zona"
             placeholder="Seleccionar zona"
             value={zona}
-            disabled={!distrito}
+            disabled={!ciudad}
             onChange={(e) =>
               onChange({
-                distrito,
+                ciudad,
                 zona: (e.target as HTMLSelectElement).value,
               })
             }

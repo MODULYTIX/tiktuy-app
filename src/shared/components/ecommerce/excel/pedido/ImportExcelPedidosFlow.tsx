@@ -1,9 +1,4 @@
-// src/shared/components/ecommerce/excel/pedido/ImportExcelPedidosFlow.tsx
 import React, { useRef, useState } from 'react';
-
-//  Usamos el MISMO tipo que espera el Modal
-
-// Mantiene tu misma API (no cambiamos lógica ni endpoint)
 
 import ImportLoadingModal from '../ImportLoadingModal';
 import ImportPreviewPedidosModal from './ImportPreviewPedidosModal';
@@ -12,9 +7,9 @@ import type { PreviewResponseDTO } from '@/services/ecommerce/importexcelPedido/
 
 export default function ImportExcelPedidosFlow({
   token,
-  onImported = () => {},
+  onImported = () => { },
   children,
-  allowMultiCourier = true, // <-- NUEVO: habilita flujo multi-courier
+  allowMultiCourier = true, // ← ya NO afecta nada, pero lo mantenemos por compatibilidad
 }: {
   token: string;
   onImported?: () => void;
@@ -26,26 +21,28 @@ export default function ImportExcelPedidosFlow({
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewResponseDTO | null>(null);
 
+  /* ===================== Abrir selector ===================== */
   const openPicker = () => {
     inputRef.current?.click();
   };
 
+  /* ===================== Cargar archivo ===================== */
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setLoadingModalOpen(true);
+
     try {
-      // Endpoint de preview (conservamos tu misma llamada)
-      const data = (await previewVentasExcel(file, token)) as PreviewResponseDTO;
-      setPreviewData(data);
+      const data = await previewVentasExcel(file, token);
+      setPreviewData(data as PreviewResponseDTO);
       setPreviewModalOpen(true);
     } catch (err) {
-      console.error(err);
+      console.error('❌ Error preview Excel:', err);
       alert('No se pudo generar la previsualización del Excel de pedidos.');
     } finally {
       setLoadingModalOpen(false);
-      if (inputRef.current) inputRef.current.value = '';
+      if (inputRef.current) inputRef.current.value = ''; // limpiar input file
     }
   };
 
@@ -53,6 +50,7 @@ export default function ImportExcelPedidosFlow({
     <>
       {children(openPicker)}
 
+      {/* Input oculto */}
       <input
         ref={inputRef}
         type="file"
@@ -61,12 +59,14 @@ export default function ImportExcelPedidosFlow({
         onChange={onFileChange}
       />
 
+      {/* Modal de carga */}
       <ImportLoadingModal
         open={loadingModalOpen}
         onClose={() => setLoadingModalOpen(false)}
         label="Validando datos del Excel…"
       />
 
+      {/* Preview modal */}
       {previewData && (
         <ImportPreviewPedidosModal
           open={previewModalOpen}
@@ -74,7 +74,7 @@ export default function ImportExcelPedidosFlow({
           token={token}
           data={previewData}
           onImported={onImported}
-          allowMultiCourier={allowMultiCourier}
+          allowMultiCourier={allowMultiCourier} // aunque ya no se usa, lo mantiene el componente
         />
       )}
     </>

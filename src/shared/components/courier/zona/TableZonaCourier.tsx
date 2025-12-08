@@ -1,13 +1,14 @@
+// src/shared/components/courier/zona-tarifaria/TableZonaCourier.tsx
 import { useEffect, useMemo, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
 import Paginator from "../../Paginator";
 
-import { fetchZonasBySedePrivado } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
+import { fetchMisZonasPorSede } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
 import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
 
 type Props = {
-  sedeId: number;          // <-- antes courierId
+  sedeId: number;          // id de la sede (almacenamiento)
   itemsPerPage?: number;
   onEdit?: (zona: ZonaTarifaria) => void;
 };
@@ -23,28 +24,29 @@ export default function TableZonaCourier({
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    const controller = new AbortController();
     let mounted = true;
 
     async function load() {
       setLoading(true);
       setErr(null);
+
       try {
         const token = getAuthToken();
         if (!token) throw new Error("No se encontró el token de autenticación.");
 
-        const res = await fetchZonasBySedePrivado(sedeId, token);
+        const res = await fetchMisZonasPorSede(sedeId, token);
         if (!mounted) return;
+
         if (!res.ok) {
           setErr(res.error || "Error al cargar zonas tarifarias.");
           setZonas([]);
           return;
         }
+
         setZonas(res.data ?? []);
         setCurrentPage(1); // reset paginación al recargar
       } catch (e: any) {
         if (!mounted) return;
-        if (e?.name === "AbortError") return;
         setErr(e?.message || "Error al cargar zonas tarifarias.");
         setZonas([]);
       } finally {
@@ -52,7 +54,6 @@ export default function TableZonaCourier({
       }
     }
 
-    // Si por alguna razón viene un sedeId inválido, evitamos llamar al backend
     if (sedeId) {
       load();
     } else {
@@ -63,7 +64,6 @@ export default function TableZonaCourier({
 
     return () => {
       mounted = false;
-      controller.abort();
     };
   }, [sedeId]);
 
@@ -77,7 +77,6 @@ export default function TableZonaCourier({
     return zonas.slice(start, start + itemsPerPage);
   }, [zonas, currentPage, itemsPerPage]);
 
-  /** Convierte DecimalJSON (number | string) a number */
   function toNumber(n: unknown): number {
     if (typeof n === "number") return n;
     if (typeof n === "string") {
@@ -125,7 +124,7 @@ export default function TableZonaCourier({
   if (zonas.length === 0) {
     return (
       <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
-        No hay zonas tarifarias registradas.
+        No hay zonas tarifarias registradas para esta sede.
       </div>
     );
   }
@@ -135,7 +134,7 @@ export default function TableZonaCourier({
       <table className="w-full text-sm text-left text-gray-600">
         <thead className="bg-gray-100 text-gray-700 text-xs uppercase">
           <tr>
-            <th className="px-4 py-3">Distrito</th>
+            <th className="px-4 py-3">Ciudad</th> {/* label UI, campo real = distrito */}
             <th className="px-4 py-3">Zona</th>
             <th className="px-4 py-3">Tarifa Cliente</th>
             <th className="px-4 py-3">Pago a Motorizado</th>
@@ -146,6 +145,7 @@ export default function TableZonaCourier({
         <tbody>
           {currentZonas.map((z) => (
             <tr key={z.id} className="border-b hover:bg-gray-50">
+              {/* BD: distrito, UI: Ciudad */}
               <td className="px-4 py-3">{z.distrito}</td>
               <td className="px-4 py-3">{z.zona_tarifario}</td>
               <td className="px-4 py-3">S/ {formatMoney(z.tarifa_cliente)}</td>

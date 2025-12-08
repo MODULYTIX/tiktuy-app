@@ -92,9 +92,10 @@ async function withTimeout<T>(p: Promise<T>, ms = 20000): Promise<T> {
  * =======================================================*/
 
 /**
- * Crea una zona tarifaria **por sede_id explícito**.
+ * Crea una zona tarifaria **por sede_id explícito** (modo admin / interno).
+ * Endpoint: POST /zona-tarifaria
  * Requiere token (Bearer) y payload:
- * { sede_id, distrito, zona_tarifario, tarifa_cliente, pago_motorizado, estado_id? }
+ * { sede_id, ciudad, zona_tarifario, tarifa_cliente, pago_motorizado, estado_id? }
  */
 export async function crearZonaTarifaria(
   payload: CrearZonaTarifariaPayload,
@@ -113,12 +114,12 @@ export async function crearZonaTarifaria(
 /**
  * Crea una zona tarifaria **para el usuario autenticado**.
  *
- * ⚠️ IMPORTANTE:
- *  - El payload NO incluye sede_id.
- *  - El backend resuelve automáticamente el courier del usuario
- *    y la sede por defecto (principal o primera que encuentre).
+ * Endpoint: POST /zona-tarifaria/mias
  *
- * Requiere token.
+ * ✅ IMPORTANTE:
+ *  - El payload **NO** incluye `sede_id`.
+ *  - El backend resuelve (courier_id, sede_id) a partir del usuario autenticado.
+ *  - El campo de ubicación que envías es `ciudad` (en BD se guarda en `distrito`).
  */
 export async function crearZonaTarifariaParaMiUsuario(
   payload: CrearZonaTarifariaParaMiUsuarioPayload,
@@ -134,6 +135,10 @@ export async function crearZonaTarifariaParaMiUsuario(
   return handle<ZonaTarifaria>(res);
 }
 
+/**
+ * Actualiza una zona tarifaria por id (uso admin / interno).
+ * Endpoint: PUT /zona-tarifaria/:id
+ */
 export async function actualizarZonaTarifaria(
   id: number,
   payload: ActualizarZonaTarifariaPayload,
@@ -149,6 +154,29 @@ export async function actualizarZonaTarifaria(
   return handle<ZonaTarifaria>(res);
 }
 
+/**
+ * Actualiza una de "mis" zonas tarifarias (validando courier del usuario).
+ * Endpoint: PUT /zona-tarifaria/mias/:id
+ */
+export async function actualizarMiZonaTarifaria(
+  id: number,
+  payload: ActualizarZonaTarifariaPayload,
+  token: string
+): Promise<ApiResult<ZonaTarifaria>> {
+  const res = await withTimeout(
+    fetch(`${BASE_URL}/zona-tarifaria/mias/${id}`, {
+      method: "PUT",
+      headers: buildHeaders(token),
+      body: JSON.stringify(payload),
+    })
+  );
+  return handle<ZonaTarifaria>(res);
+}
+
+/**
+ * Elimina una zona tarifaria por id (uso admin / interno).
+ * Endpoint: DELETE /zona-tarifaria/:id
+ */
 export async function eliminarZonaTarifaria(
   id: number,
   token: string
@@ -162,11 +190,31 @@ export async function eliminarZonaTarifaria(
   return handle<void>(res);
 }
 
+/**
+ * Elimina una de "mis" zonas tarifarias (validando courier del usuario).
+ * Endpoint: DELETE /zona-tarifaria/mias/:id
+ */
+export async function eliminarMiZonaTarifaria(
+  id: number,
+  token: string
+): Promise<ApiResult<void>> {
+  const res = await withTimeout(
+    fetch(`${BASE_URL}/zona-tarifaria/mias/${id}`, {
+      method: "DELETE",
+      headers: buildHeaders(token),
+    })
+  );
+  return handle<void>(res);
+}
+
 /* =========================================================
  *                 LISTADOS (privado/ público)
  * =======================================================*/
 
-/** PRIVADO (incluye estado) – requiere token – por sede_id */
+/**
+ * PRIVADO (incluye estado) – requiere token – por sede_id (admin / interno).
+ * Endpoint: GET /zona-tarifaria/sede/:sede_id
+ */
 export async function fetchZonasBySedePrivado(
   sede_id: number,
   token: string
@@ -180,7 +228,13 @@ export async function fetchZonasBySedePrivado(
   return handle<ZonaTarifaria[]>(res);
 }
 
-/** Mis zonas (usuario autenticado) – requiere token – todas las sedes de su courier */
+/**
+ * Mis zonas (usuario autenticado) – requiere token.
+ * Endpoint: GET /zona-tarifaria/mias
+ *
+ * Devuelve todas las zonas de todas las sedes del courier
+ * donde el usuario es dueño/trabajador/representante.
+ */
 export async function fetchMisZonas(
   token: string
 ): Promise<ApiResult<ZonaTarifaria[]>> {
@@ -194,12 +248,46 @@ export async function fetchMisZonas(
 }
 
 /**
- * PÚBLICO – sin token – por sede_id
- * Por defecto devuelve solo { distrito } (onlyDistritos=true).
- * Si envías onlyDistritos=false, el backend devolverá además
- * { distrito, zona_tarifario, tarifa_cliente, pago_motorizado }.
+ * Mis zonas de una sede específica (usuario autenticado).
+ * Endpoint: GET /zona-tarifaria/mias/sede/:sede_id
  *
- * Overloads para type-safety:
+ * Valida en backend que la sede pertenezca al courier del usuario.
+ */
+export async function fetchMisZonasPorSede(
+  sede_id: number,
+  token: string
+): Promise<ApiResult<ZonaTarifaria[]>> {
+  const res = await withTimeout(
+    fetch(`${BASE_URL}/zona-tarifaria/mias/sede/${sede_id}`, {
+      method: "GET",
+      headers: buildHeaders(token),
+    })
+  );
+  return handle<ZonaTarifaria[]>(res);
+}
+
+/**
+ * PRIVADO (compat por courier) – requiere token.
+ * Endpoint: GET /zona-tarifaria/courier/:courier_id
+ */
+export async function fetchZonasByCourierPrivado(
+  courier_id: number,
+  token: string
+): Promise<ApiResult<ZonaTarifaria[]>> {
+  const res = await withTimeout(
+    fetch(`${BASE_URL}/zona-tarifaria/courier/${courier_id}`, {
+      method: "GET",
+      headers: buildHeaders(token),
+    })
+  );
+  return handle<ZonaTarifaria[]>(res);
+}
+
+/**
+ * PÚBLICO – sin token – por sede_id
+ * Endpoint: GET /zona-tarifaria/public/sede/:sede_id?onlyDistritos=...
+ *
+ * Overloads para type-safety.
  */
 // onlyDistritos = true
 export async function fetchZonasBySedePublic(
@@ -218,9 +306,7 @@ export async function fetchZonasBySedePublic(
 export async function fetchZonasBySedePublic(
   sede_id: number,
   onlyDistritos: boolean = true
-): Promise<
-  ApiResult<ZonaTarifariaPublic[] | ZonaTarifariaPublicFull[]>
-> {
+): Promise<ApiResult<ZonaTarifariaPublic[] | ZonaTarifariaPublicFull[]>> {
   const url = `${BASE_URL}/zona-tarifaria/public/sede/${sede_id}${qs({
     onlyDistritos,
   })}`;
@@ -232,6 +318,41 @@ export async function fetchZonasBySedePublic(
     })
   );
 
-  // TypeScript entenderá el tipo a través de los overloads
-  return handle<any>(res);
+  return handle<ZonaTarifariaPublic[] | ZonaTarifariaPublicFull[]>(res);
+}
+
+/**
+ * PÚBLICO – sin token – por courier_id (compat)
+ * Endpoint: GET /zona-tarifaria/public/courier/:courier_id?onlyDistritos=...
+ */
+// onlyDistritos = true
+export async function fetchZonasByCourierPublic(
+  courier_id: number
+): Promise<ApiResult<ZonaTarifariaPublic[]>>;
+// onlyDistritos = true
+export async function fetchZonasByCourierPublic(
+  courier_id: number,
+  onlyDistritos: true
+): Promise<ApiResult<ZonaTarifariaPublic[]>>;
+// onlyDistritos = false
+export async function fetchZonasByCourierPublic(
+  courier_id: number,
+  onlyDistritos: false
+): Promise<ApiResult<ZonaTarifariaPublicFull[]>>;
+export async function fetchZonasByCourierPublic(
+  courier_id: number,
+  onlyDistritos: boolean = true
+): Promise<ApiResult<ZonaTarifariaPublic[] | ZonaTarifariaPublicFull[]>> {
+  const url = `${BASE_URL}/zona-tarifaria/public/courier/${courier_id}${qs({
+    onlyDistritos,
+  })}`;
+
+  const res = await withTimeout(
+    fetch(url, {
+      method: "GET",
+      headers: buildHeaders(),
+    })
+  );
+
+  return handle<ZonaTarifariaPublic[] | ZonaTarifariaPublicFull[]>(res);
 }

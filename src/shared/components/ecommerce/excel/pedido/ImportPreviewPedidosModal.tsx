@@ -12,6 +12,10 @@ import type {
 import { importPedidosDesdePreview } from '@/services/ecommerce/importexcelPedido/importexcelPedido.api';
 import { Icon } from '@iconify/react';
 
+// 🔹 Productos por sede (para validar productos del pedido)
+import { fetchProductosPorSede } from '@/services/ecommerce/pedidos/pedidos.api';
+import type { ProductoSede } from '@/services/ecommerce/pedidos/pedidos.types';
+
 // ---------- helpers fecha local <-> ISO ----------
 const toISOFromLocal = (local: string) => {
   if (!local) return '';
@@ -37,12 +41,14 @@ type SedeOptionRaw = {
   ciudad: string | null;
 };
 
+const productoKey = (gIdx: number, iIdx: number) => `${gIdx}-${iIdx}`;
+
 export default function ImportPreviewPedidosModal({
   open,
   onClose,
   token,
   data,
-    onImported,
+  onImported,
 }: {
   open: boolean;
   onClose: () => void;
@@ -63,7 +69,9 @@ export default function ImportPreviewPedidosModal({
   const headerChkRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (headerChkRef.current) headerChkRef.current.indeterminate = !allSelected && someSelected;
+    if (headerChkRef.current) {
+      headerChkRef.current.indeterminate = !allSelected && someSelected;
+    }
   }, [allSelected, someSelected]);
 
   const toggleRow = (idx: number) =>
@@ -74,7 +82,9 @@ export default function ImportPreviewPedidosModal({
       setSelected({});
     } else {
       const next: Record<number, boolean> = {};
-      groups.forEach((_, i) => (next[i] = true));
+      groups.forEach((_, i) => {
+        next[i] = true;
+      });
       setSelected(next);
     }
   };
@@ -117,6 +127,27 @@ export default function ImportPreviewPedidosModal({
   const findSedeByNombre = (nombre: string) =>
     sedes.find((s) => norm(s.nombre) === norm(nombre));
 
+  // ================= PRODUCTOS POR SEDE =================
+  const [productosPorSede, setProductosPorSede] = useState<
+    Record<number, ProductoSede[]>
+  >({});
+
+  const loadProductosForSede = async (sedeId: number) => {
+    if (!sedeId || productosPorSede[sedeId]) return;
+    try {
+      const list = (await fetchProductosPorSede(
+        sedeId,
+        token
+      )) as unknown as ProductoSede[];
+      setProductosPorSede((prev) => ({
+        ...prev,
+        [sedeId]: Array.isArray(list) ? list : [],
+      }));
+    } catch (e) {
+      console.error('Error cargando productos de la sede:', e);
+    }
+  };
+
   // opciones UI para Autocomplete de Sede (antes courier)
   const sedeOptions: Option[] = useMemo(
     () =>
@@ -140,18 +171,76 @@ export default function ImportPreviewPedidosModal({
   const isInvalidSede = (s: string) =>
     !s || !sedes.some((sed) => norm(sed.nombre) === norm(s));
 
-  const isInvalidCantidad = (n: number | null) =>
-    n == null || Number.isNaN(n) || Number(n) <= 0;
+  const isInvalidCantidad = (n: number | null, stock?: number) =>
+    n == null ||
+    Number.isNaN(n) ||
+    Number(n) <= 0 ||
+    (stock != null && Number(n) > stock);  // <-- NUEVA VALIDACIÓN
+
+
+  // errores de producto por fila
+  const [productoErrors, setProductoErrors] = useState<Record<string, boolean>>({});
+
+  // Pre-cargar productos para las sedes que ya vienen en el Excel
+  useEffect(() => {
+    if (!open) return;
+    groups.forEach((g) => {
+      if (!g.courier) return;
+      const sede = findSedeByNombre(g.courier);
+      if (sede) {
+        void loadProductosForSede(sede.sede_id);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, groups, sedes]);
+
+  // Validar productos cuando haya productosPorSede o cambien los grupos
+  useEffect(() => {
+    const newErrors: Record<string, boolean> = {};
+
+    groups.forEach((g, gi) => {
+      if (!g.courier) return;
+      const sede = findSedeByNombre(g.courier);
+      if (!sede) return;
+
+      const productos = productosPorSede[sede.sede_id];
+      if (!productos || productos.length === 0) return;
+
+      g.items.forEach((it, ii) => {
+        if (!it.producto) return;
+        const key = productoKey(gi, ii);
+        const nombreNorm = norm(it.producto);
+
+        const found = productos.find(
+          (p) =>
+            norm(p.nombre_producto) === nombreNorm ||
+            norm(p.codigo_identificacion ?? '') === nombreNorm
+        );
+
+        if (!found) {
+          newErrors[key] = true;
+        }
+      });
+    });
+
+    setProductoErrors(newErrors);
+  }, [groups, productosPorSede, sedes]);
 
   const hasInvalid = useMemo(() => {
+    // errores por sede / cantidad / monto
     for (const g of groups) {
-      // sede (antes courier) obligatoria y debe existir
       if (isInvalidSede(g.courier || '')) return true;
       if ((g.monto_total ?? 0) < 0) return true;
-      for (const it of g.items) if (isInvalidCantidad(it.cantidad)) return true;
+      for (const it of g.items) {
+        if (isInvalidCantidad(it.cantidad)) return true;
+      }
     }
+    // errores de producto
+    if (Object.values(productoErrors).some(Boolean)) return true;
+
     return false;
-  }, [groups, sedes]);
+  }, [groups, sedes, productoErrors]);
+
   // ================= PATCH HELPERS =================
   const patchGroup = (idx: number, patch: Partial<PreviewGroupDTO>) =>
     setGroups((prev) => prev.map((g, i) => (i === idx ? { ...g, ...patch } : g)));
@@ -165,58 +254,117 @@ export default function ImportPreviewPedidosModal({
         gi !== gIdx
           ? g
           : {
-              ...g,
-              items: g.items.map((it, ii) =>
-                ii === iIdx ? { ...it, cantidad: val } : it
-              ),
-            }
+            ...g,
+            items: g.items.map((it, ii) =>
+              ii === iIdx ? { ...it, cantidad: val } : it
+            ),
+          }
       )
     );
 
   // cuando cambias el nombre del producto en una fila
-  const handleProductoNombre = (gIdx: number, iIdx: number, val: string) =>
+  const handleProductoNombre = (gIdx: number, iIdx: number, val: string) => {
     setGroups((prev) =>
-      prev.map((g, gi) =>
-        gi !== gIdx
-          ? g
-          : {
-              ...g,
-              items: g.items.map((it, ii) =>
-                ii === iIdx
-                  ? { ...it, producto: val, producto_id: undefined }
-                  : it
-              ),
+      prev.map((g, gi) => {
+        if (gi !== gIdx) return g;
+
+        const sede = g.courier ? findSedeByNombre(g.courier) : undefined;
+
+        let productoReal: ProductoSede | undefined = undefined;
+        if (sede && productosPorSede[sede.sede_id]) {
+          productoReal = productosPorSede[sede.sede_id].find(
+            (p) => norm(p.nombre_producto) === norm(val)
+          );
+        }
+
+        return {
+          ...g,
+          items: g.items.map((it, ii) => {
+            if (ii !== iIdx) return it;
+
+            //  Producto NO encontrado
+            if (!productoReal) {
+              return {
+                ...it,
+                producto: val,
+                producto_id: undefined,
+                precio_unitario: undefined,
+                stock: undefined,
+              };
             }
-      )
+
+            // ✔ Producto encontrado
+            const cantidadActual = it.cantidad && it.cantidad > 0 ? it.cantidad : 1;
+
+            return {
+              ...it,
+              producto: productoReal.nombre_producto,
+              producto_id: productoReal.id,
+              precio_unitario: productoReal.precio,
+              stock: productoReal.stock,
+              cantidad: cantidadActual,
+            };
+          }),
+
+          // Recalcular monto total del grupo
+          monto_total: (() => {
+            let total = 0;
+
+            // recalc total sumando los items
+            for (let idx = 0; idx < g.items.length; idx++) {
+              const item = g.items[idx];
+
+              const cantidad =
+                idx === iIdx
+                  ? (item.cantidad && item.cantidad > 0 ? item.cantidad : 1)
+                  : item.cantidad ?? 0;
+
+              const precio =
+                idx === iIdx
+                  ? productoReal?.precio ?? item.precio_unitario ?? 0
+                  : item.precio_unitario ?? 0;
+
+              total += cantidad * precio;
+            }
+
+            return total;
+          })(),
+        };
+      })
     );
+  };
+
 
   // cuando cambias la sede (campo courier en el DTO)
   const handleSedeChange = (gIdx: number, value: string) => {
     const sede = findSedeByNombre(value);
+    if (sede) {
+      void loadProductosForSede(sede.sede_id);
+    }
+
     setGroups((prev) =>
       prev.map((g, gi) =>
         gi !== gIdx
           ? g
           : {
-              ...g,
-              courier: value,
-              // igual que en crear pedido: distrito viene de la ciudad de la sede
-              distrito: sede?.ciudad ?? g.distrito ?? '',
-            }
+            ...g,
+            courier: value,
+            // igual que en crear pedido: distrito viene de la ciudad de la sede
+            distrito: sede?.ciudad ?? g.distrito ?? '',
+          }
       )
     );
   };
+
   function normalizeGroupForSend(g: PreviewGroupDTO): PreviewGroupDTO {
     return {
       ...g,
       monto_total: Number(g.monto_total ?? 0),
       fecha_entrega: g.fecha_entrega
         ? new Date(g.fecha_entrega).toISOString()
-        : '', 
+        : '',
     };
   }
-  
-  
 
   const confirmarImportacion = async () => {
     setError(null);
@@ -230,10 +378,9 @@ export default function ImportPreviewPedidosModal({
       ? groups.filter((_, i) => selected[i])
       : groups;
 
-      const payload: ImportPayload = {
-        groups: groupsToSend.map(normalizeGroupForSend),
-      };      
-      
+    const payload: ImportPayload = {
+      groups: groupsToSend.map(normalizeGroupForSend),
+    };
 
     try {
       setLoading(true);
@@ -390,6 +537,7 @@ export default function ImportPreviewPedidosModal({
                         courier: sede.nombre,
                         distrito: sede.ciudad ?? '',
                       });
+                      void loadProductosForSede(sede.sede_id);
                     }
                     e.currentTarget.selectedIndex = 0;
                   }}
@@ -419,12 +567,12 @@ export default function ImportPreviewPedidosModal({
                             !selected[i]
                               ? g
                               : {
-                                  ...g,
-                                  items: g.items.map((it) => ({
-                                    ...it,
-                                    cantidad: n,
-                                  })),
-                                }
+                                ...g,
+                                items: g.items.map((it) => ({
+                                  ...it,
+                                  cantidad: n,
+                                })),
+                              }
                           )
                         );
                       }
@@ -463,6 +611,7 @@ export default function ImportPreviewPedidosModal({
           </thead>
         </table>
       </div>
+
       {/* ===== Tabla ===== */}
       <div className="rounded-lg border border-gray-200 overflow-auto max-h-[60vh]">
         <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
@@ -492,7 +641,9 @@ export default function ImportPreviewPedidosModal({
               <th className="border-b border-gray-200 px-3 py-3 text-left">Producto</th>
               <th className="border-b border-gray-200 px-3 py-3 text-right">Cantidad</th>
               <th className="border-b border-gray-200 px-3 py-3 text-right">Monto</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Fec. Entrega</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-left">
+                Fec. Entrega
+              </th>
             </tr>
           </thead>
 
@@ -582,38 +733,86 @@ export default function ImportPreviewPedidosModal({
 
                   <td className="border-b border-gray-200 px-3 py-2 align-middle">
                     <div className="space-y-1">
-                      {g.items.map((it, ii) => (
-                        <input
-                          key={ii}
-                          value={it.producto || ''}
-                          placeholder="Nombre del producto"
-                          onChange={(e) => handleProductoNombre(gi, ii, e.target.value)}
-                          className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
-                          title={it.producto || ''}
-                        />
-                      ))}
+                      {g.items.map((it, ii) => {
+                        const key = productoKey(gi, ii);
+                        const hasError = !!productoErrors[key];
+
+                        return (
+                          <div key={ii} className="space-y-0.5">
+                            <Autocomplete
+                              value={it.producto || ''}
+                              onChange={(v: string) =>
+                                handleProductoNombre(gi, ii, v || '')
+                              }
+                              options={
+                                (() => {
+                                  const sede = g.courier
+                                    ? findSedeByNombre(g.courier)
+                                    : undefined;
+                                  if (!sede) return [];
+                                  const productos = productosPorSede[sede.sede_id] || [];
+                                  return productos.map((p) => ({
+                                    value: p.nombre_producto,
+                                    label: p.nombre_producto,
+                                  }));
+                                })()
+                              }
+                              placeholder="Nombre del producto"
+                              className={`w-full ${hasError ? 'bg-red-50 border-red-300 rounded-md' : ''
+                                }`}
+                            />
+
+                            {hasError && (
+                              <div className="text-[11px] text-red-600">
+                                Producto no encontrado en la sede seleccionada.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </td>
+                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
+                    <div className="space-y-1">
+                      {g.items.map((it, ii) => {
+                        const cantidad = it.cantidad ?? 0;
+                        const stock = it.stock ?? undefined;    
+
+                        const cantidadInvalida = isInvalidCantidad(cantidad, stock);
+
+                        return (
+                          <div key={ii} className="space-y-0.5">
+                            <input
+                              type="number"
+                              min={0}
+                              value={cantidad}
+                              onChange={(e) => handleCantidad(gi, ii, Number(e.target.value))}
+                              className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right  
+              focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20
+              ${cantidadInvalida ? "bg-red-50" : ""}
+            `}
+                              title={String(cantidad)}
+                            />
+
+                            {/*  Error: supera stock */}
+                            {stock !== undefined && cantidad > stock && (
+                              <div className="text-[11px] text-red-600">
+                                Stock insuficiente. Máximo disponible: {stock}.
+                              </div>
+                            )}
+
+                            {/*  Error: cantidad <= 0 */}
+                            {cantidad <= 0 && (
+                              <div className="text-[11px] text-red-600">
+                                La cantidad debe ser mayor a 0.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </td>
 
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
-                    <div className="space-y-1">
-                      {g.items.map((it, ii) => (
-                        <input
-                          key={ii}
-                          type="number"
-                          min={0}
-                          value={it.cantidad ?? 0}
-                          onChange={(e) =>
-                            handleCantidad(gi, ii, Number(e.target.value))
-                          }
-                          className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${
-                            isInvalidCantidad(it.cantidad) ? 'bg-red-50' : ''
-                          }`}
-                          title={String(it.cantidad ?? '')}
-                        />
-                      ))}
-                    </div>
-                  </td>
 
                   <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
                     <input
@@ -623,9 +822,8 @@ export default function ImportPreviewPedidosModal({
                       onChange={(e) =>
                         patchGroup(gi, { monto_total: Number(e.target.value) })
                       }
-                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${
-                        (g.monto_total ?? 0) < 0 ? 'bg-red-50' : ''
-                      }`}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${(g.monto_total ?? 0) < 0 ? 'bg-red-50' : ''
+                        }`}
                       title={String(g.monto_total ?? '')}
                     />
                   </td>

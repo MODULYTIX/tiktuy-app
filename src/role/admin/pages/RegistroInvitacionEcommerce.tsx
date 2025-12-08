@@ -1,19 +1,19 @@
 // src/pages/RegistroInvitacionEcommerce.tsx
-import { useCallback, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import BackgroundImage from '@/assets/images/login-background.webp';
-import { confirmarPasswordInvitacionEcommerce } from '@/services/admin/panel/admin-invite.api';
+import { useCallback, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import BackgroundImage from "@/assets/images/login-background.webp";
+import { confirmarPasswordInvitacionEcommerce } from "@/services/admin/panel/admin-invite.api";
 
 export default function RegistroInvitacionEcommerce() {
   const navigate = useNavigate();
   const [sp] = useSearchParams();
 
-  const token = sp.get('token') || '';
-  const name = sp.get('name') || 'Tu tienda';
+  const token = sp.get("token") || "";
+  const name = sp.get("name") || "Tu tienda";
 
   // UI state
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -29,11 +29,13 @@ export default function RegistroInvitacionEcommerce() {
     setErrorMsg(null);
 
     if (!token) {
-      setErrorMsg('Enlace inválido o falta el token de invitación.');
+      setErrorMsg("Enlace inválido o falta el token de invitación.");
       return;
     }
     if (!canSubmit) {
-      setErrorMsg('Verifica tu contraseña (mín. 6 caracteres y deben coincidir).');
+      setErrorMsg(
+        "Verifica tu contraseña (mín. 6 caracteres y deben coincidir)."
+      );
       return;
     }
 
@@ -47,14 +49,14 @@ export default function RegistroInvitacionEcommerce() {
       });
 
       if (!json?.ok) {
-        setErrorMsg(json?.message || 'No se pudo crear la contraseña.');
+        setErrorMsg(json?.message || "No se pudo crear la contraseña.");
         return;
       }
 
       // Éxito: redirigir al login
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Ocurrió un error inesperado.');
+      setErrorMsg(err?.message || "Ocurrió un error inesperado.");
     } finally {
       setLoading(false);
     }
@@ -65,7 +67,9 @@ export default function RegistroInvitacionEcommerce() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="bg-white rounded shadow p-6">
-          <p className="text-red-600">Enlace inválido o falta el token de invitación.</p>
+          <p className="text-red-600">
+            Enlace inválido o falta el token de invitación.
+          </p>
         </div>
       </div>
     );
@@ -83,7 +87,7 @@ export default function RegistroInvitacionEcommerce() {
           Crear contraseña
         </h1>
         <p className="text-center text-sm text-gray-600 mb-2">
-          Activa tu cuenta de Ecommerce para{' '}
+          Activa tu cuenta de Ecommerce para{" "}
           <span className="font-semibold text-blue-700">{name}</span>
         </p>
         <p className="text-center text-xs text-gray-400 mb-5">
@@ -102,7 +106,7 @@ export default function RegistroInvitacionEcommerce() {
             <label className="text-sm text-gray-700">Contraseña</label>
             <div className="h-10 rounded-md border border-gray-300 flex overflow-hidden">
               <input
-                type={showPwd ? 'text' : 'password'}
+                type={showPwd ? "text" : "password"}
                 className="flex-1 px-3 text-sm outline-none"
                 placeholder="Mínimo 6 caracteres"
                 value={password}
@@ -113,19 +117,21 @@ export default function RegistroInvitacionEcommerce() {
                 type="button"
                 onClick={() => setShowPwd((s) => !s)}
                 className="px-3 text-sm text-gray-600 hover:bg-gray-50"
-                title={showPwd ? 'Ocultar' : 'Mostrar'}
+                title={showPwd ? "Ocultar" : "Mostrar"}
               >
-                {showPwd ? 'Ocultar' : 'Mostrar'}
+                {showPwd ? "Ocultar" : "Mostrar"}
               </button>
             </div>
           </div>
 
           {/* Confirm */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-gray-700">Confirmar contraseña</label>
+            <label className="text-sm text-gray-700">
+              Confirmar contraseña
+            </label>
             <div className="h-10 rounded-md border border-gray-300 flex overflow-hidden">
               <input
-                type={showConfirm ? 'text' : 'password'}
+                type={showConfirm ? "text" : "password"}
                 className="flex-1 px-3 text-sm outline-none"
                 placeholder="Repite tu contraseña"
                 value={confirm}
@@ -136,9 +142,9 @@ export default function RegistroInvitacionEcommerce() {
                 type="button"
                 onClick={() => setShowConfirm((s) => !s)}
                 className="px-3 text-sm text-gray-600 hover:bg-gray-50"
-                title={showConfirm ? 'Ocultar' : 'Mostrar'}
+                title={showConfirm ? "Ocultar" : "Mostrar"}
               >
-                {showConfirm ? 'Ocultar' : 'Mostrar'}
+                {showConfirm ? "Ocultar" : "Mostrar"}
               </button>
             </div>
             <p className="text-[12px] text-gray-500 mt-1">
@@ -153,7 +159,7 @@ export default function RegistroInvitacionEcommerce() {
             disabled={loading || !canSubmit}
             className="inline-flex items-center gap-2 rounded-md bg-[#0F172A] px-5 py-2.5 text-white text-sm font-medium hover:bg-black disabled:opacity-60"
           >
-            {loading ? 'Guardando…' : 'Crear contraseña'}
+            {loading ? "Guardando…" : "Crear contraseña"}
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="currentColor" d="M10 17l5-5l-5-5v10zM4 4h2v16H4z" />
             </svg>
@@ -161,7 +167,10 @@ export default function RegistroInvitacionEcommerce() {
         </div>
 
         <div className="mt-4 text-center">
-          <button onClick={() => navigate('/login')} className="text-sm text-blue-700 hover:underline">
+          <button
+            onClick={() => navigate("/login")}
+            className="text-sm text-blue-700 hover:underline"
+          >
             Volver a iniciar sesión
           </button>
         </div>

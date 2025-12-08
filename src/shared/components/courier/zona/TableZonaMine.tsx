@@ -1,27 +1,33 @@
+// src/shared/components/courier/zona-tarifaria/TableZonaMine.tsx
 import { useEffect, useMemo, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
 import Paginator from "../../Paginator";
+
 import { fetchMisZonas } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
 import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
-import Badgex from "@/shared/common/Badgex";
 
 type Filters = {
-  distrito?: string;
-  zona?: string;
+  ciudad: string; // UI: ciudad, en BD es campo distrito
+  zona: string;
 };
 
 type Props = {
+  filters: Filters;
   itemsPerPage?: number;
   onEdit?: (zona: ZonaTarifaria) => void;
-  filters?: Filters;
+  /**
+   * Devuelve meta datos para armar filtros:
+   *  - distritos: lista única de ciudades (campo distrito)
+   *  - zonas: lista única de zona_tarifario
+   */
   onLoadedMeta?: (meta: { distritos: string[]; zonas: string[] }) => void;
 };
 
 export default function TableZonaMine({
-  itemsPerPage = 6,
-  onEdit,
   filters,
+  itemsPerPage = 8,
+  onEdit,
   onLoadedMeta,
 }: Props) {
   const [zonas, setZonas] = useState<ZonaTarifaria[]>([]);
@@ -29,42 +35,44 @@ export default function TableZonaMine({
   const [err, setErr] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Cargar todas mis zonas (todas las sedes de mi courier)
   useEffect(() => {
     let mounted = true;
-    (async () => {
+
+    async function load() {
       setLoading(true);
       setErr(null);
+
       try {
         const token = getAuthToken();
-        if (!token)
-          throw new Error("No se encontró el token de autenticación.");
+        if (!token) throw new Error("No se encontró el token de autenticación.");
+
         const res = await fetchMisZonas(token);
         if (!mounted) return;
+
         if (!res.ok) {
           setErr(res.error || "Error al cargar zonas tarifarias.");
           setZonas([]);
           return;
         }
+
         const data = res.data ?? [];
         setZonas(data);
         setCurrentPage(1);
 
-        // meta para los filtros
+        // Meta para filtros (distritos = ciudades en UI)
         const distritos = Array.from(
-          new Set(
-            data
-              .map((z) => (z.distrito ?? "").toString().trim())
-              .filter(Boolean)
-          )
-        ).sort((a, b) => a.localeCompare(b, "es"));
-        const zonasVals = Array.from(
-          new Set(
-            data
-              .map((z) => (z.zona_tarifario ?? "").toString().trim())
-              .filter(Boolean)
-          )
-        ).sort((a, b) => a.localeCompare(b, "es"));
-        onLoadedMeta?.({ distritos, zonas: zonasVals });
+          new Set(data.map((z) => z.distrito).filter(Boolean))
+        ) as string[];
+
+        const zonasUnique = Array.from(
+          new Set(data.map((z) => z.zona_tarifario).filter(Boolean))
+        ) as string[];
+
+        onLoadedMeta?.({
+          distritos,
+          zonas: zonasUnique,
+        });
       } catch (e: any) {
         if (!mounted) return;
         setErr(e?.message || "Error al cargar zonas tarifarias.");
@@ -72,30 +80,32 @@ export default function TableZonaMine({
       } finally {
         if (mounted) setLoading(false);
       }
-    })();
+    }
+
+    load();
+
     return () => {
       mounted = false;
     };
   }, [onLoadedMeta]);
 
-  // Filtros
+  // Filtrado en memoria por ciudad (distrito) y zona
   const filteredZonas = useMemo(() => {
-    const d = (filters?.distrito ?? "").trim().toLowerCase();
-    const zf = (filters?.zona ?? "").trim().toLowerCase();
-    if (!d && !zf) return zonas;
+    const { ciudad, zona } = filters;
 
     return zonas.filter((z) => {
-      const distrito = (z.distrito ?? "").toString().trim().toLowerCase();
-      const zonaTar = (z.zona_tarifario ?? "").toString().trim().toLowerCase();
-      const okD = d ? distrito === d : true;
-      const okZ = zf ? zonaTar === zf : true;
-      return okD && okZ;
-    });
-  }, [zonas, filters?.distrito, filters?.zona]);
+      let ok = true;
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters?.distrito, filters?.zona]);
+      if (ciudad) {
+        ok = ok && z.distrito === ciudad; // distrito en BD = ciudad en UI
+      }
+      if (zona) {
+        ok = ok && z.zona_tarifario === zona;
+      }
+
+      return ok;
+    });
+  }, [zonas, filters]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(filteredZonas.length / itemsPerPage)),
@@ -115,6 +125,7 @@ export default function TableZonaMine({
     }
     return 0;
   }
+
   function formatMoney(nLike: unknown) {
     const n = toNumber(nLike);
     return n.toLocaleString("es-PE", {
@@ -123,122 +134,90 @@ export default function TableZonaMine({
     });
   }
 
-  if (loading)
+  function EstadoPill({ nombre }: { nombre?: string | null }) {
+    const text = nombre ?? "—";
+    const isActivo = (nombre || "").toLowerCase() === "activo";
+    const cls = isActivo
+      ? "bg-green-100 text-green-800 border border-green-200"
+      : "bg-gray-100 text-gray-700 border border-gray-200";
     return (
-      <div className="w-full bg-white rounded-md shadow-default p-6 text-[12px] text-gray-600">
+      <span className={`px-2 py-0.5 rounded-full text-xs ${cls}`}>{text}</span>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
         Cargando zonas tarifarias…
       </div>
     );
-  if (err)
+  }
+
+  if (err) {
     return (
-      <div className="w-full bg-white rounded-md shadow-default p-6 text-[12px] text-red-700">
+      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-red-700">
         {err}
       </div>
     );
-  if (zonas.length === 0)
+  }
+
+  if (filteredZonas.length === 0) {
     return (
-      <div className="w-full bg-white rounded-md shadow-default p-6 text-[12px] text-gray-600">
-        No hay zonas tarifarias registradas.
+      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
+        No hay zonas tarifarias que coincidan con los filtros seleccionados.
       </div>
     );
+  }
 
   return (
-    <div className="bg-white rounded-md overflow-hidden shadow-default">
-      <section className="flex-1 overflow-auto">
-        <div className="overflow-x-auto bg-white">
-          <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-            <colgroup>
-              <col className="w-[28%]" />
-              <col className="w-[12%]" />
-              <col className="w-[18%]" />
-              <col className="w-[18%]" />
-              <col className="w-[12%]" />
-              <col className="w-[12%]" />
-            </colgroup>
+    <div className="w-full bg-white rounded-lg shadow overflow-hidden">
+      <table className="w-full text-sm text-left text-gray-600">
+        <thead className="bg-gray-100 text-gray-700 text-xs uppercase">
+          <tr>
+            <th className="px-4 py-3">Ciudad</th> {/* BD: distrito */}
+            <th className="px-4 py-3">Zona</th>
+            <th className="px-4 py-3">Tarifa Cliente</th>
+            <th className="px-4 py-3">Pago a Motorizado</th>
+            <th className="px-4 py-3">Estado</th>
+            <th className="px-4 py-3">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {currentZonas.map((z) => (
+            <tr key={z.id} className="border-b hover:bg-gray-50">
+              <td className="px-4 py-3">{z.distrito}</td>
+              <td className="px-4 py-3">{z.zona_tarifario}</td>
+              <td className="px-4 py-3">S/ {formatMoney(z.tarifa_cliente)}</td>
+              <td className="px-4 py-3">S/ {formatMoney(z.pago_motorizado)}</td>
+              <td className="px-4 py-3">
+                <EstadoPill nombre={z.estado?.nombre} />
+              </td>
+              <td className="px-4 py-3">
+                <button
+                  className="inline-flex items-center gap-1 text-orange-500 hover:text-orange-700"
+                  onClick={() => onEdit?.(z)}
+                  title="Editar zona"
+                >
+                  <FaRegEdit />
+                  <span className="sr-only">Editar</span>
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-            <thead className="bg-[#E5E7EB]">
-              <tr className="text-gray70 font-roboto font-medium">
-                <th className="px-4 py-3 text-left">DISTRITO</th>
-                <th className="px-4 py-3 text-left">ZONA</th>
-                <th className="px-4 py-3 text-left">TARIFA CLIENTE</th>
-                <th className="px-4 py-3 text-left">PAGO MOTORIZADO</th>
-                <th className="px-4 py-3 text-center">ESTADO</th>
-                <th className="px-4 py-3 text-center">ACCIONES</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-gray20">
-              {currentZonas.map((z) => (
-                <tr key={z.id} className="hover:bg-gray10 transition-colors">
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    {z.distrito || "-"}
-                  </td>
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    {z.zona_tarifario || "-"}
-                  </td>
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    S/ {formatMoney(z.tarifa_cliente)}
-                  </td>
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    S/ {formatMoney(z.pago_motorizado)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <Badgex
-                      className={
-                        (z.estado?.nombre || "").toLowerCase() === "activo"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-700"
-                      }
-                    >
-                      {z.estado?.nombre ?? "—"}
-                    </Badgex>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center">
-                      <button
-                        className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-700"
-                        onClick={() => onEdit?.(z)}
-                        title="Editar zona"
-                        aria-label={`Editar ${z.distrito ?? ""} ${
-                          z.zona_tarifario ?? ""
-                        }`}
-                      >
-                        <FaRegEdit />
-                        <span className="sr-only">Editar</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-
-              {currentZonas.length === 0 && (
-                <tr>
-                  <td
-                    className="px-4 py-6 text-center text-gray70 italic"
-                    colSpan={6}
-                  >
-                    No hay resultados para los filtros aplicados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Barra inferior/paginación estilo guardado */}
-        {totalPages > 1 && (
+      {totalPages > 1 && (
+        <div className="border-t p-4">
           <Paginator
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={(page) => {
               if (page >= 1 && page <= totalPages) setCurrentPage(page);
             }}
-            appearance="grayRounded"
-            showArrows
-            containerClassName="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2"
           />
-        )}
-      </section>
+        </div>
+      )}
     </div>
   );
 }
