@@ -47,10 +47,10 @@ const estadoChip = (estado?: string) => {
 const fmtFecha = (iso?: string) =>
   iso
     ? new Intl.DateTimeFormat("es-PE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).format(new Date(iso))
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(new Date(iso))
     : "—";
 
 export default function ValidarMovimientoCourierModal({
@@ -234,7 +234,7 @@ export default function ValidarMovimientoCourierModal({
               </thead>
               <tbody>
                 {detalle?.productos?.map((dp) => {
-                  const max = dp.cantidad ?? 0;
+                  const max = dp.cantidad_validada ?? 0;
                   const val = cantidades[dp.producto.id] ?? max;
 
                   return (
@@ -289,11 +289,10 @@ export default function ValidarMovimientoCourierModal({
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
               placeholder="Ejem. Algunos productos llegaron con pequeñas diferencias."
-              className={`w-full border rounded-md px-3 py-2 text-sm resize-none mt-2 ${
-                canValidate
+              className={`w-full border rounded-md px-3 py-2 text-sm resize-none mt-2 ${canValidate
                   ? "bg-white"
                   : "bg-gray-50 cursor-not-allowed"
-              }`}
+                }`}
             />
           </div>
 
@@ -325,11 +324,10 @@ export default function ValidarMovimientoCourierModal({
                   type="button"
                   onClick={() => inputRef.current?.click()}
                   disabled={!canValidate}
-                  className={`px-3 py-2 text-sm rounded border ${
-                    canValidate
+                  className={`px-3 py-2 text-sm rounded border ${canValidate
                       ? "hover:bg-gray-100"
                       : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  }`}
+                    }`}
                 >
                   Seleccione archivo
                 </button>

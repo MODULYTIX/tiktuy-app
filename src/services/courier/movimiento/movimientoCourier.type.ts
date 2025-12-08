@@ -20,6 +20,7 @@ export interface CourierMovimientosResponse {
 export interface CourierMovimientoProductoDet {
   id: number;           // id del MovimientoProducto
   cantidad: number;
+  cantidad_validada?: number;
   producto: {
     id: number;
     codigo_identificacion: string;
