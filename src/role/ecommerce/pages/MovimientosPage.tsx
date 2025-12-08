@@ -85,7 +85,7 @@ export default function RegistroMovimientoPage() {
     <section className="mt-6">
       <div className="flex justify-between items-center mb-6">
         <Tittlex
-          title="Movimiento"
+          title="Movimientos"
           description={
             modalMode === 'registro'
               ? 'Realice nuevos movimientos de productos.'
