@@ -63,7 +63,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       },
       {
         to: '/stock',
-        label: 'Stock de productos',
+        label: 'Stock de Productos',
         icon: <Icon icon="vaadin:stock" width="24" height="24" />,
         modulo: 'stock',
       },
@@ -182,9 +182,9 @@ export default function Sidebar({ isOpen, toggle }: Props) {
   // BasePath por rol (representantes heredan del dueño)
   const basePath =
     isRepEcom ? '/ecommerce'
-    : isRepCour ? '/courier'
-    : roleName ? `/${roleName}`
-    : '';
+      : isRepCour ? '/courier'
+        : roleName ? `/${roleName}`
+          : '';
 
   let links: (typeof linksByRole)[keyof typeof linksByRole] = [];
 
@@ -309,15 +309,13 @@ export default function Sidebar({ isOpen, toggle }: Props) {
               end={to.endsWith('/') || to.endsWith('/panel')}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300 text-sm font-medium
-        hover:bg-[#f0f3ff] hover:text-primary ${
-          isActive ? 'bg-[#EEf4FF] text-primary' : 'text-primary'
-        }`
+        hover:bg-[#f0f3ff] hover:text-primary ${isActive ? 'bg-[#EEf4FF] text-primary' : 'text-primary'
+                }`
               }>
               <span className="text-lg">{icon}</span>
               <span
-                className={`transition-all duration-300 ease-in-out origin-left ${
-                  isOpen ? 'opacity-100 ml-1' : 'opacity-0 w-0 overflow-hidden'
-                }`}>
+                className={`transition-all duration-300 ease-in-out origin-left ${isOpen ? 'opacity-100 ml-1' : 'opacity-0 w-0 overflow-hidden'
+                  }`}>
                 {label}
               </span>
             </NavLink>
@@ -327,9 +325,8 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         {/* Footer */}
         <div className="px-4 py-4">
           <p
-            className={`text-xs text-gray-400 mb-2 transition-opacity duration-300 ${
-              isOpen ? 'opacity-100' : 'opacity-0'
-            }`}>
+            className={`text-xs text-gray-400 mb-2 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'
+              }`}>
             Versión 1.0
           </p>
           <button
@@ -337,9 +334,8 @@ export default function Sidebar({ isOpen, toggle }: Props) {
             className="w-full flex items-center gap-2 text-sm text-red-600 hover:text-red-700 transition font-medium">
             <FaSignOutAlt />
             <span
-              className={`transition-all duration-300 ease-in-out origin-left ${
-                isOpen ? 'opacity-100 ml-1' : 'opacity-0 w-0 overflow-hidden'
-              }`}>
+              className={`transition-all duration-300 ease-in-out origin-left ${isOpen ? 'opacity-100 ml-1' : 'opacity-0 w-0 overflow-hidden'
+                }`}>
               Cerrar sesión
             </span>
           </button>
