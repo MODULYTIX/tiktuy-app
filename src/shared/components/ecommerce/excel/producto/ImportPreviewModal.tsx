@@ -19,14 +19,13 @@ type Props = {
   preloadedCategoriaOptions?: Option[];
 };
 
-
-// Normaliza un valor (array, {items:[]}, {data:[]}, o null) a T[]
+// Normaliza un valor a T[]
 function toArray<T>(val: unknown): T[] {
   if (Array.isArray(val)) return val as T[];
   if (val && typeof val === 'object') {
-    const obj = val as any;
-    if (Array.isArray(obj.items)) return obj.items as T[];
-    if (Array.isArray(obj.data)) return obj.data as T[];
+    const o = val as any;
+    if (Array.isArray(o.items)) return o.items as T[];
+    if (Array.isArray(o.data)) return o.data as T[];
   }
   return [];
 }
@@ -58,30 +57,34 @@ export default function ImportProductosPreviewModal({
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const allSelected = groups.length > 0 && groups.every((_, i) => selected[i]);
   const someSelected = groups.some((_, i) => selected[i]);
+
   const headerChkRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (headerChkRef.current) {
+    if (headerChkRef.current)
       headerChkRef.current.indeterminate = !allSelected && someSelected;
-    }
   }, [allSelected, someSelected]);
 
-  const toggleRow = (idx: number) => setSelected(prev => ({ ...prev, [idx]: !prev[idx] }));
-  const toggleAll = () => setSelected(allSelected ? {} : Object.fromEntries(groups.map((_, i) => [i, true])));
+  const toggleRow = (idx: number) =>
+    setSelected(prev => ({ ...prev, [idx]: !prev[idx] }));
 
-  // ----------------- VALIDATION (misma lógica, sin 'almacen') -----------------
+  const toggleAll = () =>
+    setSelected(allSelected ? {} : Object.fromEntries(groups.map((_, i) => [i, true])));
+
+  // Modal confirm delete
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // ----------------- VALIDATION -----------------
   const norm = (s: string) =>
     (s ?? '').toString().trim().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
   const categoriaSet = useMemo(() => new Set(categoriaNames.map(norm)), [categoriaNames]);
 
   const isEmpty = (s: unknown) => String(s ?? '').trim().length === 0;
+
   const toNumber = (v: any) => {
     if (v === '' || v == null) return NaN;
     let s = String(v).trim();
-    s = s.replace(/,/g, '');
-    if (/^\d{1,3}(\.\d{3})+,\d+$/.test(s)) {
-      s = s.replace(/\./g, '').replace(',', '.');
-    }
-
+    s = s.replace(/,/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(/,/, '.');
     const n = Number(s);
     return Number.isFinite(n) ? n : NaN;
   };
@@ -91,15 +94,12 @@ export default function ImportProductosPreviewModal({
     return Number.isFinite(n) ? Math.trunc(n) : NaN;
   };
 
-  // Extrae el número de cosas como "0.17 kg", "0,17kg", "  1.2 KG "
   const parsePeso = (v: any) => {
     if (v === '' || v == null) return NaN;
-    const text = String(v).trim();
-    const match = text.match(/[\d.,]+/); // primera parte tipo 0.17 o 0,17
-    if (!match) return NaN;
-    return toNumber(match[0]); // reutiliza tu normalizador
+    const m = String(v).trim().match(/[\d.,]+/);
+    if (!m) return NaN;
+    return toNumber(m[0]);
   };
-
 
   const invalidField = (g: PreviewProductoDTO) => {
     const precio = toNumber(g.precio);
@@ -140,16 +140,16 @@ export default function ImportProductosPreviewModal({
     return e;
   };
 
-  // “semáforo” visual suave sin tocar la lógica
-  const bgWarnFromCatalog = (has: boolean, value: string | null | undefined) => {
-    const v = String(value ?? '').trim();
+  const bgWarnFromCatalog = (has: boolean, val: string | null | undefined) => {
+    const v = String(val ?? '').trim();
     if (!v) return 'bg-red-50';
     return has ? '' : 'bg-amber-50';
   };
+
   const colorCategoria = (value?: string | null) =>
     bgWarnFromCatalog(categoriaSet.has(norm(String(value ?? ''))), value);
 
-  // ----------------- PATCH (misma lógica) -----------------
+  // ----------------- PATCH -----------------
   const patchGroup = (idx: number, patch: Partial<PreviewProductoDTO>) => {
     setGroups(prev =>
       prev.map((g, i) => {
@@ -162,23 +162,15 @@ export default function ImportProductosPreviewModal({
     );
   };
 
-  const applyToSelected = (patch: Partial<PreviewProductoDTO>) => {
-    setGroups(prev =>
-      prev.map((g, i) => {
-        if (!selected[i]) return g;
-        const next = { ...g, ...patch };
-        next.valido = recomputeValido(next);
-        next.errores = next.valido ? [] : recomputeErrores(next);
-        return next;
-      })
-    );
-  };
+  const computeHasInvalid = (arr: PreviewProductoDTO[]) =>
+    arr.some(g => !recomputeValido(g));
 
-  const computeHasInvalid = (arr: PreviewProductoDTO[]) => arr.some(g => !recomputeValido(g));
-  const computeTotalValid = (arr: PreviewProductoDTO[]) => arr.filter(g => recomputeValido(g)).length;
-  const allRowsTotalValidos = useMemo(() => computeTotalValid(groups), [groups]);
+  const computeTotalValid = (arr: PreviewProductoDTO[]) =>
+    arr.filter(g => recomputeValido(g)).length;
 
-  // ----------------- SUBMIT (misma lógica) -----------------
+  const totalValidosHeader = computeTotalValid(groups);
+
+  // ----------------- SUBMIT -----------------
   const confirmarImportacion = async () => {
     setError(null);
 
@@ -189,26 +181,24 @@ export default function ImportProductosPreviewModal({
       return { ...g, valido, errores: valido ? [] : recomputeErrores(g) };
     });
 
-    const firstEmpty = groupsToSend.find(g => isEmpty(g.categoria));
-    if (firstEmpty) {
-      setError(`Hay filas con "Categoría" vacía (p.ej. fila Excel ${firstEmpty.fila}).`);
+    const empty = groupsToSend.find(g => isEmpty(g.categoria));
+    if (empty) {
+      setError(`Hay filas con "Categoría" vacía (p.ej. fila Excel ${empty.fila}).`);
       return;
     }
-    const hasInvalid = computeHasInvalid(groupsToSend);
-    if (hasInvalid) {
-      setError('Hay datos inválidos o faltantes en las filas seleccionadas. Corrige los campos en rojo.');
+
+    if (computeHasInvalid(groupsToSend)) {
+      setError('Hay datos inválidos o faltantes. Corrige los campos en rojo.');
       return;
     }
 
     try {
       setSubmitting(true);
       const payload: ImportProductosPayload = { groups: groupsToSend };
-      // console.log('[IMPORT:UI] Payload a enviar (productos):', JSON.parse(JSON.stringify(payload)));
       await importProductosDesdePreview(payload, token);
       onImported();
       onClose();
     } catch (e: any) {
-      console.error('[IMPORT:UI] Error importando productos:', e);
       setError(e?.message || 'Error al importar productos');
     } finally {
       setSubmitting(false);
@@ -216,16 +206,14 @@ export default function ImportProductosPreviewModal({
   };
 
   if (!open) return null;
-  const totalValidosHeader = allRowsTotalValidos;
 
-  // ----------------- UI (diseño “perfecto”) -----------------
+  // ----------------- UI -----------------
   return (
     <CenteredModal title="" onClose={onClose} widthClass="max-w-[1360px] w-[95vw]">
+
       {/* Header */}
       <div className="flex items-start gap-3 text-[#1F2A44] mb-2">
-        <div className="mt-0.5">
-          <Icon icon="vaadin:stock" width="20" height="20" />
-        </div>
+        <Icon icon="vaadin:stock" width="20" height="20" />
         <div>
           <h2 className="uppercase tracking-wide font-bold text-[20px] leading-6">
             Validación de datos
@@ -234,159 +222,81 @@ export default function ImportProductosPreviewModal({
             Datos ingresados del excel, última validación
           </p>
         </div>
+
         <div className="ml-auto text-sm bg-gray-50 rounded px-2 py-1">
           <b>Total:</b> {groups.length} · <b>Válidos:</b> {totalValidosHeader}
         </div>
       </div>
 
-      {/* Barra masiva (look de select) */}
-      <div className="mt-3 mb-4 rounded-lg border border-gray-200 bg-white p-3">
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-          <div className="flex items-center">
-            <input
-              ref={headerChkRef}
-              type="checkbox"
-              checked={allSelected}
-              onChange={toggleAll}
-              className="h-4 w-4 rounded-[4px]"
-              title="Seleccionar todo"
-            />
-          </div>
+      {/* Barra superior elegante */}
+      <div className="mt-3 mb-4 rounded-lg border border-gray-200 bg-white p-4 flex items-center justify-between">
 
-          {/* N. Producto */}
-          <div className="relative">
-            <input
-              placeholder="Seleccionar"
-              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value.trim();
-                  if (val) applyToSelected({ nombre_producto: val });
-                  (e.target as HTMLInputElement).value = '';
-                }
-              }}
-            />
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
-          </div>
+        {/* Checkbox general */}
+        <label className="flex items-center gap-3 cursor-pointer select-none">
+          <input
+            ref={headerChkRef}
+            type="checkbox"
+            checked={allSelected}
+            onChange={toggleAll}
+            className="h-4 w-4 rounded border-gray-400 text-[#1F2A44] focus:ring-[#1F2A44]"
+          />
+          <span className="text-[14px] text-gray-700 font-medium">
+            Seleccionar todo
+          </span>
+        </label>
 
-          {/* Descripción */}
-          <div className="relative">
-            <input
-              placeholder="Seleccionar"
-              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  applyToSelected({ descripcion: (e.target as HTMLInputElement).value });
-                  (e.target as HTMLInputElement).value = '';
-                }
-              }}
-            />
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
-          </div>
-
-          {/* Categoría */}
-          <div className="relative">
-            <input
-              list="categorias-sugeridas"
-              placeholder="Seleccionar"
-              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const v = (e.target as HTMLInputElement).value.trim();
-                  if (v) applyToSelected({ categoria: v });
-                  (e.target as HTMLInputElement).value = '';
-                }
-              }}
-            />
-            <datalist id="categorias-sugeridas">
-              {categoriaNames.map((n) => <option key={n} value={n} />)}
-            </datalist>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
-          </div>
-
-          {/* Precio */}
-          <div className="relative">
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="Seleccionar"
-              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const raw = (e.target as HTMLInputElement).value;
-                  const normalized = raw
-                    .replace(/,/g, '')
-                    .replace(/\.(?=\d{3}\b)/g, '')
-                    .replace(/,/, '.');
-
-                  const n = Number(normalized);
-
-                  if (!Number.isNaN(n)) {
-                    applyToSelected({ precio: n });
-                  }
-
-                  (e.target as HTMLInputElement).value = '';
-                }
-              }}
-            />
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
-          </div>
-
-          {/* Cantidad */}
-          <div className="relative">
-            <input
-              type="number"
-              placeholder="Seleccionar"
-              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const n = Number((e.target as HTMLInputElement).value);
-                  if (!Number.isNaN(n)) applyToSelected({ cantidad: Math.trunc(n) });
-                  (e.target as HTMLInputElement).value = '';
-                }
-              }}
-            />
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
-          </div>
-
-          {/* Stock mínimo */}
-          <div className="relative">
-            <input
-              type="number"
-              placeholder="Seleccionar"
-              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const n = Number((e.target as HTMLInputElement).value);
-                  if (!Number.isNaN(n)) applyToSelected({ stock_minimo: Math.trunc(n) });
-                  (e.target as HTMLInputElement).value = '';
-                }
-              }}
-            />
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
-          </div>
-
-          {/* Peso */}
-          <div className="relative">
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Seleccionar"
-              className="h-10 w-full rounded-md border border-gray-300 px-3 pr-8 text-sm text-gray-700 placeholder:text-gray-400 text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20 focus:border-[#1F2A44]"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const n = Number((e.target as HTMLInputElement).value);
-                  if (!Number.isNaN(n)) applyToSelected({ peso: n });
-                  (e.target as HTMLInputElement).value = '';
-                }
-              }}
-            />
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">▾</span>
-          </div>
-        </div>
+        {/* Botón eliminar profesional */}
+        <button
+          disabled={!someSelected}
+          onClick={() => setShowDeleteConfirm(true)}
+          className={`
+            flex items-center gap-2 px-4 h-10 text-sm rounded-md border text-red-600 
+            border-red-300 hover:bg-red-50 transition-all
+            ${!someSelected ? "opacity-40 cursor-not-allowed hover:bg-transparent" : ""}
+          `}
+        >
+          <Icon icon="tabler:trash" width="18" />
+          Eliminar seleccionadas
+        </button>
       </div>
 
-      {/* Tabla “texto editable” */}
+      {/* Modal elegante de confirmación */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-[380px] animate-fadeIn">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+              <Icon icon="tabler:alert-circle" width="22" className="text-red-500" />
+              Confirmar eliminación
+            </h3>
+
+            <p className="text-gray-600 text-sm mb-5">
+              ¿Estás seguro que deseas eliminar las filas seleccionadas? Esta acción no se puede deshacer.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={() => {
+                  setGroups(prev => prev.filter((_, i) => !selected[i]));
+                  setSelected({});
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabla */}
       <div className="rounded-lg border border-gray-200 overflow-auto max-h-[60vh]">
         <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
           <colgroup>
@@ -402,14 +312,14 @@ export default function ImportProductosPreviewModal({
 
           <thead>
             <tr className="sticky top-0 z-10 bg-[#F3F6FA] text-[13px] font-semibold text-gray-600">
-              <th className="border-b border-gray-200 px-2 py-3" />
-              <th className="border-b border-gray-200 px-3 py-3 text-left">N. Producto</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Descripción</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Categoría</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-right">Precio</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-right">Cantidad</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-right">Stock mínimo</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-right">Peso</th>
+              <th className="border-b px-2 py-3" />
+              <th className="border-b px-3 py-3 text-left">N. Producto</th>
+              <th className="border-b px-3 py-3 text-left">Descripción</th>
+              <th className="border-b px-3 py-3 text-left">Categoría</th>
+              <th className="border-b px-3 py-3 text-right">Precio</th>
+              <th className="border-b px-3 py-3 text-right">Cantidad</th>
+              <th className="border-b px-3 py-3 text-right">Stock mínimo</th>
+              <th className="border-b px-3 py-3 text-right">Peso</th>
             </tr>
           </thead>
 
@@ -417,8 +327,8 @@ export default function ImportProductosPreviewModal({
             {groups.map((g, gi) => {
               const inv = invalidField(g);
               return (
-                <tr key={gi} className="odd:bg-white even:bg-gray-50 hover:bg-[#F8FAFD] transition-colors duration-150">
-                  <td className="border-b border-gray-200 px-2 py-2 align-middle">
+                <tr key={gi} className="odd:bg-white even:bg-gray-50 hover:bg-[#F8FAFD] transition-colors">
+                  <td className="border-b px-2 py-2">
                     <input
                       type="checkbox"
                       checked={!!selected[gi]}
@@ -428,96 +338,94 @@ export default function ImportProductosPreviewModal({
                   </td>
 
                   {/* N. Producto */}
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                  <td className="border-b px-3 py-2">
                     <input
                       value={g.nombre_producto ?? ''}
                       onChange={(e) => patchGroup(gi, { nombre_producto: e.target.value })}
-                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${inv.nombre_producto ? 'bg-red-50' : ''}`}
-                      title={String(g.nombre_producto ?? '')}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate 
+                        focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 
+                        ${inv.nombre_producto ? 'bg-red-50' : ''}`}
                     />
                   </td>
 
                   {/* Descripción */}
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                  <td className="border-b px-3 py-2">
                     <input
                       value={g.descripcion ?? ''}
                       onChange={(e) => patchGroup(gi, { descripcion: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
-                      title={String(g.descripcion ?? '')}
+                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate 
+                      focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
                     />
                   </td>
 
                   {/* Categoría */}
-                  <td className={`border-b border-gray-200 px-3 py-2 align-middle ${colorCategoria(g.categoria)}`}>
+                  <td className={`border-b px-3 py-2 ${colorCategoria(g.categoria)}`}>
                     <input
-                      list={`categorias-row-${gi}`}
                       value={g.categoria ?? ''}
+                      list={`cat-${gi}`}
                       onChange={(e) => patchGroup(gi, { categoria: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
-                      title={String(g.categoria ?? '')}
+                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate 
+                      focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
                     />
-                    <datalist id={`categorias-row-${gi}`}>
-                      {categoriaNames.map((n) => <option key={n} value={n} />)}
+                    <datalist id={`cat-${gi}`}>
+                      {categoriaNames.map(n => <option key={n} value={n} />)}
                     </datalist>
                   </td>
 
                   {/* Precio */}
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right tabular-nums">
+                  <td className="border-b px-3 py-2 text-right">
                     <input
                       type="number"
                       step="0.01"
-                      value={g.precio ?? 0}
+                      value={g.precio ?? ''}
                       onChange={(e) => patchGroup(gi, { precio: Number(e.target.value) })}
-                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isFinite(toNumber(g.precio)) || toNumber(g.precio) < 0 ? 'bg-red-50' : ''}`}
-                      title={String(g.precio ?? '')}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right 
+                        focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 
+                        ${!Number.isFinite(toNumber(g.precio)) || toNumber(g.precio) < 0 ? 'bg-red-50' : ''}`}
                     />
                   </td>
 
                   {/* Cantidad */}
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right tabular-nums">
+                  <td className="border-b px-3 py-2 text-right">
                     <input
                       type="number"
                       min={0}
-                      value={g.cantidad ?? 0}
+                      value={g.cantidad ?? ''}
                       onChange={(e) => patchGroup(gi, { cantidad: Math.trunc(Number(e.target.value) || 0) })}
-                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isInteger(toInt(g.cantidad)) || toInt(g.cantidad) < 0 ? 'bg-red-50' : ''}`}
-                      title={String(g.cantidad ?? '')}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right 
+                        focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 
+                        ${!Number.isInteger(toInt(g.cantidad)) || toInt(g.cantidad) < 0 ? 'bg-red-50' : ''}`}
                     />
                   </td>
 
                   {/* Stock mínimo */}
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right tabular-nums">
+                  <td className="border-b px-3 py-2 text-right">
                     <input
                       type="number"
                       min={0}
-                      value={g.stock_minimo ?? 0}
+                      value={g.stock_minimo ?? ''}
                       onChange={(e) => patchGroup(gi, { stock_minimo: Math.trunc(Number(e.target.value) || 0) })}
-                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isInteger(toInt(g.stock_minimo)) || toInt(g.stock_minimo) < 0 ? 'bg-red-50' : ''}`}
-                      title={String(g.stock_minimo ?? '')}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right 
+                        focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 
+                        ${!Number.isInteger(toInt(g.stock_minimo)) || toInt(g.stock_minimo) < 0 ? 'bg-red-50' : ''}`}
                     />
                   </td>
 
                   {/* Peso */}
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right tabular-nums">
+                  <td className="border-b px-3 py-2 text-right">
                     <input
                       type="text"
-                      inputMode="decimal"
-                      min={0}
-                      value={g.peso ?? ''} // si viene 0.17 del backend, se ve "0.17"
+                      value={g.peso ?? ''}
                       onChange={(e) => {
                         const raw = e.target.value;
                         const n = parsePeso(raw);
-                        // guardamos como número si es válido
                         patchGroup(gi, { peso: Number.isFinite(n) ? (n as any) : (raw as any) });
                       }}
-                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${!Number.isFinite(parsePeso(g.peso)) || parsePeso(g.peso) < 0
-                        ? 'bg-red-50'
-                        : ''
-                        }`}
-                      title={String(g.peso ?? '')}
+                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right 
+                        focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 
+                        ${!Number.isFinite(parsePeso(g.peso)) || parsePeso(g.peso) < 0 ? 'bg-red-50' : ''}`}
                     />
                   </td>
-
                 </tr>
               );
             })}
@@ -528,24 +436,40 @@ export default function ImportProductosPreviewModal({
       {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
 
       {/* Footer */}
-      <div className="flex justify-end gap-2 mt-4 pt-3 ">
-        <button onClick={onClose} className="px-4 h-10 text-sm rounded-md border border-gray-300 hover:bg-gray-50">
+      <div className="flex justify-end gap-2 mt-4 pt-3">
+        <button
+          onClick={onClose}
+          className="px-4 h-10 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
+        >
           Cerrar
         </button>
+
         <button
           onClick={confirmarImportacion}
-          disabled={submitting || computeHasInvalid(someSelected ? groups.filter((_, i) => selected[i]) : groups)}
+          disabled={
+            submitting ||
+            computeHasInvalid(someSelected ? groups.filter((_, i) => selected[i]) : groups)
+          }
           className="px-5 h-10 text-sm rounded-md bg-[#1F2A44] text-white hover:bg-[#182238] disabled:opacity-60"
-          title={computeHasInvalid(someSelected ? groups.filter((_, i) => selected[i]) : groups) ? 'Corrige los campos en rojo' : ''}
         >
           {submitting ? 'Importando…' : 'Cargar Datos'}
         </button>
       </div>
 
+      {/* Animaciones */}
       <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(.97); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn .15s ease-out;
+        }
+
         table td, table th { border-right: 1px solid #eef0f2; }
         thead tr th:last-child, tbody tr td:last-child { border-right: none; }
       `}</style>
+
     </CenteredModal>
   );
 }
