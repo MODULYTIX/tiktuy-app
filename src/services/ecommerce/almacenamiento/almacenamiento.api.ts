@@ -191,20 +191,19 @@ export async function fetchMovimientos(token: string): Promise<MovimientoAlmacen
   return [];
 }
 
-/** NUEVO: validar un movimiento (Proceso -> Validado/Observado) */
 export async function validarMovimiento(
   uuid: string,
   token: string,
-  body?: {
-    items?: Array<{ producto_id: number; cantidad_validada: number }>;
-    observaciones?: string;
-  }
+  body: FormData
 ): Promise<MovimientoAlmacen> {
   const res = await fetch(`${BASE_URL}/movimientos/${uuid}/validar`, {
-    method: 'POST',
-    headers: buildHeaders(token, true),
-    body: JSON.stringify(body ?? {}),
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`, // NO poner Content-Type con FormData
+    },
+    body, // Aquí se envía el FormData
   });
+
   return handleJson<MovimientoAlmacen>(res);
 }
 

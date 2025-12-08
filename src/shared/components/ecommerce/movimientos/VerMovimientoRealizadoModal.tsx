@@ -330,7 +330,12 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                             <td className="p-3">{toText(it.codigo_identificacion ?? '')}</td>
                             <td className="p-3">{toText(it.nombre_producto ?? '')}</td>
                             <td className="p-3 text-slate-600">{toText(it.descripcion ?? '')}</td>
-                            <td className="p-3 text-right">{Number(it.cantidad ?? 0)}</td>
+                            <td className="p-3 text-right">
+                              {/* cantidad enviada */}
+                              {Number(it.cantidad_validada ?? 0)}
+
+                            </td>
+
                           </tr>
                         ))
                       ) : (
