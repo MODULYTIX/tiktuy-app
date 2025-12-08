@@ -15,7 +15,7 @@ export default function MovimientosPage() {
       <div>
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-primary">Movimientos</h1>
+            <h1 className="text-3xl font-bold text-primary">Movimiento</h1>
             <p className="text-gray-500">Realice y visualice sus movimientos</p>
           </div>
         </div>
