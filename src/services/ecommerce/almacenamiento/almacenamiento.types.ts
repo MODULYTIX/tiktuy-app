@@ -16,7 +16,7 @@ export interface Almacenamiento {
   fecha_registro: string;
 
   representante_usuario_id?: number | null;
-  
+
   estado?: {
     id: number;
     nombre: string;
@@ -59,11 +59,7 @@ export interface MovimientoPayload {
 
 /** NUEVO: body para validar movimiento */
 export interface MovimientoValidarBody {
-  items?: Array<{
-    producto_id: number;
-    cantidad_validada: number;
-  }>;
-  /** Coincide con lo declarado en Swagger del endpoint */
+  items?: Array<{ producto_id: number; cantidad_validada: number }>;
   observaciones?: string;
 }
 
@@ -71,30 +67,29 @@ export interface MovimientoAlmacen {
   id: number;
   uuid: string;
   descripcion: string;
-  /** ISO string */
   fecha_movimiento: string;
 
-  /** Opcional: si el backend persiste observaciones al validar */
   observaciones?: string | null;
+  evidencia_url?: string | null;
 
   estado: {
     id: number;
     nombre: string;
   };
+
   almacen_origen: {
     id: number;
     nombre_almacen: string;
   };
+
   almacen_destino: {
     id: number;
     nombre_almacen: string;
   };
+
   productos: {
     id: number;
-    /** cantidad solicitada en la creación del movimiento */
     cantidad: number;
-
-    /** Opcional: si el backend guarda la cantidad validada por ítem */
     cantidad_validada?: number | null;
 
     producto: {
@@ -105,6 +100,7 @@ export interface MovimientoAlmacen {
     };
   }[];
 }
+
 
 /* =========================
  * Sedes / Invitaciones

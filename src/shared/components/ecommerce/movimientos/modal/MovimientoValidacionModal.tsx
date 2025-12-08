@@ -11,8 +11,8 @@ import { InputxTextarea } from '@/shared/common/Inputx';
 type Props = {
   open: boolean;
   onClose: () => void;
-  movimiento: MovimientoAlmacen | null; // ya viene con productos incluidos desde la tabla
-  onValidated?: (movimientoActualizado: MovimientoAlmacen) => void;
+  movimiento: MovimientoAlmacen | null;
+  onValidated?: (mov: MovimientoAlmacen) => void;
 };
 
 export default function ValidarMovimientoModal({
@@ -29,19 +29,17 @@ export default function ValidarMovimientoModal({
     return n === 'proceso' || n === 'en proceso' || n === 'activo';
   }, [movimiento]);
 
-  // cantidades validadas (por defecto: solicitadas)
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
   const [observaciones, setObservaciones] = useState('');
-  const [archivo, setArchivo] = useState<File | null>(null); // UI only
+  const [archivo, setArchivo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!open || !movimiento) return;
     const init: Record<number, number> = {};
+
     movimiento.productos.forEach((it) => {
-      // cantidad solicitada por default
       init[it.producto.id] = it.cantidad ?? 0;
-      // si ya tienes cantidad_validada (auditoría), úsala:
       if (typeof it.cantidad_validada === 'number') {
         init[it.producto.id] = Math.max(
           0,
@@ -49,16 +47,13 @@ export default function ValidarMovimientoModal({
         );
       }
     });
+
     setCantidades(init);
     setObservaciones('');
     setArchivo(null);
   }, [open, movimiento]);
 
-  const handleCantidadChange = (
-    productoId: number,
-    value: number,
-    max: number
-  ) => {
+  const handleCantidadChange = (productoId: number, value: number, max: number) => {
     const n = Number.isFinite(value) ? Math.trunc(value) : 0;
     const safe = Math.max(0, Math.min(n, max));
     setCantidades((prev) => ({ ...prev, [productoId]: safe }));
@@ -66,15 +61,12 @@ export default function ValidarMovimientoModal({
 
   if (!open || !movimiento) return null;
 
-  const closeByBackdrop = () => {
-    // cerrar al clickear fuera
-    onClose();
-  };
-
+  const closeByBackdrop = () => onClose();
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   const puedeValidar = enProceso && !!token;
 
+  // ⭐ ENVÍO FINAL: soporta archivo + JSON correctamente
   const handleValidar = async () => {
     if (!puedeValidar) return;
 
@@ -86,21 +78,28 @@ export default function ValidarMovimientoModal({
           : it.cantidad,
     }));
 
+    const formData = new FormData();
+    formData.append("items", JSON.stringify(items));
+    formData.append("observaciones", observaciones?.trim() || "");
+
+    if (archivo) {
+      formData.append("evidencia", archivo); // 🔥 CAMBIO CORRECTO → el backend espera “evidencia”
+    }
+
     setLoading(true);
     try {
-      const actualizado = await validarMovimiento(movimiento.uuid, token!, {
-        items,
-        observaciones: observaciones?.trim() || undefined,
-      });
+      const actualizado = await validarMovimiento(
+        movimiento.uuid,
+        token!,
+        formData
+      );
+
       notify(
         actualizado?.estado?.nombre?.toLowerCase() === 'validado'
           ? 'Movimiento validado.'
           : 'Movimiento observado.',
         'success'
       );
-
-      // (Opcional) Manejar archivo: aún no hay backend; se omite.
-      // TODO: subir evidencia si se implementa endpoint
 
       onValidated?.(actualizado);
     } catch (err) {
@@ -115,7 +114,6 @@ export default function ValidarMovimientoModal({
     (movimiento.estado?.nombre || '').charAt(0).toUpperCase() +
     (movimiento.estado?.nombre || '').slice(1);
 
-  // Fix TS2322: Tittlex.description debe ser string, no un elemento
   const descriptionText = `Código: ${movimiento.uuid
     .slice(0, 12)
     .toUpperCase()} • Estado: ${headerEstado || '-'}`;
@@ -123,11 +121,13 @@ export default function ValidarMovimientoModal({
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex justify-end bg-black/30"
-      onClick={closeByBackdrop}>
-      {/* Panel derecho */}
+      onClick={closeByBackdrop}
+    >
+      {/* Panel */}
       <div
         className="h-screen w-[760px] bg-white shadow-xl flex flex-col gap-5 px-5 py-5"
-        onClick={stop}>
+        onClick={stop}
+      >
         <Tittlex
           variant="modal"
           icon="solar:check-square-linear"
@@ -135,7 +135,6 @@ export default function ValidarMovimientoModal({
           description={descriptionText}
         />
 
-        {/* (Opcional) Chip visual del estado, manteniendo el string en el título */}
         <div className="text-sm">
           <span className="text-gray-500 mr-1">Estado:</span>
           <span
@@ -145,7 +144,8 @@ export default function ValidarMovimientoModal({
                 : headerEstado === 'Validado'
                 ? 'text-black'
                 : 'text-red-700'
-            }>
+            }
+          >
             {headerEstado || '-'}
           </span>
         </div>
@@ -156,15 +156,16 @@ export default function ValidarMovimientoModal({
           <p className="text-gray-700">{movimiento.descripcion || '-'}</p>
         </div>
 
-        {/* Tabla de items */}
+        {/* Tabla */}
         <div className="rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full table-fixed text-sm border-separate border-spacing-0">
             <colgroup>
-              <col className="w-[20%]" /> {/* Código */}
-              <col className="w-[20%]" /> {/* Producto */}
-              <col className="w-[40%]" /> {/* Descripción */}
-              <col className="w-[20%]" /> {/* Cantidad */}
+              <col className="w-[20%]" />
+              <col className="w-[20%]" />
+              <col className="w-[40%]" />
+              <col className="w-[20%]" />
             </colgroup>
+
             <thead className="bg-gray-100 text-gray-700">
               <tr className="h-12">
                 <th className="px-4 text-left font-medium">Código</th>
@@ -173,7 +174,8 @@ export default function ValidarMovimientoModal({
                 <th className="px-4 text-right font-medium">Cantidad</th>
               </tr>
             </thead>
-            <tbody className="bg-white relative z-10 overflow-visible">
+
+            <tbody className="bg-white">
               {movimiento.productos.map((det) => {
                 const max = det.cantidad ?? 0;
                 const val = cantidades[det.producto.id] ?? max;
@@ -181,58 +183,26 @@ export default function ValidarMovimientoModal({
                 return (
                   <tr
                     key={det.id}
-                    className="border-t last:border-0 hover:bg-gray-50 relative z-10">
-                    {/* Código */}
+                    className="border-t hover:bg-gray-50"
+                  >
                     <td className="px-4 py-3 whitespace-nowrap text-gray-900">
                       {det.producto?.codigo_identificacion ?? '-'}
                     </td>
-                    <td
-                      className="px-4 py-3 text-gray-900 align-top relative"
-                      onMouseEnter={(e) => {
-                        const tooltip = document.createElement('div');
-                        tooltip.className =
-                          'fixed z-[9999] bg-white text-gray-800 text-xs rounded-md px-3 py-2 shadow-lg border border-gray-200 max-w-[350px]';
-                        tooltip.style.top = e.clientY + 20 + 'px';
-                        tooltip.style.left = e.clientX + 'px';
-                        tooltip.textContent =
-                          det.producto?.nombre_producto || '-';
-                        tooltip.id = 'custom-tooltip';
-                        document.body.appendChild(tooltip);
-                      }}
-                      onMouseLeave={() => {
-                        const el = document.getElementById('custom-tooltip');
-                        if (el) el.remove();
-                      }}>
+
+                    <td className="px-4 py-3 text-gray-900">
                       <div className="max-w-[180px] truncate cursor-pointer">
                         {det.producto?.nombre_producto || '-'}
                       </div>
                     </td>
 
-                    <td
-                      className="px-4 py-3 text-gray-700 align-top relative"
-                      onMouseEnter={(e) => {
-                        const tooltip = document.createElement('div');
-                        tooltip.className =
-                          'fixed z-[9999] bg-white text-gray-800 text-xs rounded-md px-3 py-2 shadow-lg border border-gray-200 max-w-[400px]';
-                        tooltip.style.top = e.clientY + 20 + 'px';
-                        tooltip.style.left = e.clientX + 'px';
-                        tooltip.textContent =
-                          (det.producto as any)?.descripcion || '-';
-                        tooltip.id = 'custom-tooltip';
-                        document.body.appendChild(tooltip);
-                      }}
-                      onMouseLeave={() => {
-                        const el = document.getElementById('custom-tooltip');
-                        if (el) el.remove();
-                      }}>
+                    <td className="px-4 py-3 text-gray-700">
                       <div className="max-w-[260px] truncate cursor-pointer">
                         {(det.producto as any)?.descripcion || '-'}
                       </div>
                     </td>
 
-                    {/* Cantidad */}
-                    <td className="px-4 py-3">
-                      <div className="ml-auto flex w-full justify-end items-center gap-2">
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end items-center gap-2">
                         <input
                           type="number"
                           inputMode="numeric"
@@ -248,10 +218,9 @@ export default function ValidarMovimientoModal({
                             )
                           }
                           disabled={!enProceso}
-                          className="w-[64px] h-9 rounded-lg border border-gray-300 px-2 text-center text-sm shadow-sm
-                         focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:bg-gray-100"
+                          className="w-[64px] h-9 rounded-lg border px-2 text-center text-sm shadow-sm"
                         />
-                        <span className="text-sm text-gray-600 whitespace-nowrap">
+                        <span className="text-sm text-gray-600">
                           / {max}
                         </span>
                       </div>
@@ -263,7 +232,7 @@ export default function ValidarMovimientoModal({
           </table>
         </div>
 
-        {/* Observaciones (fix TS2741: label obligatorio en InputxTextarea) */}
+        {/* Observaciones */}
         <div>
           <InputxTextarea
             label="Observaciones"
@@ -278,22 +247,23 @@ export default function ValidarMovimientoModal({
           />
         </div>
 
-        {/* Adjuntar evidencia (UI) */}
+        {/* Evidencia */}
         <div>
           <p className="text-sm font-medium text-gray-800 mb-2">
             Adjuntar evidencia
           </p>
+
           <div className="border border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-between">
             <div className="text-sm text-gray-600">
               {archivo ? (
                 <span className="font-medium">{archivo.name}</span>
               ) : (
                 <>
-                  Seleccione un archivo, arrástrelo o suéltelo.{' '}
-                  <span className="text-gray-400">JPG, PNG o PDF</span>
+                  Seleccione un archivo (JPG, PNG o PDF)
                 </>
               )}
             </div>
+
             <label className="inline-flex items-center gap-2 px-3 py-2 border rounded-md text-sm cursor-pointer hover:bg-gray-50">
               <input
                 type="file"
@@ -305,7 +275,6 @@ export default function ValidarMovimientoModal({
               <span>Seleccionar archivo</span>
             </label>
           </div>
-          {/* Nota: aún no se sube; pendiente endpoint. */}
         </div>
 
         {/* Botones */}
@@ -318,6 +287,7 @@ export default function ValidarMovimientoModal({
             icon={loading ? 'line-md:loading-twotone-loop' : undefined}
             className={`px-4 text-sm ${loading ? '[&_svg]:animate-spin' : ''}`}
           />
+
           <Buttonx
             variant="outlinedw"
             onClick={onClose}
