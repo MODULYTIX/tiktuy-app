@@ -32,7 +32,7 @@ export default function CourierHomePage() {
       : "Gestiona tus repartidores (invitación y registro)";
 
   return (
-    <div className="mt-6 p-5 flex flex-col gap-y-5">
+    <div className="mt-8 p-5 flex flex-col gap-y-5">
       {/* Encabezado y Tabs */}
       <div className="flex justify-between items-center pb-5 border-b border-gray30">
         <Tittlex
