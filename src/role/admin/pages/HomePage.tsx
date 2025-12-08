@@ -10,7 +10,7 @@ import type { SolicitudCourier, SolicitudCourierCompleto } from '@/role/user/ser
 import {
   cambiarEstadoCourier,
   fetchSolicitudesCourier,
-  fetchSolicitudesCourierCompleto,   // ✅ AGREGADO CORRECTO
+  fetchSolicitudesCourierCompleto, 
 } from '@/role/user/service/solitud-courier.api';
 
 // Ecommerce
@@ -46,8 +46,8 @@ export default function AdminHomePage() {
         const data = await fetchSolicitudesCourier(token);
         setRowsCourier(data);
 
-        const dataCompleto = await fetchSolicitudesCourierCompleto(token); // ✅ AGREGADO
-        setRowsCourierCompleto(dataCompleto);                              // ✅ AGREGADO
+        const dataCompleto = await fetchSolicitudesCourierCompleto(token); 
+        setRowsCourierCompleto(dataCompleto);                             
 
       } else {
         const data = await fetchSolicitudesEcommerce(token);
