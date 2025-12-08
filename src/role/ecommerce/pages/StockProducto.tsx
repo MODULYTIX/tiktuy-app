@@ -35,7 +35,7 @@ export default function StockPage() {
 
   const [productosAll, setProductosAll] = useState<Producto[]>([]);
   const [productosVisibles, setProductosVisibles] = useState<Producto[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false); // 👈 NUEVO
+  const [loadingProducts, setLoadingProducts] = useState(false); 
 
   const [filters, setFilters] = useState<UiFilters>({
     almacenamiento_id: "",
@@ -251,7 +251,7 @@ export default function StockPage() {
       {/* TABLE */}
       <StockTable
         productos={productosVisibles}
-        loading={loadingProducts}   // 👈 SKELETON ACTIVADO
+        loading={loadingProducts}  
         filtrarInactivos={false}
         soloLectura={Boolean(filters.movimientos_sedes)}
         onVer={(p) => {
