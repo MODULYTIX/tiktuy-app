@@ -104,7 +104,7 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
 
   return (
     // Contenedor padre: padding 20 y separación 20 entre bloques
-    <div className=" w-full h-full max-w-[720px] flex flex-col p-5 gap-5 text-[12px]">
+    <div className=" w-[520px] h-full flex flex-col p-5 gap-5 text-[12px]">
       {/* Header */}
       <Tittlex
         variant="modal"
@@ -126,7 +126,7 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
       )}
 
       {/* Formulario (crece) */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5 flex-1">
+      <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5 flex-1">
         <div className="flex flex-col h-full gap-5 w-full">
           {/* Fila 1 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

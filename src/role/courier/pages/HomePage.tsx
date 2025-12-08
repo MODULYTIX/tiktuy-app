@@ -123,7 +123,7 @@ export default function CourierHomePage() {
           onClick={closeDrawer}
         >
           <div
-            className="w-[450px] bg-white overflow-y-auto"
+            className="w-auto bg-white overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {activeTab === "ecommerce" ? (
