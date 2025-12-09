@@ -175,7 +175,6 @@ export default function StockFilters({ onFilterChange }: Props) {
           id="f-movsede"
           name="movimientos_sedes"
         >
-          <option value="">Todos</option>
           {disponibilidadAlmacenes.map((a) => (
             <option key={a.id} value={String(a.id)}>
               {a.nombre_almacen}
@@ -220,7 +219,6 @@ export default function StockFilters({ onFilterChange }: Props) {
           id="f-estado"
           name="estado"
         >
-          <option value="">Todos</option>
           <option value="activo">Activo</option>
           <option value="inactivo">Inactivo</option>
         </Selectx>
