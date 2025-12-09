@@ -102,7 +102,7 @@ export default function StockPage() {
     } catch (err) {
       console.error("Error cargando productos:", err);
     } finally {
-      setLoadingProducts(false); // 👈 TERMINA SKELETON
+      setLoadingProducts(false); 
     }
   };
 

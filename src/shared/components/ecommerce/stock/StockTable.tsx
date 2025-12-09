@@ -9,7 +9,7 @@ interface Props {
   onEditar: (producto: Producto) => void;
   filtrarInactivos?: boolean;
   soloLectura?: boolean;
-  loading?: boolean; // 👈 NUEVO
+  loading?: boolean;
 }
 
 const PAGE_SIZE = 5;
@@ -72,7 +72,7 @@ export default function StockTable({
   onEditar,
   filtrarInactivos = true,
   soloLectura = false,
-  loading = false, // 👈 NUEVO
+  loading = false,
 }: Props) {
   const [page, setPage] = useState(1);
 
@@ -309,7 +309,7 @@ export default function StockTable({
                   </td>
 
                   <td className="px-4 py-3">
-                    {renderEstadoStock(prod.stock, prod.stock_minimo)}
+                    {renderEstadoStock(prod.stock_en_sede ?? prod.stock, prod.stock_minimo)}
                   </td>
 
                   <td className="px-4 py-3 text-right text-gray70 font-[400]">
