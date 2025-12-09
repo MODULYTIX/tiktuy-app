@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import {
   crearPedido,
   fetchPedidoById,
@@ -25,7 +25,6 @@ type ProductoUI = {
   stock: number;
 };
 
-/* ==================== PROPS TIPADAS ==================== */
 interface CrearPedidoModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -34,7 +33,6 @@ interface CrearPedidoModalProps {
   modo?: "crear" | "editar" | "ver";
 }
 
-/* ==================== COMPONENTE ==================== */
 export default function CrearPedidoModal({
   isOpen,
   onClose,
@@ -98,7 +96,7 @@ export default function CrearPedidoModal({
     })();
   }, [form.sede_id, token]);
 
-  /* ==================== CARGAR ZONAS Y DISTRITOS ==================== */
+  /* ==================== CARGAR ZONAS + DISTRITOS ==================== */
   useEffect(() => {
     if (!form.sede_id) {
       setZonas([]);
@@ -111,7 +109,6 @@ export default function CrearPedidoModal({
     (async () => {
       try {
         const data = await fetchZonasTarifariasPorSede(Number(form.sede_id));
-
         setZonas(data);
 
         const unique = Array.from(new Set(data.map((z) => z.distrito)));
@@ -126,12 +123,6 @@ export default function CrearPedidoModal({
       setZonaSeleccionada("");
     })();
   }, [form.sede_id]);
-
-  /* ==================== ZONAS FILTRADAS ==================== */
-  const zonasFiltradas = useMemo(() => {
-    if (!distritoSeleccionado) return [];
-    return zonas.filter((z) => z.distrito === distritoSeleccionado);
-  }, [distritoSeleccionado, zonas]);
 
   /* ==================== EDITAR PEDIDO ==================== */
   useEffect(() => {
@@ -160,7 +151,6 @@ export default function CrearPedidoModal({
       });
 
       setDistritoSeleccionado(data.distrito);
-
       if (data.zona_tarifaria_id) {
         setZonaSeleccionada(String(data.zona_tarifaria_id));
       }
@@ -186,15 +176,18 @@ export default function CrearPedidoModal({
     }
   }, [form.cantidad, form.precio_unitario]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const handleChange = (e: any) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   /* ==================== SUBMIT ==================== */
   const handleSubmit = async () => {
     if (submitting) return;
 
-    if (!distritoSeleccionado) return alert("Debe seleccionar un distrito.");
-    if (!zonaSeleccionada) return alert("Debe seleccionar una zona tarifaria.");
+    if (!distritoSeleccionado)
+      return alert("Debe seleccionar un distrito.");
+
+    if (!zonaSeleccionada)
+      return alert("No se encontró zona tarifaria para este distrito.");
 
     const payload: CrearPedidoDTO = {
       codigo_pedido: `PED-${Date.now()}`,
@@ -224,8 +217,6 @@ export default function CrearPedidoModal({
       await crearPedido(payload, token!);
       onPedidoCreado();
       onClose();
-    } catch (e) {
-      console.error("❌ Error creando pedido:", e);
     } finally {
       setSubmitting(false);
     }
@@ -233,6 +224,8 @@ export default function CrearPedidoModal({
 
   /* ==================== UI ==================== */
   if (!isOpen) return null;
+
+  const zonaInfo = zonas.find((z) => String(z.id) === zonaSeleccionada);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/20 flex justify-end">
@@ -271,10 +264,19 @@ export default function CrearPedidoModal({
             label="Distrito"
             value={distritoSeleccionado}
             onChange={(e) => {
-              setDistritoSeleccionado(e.target.value);
-              setZonaSeleccionada("");
+              const dist = e.target.value;
+              setDistritoSeleccionado(dist);
+
+              const zonasDelDistrito = zonas.filter(
+                (z) => z.distrito === dist
+              );
+
+              if (zonasDelDistrito.length > 0) {
+                setZonaSeleccionada(String(zonasDelDistrito[0].id));
+              } else {
+                setZonaSeleccionada("");
+              }
             }}
-            disabled={distritos.length === 0}
           >
             <option value="">Seleccione distrito</option>
             {distritos.map((d) => (
@@ -284,21 +286,12 @@ export default function CrearPedidoModal({
             ))}
           </Selectx>
 
-          {/* ZONA TARIFARIA */}
-          {distritoSeleccionado && (
-            <Selectx
-              label="Zona Tarifaria"
-              value={zonaSeleccionada}
-              onChange={(e) => setZonaSeleccionada(e.target.value)}
-              disabled={zonasFiltradas.length === 0}
-            >
-              <option value="">Seleccione zona</option>
-              {zonasFiltradas.map((z) => (
-                <option key={z.id} value={String(z.id)}>
-                  {`${z.zona_tarifario} (S/ ${z.tarifa_cliente})`}
-                </option>
-              ))}
-            </Selectx>
+          {/* ZONA MOSTRADA AUTOMÁTICAMENTE */}
+          {zonaInfo && (
+            <div className="text-sm text-gray-700 bg-gray-100 p-2 rounded">
+              <b>Zona tarifaria: </b>
+              {zonaInfo.zona_tarifario} — S/ {zonaInfo.tarifa_cliente}
+            </div>
           )}
 
           {/* CLIENTE */}

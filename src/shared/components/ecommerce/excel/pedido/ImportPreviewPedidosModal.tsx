@@ -12,9 +12,15 @@ import type {
 import { importPedidosDesdePreview } from '@/services/ecommerce/importexcelPedido/importexcelPedido.api';
 import { Icon } from '@iconify/react';
 
-// 🔹 Productos por sede (para validar productos del pedido)
-import { fetchProductosPorSede } from '@/services/ecommerce/pedidos/pedidos.api';
-import type { ProductoSede } from '@/services/ecommerce/pedidos/pedidos.types';
+// Productos y zonas por sede
+import {
+  fetchProductosPorSede,
+  fetchZonasTarifariasPorSede,
+} from '@/services/ecommerce/pedidos/pedidos.api';
+import type {
+  ProductoSede,
+  ZonaTarifariaSede,
+} from '@/services/ecommerce/pedidos/pedidos.types';
 
 // ---------- helpers fecha local <-> ISO ----------
 const toISOFromLocal = (local: string) => {
@@ -34,7 +40,7 @@ const toLocalInput = (iso?: string | null) => {
   )}:${pad(dt.getMinutes())}`;
 };
 
-// Para sedes asociadas (mismo tipo que SedeEcommerceAsociada pero sólo lo que usamos aquí)
+// Para sedes asociadas (lo que usa este modal)
 type SedeOptionRaw = {
   sede_id: number;
   nombre: string;
@@ -53,11 +59,11 @@ export default function ImportPreviewPedidosModal({
   open: boolean;
   onClose: () => void;
   token: string;
-  allowMultiCourier: boolean;
+  allowMultiCourier: boolean; // se mantiene por compat, aunque ya no se usa
   data: PreviewResponseDTO;
   onImported: () => void;
 }) {
-  // ---------- estado ----------
+  // ---------- estado base ----------
   const [groups, setGroups] = useState<PreviewGroupDTO[]>(data.preview);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +98,7 @@ export default function ImportPreviewPedidosModal({
   const norm = (s: string) =>
     (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
-  // ============ SEDES DEL ECOMMERCE (sustituyen completamente a couriers) ============
+  // ============ SEDES DEL ECOMMERCE ============
   const [sedes, setSedes] = useState<SedeOptionRaw[]>([]);
 
   useEffect(() => {
@@ -148,6 +154,40 @@ export default function ImportPreviewPedidosModal({
     }
   };
 
+  // ================= ZONAS / DISTRITOS POR SEDE =================
+  const [zonasPorSede, setZonasPorSede] = useState<
+    Record<number, ZonaTarifariaSede[]>
+  >({});
+
+  const loadZonasForSede = async (sedeId: number) => {
+    if (!sedeId || zonasPorSede[sedeId]) return;
+    try {
+      const data = (await fetchZonasTarifariasPorSede(
+        sedeId
+      )) as unknown as ZonaTarifariaSede[];
+      setZonasPorSede((prev) => ({
+        ...prev,
+        [sedeId]: Array.isArray(data) ? data : [],
+      }));
+    } catch (e) {
+      console.error('Error cargando zonas tarifarias de la sede:', e);
+    }
+  };
+
+  // Pre-cargar productos y zonas para las sedes que ya vienen en el Excel
+  useEffect(() => {
+    if (!open) return;
+    groups.forEach((g) => {
+      if (!g.courier) return;
+      const sede = findSedeByNombre(g.courier);
+      if (sede) {
+        void loadProductosForSede(sede.sede_id);
+        void loadZonasForSede(sede.sede_id);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, groups, sedes]);
+
   // opciones UI para Autocomplete de Sede (antes courier)
   const sedeOptions: Option[] = useMemo(
     () =>
@@ -158,41 +198,21 @@ export default function ImportPreviewPedidosModal({
     [sedes]
   );
 
-  // opciones sugeridas para distrito (usamos las ciudades de las sedes)
-  const distritoOptions: Option[] = useMemo(() => {
-    const set = new Set<string>();
-    sedes.forEach((s) => {
-      if (s.ciudad) set.add(s.ciudad);
-    });
-    return Array.from(set).map((d) => ({ value: d, label: d }));
-  }, [sedes]);
-
   // ================= VALIDACIONES =================
   const isInvalidSede = (s: string) =>
     !s || !sedes.some((sed) => norm(sed.nombre) === norm(s));
+
+  const isInvalidDistrito = (d?: string | null) =>
+    !d || !d.toString().trim();
 
   const isInvalidCantidad = (n: number | null, stock?: number) =>
     n == null ||
     Number.isNaN(n) ||
     Number(n) <= 0 ||
-    (stock != null && Number(n) > stock);  // <-- NUEVA VALIDACIÓN
-
+    (stock != null && Number(n) > stock);
 
   // errores de producto por fila
   const [productoErrors, setProductoErrors] = useState<Record<string, boolean>>({});
-
-  // Pre-cargar productos para las sedes que ya vienen en el Excel
-  useEffect(() => {
-    if (!open) return;
-    groups.forEach((g) => {
-      if (!g.courier) return;
-      const sede = findSedeByNombre(g.courier);
-      if (sede) {
-        void loadProductosForSede(sede.sede_id);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, groups, sedes]);
 
   // Validar productos cuando haya productosPorSede o cambien los grupos
   useEffect(() => {
@@ -227,15 +247,16 @@ export default function ImportPreviewPedidosModal({
   }, [groups, productosPorSede, sedes]);
 
   const hasInvalid = useMemo(() => {
-    // errores por sede / cantidad / monto
     for (const g of groups) {
       if (isInvalidSede(g.courier || '')) return true;
+      if (isInvalidDistrito(g.distrito)) return true;
       if ((g.monto_total ?? 0) < 0) return true;
+
       for (const it of g.items) {
-        if (isInvalidCantidad(it.cantidad)) return true;
+        if (isInvalidCantidad(it.cantidad, it.stock ?? undefined)) return true;
       }
     }
-    // errores de producto
+
     if (Object.values(productoErrors).some(Boolean)) return true;
 
     return false;
@@ -245,22 +266,33 @@ export default function ImportPreviewPedidosModal({
   const patchGroup = (idx: number, patch: Partial<PreviewGroupDTO>) =>
     setGroups((prev) => prev.map((g, i) => (i === idx ? { ...g, ...patch } : g)));
 
-  const applyToSelected = (patch: Partial<PreviewGroupDTO>) =>
-    setGroups((prev) => prev.map((g, i) => (selected[i] ? { ...g, ...patch } : g)));
-
-  const handleCantidad = (gIdx: number, iIdx: number, val: number) =>
+  const handleCantidad = (gIdx: number, iIdx: number, val: number) => {
     setGroups((prev) =>
-      prev.map((g, gi) =>
-        gi !== gIdx
-          ? g
-          : {
-            ...g,
-            items: g.items.map((it, ii) =>
-              ii === iIdx ? { ...it, cantidad: val } : it
-            ),
-          }
-      )
+      prev.map((g, gi) => {
+        if (gi !== gIdx) return g;
+
+        // Actualizamos items
+        const newItems = g.items.map((it, ii) =>
+          ii === iIdx ? { ...it, cantidad: val } : it
+        );
+
+        // Recalculamos monto_total
+        let total = 0;
+        for (const item of newItems) {
+          const cant = item.cantidad ?? 0;
+          const precio = item.precio_unitario ?? 0;
+          total += cant * precio;
+        }
+
+        return {
+          ...g,
+          items: newItems,
+          monto_total: total,
+        };
+      })
     );
+  };
+
 
   // cuando cambias el nombre del producto en una fila
   const handleProductoNombre = (gIdx: number, iIdx: number, val: string) => {
@@ -282,7 +314,7 @@ export default function ImportPreviewPedidosModal({
           items: g.items.map((it, ii) => {
             if (ii !== iIdx) return it;
 
-            //  Producto NO encontrado
+            // Producto NO encontrado
             if (!productoReal) {
               return {
                 ...it,
@@ -298,10 +330,10 @@ export default function ImportPreviewPedidosModal({
 
             return {
               ...it,
-              producto: productoReal.nombre_producto,
-              producto_id: productoReal.id,
-              precio_unitario: productoReal.precio,
-              stock: productoReal.stock,
+              producto: productoReal!.nombre_producto,
+              producto_id: productoReal!.id,
+              precio_unitario: productoReal!.precio,
+              stock: productoReal!.stock,
               cantidad: cantidadActual,
             };
           }),
@@ -310,13 +342,14 @@ export default function ImportPreviewPedidosModal({
           monto_total: (() => {
             let total = 0;
 
-            // recalc total sumando los items
             for (let idx = 0; idx < g.items.length; idx++) {
               const item = g.items[idx];
 
               const cantidad =
                 idx === iIdx
-                  ? (item.cantidad && item.cantidad > 0 ? item.cantidad : 1)
+                  ? item.cantidad && item.cantidad > 0
+                    ? item.cantidad
+                    : 1
                   : item.cantidad ?? 0;
 
               const precio =
@@ -334,14 +367,15 @@ export default function ImportPreviewPedidosModal({
     );
   };
 
-
   // cuando cambias la sede (campo courier en el DTO)
   const handleSedeChange = (gIdx: number, value: string) => {
     const sede = findSedeByNombre(value);
     if (sede) {
       void loadProductosForSede(sede.sede_id);
+      void loadZonasForSede(sede.sede_id);
     }
 
+    // 👉 Ya NO tocamos el distrito aquí, se mantiene lo que venga del Excel / usuario
     setGroups((prev) =>
       prev.map((g, gi) =>
         gi !== gIdx
@@ -349,8 +383,6 @@ export default function ImportPreviewPedidosModal({
           : {
             ...g,
             courier: value,
-            // igual que en crear pedido: distrito viene de la ciudad de la sede
-            distrito: sede?.ciudad ?? g.distrito ?? '',
           }
       )
     );
@@ -394,13 +426,22 @@ export default function ImportPreviewPedidosModal({
     }
   };
 
+  // ===== eliminar filas seleccionadas (como en productos) =====
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleConfirmDelete = () => {
+    setGroups((prev) => prev.filter((_, i) => !selected[i]));
+    setSelected({});
+    setShowDeleteConfirm(false);
+  };
+
   if (!open) return null;
 
-  // ---------- UI (diseño) ----------
+  // ---------- UI ----------
   return (
     <CenteredModal title="" onClose={onClose} widthClass="max-w-[1400px] w-[95vw]">
-      {/* Header visual superpuesto */}
-      <div className="pb-3  border-gray-200 flex items-center gap-3">
+      {/* Header visual */}
+      <div className="pb-3 border-gray-200 flex items-center gap-3">
         <span className="text-[#1F2A7A]">
           <Icon icon="vaadin:stock" width="22" height="22" />
         </span>
@@ -412,205 +453,72 @@ export default function ImportPreviewPedidosModal({
             Datos ingresados del excel, última validación
           </p>
         </div>
-        <div className="ml-auto text-sm text-gray-600"></div>
       </div>
 
-      {/* Barra superior (con los mismos campos de siempre) */}
-      <div className="flex flex-wrap items-center gap-2 mb-3 mt-2">
-        {/* aquí antes estaba el select de courierId para modo single,
-            ahora no hace falta nada extra */}
+      {/* Barra superior tipo “productos”: seleccionar todo + eliminar filas */}
+      <div className="mt-3 mb-4 rounded-lg border border-gray-200 bg-white p-4 flex items-center justify-between">
+        <label className="flex items-center gap-3 cursor-pointer select-none">
+          <input
+            ref={headerChkRef}
+            type="checkbox"
+            checked={allSelected}
+            onChange={toggleAll}
+            className="h-4 w-4 rounded border-gray-400 text-[#1F2A44] focus:ring-[#1F2A44]"
+          />
+          <span className="text-[14px] text-gray-700 font-medium">
+            Seleccionar todo
+          </span>
+        </label>
+
+        <button
+          disabled={!someSelected}
+          onClick={() => setShowDeleteConfirm(true)}
+          className={`
+            flex items-center gap-2 px-4 h-10 text-sm rounded-md border text-red-600 
+            border-red-300 hover:bg-red-50 transition-all
+            ${!someSelected
+              ? 'opacity-40 cursor-not-allowed hover:bg-transparent'
+              : ''
+            }
+          `}
+        >
+          <Icon icon="tabler:trash" width="18" />
+          Eliminar seleccionadas
+        </button>
       </div>
 
-      {/* Fila “Seleccionar / aplicar masivo” */}
-      <div className="rounded-lg border border-gray-200 bg-white p-3 mb-2">
-        <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
-          <colgroup>
-            <col className="w-9" />
-            <col className="w-[14%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
-            <col className="w-[18%]" />
-            <col className="w-[14%]" />
-            <col className="w-[14%]" />
-            <col className="w-[18%]" />
-            <col className="w-[10%]" />
-            <col className="w-[14%]" />
-            <col className="w-[14%]" />
-          </colgroup>
-          <thead>
-            <tr className="bg-white">
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  ref={headerChkRef}
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={toggleAll}
-                  className="h-4 w-4 rounded accent-amber-500"
-                  title="Seleccionar todo"
-                />
-              </th>
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  placeholder="Seleccionar"
-                  className="h-9 w-full rounded-md border border-gray-300 px-3 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const v = (e.target as HTMLInputElement).value.trim();
-                      if (v) applyToSelected({ nombre: v });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  list="distritos-list"
-                  placeholder="Seleccionar"
-                  className="h-9 w-full rounded-md border border-gray-300 px-3 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const v = (e.target as HTMLInputElement).value.trim();
-                      if (v) applyToSelected({ distrito: v });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                  onChange={(e) => {
-                    const v = e.target.value.trim();
-                    if (v) applyToSelected({ distrito: v });
-                  }}
-                />
-                <datalist id="distritos-list">
-                  {distritoOptions.map((d) => (
-                    <option key={d.value} value={d.value} />
-                  ))}
-                </datalist>
-              </th>
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  placeholder="Seleccionar"
-                  className="h-9 w-full rounded-md border border-gray-300 px-3 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const v = (e.target as HTMLInputElement).value.trim();
-                      if (v) applyToSelected({ telefono: v });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  placeholder="Seleccionar"
-                  className="h-9 w-full rounded-md border border-gray-300 px-3 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const v = (e.target as HTMLInputElement).value.trim();
-                      if (v) applyToSelected({ direccion: v });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  placeholder="Seleccionar"
-                  className="h-9 w-full rounded-md border border-gray-300 px-3 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const v = (e.target as HTMLInputElement).value.trim();
-                      if (v) applyToSelected({ referencia: v });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
-              {/* Selector masivo de SEDE (antes courier) */}
-              <th className="px-2 py-2 border-b border-gray-200">
-                <select
-                  className="h-9 w-full rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20"
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (!val) return;
-                    const sede = sedes.find((s) => String(s.sede_id) === val);
-                    if (sede) {
-                      applyToSelected({
-                        courier: sede.nombre,
-                        distrito: sede.ciudad ?? '',
-                      });
-                      void loadProductosForSede(sede.sede_id);
-                    }
-                    e.currentTarget.selectedIndex = 0;
-                  }}
-                >
-                  <option value="">Seleccionar</option>
-                  {sedes.map((s) => (
-                    <option key={s.sede_id} value={s.sede_id}>
-                      {s.nombre}
-                    </option>
-                  ))}
-                </select>
-              </th>
-              <th className="px-2 py-2 border-b border-gray-200">
-                <span className="text-gray-500">Producto</span>
-              </th>
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  type="number"
-                  placeholder="Cantidad"
-                  className="h-9 w-full rounded-md border border-gray-300 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const n = Number((e.target as HTMLInputElement).value);
-                      if (!Number.isNaN(n)) {
-                        setGroups((prev) =>
-                          prev.map((g, i) =>
-                            !selected[i]
-                              ? g
-                              : {
-                                ...g,
-                                items: g.items.map((it) => ({
-                                  ...it,
-                                  cantidad: n,
-                                })),
-                              }
-                          )
-                        );
-                      }
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="Monto"
-                  className="h-9 w-full rounded-md border border-gray-300 px-3 text-sm text-right focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const n = Number((e.target as HTMLInputElement).value);
-                      if (!Number.isNaN(n)) applyToSelected({ monto_total: n });
-                      (e.target as HTMLInputElement).value = '';
-                    }
-                  }}
-                />
-              </th>
-              <th className="px-2 py-2 border-b border-gray-200">
-                <input
-                  type="datetime-local"
-                  className="h-9 w-full rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F2A44]/20"
-                  onChange={(e) => {
-                    const iso = toISOFromLocal(e.target.value);
-                    if (iso) applyToSelected({ fecha_entrega: iso });
-                    e.currentTarget.value = '';
-                  }}
-                />
-              </th>
-            </tr>
-          </thead>
-        </table>
-      </div>
+      {/* Modal de confirmación de eliminación */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-[380px] animate-fadeIn">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+              <Icon icon="tabler:alert-circle" width="22" className="text-red-500" />
+              Confirmar eliminación
+            </h3>
+
+            <p className="text-gray-600 text-sm mb-5">
+              ¿Estás seguro que deseas eliminar las filas seleccionadas? Esta
+              acción no se puede deshacer.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== Tabla ===== */}
       <div className="rounded-lg border border-gray-200 overflow-auto max-h-[60vh]">
@@ -652,6 +560,16 @@ export default function ImportPreviewPedidosModal({
               const isInvalidSedeRow = isInvalidSede(g.courier || '');
               const sedeClass = isInvalidSedeRow ? 'bg-red-50' : '';
 
+              const sede = g.courier ? findSedeByNombre(g.courier) : undefined;
+              const distritosDeSede: Option[] = sede
+                ? (zonasPorSede[sede.sede_id] || []).map((z) => ({
+                  value: z.distrito,
+                  label: z.distrito,
+                }))
+                : [];
+
+              const distritoInvalido = isInvalidDistrito(g.distrito);
+
               return (
                 <tr
                   key={gi}
@@ -675,14 +593,23 @@ export default function ImportPreviewPedidosModal({
                     />
                   </td>
 
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                  {/* DISTRITO: ahora obligatorio y ligado a la sede (zonas) */}
+                  <td
+                    className={`border-b border-gray-200 px-3 py-2 align-middle ${distritoInvalido ? 'bg-red-50' : ''
+                      }`}
+                  >
                     <Autocomplete
                       value={g.distrito || ''}
                       onChange={(v: string) => patchGroup(gi, { distrito: v })}
-                      options={distritoOptions}
+                      options={distritosDeSede}
                       placeholder="Distrito"
                       className="w-full"
                     />
+                    {distritoInvalido && (
+                      <div className="text-[11px] text-red-600 mt-1">
+                        El distrito es obligatorio.
+                      </div>
+                    )}
                   </td>
 
                   <td className="border-b border-gray-200 px-3 py-2 align-middle">
@@ -731,11 +658,22 @@ export default function ImportPreviewPedidosModal({
                     ) : null}
                   </td>
 
+                  {/* PRODUCTOS */}
                   <td className="border-b border-gray-200 px-3 py-2 align-middle">
                     <div className="space-y-1">
                       {g.items.map((it, ii) => {
                         const key = productoKey(gi, ii);
                         const hasError = !!productoErrors[key];
+
+                        const rowSede = g.courier
+                          ? findSedeByNombre(g.courier)
+                          : undefined;
+                        const productosOptions: Option[] = rowSede
+                          ? (productosPorSede[rowSede.sede_id] || []).map((p) => ({
+                            value: p.nombre_producto,
+                            label: p.nombre_producto,
+                          }))
+                          : [];
 
                         return (
                           <div key={ii} className="space-y-0.5">
@@ -744,21 +682,11 @@ export default function ImportPreviewPedidosModal({
                               onChange={(v: string) =>
                                 handleProductoNombre(gi, ii, v || '')
                               }
-                              options={
-                                (() => {
-                                  const sede = g.courier
-                                    ? findSedeByNombre(g.courier)
-                                    : undefined;
-                                  if (!sede) return [];
-                                  const productos = productosPorSede[sede.sede_id] || [];
-                                  return productos.map((p) => ({
-                                    value: p.nombre_producto,
-                                    label: p.nombre_producto,
-                                  }));
-                                })()
-                              }
+                              options={productosOptions}
                               placeholder="Nombre del producto"
-                              className={`w-full ${hasError ? 'bg-red-50 border-red-300 rounded-md' : ''
+                              className={`w-full ${hasError
+                                  ? 'bg-red-50 border-red-300 rounded-md'
+                                  : ''
                                 }`}
                             />
 
@@ -772,11 +700,13 @@ export default function ImportPreviewPedidosModal({
                       })}
                     </div>
                   </td>
+
+                  {/* CANTIDAD */}
                   <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
                     <div className="space-y-1">
                       {g.items.map((it, ii) => {
                         const cantidad = it.cantidad ?? 0;
-                        const stock = it.stock ?? undefined;    
+                        const stock = it.stock ?? undefined;
 
                         const cantidadInvalida = isInvalidCantidad(cantidad, stock);
 
@@ -786,22 +716,22 @@ export default function ImportPreviewPedidosModal({
                               type="number"
                               min={0}
                               value={cantidad}
-                              onChange={(e) => handleCantidad(gi, ii, Number(e.target.value))}
+                              onChange={(e) =>
+                                handleCantidad(gi, ii, Number(e.target.value))
+                              }
                               className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right  
-              focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20
-              ${cantidadInvalida ? "bg-red-50" : ""}
-            `}
+                                focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20
+                                ${cantidadInvalida ? 'bg-red-50' : ''}
+                              `}
                               title={String(cantidad)}
                             />
 
-                            {/*  Error: supera stock */}
                             {stock !== undefined && cantidad > stock && (
                               <div className="text-[11px] text-red-600">
                                 Stock insuficiente. Máximo disponible: {stock}.
                               </div>
                             )}
 
-                            {/*  Error: cantidad <= 0 */}
                             {cantidad <= 0 && (
                               <div className="text-[11px] text-red-600">
                                 La cantidad debe ser mayor a 0.
@@ -813,7 +743,7 @@ export default function ImportPreviewPedidosModal({
                     </div>
                   </td>
 
-
+                  {/* MONTO */}
                   <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
                     <input
                       type="number"
@@ -828,6 +758,7 @@ export default function ImportPreviewPedidosModal({
                     />
                   </td>
 
+                  {/* FECHA ENTREGA */}
                   <td className="border-b border-gray-200 px-3 py-2 align-middle">
                     <input
                       type="datetime-local"
@@ -869,6 +800,14 @@ export default function ImportPreviewPedidosModal({
       </div>
 
       <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(.97); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn .15s ease-out;
+        }
+
         table td, table th { border-right: 1px solid #eef0f2; }
         thead tr th:last-child, tbody tr td:last-child { border-right: none; }
         tbody tr:last-child td { border-bottom: 1px solid #eef0f2; }
