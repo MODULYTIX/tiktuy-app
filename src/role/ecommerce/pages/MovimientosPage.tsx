@@ -1,4 +1,5 @@
 // src/pages/ecommerce/movimientos/RegistroMovimientoPage.tsx
+
 import { useEffect, useState } from 'react';
 
 import type { Producto } from '@/services/ecommerce/producto/producto.types';
@@ -7,11 +8,15 @@ import MovimientoRegistroFilters, {
 } from '@/shared/components/ecommerce/movimientos/MovimientoRegistroFilters';
 import MovimientoRegistroTable from '@/shared/components/ecommerce/movimientos/MovimientoRegistroTable';
 import MovimientoValidacionTable from '@/shared/components/ecommerce/movimientos/MovimientoValidacionTable';
+
+
 import CrearMovimientoModal from '@/shared/components/ecommerce/CrearMovimientoModal';
 import VerMovimientoModal from '@/shared/components/ecommerce/movimientos/VerMovimientoModal';
 import { useNotification } from '@/shared/context/notificacionesDeskop/useNotification';
 import Buttonx from '@/shared/common/Buttonx';
 import Tittlex from '@/shared/common/Tittlex';
+import type { MovimientoEcommerceFilters } from '@/shared/components/ecommerce/movimientos/MoviminentoValidadoFilter';
+import MovimientoValidadoFilter from '@/shared/components/ecommerce/movimientos/MoviminentoValidadoFilter';
 
 export default function RegistroMovimientoPage() {
   const { notify } = useNotification();
@@ -22,11 +27,9 @@ export default function RegistroMovimientoPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   // Tabs
-  const [modalMode, setModalMode] = useState<'registro' | 'validacion'>(
-    'registro'
-  );
+  const [modalMode, setModalMode] = useState<'registro' | 'validacion'>('registro');
 
-  // Filtros
+  // Filtros del REGISTRO
   const [filters, setFilters] = useState<Filters>({
     almacenamiento_id: '',
     categoria_id: '',
@@ -38,7 +41,14 @@ export default function RegistroMovimientoPage() {
     search: '',
   });
 
-  // Modal de VER
+  // Filtros para VALIDACIÓN
+  const [filtersValidacion, setFiltersValidacion] = useState<MovimientoEcommerceFilters>({
+    estado: '',
+    fecha: '',
+    q: '',
+  });
+
+  // Modal VER
   const [verOpen, setVerOpen] = useState(false);
   const [verData, setVerData] = useState<Producto | null>(null);
 
@@ -69,7 +79,7 @@ export default function RegistroMovimientoPage() {
     setModalOpen(true);
   };
 
-  // Abrir modal “ver” instantáneo (recibe el producto completo desde la tabla)
+  // Abrir modal “ver”
   const handleViewProduct = (producto: Producto) => {
     setVerData(producto);
     setVerOpen(true);
@@ -96,9 +106,8 @@ export default function RegistroMovimientoPage() {
           <Buttonx
             label="Nuevo Movimiento"
             icon="carbon:asset-movement"
-            variant={modalMode === 'registro' ? 'secondary' : 'tertiary'} // "primary" cuando está activo, "tertiary" cuando no
+            variant={modalMode === 'registro' ? 'secondary' : 'tertiary'}
             onClick={() => setModalMode('registro')}
-            disabled={false}
           />
 
           <span className="block w-[1px] h-8 bg-primary"></span>
@@ -106,16 +115,17 @@ export default function RegistroMovimientoPage() {
           <Buttonx
             label="Ver Movimientos / Validar"
             icon="hugeicons:validation"
-            variant={modalMode === 'validacion' ? 'secondary' : 'tertiary'} // "primary" cuando está activo, "tertiary" cuando no
+            variant={modalMode === 'validacion' ? 'secondary' : 'tertiary'}
             onClick={() => setModalMode('validacion')}
-            disabled={false}
           />
         </div>
       </div>
 
+      {/* ====================== */}
+      {/* TAB REGISTRO */}
+      {/* ====================== */}
       {modalMode === 'registro' ? (
         <>
-          {/* 20px (1.25rem) entre filtros y tabla */}
           <div className="space-y-5">
             <MovimientoRegistroFilters
               onFilterChange={setFilters}
@@ -144,7 +154,26 @@ export default function RegistroMovimientoPage() {
           />
         </>
       ) : (
-        <MovimientoValidacionTable />
+        <>
+          {/* ====================== */}
+          {/* TAB VALIDACIÓN */}
+          {/* ====================== */}
+
+          <MovimientoValidadoFilter
+            value={filtersValidacion}
+            onChange={(next) => setFiltersValidacion({ ...filtersValidacion, ...next })}
+            onClear={() =>
+              setFiltersValidacion({
+                estado: '',
+                fecha: '',
+                q: '',
+              })
+            }
+          />
+
+          {/* Tabla de validación */}
+          <MovimientoValidacionTable filters={filtersValidacion} />
+        </>
       )}
     </section>
   );
