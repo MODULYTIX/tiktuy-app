@@ -1,18 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useMemo } from "react";
 import {
   crearPedido,
   fetchPedidoById,
   fetchProductosPorSede,
-} from '@/services/ecommerce/pedidos/pedidos.api';
+  fetchZonasTarifariasPorSede,
+} from "@/services/ecommerce/pedidos/pedidos.api";
 
-import { useAuth } from '@/auth/context/AuthContext';
-import { fetchSedesEcommerceCourierAsociados } from '@/services/ecommerce/ecommerceCourier.api';
+import { useAuth } from "@/auth/context/AuthContext";
+import { fetchSedesEcommerceCourierAsociados } from "@/services/ecommerce/ecommerceCourier.api";
 
-import { Selectx } from '@/shared/common/Selectx';
-import { Inputx, InputxPhone, InputxNumber } from '@/shared/common/Inputx';
-import Tittlex from '@/shared/common/Tittlex';
+import { Selectx } from "@/shared/common/Selectx";
+import { Inputx, InputxPhone, InputxNumber } from "@/shared/common/Inputx";
+import Tittlex from "@/shared/common/Tittlex";
 
-/* ===== Tipos ===== */
+import type {
+  ZonaTarifariaSede,
+  CrearPedidoDTO,
+} from "@/services/ecommerce/pedidos/pedidos.types";
+
 type ProductoUI = {
   id: number;
   nombre_producto: string;
@@ -20,144 +25,149 @@ type ProductoUI = {
   stock: number;
 };
 
-type CreatePedidoDto = {
-  codigo_pedido?: string;
-  sede_id?: number;
-  nombre_cliente: string;
-  numero_cliente?: string;
-  celular_cliente: string;
-  direccion_envio: string;
-  referencia_direccion?: string;
-  distrito: string;
-  monto_recaudar: number;
-  fecha_entrega_programada: string;
-  detalles: Array<{
-    producto_id: number;
-    cantidad: number;
-    precio_unitario: number;
-  }>;
-};
-
+/* ==================== PROPS TIPADAS ==================== */
 interface CrearPedidoModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPedidoCreado: () => void;
   pedidoId?: number;
-  modo?: 'crear' | 'editar' | 'ver';
+  modo?: "crear" | "editar" | "ver";
 }
 
-/* ===== Componente ===== */
-
+/* ==================== COMPONENTE ==================== */
 export default function CrearPedidoModal({
   isOpen,
   onClose,
   onPedidoCreado,
   pedidoId,
-  modo = 'crear',
+  modo = "crear",
 }: CrearPedidoModalProps) {
-
-  const { token, user } = useAuth();
-  const modalRef = useRef<HTMLDivElement>(null);
+  const { token } = useAuth();
 
   const [productos, setProductos] = useState<ProductoUI[]>([]);
   const [sedes, setSedes] = useState<any[]>([]);
+
+  const [zonas, setZonas] = useState<ZonaTarifariaSede[]>([]);
+  const [distritos, setDistritos] = useState<string[]>([]);
+
+  const [distritoSeleccionado, setDistritoSeleccionado] = useState("");
+  const [zonaSeleccionada, setZonaSeleccionada] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
-    sede_id: '',
-    nombre_cliente: '',
-    numero_cliente: '',
-    celular_cliente: '',
-    direccion_envio: '',
-    referencia_direccion: '',
-    distrito: '',
-    monto_recaudar: '',
-    fecha_entrega_programada: '',
-    producto_id: '',
-    cantidad: '',
-    precio_unitario: '',
-    stock_max: '',
+    sede_id: "",
+    nombre_cliente: "",
+    numero_cliente: "",
+    celular_cliente: "",
+    direccion_envio: "",
+    referencia_direccion: "",
+    distrito: "",
+    monto_recaudar: "",
+    fecha_entrega_programada: "",
+    producto_id: "",
+    cantidad: "",
+    precio_unitario: "",
+    stock_max: "",
   });
-
 
   /* ==================== CARGAR SEDES ==================== */
   useEffect(() => {
     if (!isOpen || !token) return;
+
     (async () => {
-      try {
-        const sedesRaw = await fetchSedesEcommerceCourierAsociados(token);
-        setSedes(sedesRaw);
-      } catch (e) {
-        console.error(e);
-      }
+      const sedesRaw = await fetchSedesEcommerceCourierAsociados(token);
+      setSedes(sedesRaw);
     })();
   }, [isOpen, token]);
 
-  /* ==================== CARGAR PRODUCTOS POR SEDE ==================== */
+  /* ==================== CARGAR PRODUCTOS ==================== */
   useEffect(() => {
     if (!form.sede_id || !token) return;
 
     (async () => {
-      try {
-        const list = await fetchProductosPorSede(Number(form.sede_id), token);
-
-        const parsed: ProductoUI[] = list.map((p: any) => ({
+      const list = await fetchProductosPorSede(Number(form.sede_id), token);
+      setProductos(
+        list.map((p) => ({
           id: p.id,
           nombre_producto: p.nombre_producto,
           precio: p.precio,
           stock: p.stock,
-        }));
-
-        setProductos(parsed);
-      } catch (e) {
-        console.error("Error cargando productos por sede:", e);
-      }
+        }))
+      );
     })();
   }, [form.sede_id, token]);
 
-  /* ===== distrito automático ===== */
+  /* ==================== CARGAR ZONAS Y DISTRITOS ==================== */
   useEffect(() => {
-    if (!form.sede_id) return;
-
-    const sede = sedes.find((s) => s.sede_id === Number(form.sede_id));
-    if (sede) {
-      setForm((prev) => ({ ...prev, distrito: sede.ciudad ?? '' }));
+    if (!form.sede_id) {
+      setZonas([]);
+      setDistritos([]);
+      setDistritoSeleccionado("");
+      setZonaSeleccionada("");
+      return;
     }
-  }, [form.sede_id, sedes]);
 
-  /* ===== editar pedido ===== */
+    (async () => {
+      try {
+        const data = await fetchZonasTarifariasPorSede(Number(form.sede_id));
+
+        setZonas(data);
+
+        const unique = Array.from(new Set(data.map((z) => z.distrito)));
+        setDistritos(unique);
+      } catch (e) {
+        console.error("❌ Error cargando zonas:", e);
+        setZonas([]);
+        setDistritos([]);
+      }
+
+      setDistritoSeleccionado("");
+      setZonaSeleccionada("");
+    })();
+  }, [form.sede_id]);
+
+  /* ==================== ZONAS FILTRADAS ==================== */
+  const zonasFiltradas = useMemo(() => {
+    if (!distritoSeleccionado) return [];
+    return zonas.filter((z) => z.distrito === distritoSeleccionado);
+  }, [distritoSeleccionado, zonas]);
+
+  /* ==================== EDITAR PEDIDO ==================== */
   useEffect(() => {
     if (modo === "crear" || !pedidoId || !token) return;
 
     (async () => {
-      try {
-        const data: any = await fetchPedidoById(pedidoId, token);
-        const detalle = data.detalles?.[0] || {};
+      const data = await fetchPedidoById(pedidoId, token);
+      const detalle = data.detalles?.[0] || {};
 
-        setForm({
-          sede_id: String(data.sede_id ?? ''),
-          nombre_cliente: data.nombre_cliente ?? '',
-          numero_cliente: data.numero_cliente ?? '',
-          celular_cliente: data.celular_cliente ?? '',
-          direccion_envio: data.direccion_envio ?? '',
-          referencia_direccion: data.referencia_direccion ?? '',
-          distrito: data.distrito ?? '',
-          monto_recaudar: String(data.monto_recaudar ?? ''),
-          fecha_entrega_programada: data.fecha_entrega_programada
-            ? new Date(data.fecha_entrega_programada).toISOString().slice(0, 10)
-            : '',
-          producto_id: String(detalle.producto_id ?? ''),
-          cantidad: String(detalle.cantidad ?? ''),
-          precio_unitario: String(detalle.precio_unitario ?? ''),
-          stock_max: "",
-        });
-      } catch (e) {
-        console.error("Error cargando pedido:", e);
+      setForm({
+        sede_id: String(data.sede_id),
+        nombre_cliente: data.nombre_cliente,
+        numero_cliente: data.numero_cliente ?? "",
+        celular_cliente: data.celular_cliente,
+        direccion_envio: data.direccion_envio,
+        referencia_direccion: data.referencia_direccion ?? "",
+        distrito: data.distrito,
+        monto_recaudar: String(data.monto_recaudar),
+        fecha_entrega_programada: data.fecha_entrega_programada
+          ? data.fecha_entrega_programada.slice(0, 10)
+          : "",
+        producto_id: String(detalle.producto_id ?? ""),
+        cantidad: String(detalle.cantidad ?? ""),
+        precio_unitario: String(detalle.precio_unitario ?? ""),
+        stock_max: "",
+      });
+
+      setDistritoSeleccionado(data.distrito);
+
+      if (data.zona_tarifaria_id) {
+        setZonaSeleccionada(String(data.zona_tarifaria_id));
       }
     })();
   }, [modo, pedidoId, token]);
 
-  /* ===== activar precio y stock al elegir producto ===== */
+  /* ==================== STOCK + MONTO ==================== */
   useEffect(() => {
     const prod = productos.find((p) => p.id === Number(form.producto_id));
     if (prod) {
@@ -169,50 +179,41 @@ export default function CrearPedidoModal({
     }
   }, [form.producto_id, productos]);
 
-  /* ===== actualizar monto ===== */
   useEffect(() => {
-    const c = Number(form.cantidad);
-    const p = Number(form.precio_unitario);
-
-    if (!isNaN(c) && !isNaN(p)) {
-      setForm((prev) => ({
-        ...prev,
-        monto_recaudar: String(c * p),
-      }));
+    const total = Number(form.cantidad) * Number(form.precio_unitario);
+    if (!isNaN(total)) {
+      setForm((prev) => ({ ...prev, monto_recaudar: String(total) }));
     }
   }, [form.cantidad, form.precio_unitario]);
 
-  const handleChange = (e: any) =>
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   /* ==================== SUBMIT ==================== */
   const handleSubmit = async () => {
-    if (submitting || !token || !user) return;
+    if (submitting) return;
 
-    const cantidad = Number(form.cantidad);
-    const stock = Number(form.stock_max);
+    if (!distritoSeleccionado) return alert("Debe seleccionar un distrito.");
+    if (!zonaSeleccionada) return alert("Debe seleccionar una zona tarifaria.");
 
-    // 🔥 VALIDAR STOCK
-    if (cantidad > stock) {
-      alert(`Stock insuficiente. Disponible: ${stock}`);
-      return;
-    }
-
-    const payload: CreatePedidoDto = {
+    const payload: CrearPedidoDTO = {
       codigo_pedido: `PED-${Date.now()}`,
       sede_id: Number(form.sede_id),
+      zona_tarifaria_id: Number(zonaSeleccionada),
       nombre_cliente: form.nombre_cliente,
       numero_cliente: form.numero_cliente,
       celular_cliente: form.celular_cliente,
       direccion_envio: form.direccion_envio,
       referencia_direccion: form.referencia_direccion,
-      distrito: form.distrito,
+      distrito: distritoSeleccionado,
       monto_recaudar: Number(form.monto_recaudar),
-      fecha_entrega_programada: `${form.fecha_entrega_programada}T12:00:00.000Z`,
+      fecha_entrega_programada: form.fecha_entrega_programada
+        ? `${form.fecha_entrega_programada}T12:00:00.000Z`
+        : null,
       detalles: [
         {
           producto_id: Number(form.producto_id),
-          cantidad,
+          cantidad: Number(form.cantidad),
           precio_unitario: Number(form.precio_unitario),
         },
       ],
@@ -220,25 +221,23 @@ export default function CrearPedidoModal({
 
     setSubmitting(true);
     try {
-      await crearPedido(payload as any, token);
+      await crearPedido(payload, token!);
       onPedidoCreado();
       onClose();
     } catch (e) {
-      console.error("Error creando pedido", e);
+      console.error("❌ Error creando pedido:", e);
     } finally {
       setSubmitting(false);
     }
   };
 
-  /* ======== UI ======== */
+  /* ==================== UI ==================== */
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/20 flex justify-end">
-      <div
-        ref={modalRef}
-        className="w-full max-w-md h-full bg-white p-6 shadow-xl overflow-y-auto animate-slide-in-right flex flex-col gap-5"
-      >
+      <div className="w-full max-w-md h-full bg-white p-6 shadow-xl overflow-y-auto flex flex-col gap-5">
+
         <Tittlex
           variant="modal"
           icon="lsicon:shopping-cart-filled"
@@ -248,14 +247,18 @@ export default function CrearPedidoModal({
 
         <div className="flex flex-col gap-5">
 
+          {/* SEDE */}
           <Selectx
             label="Sede"
             name="sede_id"
             value={form.sede_id}
-            onChange={handleChange}
-            labelVariant="left"
-            placeholder="Seleccionar Sede"
+            onChange={(e) => {
+              handleChange(e);
+              setDistritoSeleccionado("");
+              setZonaSeleccionada("");
+            }}
           >
+            <option value="">Seleccione una sede</option>
             {sedes.map((s) => (
               <option key={s.sede_id} value={s.sede_id}>
                 {s.nombre}
@@ -263,12 +266,47 @@ export default function CrearPedidoModal({
             ))}
           </Selectx>
 
+          {/* DISTRITO */}
+          <Selectx
+            label="Distrito"
+            value={distritoSeleccionado}
+            onChange={(e) => {
+              setDistritoSeleccionado(e.target.value);
+              setZonaSeleccionada("");
+            }}
+            disabled={distritos.length === 0}
+          >
+            <option value="">Seleccione distrito</option>
+            {distritos.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </Selectx>
+
+          {/* ZONA TARIFARIA */}
+          {distritoSeleccionado && (
+            <Selectx
+              label="Zona Tarifaria"
+              value={zonaSeleccionada}
+              onChange={(e) => setZonaSeleccionada(e.target.value)}
+              disabled={zonasFiltradas.length === 0}
+            >
+              <option value="">Seleccione zona</option>
+              {zonasFiltradas.map((z) => (
+                <option key={z.id} value={String(z.id)}>
+                  {`${z.zona_tarifario} (S/ ${z.tarifa_cliente})`}
+                </option>
+              ))}
+            </Selectx>
+          )}
+
+          {/* CLIENTE */}
           <Inputx
             label="Nombre"
             name="nombre_cliente"
             value={form.nombre_cliente}
             onChange={handleChange}
-            placeholder="Ejem. Alvaro"
           />
 
           <InputxPhone
@@ -277,7 +315,6 @@ export default function CrearPedidoModal({
             countryCode="+51"
             value={form.celular_cliente}
             onChange={handleChange}
-            placeholder="987654321"
           />
 
           <Inputx
@@ -285,7 +322,6 @@ export default function CrearPedidoModal({
             name="direccion_envio"
             value={form.direccion_envio}
             onChange={handleChange}
-            placeholder="Av. Grau J 499"
           />
 
           <Inputx
@@ -293,19 +329,17 @@ export default function CrearPedidoModal({
             name="referencia_direccion"
             value={form.referencia_direccion}
             onChange={handleChange}
-            placeholder="Al lado del supermercado UNO"
           />
 
+          {/* PRODUCTO */}
           <div className="flex gap-5">
-
             <Selectx
               label="Producto"
               name="producto_id"
               value={form.producto_id}
               onChange={handleChange}
-              labelVariant="left"
-              placeholder="Seleccionar Producto"
             >
+              <option value="">Seleccione</option>
               {productos.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.nombre_producto}
@@ -318,17 +352,16 @@ export default function CrearPedidoModal({
               name="cantidad"
               value={form.cantidad}
               onChange={handleChange}
-              placeholder="50"
             />
           </div>
 
+          {/* MONTO + FECHA */}
           <div className="flex gap-5">
             <InputxNumber
               label="Monto"
               name="monto_recaudar"
               value={form.monto_recaudar}
               onChange={handleChange}
-              placeholder="0"
             />
 
             <Inputx
@@ -341,18 +374,18 @@ export default function CrearPedidoModal({
           </div>
         </div>
 
+        {/* BOTONES */}
         <div className="flex gap-4">
           <button
             onClick={handleSubmit}
             disabled={submitting}
             className="bg-gray-900 text-white px-4 py-2 rounded"
           >
-            {submitting ? "Guardando…" : "Guardar cambios"}
+            {submitting ? "Guardando..." : "Guardar pedido"}
           </button>
 
           <button
             onClick={onClose}
-            disabled={submitting}
             className="px-4 py-2 border rounded text-gray-700"
           >
             Cancelar

@@ -1,5 +1,5 @@
 // pedidos.api.ts
-import type { Pedido, CrearPedidoDTO, ProductoSede } from './pedidos.types';
+import type { Pedido, CrearPedidoDTO, ProductoSede, ZonaTarifariaSede } from './pedidos.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -179,4 +179,24 @@ export async function fetchProductosPorSede(
 
   const data = await res.json();
   return data as ProductoSede[];
+}
+
+/* ==========================================================
+   OBTENER ZONAS TARIFARIAS PARA ECOMMERCE (sin validar courier)
+   ========================================================== */
+export async function fetchZonasTarifariasPorSede(
+  sedeId: number
+): Promise<ZonaTarifariaSede[]> {
+  const res = await fetch(`${API_URL}/zona-tarifaria/ecommerce/sede/${sedeId}`);
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: "Sin cuerpo de error" }));
+    console.error("❌ Error al obtener zonas tarifarias:", error);
+    throw new Error("Error al obtener zonas tarifarias");
+  }
+
+  const json = await res.json();
+
+  // ← Esto ahora SI está tipado correctamente
+  return (json.data ?? []) as ZonaTarifariaSede[];
 }

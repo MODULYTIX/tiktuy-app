@@ -47,6 +47,7 @@ export interface Pedido {
   referencia_direccion?: string;
   distrito: string;
   monto_recaudar: number;
+  zona_tarifaria_id?: number;
 
   fecha_entrega_programada: string | null;
   fecha_creacion: string;
@@ -75,6 +76,7 @@ export interface CrearPedidoDTO {
   referencia_direccion?: string;
   distrito: string;
   monto_recaudar: number;
+  zona_tarifaria_id?: number;
   fecha_entrega_programada?: string | null;
 
   detalles: {
@@ -91,4 +93,13 @@ export interface ProductoSede {
   descripcion?: string | null;
   codigo_identificacion?: string | null;
   imagen_url?: string | null;
+}
+
+export interface ZonaTarifariaSede {
+  id: number;
+  distrito: string;
+  zona_tarifario: string;
+  tarifa_cliente: number;
+  pago_motorizado: number;
+  sede_id: number;
 }
