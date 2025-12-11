@@ -156,7 +156,7 @@ export default function CrearAlmacenModal({ token, almacen, modo, onClose, onSuc
   };
 
   return (
-    <div className="flex flex-col gap-5 p-5 h-full w-[420px]">
+    <div className="flex flex-col gap-5 p-5 h-full w-[420px] overflow-y">
       {/* Header */}
       <Tittlex
         variant="modal"
