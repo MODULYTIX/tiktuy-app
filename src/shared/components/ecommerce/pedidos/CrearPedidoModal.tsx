@@ -331,6 +331,7 @@ export default function CrearPedidoModal({
             <Selectx
               label="Producto"
               name="producto_id"
+              labelVariant = "left"
               value={form.producto_id}
               onChange={handleChange}
             >

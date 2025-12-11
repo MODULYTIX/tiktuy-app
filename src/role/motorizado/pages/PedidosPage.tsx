@@ -124,7 +124,6 @@ export default function PedidosPage() {
         ]
           .filter(Boolean)
           .join(" | ");
-
         await patchResultado(token, data.pedidoId, {
           resultado: "ENTREGADO",
           observacion: obs || undefined,
