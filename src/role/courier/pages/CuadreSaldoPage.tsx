@@ -1,6 +1,5 @@
 // src/pages/courier/cuadre-saldo/CuadreSaldoPage.tsx
 import React, { useEffect, useState } from "react";
-import type { PropsWithChildren } from "react";
 
 import RepartidorTable from "@/shared/components/courier/cuadreSaldo/CuadreSaldoTable";
 import EcommerceCuadreSaldoTable from "@/shared/components/courier/cuadreSaldo/EcommerceCuadreSaldoTable";
@@ -8,29 +7,11 @@ import EcommerceCuadreSaldoTable from "@/shared/components/courier/cuadreSaldo/E
 import { listMotorizados } from "@/services/courier/cuadre_saldo/cuadreSaldo.api";
 import type { MotorizadoItem } from "@/services/courier/cuadre_saldo/cuadreSaldo.types";
 
-// ⬇️ Importa tus componentes de entrada estilizados (ajusta la ruta)
+// ⬇ Importa tus componentes de entrada estilizados (ajusta la ruta)
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import Tittlex from "@/shared/common/Tittlex";
 
-/* ============== Iconos ============== */
-const StoreIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M4 6h16l-1 5a4 4 0 01-4 3H9a4 4 0 01-4-3L4 6zm1 11a1 1 0 001 1h3v-4H5v3zm10 1h3a1 1 0 001-1v-3h-4v4zM9 18h6v-4H9v4z" />
-  </svg>
-);
-const BikeIcon = () => (
-  <svg
-    className="h-4 w-4"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-  >
-    <circle cx="6.5" cy="17.5" r="3.5" strokeWidth="1.5" />
-    <circle cx="17.5" cy="17.5" r="3.5" strokeWidth="1.5" />
-    <path d="M6.5 17.5L10 9h4l3.5 8.5M13 9l-3 8.5" strokeWidth="1.5" />
-  </svg>
-);
 
 /* ============== Helpers ============== */
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -39,22 +20,6 @@ const toYMD = (d: Date) =>
 const todayLocal = () => toYMD(new Date());
 const getToken = () => localStorage.getItem("token") ?? "";
 
-/* ============== Toggle genérico ============== */
-type ToggleBtnProps = PropsWithChildren<{
-  active?: boolean;
-  onClick?: () => void;
-}>;
-const ToggleBtn = ({ active, onClick, children }: ToggleBtnProps) => (
-  <button
-    onClick={onClick}
-    className={[
-      "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm",
-      active ? "bg-gray-900 text-white border-gray-900" : "hover:bg-gray-50",
-    ].join(" ")}
-  >
-    {children}
-  </button>
-);
 
 /* ============== Página ============== */
 type Tab = "ECOMMERCE" | "REPARTIDOR";
