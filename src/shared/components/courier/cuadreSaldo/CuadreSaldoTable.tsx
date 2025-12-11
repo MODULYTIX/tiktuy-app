@@ -13,7 +13,6 @@ import type {
 
 import Tittlex from "@/shared/common/Tittlex";
 import { InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
-import Buttonx from "@/shared/common/Buttonx";
 
 /* ============== helpers ============== */
 const formatPEN = (v: number) =>
