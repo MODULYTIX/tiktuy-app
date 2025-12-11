@@ -243,6 +243,7 @@ export default function CrearPedidoModal({
           {/* SEDE */}
           <Selectx
             label="Sede"
+            labelVariant = "left"
             name="sede_id"
             value={form.sede_id}
             onChange={(e) => {
@@ -262,6 +263,7 @@ export default function CrearPedidoModal({
           {/* DISTRITO */}
           <Selectx
             label="Distrito"
+            labelVariant = "left"
             value={distritoSeleccionado}
             onChange={(e) => {
               const dist = e.target.value;
