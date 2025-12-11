@@ -395,7 +395,7 @@ export default function DetallesMovimientoCourierModal({
                               {toText(dp.producto?.descripcion ?? "")}
                             </td>
                             <td className="p-3 text-right">
-                              {Number(dp.cantidad ?? 0)}
+                              {Number(dp.cantidad_validada ?? 0)}
                             </td>
                           </tr>
                         ))
