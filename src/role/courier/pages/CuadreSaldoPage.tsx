@@ -109,14 +109,14 @@ const CuadreSaldoPage: React.FC = () => {
           <Buttonx
             label="Ecommerce"
             icon="mynaui:store"
-            variant={tab === "ECOMMERCE" ? "quartery" : "tertiary"}
+            variant={tab === "ECOMMERCE" ? "secondary" : "tertiary"}
             onClick={() => setTab("ECOMMERCE")}
           />
 
           <Buttonx
             label="Repartidor"
             icon="mynaui:bike"
-            variant={tab === "REPARTIDOR" ? "quartery" : "tertiary"}
+            variant={tab === "REPARTIDOR" ? "secondary" : "tertiary"}
             onClick={() => setTab("REPARTIDOR")}
           />
         </div>

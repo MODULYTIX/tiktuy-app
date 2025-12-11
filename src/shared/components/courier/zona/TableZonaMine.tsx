@@ -137,7 +137,7 @@ export default function TableZonaMine({
 
   if (loading) {
     return (
-      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
+      <div className="w-full rounded-md border border-gray30 bg-white p-6 text-[12px] text-gray-600 shadow-default">
         Cargando zonas tarifarias…
       </div>
     );
@@ -145,7 +145,7 @@ export default function TableZonaMine({
 
   if (err) {
     return (
-      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-red-700">
+      <div className="w-full rounded-md border border-red-200 bg-red-50 p-6 text-[12px] text-red-700 shadow-default">
         {err}
       </div>
     );
@@ -153,66 +153,87 @@ export default function TableZonaMine({
 
   if (filteredZonas.length === 0) {
     return (
-      <div className="w-full bg-white rounded-lg shadow p-6 text-sm text-gray-600">
+      <div className="w-full rounded-md border border-gray30 bg-white p-6 text-[12px] text-gray-600 shadow-default">
         No hay zonas tarifarias que coincidan con los filtros seleccionados.
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-white rounded-lg shadow overflow-hidden">
-      <table className="w-full text-sm text-left text-gray-600">
-        <thead className="bg-gray-100 text-gray-700 text-xs uppercase">
-          <tr>
-            <th className="px-4 py-3">Distrito</th> {/* BD: distrito */}
-            <th className="px-4 py-3">Zona</th>
-            <th className="px-4 py-3">Tarifa Cliente</th>
-            <th className="px-4 py-3">Pago a Motorizado</th>
-            <th className="px-4 py-3">Estado</th>
-            <th className="px-4 py-3">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {currentZonas.map((z) => {
-            const estadoNombre = z.estado?.nombre ?? "—";
-            const isActivo =
-              (z.estado?.nombre || "").toLowerCase() === "activo";
+    <div className="relative w-full overflow-hidden rounded-md border border-gray30 bg-white shadow-default">
+      <section className="flex-1 overflow-auto">
+        <div className="overflow-x-auto bg-white">
+          <table className="min-w-full table-fixed rounded-t-md border-b border-gray30 bg-white text-[12px]">
+            <colgroup>
+              <col className="w-[26%]" /> {/* Distrito */}
+              <col className="w-[18%]" /> {/* Zona */}
+              <col className="w-[18%]" /> {/* Tarifa Cliente */}
+              <col className="w-[18%]" /> {/* Pago Motorizado */}
+              <col className="w-[12%]" /> {/* Estado */}
+              <col className="w-[8%]" /> {/* Acciones */}
+            </colgroup>
 
-            const badgeClasses = isActivo
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-              : "bg-slate-50 text-slate-600 border border-slate-200";
-
-            return (
-              <tr key={z.id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3">{z.distrito}</td>
-                <td className="px-4 py-3">{z.zona_tarifario}</td>
-                <td className="px-4 py-3">S/ {formatMoney(z.tarifa_cliente)}</td>
-                <td className="px-4 py-3">
-                  S/ {formatMoney(z.pago_motorizado)}
-                </td>
-                <td className="px-4 py-3">
-                  <Badgex className={badgeClasses}>
-                    {estadoNombre}
-                  </Badgex>
-                </td>
-                <td className="px-4 py-3">
-                  <button
-                    className="inline-flex items-center gap-1 text-orange-500 hover:text-orange-700"
-                    onClick={() => onEdit?.(z)}
-                    title="Editar zona"
-                  >
-                    <FaRegEdit />
-                    <span className="sr-only">Editar</span>
-                  </button>
-                </td>
+            <thead className="bg-[#E5E7EB]">
+              <tr className="font-roboto font-medium text-gray70">
+                <th className="px-4 py-3 text-left">
+                  Distrito
+                </th>
+                <th className="px-4 py-3 text-left">Zona</th>
+                <th className="px-4 py-3 text-left">Tarifa Cliente</th>
+                <th className="px-4 py-3 text-left">Pago a Motorizado</th>
+                <th className="px-4 py-3 text-left">Estado</th>
+                <th className="px-4 py-3 text-left">Acciones</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+
+            <tbody className="divide-y divide-gray20">
+              {currentZonas.map((z) => {
+                const estadoNombre = z.estado?.nombre ?? "—";
+                const isActivo =
+                  (z.estado?.nombre || "").toLowerCase() === "activo";
+
+                const badgeClasses = isActivo
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-slate-50 text-slate-600 border border-slate-200";
+
+                return (
+                  <tr
+                    key={z.id}
+                    className="transition-colors hover:bg-gray10"
+                  >
+                    <td className="px-4 py-3 text-gray80">{z.distrito}</td>
+                    <td className="px-4 py-3 text-gray80">
+                      {z.zona_tarifario}
+                    </td>
+                    <td className="px-4 py-3 text-gray80">
+                      S/ {formatMoney(z.tarifa_cliente)}
+                    </td>
+                    <td className="px-4 py-3 text-gray80">
+                      S/ {formatMoney(z.pago_motorizado)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badgex className={badgeClasses}>{estadoNombre}</Badgex>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        className="inline-flex items-center gap-1 text-orange-500 hover:text-orange-700"
+                        onClick={() => onEdit?.(z)}
+                        title="Editar zona"
+                      >
+                        <FaRegEdit />
+                        <span className="sr-only">Editar</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {totalPages > 1 && (
-        <div className="border-t p-4">
+        <div className="border-t bg-white px-4 py-3">
           <Paginator
             currentPage={currentPage}
             totalPages={totalPages}

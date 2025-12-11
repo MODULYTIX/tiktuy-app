@@ -1,46 +1,57 @@
-import { useContext, useEffect, useState } from 'react';
-import { AuthContext } from '@/auth/context/AuthContext';
-import type { RepartidorVista, PedidoListItem } from '@/services/repartidor/pedidos/pedidos.types';
+import { useContext, useEffect, useState } from "react";
+import { AuthContext } from "@/auth/context/AuthContext";
+import type {
+  RepartidorVista,
+  PedidoListItem,
+} from "@/services/repartidor/pedidos/pedidos.types";
 
-import ModalRepartidorMotorizado from '@/shared/components/repartidor/Pedido/ModalPedidoRepartidor';
-import ModalEntregaRepartidor from '@/shared/components/repartidor/Pedido/ModalPedidoPendienteRepartidor';
-import ModalPedidoDetalle from '@/shared/components/repartidor/Pedido/VerDetallePedido';
+import ModalRepartidorMotorizado from "@/shared/components/repartidor/Pedido/ModalPedidoRepartidor";
+import ModalEntregaRepartidor from "@/shared/components/repartidor/Pedido/ModalPedidoPendienteRepartidor";
+import ModalPedidoDetalle from "@/shared/components/repartidor/Pedido/VerDetallePedido";
 
 import {
   patchEstadoInicial,
   patchResultado,
   fetchPedidoDetalle,
-} from '@/services/repartidor/pedidos/pedidos.api';
+} from "@/services/repartidor/pedidos/pedidos.api";
 
-import TablePedidosHoy from '@/shared/components/repartidor/Pedido/TablePedidosHoy';
-import TablePedidosPendientes from '@/shared/components/repartidor/Pedido/TablePedidosPendientes';
-import TablePedidosTerminados from '@/shared/components/repartidor/Pedido/TablePedidosTerminados';
-import Tittlex from '@/shared/common/Tittlex';
-import Buttonx from '@/shared/common/Buttonx';
+import TablePedidosHoy from "@/shared/components/repartidor/Pedido/TablePedidosHoy";
+import TablePedidosPendientes from "@/shared/components/repartidor/Pedido/TablePedidosPendientes";
+import TablePedidosTerminados from "@/shared/components/repartidor/Pedido/TablePedidosTerminados";
+import Tittlex from "@/shared/common/Tittlex";
+import Buttonx from "@/shared/common/Buttonx";
 
-type VistaUI = 'asignados' | 'pendientes' | 'terminados';
-const toRepartidorVista = (v: VistaUI): RepartidorVista => (v === 'asignados' ? 'hoy' : v);
+type VistaUI = "asignados" | "pendientes" | "terminados";
+const toRepartidorVista = (v: VistaUI): RepartidorVista =>
+  v === "asignados" ? "hoy" : v;
 
 export default function PedidosPage() {
   const auth = useContext(AuthContext);
-  const token = auth?.token ?? '';
+  const token = auth?.token ?? "";
 
   const [vista, setVista] = useState<VistaUI>(() => {
-    const saved = localStorage.getItem('repartidor_vista_pedidos') as VistaUI | null;
-    return saved ?? 'asignados';
+    const saved = localStorage.getItem(
+      "repartidor_vista_pedidos"
+    ) as VistaUI | null;
+    return saved ?? "asignados";
   });
   useEffect(() => {
-    localStorage.setItem('repartidor_vista_pedidos', vista);
+    localStorage.setItem("repartidor_vista_pedidos", vista);
   }, [vista]);
 
   const [openModalCambio, setOpenModalCambio] = useState(false);
-  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<PedidoListItem | null>(null);
+  const [pedidoSeleccionado, setPedidoSeleccionado] =
+    useState<PedidoListItem | null>(null);
 
   const [openModalEntrega, setOpenModalEntrega] = useState(false);
-  const [pedidoEntrega, setPedidoEntrega] = useState<PedidoListItem | null>(null);
+  const [pedidoEntrega, setPedidoEntrega] = useState<PedidoListItem | null>(
+    null
+  );
 
   const [openModalDetalle, setOpenModalDetalle] = useState(false);
-  const [pedidoDetalle, setPedidoDetalle] = useState<PedidoListItem | null>(null);
+  const [pedidoDetalle, setPedidoDetalle] = useState<PedidoListItem | null>(
+    null
+  );
   const [loadingDetalle, setLoadingDetalle] = useState(false);
 
   const handleVerDetalle = async (id: number) => {
@@ -51,8 +62,8 @@ export default function PedidosPage() {
       const detalle = await fetchPedidoDetalle(token, id);
       setPedidoDetalle(detalle);
     } catch (err: any) {
-      console.error('Error al obtener detalle:', err);
-      alert(String(err?.message || 'No se pudo obtener el detalle del pedido'));
+      console.error("Error al obtener detalle:", err);
+      alert(String(err?.message || "No se pudo obtener el detalle del pedido"));
       setOpenModalDetalle(false);
     } finally {
       setLoadingDetalle(false);
@@ -60,7 +71,7 @@ export default function PedidosPage() {
   };
 
   const handleCambiarEstado = (pedido: PedidoListItem) => {
-    if (vista === 'pendientes') {
+    if (vista === "pendientes") {
       setPedidoEntrega(pedido);
       setOpenModalEntrega(true);
     } else {
@@ -71,7 +82,7 @@ export default function PedidosPage() {
 
   async function handleConfirmResultado(payload: {
     pedidoId: number;
-    resultado: 'RECEPCION_HOY' | 'NO_RESPONDE' | 'REPROGRAMADO' | 'ANULO';
+    resultado: "RECEPCION_HOY" | "NO_RESPONDE" | "REPROGRAMADO" | "ANULO";
     fecha_nueva?: string;
     observacion?: string | null;
   }) {
@@ -84,35 +95,38 @@ export default function PedidosPage() {
       setOpenModalCambio(false);
       setPedidoSeleccionado(null);
     } catch (err) {
-      console.error('Error al actualizar estado inicial:', err);
+      console.error("Error al actualizar estado inicial:", err);
       alert((err as Error).message);
     }
   }
 
   async function handleConfirmEntrega(
     data:
-      | { pedidoId: number; resultado: 'RECHAZADO'; observacion?: string }
+      | { pedidoId: number; resultado: "RECHAZADO"; observacion?: string }
       | {
           pedidoId: number;
-          resultado: 'ENTREGADO';
-          metodo: 'EFECTIVO' | 'BILLETERA' | 'DIRECTO_ECOMMERCE';
+          resultado: "ENTREGADO";
+          metodo: "EFECTIVO" | "BILLETERA" | "DIRECTO_ECOMMERCE";
           observacion?: string;
           evidenciaFile?: File;
         }
   ) {
     try {
-      if (data.resultado === 'RECHAZADO') {
+      if (data.resultado === "RECHAZADO") {
         await patchResultado(token, data.pedidoId, {
-          resultado: 'RECHAZADO',
+          resultado: "RECHAZADO",
           observacion: data.observacion,
         });
       } else {
-        const obs = [data.observacion?.trim(), data.metodo ? `[Pago: ${data.metodo}]` : undefined]
+        const obs = [
+          data.observacion?.trim(),
+          data.metodo ? `[Pago: ${data.metodo}]` : undefined,
+        ]
           .filter(Boolean)
-          .join(' | ');
+          .join(" | ");
 
         await patchResultado(token, data.pedidoId, {
-          resultado: 'ENTREGADO',
+          resultado: "ENTREGADO",
           observacion: obs || undefined,
           evidenciaFile: data.evidenciaFile,
         });
@@ -120,8 +134,10 @@ export default function PedidosPage() {
       setOpenModalEntrega(false);
       setPedidoEntrega(null);
     } catch (err: any) {
-      console.error('Error al guardar resultado final:', err);
-      alert(String(err?.message || 'Error al actualizar el resultado del pedido'));
+      console.error("Error al guardar resultado final:", err);
+      alert(
+        String(err?.message || "Error al actualizar el resultado del pedido")
+      );
     }
   }
 
@@ -139,59 +155,73 @@ export default function PedidosPage() {
           <Buttonx
             label="Asignados (Hoy)"
             icon="solar:bill-list-broken"
-            variant={vista === 'asignados' ? 'secondary' : 'tertiary'}
-            onClick={() => setVista('asignados')}
+            variant={vista === "asignados" ? "secondary" : "tertiary"}
+            onClick={() => setVista("asignados")}
           />
           <Buttonx
             label="Pendientes"
             icon="mdi:clock-outline"
-            variant={vista === 'pendientes' ? 'secondary' : 'tertiary'}
-            onClick={() => setVista('pendientes')}
+            variant={vista === "pendientes" ? "secondary" : "tertiary"}
+            onClick={() => setVista("pendientes")}
           />
           <Buttonx
             label="Terminados"
             icon="mdi:clipboard-check-outline"
-            variant={vista === 'terminados' ? 'secondary' : 'tertiary'}
-            onClick={() => setVista('terminados')}
+            variant={vista === "terminados" ? "secondary" : "tertiary"}
+            onClick={() => setVista("terminados")}
           />
         </div>
       </div>
 
       {/* Header Mobile */}
       <div className="flex flex-col md:hidden text-center mt-2">
-        <h2 className="text-lg font-semibold text-blue-700">Gestión de Pedidos</h2>
+        <h2 className="text-lg font-semibold text-blue-700">
+          Gestión de Pedidos
+        </h2>
         <p className="text-sm text-gray-600 mb-2">
           Administra y visualiza el estado de tus pedidos
         </p>
         <div className="flex justify-center gap-2 overflow-x-auto scrollbar-hide pb-2">
           <Buttonx
             label="Asignados"
-            variant={vista === 'asignados' ? 'secondary' : 'tertiary'}
-            onClick={() => setVista('asignados')}
+            variant={vista === "asignados" ? "secondary" : "tertiary"}
+            onClick={() => setVista("asignados")}
           />
           <Buttonx
             label="Pendientes"
-            variant={vista === 'pendientes' ? 'secondary' : 'tertiary'}
-            onClick={() => setVista('pendientes')}
+            variant={vista === "pendientes" ? "secondary" : "tertiary"}
+            onClick={() => setVista("pendientes")}
           />
           <Buttonx
             label="Terminados"
-            variant={vista === 'terminados' ? 'secondary' : 'tertiary'}
-            onClick={() => setVista('terminados')}
+            variant={vista === "terminados" ? "secondary" : "tertiary"}
+            onClick={() => setVista("terminados")}
           />
         </div>
       </div>
 
       {/* Tablas */}
-      <div className="my-4 md:my-8 overflow-x-auto">
-        {view === 'hoy' && (
-          <TablePedidosHoy token={token} onVerDetalle={handleVerDetalle} onCambiarEstado={handleCambiarEstado} />
+      <div className="my-4 md:my-8 ">
+        {view === "hoy" && (
+          <TablePedidosHoy
+            token={token}
+            onVerDetalle={handleVerDetalle}
+            onCambiarEstado={handleCambiarEstado}
+          />
         )}
-        {view === 'pendientes' && (
-          <TablePedidosPendientes token={token} onVerDetalle={handleVerDetalle} onCambiarEstado={handleCambiarEstado} />
+        {view === "pendientes" && (
+          <TablePedidosPendientes
+            token={token}
+            onVerDetalle={handleVerDetalle}
+            onCambiarEstado={handleCambiarEstado}
+          />
         )}
-        {view === 'terminados' && (
-          <TablePedidosTerminados token={token} onVerDetalle={handleVerDetalle} onCambiarEstado={handleCambiarEstado} />
+        {view === "terminados" && (
+          <TablePedidosTerminados
+            token={token}
+            onVerDetalle={handleVerDetalle}
+            onCambiarEstado={handleCambiarEstado}
+          />
         )}
       </div>
 

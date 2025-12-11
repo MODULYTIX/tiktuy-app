@@ -188,9 +188,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
       );
       setMotivo(pedido.motivo ?? "");
       setMontoCour(
-        String(
-          pedido.servicioCourier ?? pedido.servicioCourierEfectivo ?? 0
-        )
+        String(pedido.servicioCourier ?? pedido.servicioCourierEfectivo ?? 0)
       );
     }
   }, [open, pedido]);
@@ -208,8 +206,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
     try {
       const chg: EditModalChange = { id: pedido.id };
 
-      const repPrev =
-        pedido.servicioRepartidor ?? pedido.servicioSugerido ?? 0;
+      const repPrev = pedido.servicioRepartidor ?? pedido.servicioSugerido ?? 0;
       const courPrev =
         pedido.servicioCourier ?? pedido.servicioCourierEfectivo ?? 0;
       const motivoPrev = pedido.motivo ?? "";
@@ -408,9 +405,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
           next.servicioCourier = chg.servicioCourier;
           if ("servicioCourierEfectivo" in next) {
             (next as any).servicioCourierEfectivo =
-              chg.servicioCourier ??
-              (next as any).servicioCourierEfectivo ??
-              0;
+              chg.servicioCourier ?? (next as any).servicioCourierEfectivo ?? 0;
           }
         }
         return next;
@@ -453,8 +448,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
         setRows((prev) =>
           prev.map((r) => (r.id === row.id ? { ...r, abonado: next } : r))
         );
-        if (next)
-          setSelectedIds((prev) => prev.filter((id) => id !== row.id));
+        if (next) setSelectedIds((prev) => prev.filter((id) => id !== row.id));
       } catch (e) {
         console.error(e);
         alert("No se pudo actualizar el abono.");
@@ -532,22 +526,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
           Abonar seleccionados
         </button>
       </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-
-      {/* Variantes conocidas / típicas */}
-      <Buttonx label="Outlined" variant="outlined" icon="mynaui:eye" />
-      <Buttonx label="Primary" variant="primary" icon="mynaui:bolt" />
-      <Buttonx label="Secondary" variant="secondary" />
-      <Buttonx label="tertiary" variant="tertiary" />
-      <Buttonx label="outlinedw" variant="outlinedw" />
-      
-      <Buttonx label="quartery" variant="quartery" />
-
-      {/* Si tienes más, los vas agregando aquí */}
-      {/* <Buttonx label="Soft" variant="soft" /> */}
-      {/* <Buttonx label="Link" variant="link" /> */}
-    </div>
 
       {/* Tabla con el mismo formato del Ecommerce */}
       <div className="relative mt-0 overflow-hidden rounded-md border border-gray30 bg-white shadow-default">
