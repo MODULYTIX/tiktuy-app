@@ -114,7 +114,7 @@ export default function StockPage() {
   return (
     <section className="mt-8">
       <Tittlex
-        title="Stock de Producto"
+        title="Stock de Productos"
         description="Control de stock y movimiento por sede"
       />
 

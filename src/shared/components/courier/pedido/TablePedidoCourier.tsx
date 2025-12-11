@@ -116,11 +116,17 @@ export default function TablePedidoCourier({
       try {
         let resp: Paginated<PedidoListItem>;
         if (view === "asignados") {
-          resp = await fetchPedidosAsignadosHoy(token, qHoy, { signal: ac.signal });
+          resp = await fetchPedidosAsignadosHoy(token, qHoy, {
+            signal: ac.signal,
+          });
         } else if (view === "pendientes") {
-          resp = await fetchPedidosPendientes(token, qEstado, { signal: ac.signal });
+          resp = await fetchPedidosPendientes(token, qEstado, {
+            signal: ac.signal,
+          });
         } else {
-          resp = await fetchPedidosTerminados(token, qEstado, { signal: ac.signal });
+          resp = await fetchPedidosTerminados(token, qEstado, {
+            signal: ac.signal,
+          });
         }
         setData(resp);
       } catch (e) {
@@ -216,9 +222,7 @@ export default function TablePedidoCourier({
     if (searchProducto.trim()) {
       const q = searchProducto.trim().toLowerCase();
       arr = arr.filter((x) =>
-        (x.items ?? []).some((it) =>
-          it.nombre.toLowerCase().includes(q)
-        )
+        (x.items ?? []).some((it) => it.nombre.toLowerCase().includes(q))
       );
     }
 
@@ -373,56 +377,21 @@ export default function TablePedidoCourier({
       {/* Filtros */}
       <div className="bg-white p-5 rounded shadow-default flex flex-col gap-4 border-b-4 border-gray90">
         {/* Fila 1 */}
-        <div className="flex flex-wrap gap-4 items-end">
-          {/* Periodo */}
-          <div className="min-w-[160px]">
-            <Selectx
-              label="Periodo"
-              name="filtro_periodo"
-              value={periodo}
-              onChange={(e) => setPeriodo(e.target.value as Periodo)}
-              placeholder="Seleccionar periodo"
-            >
-              <option value="hoy">Solo hoy</option>
-              <option value="pasados">Pedidos pasados</option>
-              <option value="futuros">Pedidos futuros</option>
-              <option value="todos">Todos los pedidos</option>
-            </Selectx>
-          </div>
-
-          {/* Distrito */}
-          <div className="min-w-[180px]">
-            <Selectx
-              label="Distrito"
-              name="filtro_distrito"
-              value={filtroDistrito}
-              onChange={(e) => setFiltroDistrito(e.target.value)}
-              placeholder="Seleccionar distrito"
-            >
-              {distritos.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </Selectx>
-          </div>
-
+        <div className="flex gap-5 items-end">
           {/* Cantidad */}
-          <div className="min-w-[160px]">
-            <Selectx
-              label="Cantidad de productos"
-              name="filtro_cantidad"
-              value={filtroCantidad}
-              onChange={(e) => setFiltroCantidad(e.target.value)}
-              placeholder="Seleccionar cantidad"
-            >
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {two(n)}
-                </option>
-              ))}
-            </Selectx>
-          </div>
+          <Selectx
+            label="Cantidad de productos"
+            name="filtro_cantidad"
+            value={filtroCantidad}
+            onChange={(e) => setFiltroCantidad(e.target.value)}
+            placeholder="Seleccionar cantidad"
+          >
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {two(n)}
+              </option>
+            ))}
+          </Selectx>
 
           {/* Búsqueda */}
           <div className="flex-1 min-w-[220px] flex flex-col gap-[10px]">
@@ -435,35 +404,6 @@ export default function TablePedidoCourier({
               onChange={(e) => setSearchProducto(e.target.value)}
             />
           </div>
-        </div>
-
-        {/* Fila 2 */}
-        <div className="flex flex-wrap gap-4 items-end">
-          {/* Fecha desde */}
-          <div className="min-w-[180px] flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-800">
-              Fecha desde
-            </label>
-            <input
-              type="date"
-              value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
-              className="h-10 px-3 rounded-md border border-gray-300 bg-white text-sm text-gray-900 outline-none"
-            />
-          </div>
-
-          {/* Fecha hasta */}
-          <div className="min-w-[180px] flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-800">
-              Fecha hasta
-            </label>
-            <input
-              type="date"
-              value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
-              className="h-10 px-3 rounded-md border border-gray-300 bg-white text-sm text-gray-900 outline-none"
-            />
-          </div>
 
           {/* Limpiar */}
           <div className="flex items-end">
@@ -474,6 +414,11 @@ export default function TablePedidoCourier({
               icon="mynaui:delete"
             />
           </div>
+        </div>
+
+        {/* Fila 2 */}
+        <div className="flex flex-wrap gap-4 items-end">
+          
         </div>
       </div>
 
@@ -527,12 +472,8 @@ export default function TablePedidoCourier({
                   <th className="px-4 py-3 text-left">Fec. Entrega</th>
                   <th className="px-4 py-3 text-left">Ecommerce</th>
                   <th className="px-4 py-3 text-left">Cliente</th>
-                  <th className="px-4 py-3 text-left">
-                    Dirección de Entrega
-                  </th>
-                  <th className="px-4 py-3 text-center">
-                    Cant. de productos
-                  </th>
+                  <th className="px-4 py-3 text-left">Dirección de Entrega</th>
+                  <th className="px-4 py-3 text-center">Cant. de productos</th>
                   <th className="px-4 py-3 text-left">Monto</th>
                   <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
