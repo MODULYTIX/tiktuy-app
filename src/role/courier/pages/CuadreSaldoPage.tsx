@@ -20,7 +20,12 @@ const StoreIcon = () => (
   </svg>
 );
 const BikeIcon = () => (
-  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+  <svg
+    className="h-4 w-4"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
     <circle cx="6.5" cy="17.5" r="3.5" strokeWidth="1.5" />
     <circle cx="17.5" cy="17.5" r="3.5" strokeWidth="1.5" />
     <path d="M6.5 17.5L10 9h4l3.5 8.5M13 9l-3 8.5" strokeWidth="1.5" />
@@ -101,12 +106,19 @@ const CuadreSaldoPage: React.FC = () => {
         />
 
         <div className="flex items-center gap-2">
-          <ToggleBtn active={tab === "ECOMMERCE"} onClick={() => setTab("ECOMMERCE")}>
-            <StoreIcon /> Ecommerce
-          </ToggleBtn>
-          <ToggleBtn active={tab === "REPARTIDOR"} onClick={() => setTab("REPARTIDOR")}>
-            <BikeIcon /> Repartidor
-          </ToggleBtn>
+          <Buttonx
+            label="Ecommerce"
+            icon="mynaui:store"
+            variant={tab === "ECOMMERCE" ? "quartery" : "tertiary"}
+            onClick={() => setTab("ECOMMERCE")}
+          />
+
+          <Buttonx
+            label="Repartidor"
+            icon="mynaui:bike"
+            variant={tab === "REPARTIDOR" ? "quartery" : "tertiary"}
+            onClick={() => setTab("REPARTIDOR")}
+          />
         </div>
       </div>
 
@@ -117,15 +129,21 @@ const CuadreSaldoPage: React.FC = () => {
       ) : (
         <>
           {/* Filtros Repartidor (modelo unificado + auto-render de la tabla) */}
+          <div className="text-lg font-semibold mb-5">Repartidor</div>
+
           <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
             <Selectx
               id="f-motorizado"
               label="Motorizado"
               value={motorizadoId === "" ? "" : String(motorizadoId)}
               onChange={(e) =>
-                setMotorizadoId(e.target.value === "" ? "" : Number(e.target.value))
+                setMotorizadoId(
+                  e.target.value === "" ? "" : Number(e.target.value)
+                )
               }
-              placeholder={loadingMotorizados ? "Cargando..." : "Seleccionar motorizado"}
+              placeholder={
+                loadingMotorizados ? "Cargando..." : "Seleccionar motorizado"
+              }
             >
               <option value="">— Seleccionar motorizado —</option>
               {motorizados.map((m) => (
@@ -169,8 +187,9 @@ const CuadreSaldoPage: React.FC = () => {
               hasta={repHasta}
             />
           ) : (
-            <div className="rounded-xl border border-dashed p-6 text-sm text-gray-600">
-              Selecciona un <b>motorizado</b> y (opcional) ajusta el rango de fechas para ver los pedidos.
+            <div className="mt-5 rounded-xl border border-dashed p-6 text-sm text-gray-600">
+              Selecciona un <b>motorizado</b> y (opcional) ajusta el rango de
+              fechas para ver los pedidos.
               <br />
               Por defecto, la fecha es <b>hoy</b>.
             </div>

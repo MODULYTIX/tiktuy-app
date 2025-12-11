@@ -11,6 +11,10 @@ import type {
   PedidoListItem,
 } from "@/services/courier/cuadre_saldo/cuadreSaldo.types";
 
+import Tittlex from "@/shared/common/Tittlex";
+import { InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
+import Buttonx from "@/shared/common/Buttonx";
+
 /* ============== helpers ============== */
 const formatPEN = (v: number) =>
   `S/. ${Number(v || 0).toLocaleString("es-PE", {
@@ -36,8 +40,8 @@ type ConfirmAbonoModalProps = {
   count: number;
   onCancel: () => void;
   onConfirm: () => void;
-  resumenLeft?: string;   // etiqueta opcional (ej. "Motorizado: 12")
-  resumenRight?: string;  // texto opcional derecho (ej. ciudad/fecha)
+  resumenLeft?: string; // etiqueta opcional (ej. "Motorizado: 12")
+  resumenRight?: string; // texto opcional derecho (ej. ciudad/fecha)
 };
 
 const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
@@ -58,76 +62,68 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[420px] max-w-[92vw] rounded-2xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+      <div className="w-[440px] max-w-[96vw] overflow-hidden rounded-2xl bg-white shadow-2xl">
         {/* Header */}
-        <div className="flex flex-col items-center gap-2 px-6 pt-6">
-          {/* Shield icon */}
-          <div className="rounded-full bg-emerald-50 p-3" aria-hidden="true">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z"
-                fill="#22c55e"
-                opacity="0.12"
-              />
-              <path
-                d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z"
-                stroke="#22c55e"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M8.5 12.5l2.2 2.2 4.8-4.8"
-                stroke="#22c55e"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-
-          <h3 className="text-center text-lg font-semibold">CONFIRMAR ABONO</h3>
-          <p className="mb-2 -mt-1 text-center text-xs text-gray-500">
-            Valida el abonado y registra el ingreso en el sistema
-          </p>
-        </div>
-
-        {/* Resumen */}
-        <div className="mx-5 rounded-xl border px-4 py-3">
-          <div className="mb-2 text-center text-sm font-semibold text-gray-700">
-            Resumen
-          </div>
-          <div className="flex items-start justify-between text-sm">
-            <div className="text-gray-700">
-              <div className="text-[13px]">{resumenLeft}</div>
-              <div className="text-xs text-gray-500">{resumenRight}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-base font-semibold">
-                {formatPEN(totalServicio)}
-              </div>
-              <div className="mt-0.5 text-[12px] text-gray-500">
-                {count} {count === 1 ? "pedido" : "pedidos"}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Checkbox */}
-        <label className="mx-5 mt-3 flex cursor-pointer items-center gap-2 text-xs text-gray-700">
-          <input
-            type="checkbox"
-            className="h-4 w-4"
-            checked={checked}
-            onChange={(e) => setChecked(e.target.checked)}
+        <div className="flex items-center justify-between px-5 py-4">
+          <Tittlex
+            title="Confirmar abono"
+            description="Revisa el resumen antes de marcar como abonado"
+            variant="modal"
+            icon="mdi:cash-check"
+            className="flex-1"
           />
-          Confirmo que verifiqué e hice la transferencia
-        </label>
-
-        {/* Acciones */}
-        <div className="mt-4 flex items-center justify-end gap-2 rounded-b-2xl border-t px-4 py-3">
           <button
             onClick={onCancel}
-            className="rounded-lg border px-4 py-2 text-sm hover:bg-gray-50"
+            className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100 hover:text-black"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="space-y-4 px-5 pt-4 pb-3">
+          {/* Resumen */}
+          <div className="rounded-xl border border-gray30 bg-gray10/60 px-4 py-3">
+            <div className="mb-2 text-center text-sm font-semibold text-gray-700">
+              Resumen
+            </div>
+            <div className="flex items-start justify-between gap-3 text-sm">
+              <div className="text-gray-700">
+                <div className="text-[13px] font-medium">{resumenLeft}</div>
+                <div className="text-xs text-gray-500">{resumenRight}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-base font-semibold text-gray-900">
+                  {formatPEN(totalServicio)}
+                </div>
+                <div className="mt-0.5 text-[12px] text-gray-500">
+                  {count} {count === 1 ? "pedido" : "pedidos"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Checkbox */}
+          <label className="flex cursor-pointer items-start gap-2 text-xs text-gray-700">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4"
+              checked={checked}
+              onChange={(e) => setChecked(e.target.checked)}
+            />
+            <span>
+              Confirmo que verifiqué los pedidos y realicé la transferencia
+            </span>
+          </label>
+        </div>
+
+        {/* Acciones */}
+        <div className="flex items-center justify-end gap-2 bg-gray-50 px-5 py-3">
+          <button
+            onClick={onCancel}
+            className="rounded-lg border px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
           >
             Cancelar
           </button>
@@ -138,7 +134,7 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
               "rounded-lg px-4 py-2 text-sm font-medium",
               checked
                 ? "bg-emerald-600 text-white hover:opacity-90"
-                : "bg-gray-200 text-gray-500 cursor-not-allowed",
+                : "cursor-not-allowed bg-gray-200 text-gray-500",
             ].join(" ")}
           >
             ✓ Confirmar
@@ -187,9 +183,15 @@ const EditServicioModal: React.FC<EditModalProps> = ({
 
   useEffect(() => {
     if (open && pedido) {
-      setMontoRep(String(pedido.servicioRepartidor ?? pedido.servicioSugerido ?? 0));
+      setMontoRep(
+        String(pedido.servicioRepartidor ?? pedido.servicioSugerido ?? 0)
+      );
       setMotivo(pedido.motivo ?? "");
-      setMontoCour(String(pedido.servicioCourier ?? pedido.servicioCourierEfectivo ?? 0));
+      setMontoCour(
+        String(
+          pedido.servicioCourier ?? pedido.servicioCourierEfectivo ?? 0
+        )
+      );
     }
   }, [open, pedido]);
 
@@ -198,14 +200,18 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   const onGuardar = async () => {
     const valRep = Number(montoRep);
     const valCour = Number(montoCour);
-    if (Number.isNaN(valRep) || valRep < 0) return alert("Servicio del motorizado inválido.");
-    if (Number.isNaN(valCour) || valCour < 0) return alert("Servicio courier inválido.");
+    if (Number.isNaN(valRep) || valRep < 0)
+      return alert("Servicio del motorizado inválido.");
+    if (Number.isNaN(valCour) || valCour < 0)
+      return alert("Servicio courier inválido.");
 
     try {
       const chg: EditModalChange = { id: pedido.id };
 
-      const repPrev = pedido.servicioRepartidor ?? pedido.servicioSugerido ?? 0;
-      const courPrev = pedido.servicioCourier ?? pedido.servicioCourierEfectivo ?? 0;
+      const repPrev =
+        pedido.servicioRepartidor ?? pedido.servicioSugerido ?? 0;
+      const courPrev =
+        pedido.servicioCourier ?? pedido.servicioCourierEfectivo ?? 0;
       const motivoPrev = pedido.motivo ?? "";
 
       if (valRep !== repPrev || (motivo || "") !== motivoPrev) {
@@ -233,69 +239,80 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <h3 className="text-base font-semibold">
-            Editar servicio • Pedido #{pedido.id}
-          </h3>
-          <button onClick={onClose} className="p-1 text-gray-500 hover:text-black" aria-label="Cerrar">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4">
+          <Tittlex
+            title={`Editar servicio • Pedido #${pedido.id}`}
+            description="Ajusta los montos del motorizado y del courier"
+            variant="modal"
+            icon="mdi:clipboard-edit-outline"
+            className="flex-1"
+          />
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100 hover:text-black"
+            aria-label="Cerrar"
+          >
             ✕
           </button>
         </div>
 
-        <div className="space-y-4 px-4 py-4">
-          {/* Servicio Motorizado */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Servicio motorizado (repartidor)
-              <input
-                className="mt-1 w-full rounded-xl border px-3 py-2 outline-none"
+        {/* Body */}
+        <div className="space-y-4 px-5 py-4">
+          {/* Montos */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {/* Servicio Motorizado */}
+            <div className="space-y-1.5">
+              <InputxNumber
+                label="Servicio motorizado (repartidor)"
+                decimals={2}
+                placeholder="0.00"
+                inputMode="decimal"
                 value={montoRep}
                 onChange={(e) => setMontoRep(e.target.value)}
-                inputMode="decimal"
-                placeholder="0.00"
               />
-            </label>
-            <div className="mt-1 text-xs text-gray-500">
-              Sugerido: {formatPEN(sugeridoRep)}
+              <p className="text-[11px] text-gray-500">
+                Sugerido: {formatPEN(sugeridoRep)}
+              </p>
+            </div>
+
+            {/* Servicio Courier */}
+            <div className="space-y-1.5">
+              <InputxNumber
+                label="Servicio courier"
+                decimals={2}
+                placeholder="0.00"
+                inputMode="decimal"
+                value={montoCour}
+                onChange={(e) => setMontoCour(e.target.value)}
+              />
+              {baseCour != null && (
+                <p className="text-[11px] text-gray-500">
+                  Base: {formatPEN(Number(baseCour))}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Servicio Courier */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Servicio courier
-              <input
-                className="mt-1 w-full rounded-xl border px-3 py-2 outline-none"
-                value={montoCour}
-                onChange={(e) => setMontoCour(e.target.value)}
-                inputMode="decimal"
-                placeholder="0.00"
-              />
-            </label>
-            {baseCour != null && (
-              <div className="mt-1 text-xs text-gray-500">
-                Base: {formatPEN(Number(baseCour))}
-              </div>
-            )}
-          </div>
-
           {/* Motivo */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Motivo (opcional)
-              <textarea
-                className="mt-1 h-28 w-full resize-none rounded-xl border px-3 py-2 outline-none"
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-              />
-            </label>
-          </div>
+          <InputxTextarea
+            label="Motivo (opcional)"
+            placeholder="Describe brevemente el motivo del ajuste"
+            rows={3}
+            minRows={3}
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+          />
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
-          <button onClick={onClose} className="rounded-xl border px-4 py-2 text-sm hover:bg-gray-50">
+        {/* Acciones */}
+        <div className="flex items-center justify-end gap-2 bg-gray-50 px-5 py-3">
+          <button
+            onClick={onClose}
+            className="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
             Cancelar
           </button>
           <button
@@ -328,7 +345,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
 }) => {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<PedidoListItem[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -342,16 +358,19 @@ const CuadreSaldoTable: React.FC<Props> = ({
   // confirm modal
   const [openConfirm, setOpenConfirm] = useState(false);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const params: ListPedidosParams = { motorizadoId, desde, hasta, page, pageSize };
+      const params: ListPedidosParams = {
+        motorizadoId,
+        desde,
+        hasta,
+        page,
+        pageSize,
+      };
       const resp = await listPedidos(token, params);
       setRows(resp.items);
-      setTotal(resp.total);
       setSelectedIds([]); // al recargar, limpiar selección
     } catch (e) {
       console.error(e);
@@ -379,7 +398,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
         if (chg.servicioRepartidor !== undefined) {
           next.servicioRepartidor = chg.servicioRepartidor;
-          next.servicioEfectivo = (chg.servicioRepartidor ?? r.servicioSugerido ?? 0);
+          next.servicioEfectivo =
+            chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
         }
         if (chg.motivo !== undefined) {
           next.motivo = chg.motivo ?? null;
@@ -388,7 +408,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
           next.servicioCourier = chg.servicioCourier;
           if ("servicioCourierEfectivo" in next) {
             (next as any).servicioCourierEfectivo =
-              chg.servicioCourier ?? (next as any).servicioCourierEfectivo ?? 0;
+              chg.servicioCourier ??
+              (next as any).servicioCourierEfectivo ??
+              0;
           }
         }
         return next;
@@ -431,7 +453,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
         setRows((prev) =>
           prev.map((r) => (r.id === row.id ? { ...r, abonado: next } : r))
         );
-        if (next) setSelectedIds((prev) => prev.filter((id) => id !== row.id));
+        if (next)
+          setSelectedIds((prev) => prev.filter((id) => id !== row.id));
       } catch (e) {
         console.error(e);
         alert("No se pudo actualizar el abono.");
@@ -455,7 +478,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
       });
       // reflejar en UI
       setRows((prev) =>
-        prev.map((r) => (selectedIds.includes(r.id) ? { ...r, abonado: true } : r))
+        prev.map((r) =>
+          selectedIds.includes(r.id) ? { ...r, abonado: true } : r
+        )
       );
       setSelectedIds([]);
       setOpenConfirm(false);
@@ -468,13 +493,13 @@ const CuadreSaldoTable: React.FC<Props> = ({
   }, [token, selectedIds]);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
-      {/* Toolbar superior con botón de abono múltiple */}
-      <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+    <div className="mt-5 flex flex-col gap-4">
+      {/* Toolbar superior sin fondo de tarjeta */}
+      <div className="flex items-center justify-between gap-3">
         {error ? (
-          <span className="text-sm text-red-600">{error}</span>
+          <span className="text-[12px] text-red-600">{error}</span>
         ) : (
-          <span className="text-sm text-gray-600">
+          <span className="text-[12px] text-gray-600">
             Seleccionados: <b>{selectedIds.length}</b> · Servicio:{" "}
             <b>{formatPEN(totalServicioSeleccionado)}</b>
           </span>
@@ -484,9 +509,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
           onClick={abrirModalAbono}
           disabled={selectedIds.length === 0 || loading}
           className={[
-            "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
+            "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-medium",
             selectedIds.length === 0 || loading
-              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+              ? "cursor-not-allowed bg-blue-200 text-white"
               : "bg-blue-600 text-white hover:opacity-90",
           ].join(" ")}
           title={
@@ -495,155 +520,185 @@ const CuadreSaldoTable: React.FC<Props> = ({
               : "Abonar seleccionados"
           }
         >
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M12 8v8M8 12h8" />
+          </svg>
           Abonar seleccionados
         </button>
       </div>
 
-      <div className="relative">
+      <div className="flex flex-wrap items-center gap-3">
+
+      {/* Variantes conocidas / típicas */}
+      <Buttonx label="Outlined" variant="outlined" icon="mynaui:eye" />
+      <Buttonx label="Primary" variant="primary" icon="mynaui:bolt" />
+      <Buttonx label="Secondary" variant="secondary" />
+      <Buttonx label="tertiary" variant="tertiary" />
+      <Buttonx label="outlinedw" variant="outlinedw" />
+      
+      <Buttonx label="quartery" variant="quartery" />
+
+      {/* Si tienes más, los vas agregando aquí */}
+      {/* <Buttonx label="Soft" variant="soft" /> */}
+      {/* <Buttonx label="Link" variant="link" /> */}
+    </div>
+
+      {/* Tabla con el mismo formato del Ecommerce */}
+      <div className="relative mt-0 overflow-hidden rounded-md border border-gray30 bg-white shadow-default">
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 text-sm">
             Cargando...
           </div>
         )}
 
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left text-gray-600">
-            <tr>
-              <th className="p-4">
-                <input
-                  type="checkbox"
-                  checked={isAllSelected}
-                  onChange={toggleAll}
-                  aria-label="Seleccionar todo"
-                />
-              </th>
-              <th className="p-4 font-semibold">Fec. Entrega</th>
-              <th className="p-4 font-semibold">Cliente</th>
-              <th className="p-4 font-semibold">Método de Pago</th>
-              <th className="p-4 font-semibold">Monto</th>
-              <th className="p-4 font-semibold">Servicio Motorizado</th>
-              <th className="p-4 font-semibold">Abono</th>
-              <th className="p-4 font-semibold text-right">Acciones</th>
-            </tr>
-          </thead>
+        <section className="flex-1 overflow-auto">
+          <div className="overflow-x-auto bg-white">
+            <table className="min-w-full table-fixed rounded-t-md border-b border-gray30 bg-white text-[12px]">
+              <colgroup>
+                <col className="w-[6%]" />
+                <col className="w-[12%]" />
+                <col className="w-[20%]" />
+                <col className="w-[14%]" />
+                <col className="w-[12%]" />
+                <col className="w-[18%]" />
+                <col className="w-[10%]" />
+                <col className="w-[8%]" />
+              </colgroup>
 
-          <tbody className="divide-y divide-gray-100">
-            {rows.length === 0 && !loading && (
-              <tr>
-                <td colSpan={8} className="p-4 text-gray-500">
-                  No hay datos para el filtro seleccionado.
-                </td>
-              </tr>
-            )}
-
-            {rows.map((r) => {
-              const checked = selectedIds.includes(r.id);
-              const disableCheck = r.abonado;
-              return (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="p-4">
+              <thead className="bg-[#E5E7EB]">
+                <tr className="font-roboto font-medium text-gray70">
+                  <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
-                      disabled={disableCheck}
-                      checked={checked}
-                      onChange={() => toggleOne(r.id)}
-                      aria-label={`Seleccionar pedido ${r.id}`}
+                      checked={isAllSelected}
+                      onChange={toggleAll}
+                      aria-label="Seleccionar todo"
+                      className="h-4 w-4 accent-blue-600"
                     />
-                  </td>
-
-                  <td className="p-4">{toDMY(r.fechaEntrega)}</td>
-                  <td className="p-4">{r.cliente}</td>
-                  <td className="p-4">{r.metodoPago ?? "-"}</td>
-                  <td className="p-4">{formatPEN(r.monto)}</td>
-
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">
-                        {formatPEN(r.servicioEfectivo)}
-                      </span>
-                      {r.servicioRepartidor != null && (
-                        <span className="rounded bg-gray-200 px-2 py-0.5 text-[11px] text-gray-700">
-                          editado
-                        </span>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="p-4">
-                    <button
-                      onClick={() => toggleAbono(r)}
-                      className={[
-                        "rounded-full px-3 py-1 text-xs font-semibold",
-                        r.abonado
-                          ? "bg-emerald-600 text-white"
-                          : "bg-gray-200 text-gray-900",
-                      ].join(" ")}
-                      title={r.abonado ? "Quitar abono" : "Marcar abonado"}
-                    >
-                      {r.abonado ? "Abonado" : "Sin abonar"}
-                    </button>
-                  </td>
-
-                  <td className="p-4">
-                    <div className="flex items-center justify-end">
-                      {/* Editar sólo si NO está abonado */}
-                      {!r.abonado && (
-                        <button
-                          onClick={() => {
-                            setEditing(r);
-                            setOpenEdit(true);
-                          }}
-                          className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
-                          title="Editar servicio (repartidor / courier)"
-                        >
-                          Editar
-                        </button>
-                      )}
-                      {/* Abonar sólo este (con modal) */}
-                      {!r.abonado && (
-                        <button
-                          onClick={() => {
-                            setSelectedIds([r.id]);
-                            setOpenConfirm(true);
-                          }}
-                          className="ml-2 inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
-                          title="Abonar este pedido"
-                        >
-                          Abonar
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                  </th>
+                  <th className="px-4 py-3 text-left">Fec. Entrega</th>
+                  <th className="px-4 py-3 text-left">Cliente</th>
+                  <th className="px-4 py-3 text-left">Método de pago</th>
+                  <th className="px-4 py-3 text-left">Monto</th>
+                  <th className="px-4 py-3 text-left">Servicio motorizado</th>
+                  <th className="px-4 py-3 text-left">Abono</th>
+                  <th className="px-4 py-3 text-right">Acciones</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              </thead>
 
-      {/* paginación simple */}
-      <div className="flex items-center justify-between gap-2 p-4">
-        <div className="text-xs text-gray-600">
-          Página {page} de {totalPages} • {total} registro(s)
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            aria-label="Página anterior"
-          >
-            {"<"}
-          </button>
-          <button
-            className="rounded-md border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            aria-label="Página siguiente"
-          >
-            {">"}
-          </button>
-        </div>
+              <tbody className="divide-y divide-gray20">
+                {rows.length === 0 && !loading && (
+                  <tr className="hover:bg-transparent">
+                    <td
+                      colSpan={8}
+                      className="px-4 py-8 text-center italic text-gray70"
+                    >
+                      No hay datos para el filtro seleccionado.
+                    </td>
+                  </tr>
+                )}
+
+                {rows.map((r) => {
+                  const checked = selectedIds.includes(r.id);
+                  const disableCheck = r.abonado;
+                  return (
+                    <tr
+                      key={r.id}
+                      className="transition-colors hover:bg-gray10"
+                    >
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          disabled={disableCheck}
+                          checked={checked}
+                          onChange={() => toggleOne(r.id)}
+                          aria-label={`Seleccionar pedido ${r.id}`}
+                          className="h-4 w-4 accent-blue-600"
+                        />
+                      </td>
+
+                      <td className="px-4 py-3 text-gray70">
+                        {toDMY(r.fechaEntrega)}
+                      </td>
+                      <td className="px-4 py-3 text-gray70">{r.cliente}</td>
+                      <td className="px-4 py-3 text-gray70">
+                        {r.metodoPago ?? "-"}
+                      </td>
+                      <td className="px-4 py-3 text-gray70">
+                        {formatPEN(r.monto)}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray80">
+                            {formatPEN(r.servicioEfectivo)}
+                          </span>
+                          {r.servicioRepartidor != null && (
+                            <span className="rounded-full bg-gray20 px-2 py-0.5 text-[11px] text-gray80">
+                              editado
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => toggleAbono(r)}
+                          className={[
+                            "rounded-full px-3 py-1 text-[11px] font-semibold",
+                            r.abonado
+                              ? "bg-emerald-600 text-white"
+                              : "bg-gray-200 text-gray-900",
+                          ].join(" ")}
+                          title={r.abonado ? "Quitar abono" : "Marcar abonado"}
+                        >
+                          {r.abonado ? "Abonado" : "Sin abonar"}
+                        </button>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          {/* Editar sólo si NO está abonado */}
+                          {!r.abonado && (
+                            <button
+                              onClick={() => {
+                                setEditing(r);
+                                setOpenEdit(true);
+                              }}
+                              className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
+                              title="Editar servicio (repartidor / courier)"
+                            >
+                              Editar
+                            </button>
+                          )}
+                          {/* Abonar sólo este (con modal) */}
+                          {!r.abonado && (
+                            <button
+                              onClick={() => {
+                                setSelectedIds([r.id]);
+                                setOpenConfirm(true);
+                              }}
+                              className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
+                              title="Abonar este pedido"
+                            >
+                              Abonar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
       {/* modal editar */}
@@ -660,7 +715,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
         open={openConfirm}
         totalServicio={totalServicioSeleccionado}
         count={selectedIds.length}
-        resumenLeft={`Pedidos seleccionados`}
+        resumenLeft="Pedidos seleccionados"
         resumenRight={todayDMY()}
         onCancel={() => setOpenConfirm(false)}
         onConfirm={confirmarAbono}

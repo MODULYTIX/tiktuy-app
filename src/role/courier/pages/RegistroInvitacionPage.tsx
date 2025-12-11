@@ -56,6 +56,11 @@ type VehiculoValues = {
   placa: string;
 };
 
+type ExtraInfoItem = {
+  label: string;
+  value: string;
+};
+
 /* ------------------------------- Utilidades ------------------------------- */
 
 const hasAllPersonalFields = (v: {
@@ -89,60 +94,198 @@ function SuccessScreen({
   label,
   name,
   description,
+  extraInfo = [],
   onGoLogin,
 }: {
   label: string;
   name: string;
   description: string;
+  extraInfo?: ExtraInfoItem[];
   onGoLogin: () => void;
 }) {
+  const isRepartidor = /repartidor|motorizado/i.test(label);
+
+  const computedSubtitle = isRepartidor
+    ? "Ya formas parte de la red de repartidores de Tiktuy. Desde ahora podrás recibir pedidos asignados, ver rutas y reportar entregas desde un solo lugar."
+    : "Tu negocio ya está conectado a Tiktuy. Desde ahora podrás centralizar tus pedidos, coordinar entregas y seguir el estado de tus envíos en tiempo real.";
+
+  const subtitle =
+    description && description.trim().length > 0
+      ? description
+      : computedSubtitle;
+
+  const title = isRepartidor
+    ? "¡Tu registro como repartidor está completo!"
+    : "¡Tu registro de ecommerce está completo!";
+
+  const bullets = isRepartidor
+    ? [
+        {
+          title: "Recibe pedidos en tiempo real",
+          text: "Consulta los pedidos que te asignen con dirección, datos del cliente y notas importantes.",
+        },
+        {
+          title: "Optimiza tus rutas",
+          text: "Organiza tus entregas del día para ahorrar tiempo y recorridos.",
+        },
+        {
+          title: "Registra tus entregas",
+          text: "Marca pedidos como entregados, reprogramados o con incidencia.",
+        },
+      ]
+    : [
+        {
+          title: "Centraliza tus pedidos",
+          text: "Visualiza los pedidos de tu ecommerce en un solo panel, ordenados por estado y fecha.",
+        },
+        {
+          title: "Sigue tus envíos",
+          text: "Revisa el avance de cada entrega y mantén informados a tus clientes.",
+        },
+        {
+          title: "Controla tu operación",
+          text: "Accede al historial de pedidos, montos y estados para tomar mejores decisiones.",
+        },
+      ];
+
+  const trimmedExtraInfo = extraInfo.slice(0, 3); // máximo 3 para que no crezca tanto en altura
+
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-white px-4 bg-center bg-cover bg-no-repeat min-w-screen"
+      className="min-h-screen w-full flex items-center justify-center px-4 py-6 bg-center bg-cover bg-no-repeat relative"
       style={{ backgroundImage: `url(${BackgroundImage})` }}
     >
-      <div className="w-full max-w-3xl text-center">
-        {/* Escudo */}
-        <div className="mx-auto mb-4">
-          <svg width="120" height="120" viewBox="0 0 24 24" className="mx-auto">
-            <path
-              fill="#FACC15"
-              d="M12 2l7 3v6c0 5-3.5 9.74-7 11-3.5-1.26-7-6-7-11V5l7-3z"
-            />
-            <path
-              fill="#FFF"
-              d="M10.5 14.5l-2.5-2.5l1.4-1.4l1.1 1.1l4-4l1.4 1.4z"
-            />
-          </svg>
+      {/* Overlay para coherencia con el wizard */}
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+
+      {/* Card principal, un poco más compacta */}
+      <div className="relative z-10 w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-gray-100 px-6 py-7 md:px-10 md:py-8">
+        {/* Header */}
+        <div className="flex flex-col items-center text-center gap-3 md:gap-4">
+          {/* Escudo */}
+          <div className="relative inline-flex items-center justify-center">
+            <div className="relative w-20 h-20 md:w-22 md:h-22 rounded-full bg-white flex items-center justify-center shadow-md border border-yellow-300/70">
+              <svg
+                width="80"
+                height="80"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  fill="#FACC15"
+                  d="M12 2l7 3v6c0 5-3.5 9.74-7 11-3.5-1.26-7-6-7-11V5l7-3z"
+                />
+                <path
+                  fill="#FFFFFF"
+                  d="M10.5 14.5l-2.5-2.5l1.4-1.4l1.1 1.1l4-4l1.4 1.4z"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <p className="text-[11px] md:text-[12px] font-semibold uppercase tracking-[0.18em] text-blue-600">
+            Registro completado
+          </p>
+
+          <h1 className="text-2xl md:text-3xl font-extrabold text-[#1A237E] tracking-wide">
+            {title}
+          </h1>
+
+          <p className="text-sm md:text-[15px] text-gray-600 max-w-2xl">
+            {subtitle}
+          </p>
         </div>
 
-        <p className="text-2xl text-gray-600">
-          {label}:{" "}
-          <span className="font-semibold text-4xl text-yellow-500 break-words">
-            {name}
-          </span>
-        </p>
+        {/* 2 columnas compactas */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-5 md:gap-6 items-start">
+          {/* Izquierda: resumen + qué sigue */}
+          <div className="space-y-4">
+            {/* Resumen del registro */}
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-600">
+                {label}
+              </p>
+              <p className="mt-1 text-xl md:text-2xl font-extrabold text-[#111827] break-words">
+                {name}
+              </p>
 
-        <h2 className="mt-6 text-3xl font-extrabold text-blue-600">
-          ¡Felicidades, por tu registro!
-        </h2>
-        <p className="mt-3 text-gray-600 max-w-2xl mx-auto">{description}</p>
+              {trimmedExtraInfo.length > 0 && (
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                  {trimmedExtraInfo.map((item) => (
+                    <div key={item.label} className="text-xs md:text-[13px]">
+                      <p className="text-gray-500">{item.label}</p>
+                      <p className="font-medium text-gray-800">
+                        {item.value || "—"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-        <div className="mt-6 flex items-center justify-center">
+            {/* Qué sigue ahora */}
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 shadow-sm">
+              <p className="text-[13px] font-semibold text-slate-800 mb-1">
+                ¿Qué sigue ahora?
+              </p>
+              <ul className="mt-1 space-y-1.5 text-xs md:text-[13px] text-gray-600 list-disc list-inside">
+                <li>
+                  Inicia sesión con el correo y la contraseña que acabas de
+                  crear.
+                </li>
+                <li>
+                  Explora el panel principal y familiarízate con las secciones
+                  disponibles.
+                </li>
+                <li>
+                  Ante cualquier duda, contacta al equipo que te invitó o al
+                  soporte de Tiktuy.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Derecha: capacidades */}
+          <div className="bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 shadow-sm">
+            <p className="text-[13px] font-semibold text-slate-800 mb-2">
+              Desde tu cuenta podrás:
+            </p>
+            <div className="space-y-3">
+              {bullets.map((item) => (
+                <div key={item.title} className="flex gap-3">
+                  <div className="mt-1 h-7 w-7 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100">
+                    <span className="text-[12px] text-blue-600">✓</span>
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-slate-800">
+                      {item.title}
+                    </p>
+                    <p className="text-xs md:text-[13px] text-gray-600 leading-snug">
+                      {item.text}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* CTA + estado de pasos (compacto) */}
+        <div className="mt-6 flex flex-col items-center gap-3">
           <button
             onClick={onGoLogin}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0F172A] px-5 py-2.5 text-white text-sm font-medium hover:bg-black"
+            className="inline-flex items-center gap-2 rounded-full bg-[#0F172A] px-7 py-2.5 text-sm md:text-[15px] font-semibold text-white shadow-md hover:bg-black transition-colors"
           >
             Ir a iniciar sesión
-            <svg width="18" height="18" viewBox="0 0 24 24">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="currentColor" d="M10 17l5-5l-5-5v10zM4 4h2v16H4z" />
             </svg>
           </button>
-        </div>
 
-        <div className="mt-8 flex items-center justify-center gap-2 text-green-600">
-          <span className="text-xl">✔</span>
-          <span className="text-sm">Paso 3 de 3 completados</span>
+          <p className="text-xs text-gray-500 text-center max-w-md">
+            Podrás acceder con las credenciales que acabas de crear y continuar
+            gestionando tu día a día desde Tiktuy.
+          </p>
         </div>
       </div>
     </div>
@@ -177,7 +320,9 @@ export default function RegistroInvitacionPage() {
   const [displayName, setDisplayName] = useState<string>("");
 
   // Formularios
-  const [formE, setFormE] = useState<Omit<RegistroInvitacionPayload, "token">>({
+  const [formE, setFormE] = useState<
+    Omit<RegistroInvitacionPayload, "token">
+  >({
     nombres: "",
     apellidos: "",
     dni_ci: "",
@@ -300,7 +445,14 @@ export default function RegistroInvitacionPage() {
     } finally {
       setLoading(false);
     }
-  }, [canSubmit, isMotorizado, formM, formE, token, confirmPassword]);
+  }, [
+    canSubmit,
+    isMotorizado,
+    formM,
+    formE,
+    token,
+    confirmPassword,
+  ]);
 
   // Guard clauses
   if (!token) {
@@ -321,11 +473,34 @@ export default function RegistroInvitacionPage() {
       ? "Has sido registrado exitosamente en nuestra plataforma de fulfillment. Ahora podrás gestionar tus envíos y clientes de forma más eficiente."
       : "Tu ecommerce ha sido registrado exitosamente en nuestra plataforma de fulfillment. Ahora podrás gestionar tus pedidos, envíos y clientes de forma más eficiente.";
 
+    const extraInfo: ExtraInfoItem[] = (
+      isMotorizado
+        ? [
+            {
+              label: "Nombre completo",
+              value: `${formM.nombres} ${formM.apellidos}`.trim() || displayName,
+            },
+            { label: "DNI / CI", value: formM.dni_ci },
+            { label: "Celular", value: formM.telefono },
+            { label: "Correo", value: formM.correo },
+          ]
+        : [
+            {
+              label: "Nombre comercial",
+              value: formE.nombre_comercial || displayName,
+            },
+            { label: "RUC", value: formE.ruc },
+            { label: "Ciudad", value: formE.ciudad },
+            { label: "Correo", value: formE.correo },
+          ]
+    ).filter((item) => item.value && item.value.trim().length > 0);
+
     return (
       <SuccessScreen
         label={label}
         name={displayName}
         description={description}
+        extraInfo={extraInfo}
         onGoLogin={onGoLogin}
       />
     );
@@ -333,171 +508,170 @@ export default function RegistroInvitacionPage() {
 
   // Wizard
   return (
-  <div
-    className="min-h-screen w-full flex items-center justify-center px-4 bg-center bg-cover bg-no-repeat relative"
-    style={{ backgroundImage: `url(${BackgroundImage})` }}
-  >
-    {/* Overlay para suavizar el fondo */}
-    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+    <div
+      className="min-h-screen w-full flex items-center justify-center px-4 bg-center bg-cover bg-no-repeat relative"
+      style={{ backgroundImage: `url(${BackgroundImage})` }}
+    >
+      {/* Overlay para suavizar el fondo */}
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
-    <div className="w-full max-w-6xl h-auto bg-white rounded-3xl shadow-2xl p-8 md:p-10 lg:p-12 z-10 flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex flex-col gap-2 text-center">
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-wide text-[#1A237E] uppercase">
-          {isMotorizado ? "Registro de Motorizado" : "Registro de Ecommerce"}
-        </h1>
-        <p className="text-sm md:text-base text-gray-500">
-          Completa los pasos para finalizar tu registro.
-        </p>
-      </div>
+      <div className="w-full max-w-6xl h-auto bg-white rounded-3xl shadow-2xl p-8 md:p-10 lg:p-12 z-10 flex flex-col gap-8">
+        {/* Header */}
+        <div className="flex flex-col gap-2 text-center">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-wide text-[#1A237E] uppercase">
+            {isMotorizado ? "Registro de Motorizado" : "Registro de Ecommerce"}
+          </h1>
+          <p className="text-sm md:text-base text-gray-500">
+            Completa los pasos para finalizar tu registro.
+          </p>
+        </div>
 
-      {/* Stepper */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between">
-          {/* Paso 1 */}
-          <div className="flex items-center flex-1">
-            <div
-              className={`flex items-center justify-center w-9 h-9 rounded-full border-2 text-sm font-semibold transition-all duration-300
-                ${
+        {/* Stepper */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
+            {/* Paso 1 */}
+            <div className="flex items-center flex-1">
+              <div
+                className={`flex items-center justify-center w-9 h-9 rounded-full border-2 text-sm font-semibold transition-all duration-300 ${
                   step >= STEP.One
                     ? "bg-blue-600 border-blue-600 text-white shadow-md scale-105"
                     : "bg-white border-gray-300 text-gray-400"
                 }`}
-            >
-              1
-            </div>
-            <div className="ml-3 hidden sm:block">
-              <p
-                className={`text-xs font-semibold uppercase tracking-wide ${
-                  step >= STEP.One ? "text-blue-700" : "text-gray-400"
-                }`}
               >
-                Datos personales
-              </p>
+                1
+              </div>
+              <div className="ml-3 hidden sm:block">
+                <p
+                  className={`text-xs font-semibold uppercase tracking-wide ${
+                    step >= STEP.One ? "text-blue-700" : "text-gray-400"
+                  }`}
+                >
+                  Datos personales
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Conector 1–2 */}
-          <div
-            className={`h-0.5 flex-1 mx-2 md:mx-4 rounded-full transition-all duration-300
-              ${step >= STEP.Two ? "bg-blue-600" : "bg-gray-200"}`}
-          />
-
-          {/* Paso 2 */}
-          <div className="flex items-center flex-1">
+            {/* Conector 1–2 */}
             <div
-              className={`flex items-center justify-center w-9 h-9 rounded-full border-2 text-sm font-semibold transition-all duration-300
-                ${
+              className={`h-0.5 flex-1 mx-2 md:mx-4 rounded-full transition-all duration-300 ${
+                step >= STEP.Two ? "bg-blue-600" : "bg-gray-200"
+              }`}
+            />
+
+            {/* Paso 2 */}
+            <div className="flex items-center flex-1">
+              <div
+                className={`flex items-center justify-center w-9 h-9 rounded-full border-2 text-sm font-semibold transition-all duration-300 ${
                   step >= STEP.Two
                     ? "bg-blue-600 border-blue-600 text-white shadow-md scale-105"
                     : "bg-white border-gray-300 text-gray-400"
                 }`}
-            >
-              2
-            </div>
-            <div className="ml-3 hidden sm:block">
-              <p
-                className={`text-xs font-semibold uppercase tracking-wide ${
-                  step >= STEP.Two ? "text-blue-700" : "text-gray-400"
-                }`}
               >
-                {isMotorizado ? "Datos del vehículo" : "Info. comercial"}
-              </p>
+                2
+              </div>
+              <div className="ml-3 hidden sm:block">
+                <p
+                  className={`text-xs font-semibold uppercase tracking-wide ${
+                    step >= STEP.Two ? "text-blue-700" : "text-gray-400"
+                  }`}
+                >
+                  {isMotorizado ? "Datos del vehículo" : "Info. comercial"}
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Conector 2–3 */}
-          <div
-            className={`h-0.5 flex-1 mx-2 md:mx-4 rounded-full transition-all duration-300
-              ${step >= STEP.Three ? "bg-blue-600" : "bg-gray-200"}`}
-          />
-
-          {/* Paso 3 */}
-          <div className="flex items-center flex-1">
+            {/* Conector 2–3 */}
             <div
-              className={`flex items-center justify-center w-9 h-9 rounded-full border-2 text-sm font-semibold transition-all duration-300
-                ${
+              className={`h-0.5 flex-1 mx-2 md:mx-4 rounded-full transition-all duration-300 ${
+                step >= STEP.Three ? "bg-blue-600" : "bg-gray-200"
+              }`}
+            />
+
+            {/* Paso 3 */}
+            <div className="flex items-center flex-1">
+              <div
+                className={`flex items-center justify-center w-9 h-9 rounded-full border-2 text-sm font-semibold transition-all duration-300 ${
                   step >= STEP.Three
                     ? "bg-blue-600 border-blue-600 text-white shadow-md scale-105"
                     : "bg-white border-gray-300 text-gray-400"
                 }`}
-            >
-              3
-            </div>
-            <div className="ml-3 hidden sm:block">
-              <p
-                className={`text-xs font-semibold uppercase tracking-wide ${
-                  step >= STEP.Three ? "text-blue-700" : "text-gray-400"
-                }`}
               >
-                Seguridad
-              </p>
+                3
+              </div>
+              <div className="ml-3 hidden sm:block">
+                <p
+                  className={`text-xs font-semibold uppercase tracking-wide ${
+                    step >= STEP.Three ? "text-blue-700" : "text-gray-400"
+                  }`}
+                >
+                  Seguridad
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {errorMsg && (
-        <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-          {errorMsg}
-        </div>
-      )}
+        {errorMsg && (
+          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+            {errorMsg}
+          </div>
+        )}
 
-      {/* Paso 1 */}
-      {step === STEP.One && (
-        <StepDatosPersonales
-          values={isMotorizado ? formM : formE}
-          onChange={(patch: DatosPersonalesPatch) =>
-            isMotorizado
-              ? setFormM((p) => ({ ...p, ...patch }))
-              : setFormE((p) => ({ ...p, ...patch }))
-          }
-          onNext={() => canContinue1 && setStep(STEP.Two)}
-        />
-      )}
-
-      {/* Paso 2 */}
-      {step === STEP.Two &&
-        (isMotorizado ? (
-          <StepDatosVehiculo
-            values={{
-              licencia: formM.licencia,
-              tipo_vehiculo: formM.tipo_vehiculo,
-              placa: formM.placa,
-            }}
-            onChange={handleVehiculoChange}
-            onBack={() => setStep(STEP.One)}
-            onNext={() => canContinue2 && setStep(STEP.Three)}
-          />
-        ) : (
-          <StepInformacionComercial
-            values={formE}
-            onChange={(patch: InfoComercialPatch) =>
-              setFormE((p) => ({ ...p, ...patch }))
+        {/* Paso 1 */}
+        {step === STEP.One && (
+          <StepDatosPersonales
+            values={isMotorizado ? formM : formE}
+            onChange={(patch: DatosPersonalesPatch) =>
+              isMotorizado
+                ? setFormM((p) => ({ ...p, ...patch }))
+                : setFormE((p) => ({ ...p, ...patch }))
             }
-            onBack={() => setStep(STEP.One)}
-            onNext={() => canContinue2 && setStep(STEP.Three)}
+            onNext={() => canContinue1 && setStep(STEP.Two)}
           />
-        ))}
+        )}
 
-      {/* Paso 3 */}
-      {step === STEP.Three && (
-        <StepSeguridad
-          password={isMotorizado ? formM.contrasena : formE.contrasena}
-          confirm={confirmPassword}
-          onChangePassword={(v) =>
-            isMotorizado
-              ? setFormM((p) => ({ ...p, contrasena: v }))
-              : setFormE((p) => ({ ...p, contrasena: v }))
-          }
-          onChangeConfirm={setConfirmPassword}
-          onBack={() => setStep(STEP.Two)}
-          onSubmit={onSubmit}
-          loading={loading}
-          canSubmit={canSubmit}
-        />
-      )}
+        {/* Paso 2 */}
+        {step === STEP.Two &&
+          (isMotorizado ? (
+            <StepDatosVehiculo
+              values={{
+                licencia: formM.licencia,
+                tipo_vehiculo: formM.tipo_vehiculo,
+                placa: formM.placa,
+              }}
+              onChange={handleVehiculoChange}
+              onBack={() => setStep(STEP.One)}
+              onNext={() => canContinue2 && setStep(STEP.Three)}
+            />
+          ) : (
+            <StepInformacionComercial
+              values={formE}
+              onChange={(patch: InfoComercialPatch) =>
+                setFormE((p) => ({ ...p, ...patch }))
+              }
+              onBack={() => setStep(STEP.One)}
+              onNext={() => canContinue2 && setStep(STEP.Three)}
+            />
+          ))}
+
+        {/* Paso 3 */}
+        {step === STEP.Three && (
+          <StepSeguridad
+            password={isMotorizado ? formM.contrasena : formE.contrasena}
+            confirm={confirmPassword}
+            onChangePassword={(v) =>
+              isMotorizado
+                ? setFormM((p) => ({ ...p, contrasena: v }))
+                : setFormE((p) => ({ ...p, contrasena: v }))
+            }
+            onChangeConfirm={setConfirmPassword}
+            onBack={() => setStep(STEP.Two)}
+            onSubmit={onSubmit}
+            loading={loading}
+            canSubmit={canSubmit}
+          />
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 }

@@ -20,6 +20,7 @@ import EcommerceDetalleModal from "./EcommerceDetalleModal";
 
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
+import Badgex from "@/shared/common/Badgex";
 
 const formatPEN = (v: number) =>
   `S/. ${Number(v || 0).toLocaleString("es-PE", {
@@ -113,9 +114,6 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         setCanFilterBySede(Boolean(data.canFilterBySede));
         setSedes(data.sedes ?? []);
 
-        // selección por defecto:
-        // - si NO puede filtrar → fija sedeActualId
-        // - si puede filtrar → deja "todas" (sedeId = "")
         if (!data.canFilterBySede && data.sedeActualId) {
           setSedeId(data.sedeActualId);
         } else {
@@ -289,7 +287,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       setConfirmCount(0);
 
       alert("✅ Abono enviado correctamente con voucher.");
-      await loadResumen(); // recarga tabla actualizada
+      await loadResumen();
     } catch (e: any) {
       console.error("Error al confirmar abono:", e);
       alert(e?.message ?? "No se pudo procesar el abono.");
@@ -305,7 +303,6 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     setHasta(hoy);
     setRows([]);
     setSelectedFechas([]);
-    // sede: si no puede filtrar, se queda con su sede; si puede filtrar, dejamos "todas"
     setSedeId((prev) =>
       !canFilterBySede && typeof prev === "number" ? prev : ""
     );
@@ -314,7 +311,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   return (
     <div className="flex flex-col gap-5">
       {/* Barra superior */}
-      <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+      <div className="flex items-center justify-between">
         <div className="text-lg font-semibold">Ecommerce</div>
         <button
           onClick={prepararAbonoMultiFecha}
@@ -340,7 +337,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         </button>
       </div>
 
-      {/* Filtros (añadimos Sede antes de Ecommerce) */}
+      {/* Filtros */}
       <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
         {/* Sede */}
         <Selectx
@@ -421,100 +418,129 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       )}
       {error && <div className="px-4 pb-2 text-sm text-red-600">{error}</div>}
 
-      {/* Tabla resumen */}
-      <div className="relative border-gray70">
+      {/* Tabla resumen con estilos del modelo base */}
+      <div className="mt-0 bg-white rounded-md overflow-hidden shadow-default border border-gray30 relative">
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 text-sm">
             Cargando...
           </div>
         )}
 
-        <table className="w-full text-sm table-auto bg-white shadow-md rounded-md overflow-hidden">
-          <thead className="bg-[#E5E7EB] text-gray-600">
-            <tr className="text-left">
-              <th className="p-4">
-                <input
-                  type="checkbox"
-                  checked={rows.length > 0 && selectedFechas.length === rows.length}
-                  onChange={toggleAllFechas}
-                  aria-label="Seleccionar todo"
-                  className="h-4 w-4 accent-blue-600"
-                />
-              </th>
-              <th className="p-4 font-semibold">Fec. Entrega</th>
-              <th className="p-4 font-semibold">Cobrado</th>
-              <th className="p-4 font-semibold">Servicio total</th>
-              <th className="p-4 font-semibold">Neto</th>
-              <th className="p-4 font-semibold">Estado</th>
-              <th className="p-4 font-semibold text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="p-4 text-center text-gray-500">
-                  Sin resultados para el filtro seleccionado.
-                </td>
-              </tr>
-            ) : (
-              rows.map((r) => {
-                const checked = selectedFechas.includes(r.fecha);
-                const estado = r.estado ?? "Por Validar";
-                const pillCls =
-                  estado === "Validado"
-                    ? "bg-gray-900 text-white"
-                    : estado === "Sin Validar"
-                    ? "bg-gray-100 text-gray-800 border border-gray-200"
-                    : "bg-blue-100 text-blue-900 border border-blue-200";
-                return (
-                  <tr key={r.fecha} className="hover:bg-gray-50">
-                    <td className="p-4">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleFecha(r.fecha)}
-                        aria-label={`Seleccionar ${r.fecha}`}
-                        className="h-4 w-4 accent-blue-600"
-                      />
-                    </td>
-                    <td className="p-4">{toDMY(r.fecha)}</td>
-                    <td className="p-4">{formatPEN(r.cobrado)}</td>
-                    <td className="p-4">{formatPEN(r.servicio)}</td>
-                    <td className="p-4">{formatPEN(r.neto)}</td>
-                    <td className="p-4">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold inline-block ${pillCls}`}
-                      >
-                        {estado}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end">
-                        <button
-                          onClick={() => openDia(r.fecha)}
-                          className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
-                          title="Ver pedidos del día"
-                        >
-                          <svg
-                            className="h-4 w-4"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                          >
-                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                          Ver
-                        </button>
-                      </div>
+        <section className="flex-1 overflow-auto">
+          <div className="overflow-x-auto bg-white">
+            <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+              <colgroup>
+                <col className="w-[6%]" />
+                <col className="w-[18%]" />
+                <col className="w-[18%]" />
+                <col className="w-[18%]" />
+                <col className="w-[18%]" />
+                <col className="w-[12%]" />
+                <col className="w-[10%]" />
+              </colgroup>
+
+              <thead className="bg-[#E5E7EB]">
+                <tr className="text-gray70 font-roboto font-medium">
+                  <th className="px-4 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={rows.length > 0 && selectedFechas.length === rows.length}
+                      onChange={toggleAllFechas}
+                      aria-label="Seleccionar todo"
+                      className="h-4 w-4 accent-blue-600"
+                    />
+                  </th>
+                  <th className="px-4 py-3 text-left">Fec. Entrega</th>
+                  <th className="px-4 py-3 text-left">Cobrado</th>
+                  <th className="px-4 py-3 text-left">Servicio total</th>
+                  <th className="px-4 py-3 text-left">Neto</th>
+                  <th className="px-4 py-3 text-left">Estado</th>
+                  <th className="px-4 py-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-gray20">
+                {rows.length === 0 ? (
+                  <tr className="hover:bg-transparent">
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-gray70 italic"
+                    >
+                      Sin resultados para el filtro seleccionado.
                     </td>
                   </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                ) : (
+                  rows.map((r) => {
+                    const checked = selectedFechas.includes(r.fecha);
+                    const estado = r.estado ?? "Por Validar";
+
+                    const pillCls =
+                      estado === "Validado"
+                        ? "bg-gray90 text-white"
+                        : estado === "Sin Validar"
+                        ? "bg-gray30 text-gray80"
+                        : "bg-blue-100 text-blue-900";
+
+                    return (
+                      <tr
+                        key={r.fecha}
+                        className="hover:bg-gray10 transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleFecha(r.fecha)}
+                            aria-label={`Seleccionar ${r.fecha}`}
+                            className="h-4 w-4 accent-blue-600"
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-gray70">
+                          {toDMY(r.fecha)}
+                        </td>
+                        <td className="px-4 py-3 text-gray70">
+                          {formatPEN(r.cobrado)}
+                        </td>
+                        <td className="px-4 py-3 text-gray70">
+                          {formatPEN(r.servicio)}
+                        </td>
+                        <td className="px-4 py-3 text-gray70">
+                          {formatPEN(r.neto)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badgex className={pillCls}>
+                            {estado}
+                          </Badgex>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end">
+                            <button
+                              onClick={() => openDia(r.fecha)}
+                              className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
+                              title="Ver pedidos del día"
+                            >
+                              <svg
+                                className="h-4 w-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                              >
+                                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                              Ver
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
       {/* modales */}
