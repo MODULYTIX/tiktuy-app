@@ -414,7 +414,8 @@ export default function ImportProductosPreviewModal({
                   {/* Peso */}
                   <td className="border-b px-3 py-2 text-right">
                     <input
-                      type="text"
+                      type="number"
+                      step={0.001}
                       value={g.peso ?? ''}
                       onChange={(e) => {
                         const raw = e.target.value;
