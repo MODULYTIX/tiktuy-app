@@ -26,8 +26,6 @@ import Tittlex from "@/shared/common/Tittlex";
 
 type View = "asignados" | "pendientes" | "terminados";
 
-type Periodo = "hoy" | "pasados" | "futuros" | "todos";
-
 interface Props {
   view: View;
   token: string;
@@ -59,11 +57,6 @@ export default function TablePedidoCourier({
   const [filtroCantidad, setFiltroCantidad] = useState("");
   const [searchProducto, setSearchProducto] = useState("");
 
-  // 👉 nuevo: periodo y rango de fechas
-  const [periodo, setPeriodo] = useState<Periodo>("hoy");
-  const [fechaDesde, setFechaDesde] = useState<string>("");
-  const [fechaHasta, setFechaHasta] = useState<string>("");
-
   /* data */
   const [data, setData] = useState<Paginated<PedidoListItem> | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -86,9 +79,6 @@ export default function TablePedidoCourier({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
-    setPeriodo("hoy");
-    setFechaDesde("");
-    setFechaHasta("");
   }, [view]);
 
   // querys para backend
@@ -144,26 +134,12 @@ export default function TablePedidoCourier({
 
   const itemsBase = data?.items ?? [];
 
-  // helper: fecha de referencia de un pedido según vista
-  const getFechaReferencia = (p: PedidoListItem): string | null => {
-    if (view === "terminados") {
-      return p.fecha_entrega_real ?? p.fecha_entrega_programada ?? null;
-    }
-    return p.fecha_entrega_programada ?? null;
-  };
-
-  const toDateOnly = (d: Date) => {
-    const x = new Date(d);
-    x.setHours(0, 0, 0, 0);
-    return x;
-  };
-
   // distritos únicos para el filtro
   const distritos = useMemo(
     () =>
       Array.from(
         new Set(itemsBase.map((x) => x.cliente?.distrito).filter(Boolean))
-      ).sort(),
+      ).sort() as string[],
     [itemsBase]
   );
 
@@ -171,44 +147,12 @@ export default function TablePedidoCourier({
   const itemsFiltrados = useMemo(() => {
     let arr = [...itemsBase];
 
-    const hoy = toDateOnly(new Date());
-    const dateDesde = fechaDesde ? toDateOnly(new Date(fechaDesde)) : null;
-    const dateHasta = fechaHasta ? toDateOnly(new Date(fechaHasta)) : null;
-
-    // 1) filtro por periodo (hoy / pasados / futuros / todos)
-    if (periodo !== "todos" || dateDesde || dateHasta) {
-      arr = arr.filter((x) => {
-        const fechaStr = getFechaReferencia(x);
-        if (!fechaStr) return false;
-
-        const d = toDateOnly(new Date(fechaStr));
-        let ok = true;
-
-        if (periodo === "hoy") {
-          ok = ok && d.getTime() === hoy.getTime();
-        } else if (periodo === "pasados") {
-          ok = ok && d.getTime() < hoy.getTime();
-        } else if (periodo === "futuros") {
-          ok = ok && d.getTime() > hoy.getTime();
-        }
-
-        if (dateDesde) {
-          ok = ok && d.getTime() >= dateDesde.getTime();
-        }
-        if (dateHasta) {
-          ok = ok && d.getTime() <= dateHasta.getTime();
-        }
-
-        return ok;
-      });
-    }
-
-    // 2) Distrito
+    // 1) Distrito
     if (filtroDistrito) {
       arr = arr.filter((x) => x.cliente?.distrito === filtroDistrito);
     }
 
-    // 3) Cantidad exacta de productos
+    // 2) Cantidad exacta de productos
     if (filtroCantidad) {
       const cant = Number(filtroCantidad);
       const cantidadDeItems = (x: PedidoListItem) =>
@@ -218,7 +162,7 @@ export default function TablePedidoCourier({
       arr = arr.filter((x) => cantidadDeItems(x) === cant);
     }
 
-    // 4) búsqueda por nombre de producto
+    // 3) búsqueda por nombre de producto
     if (searchProducto.trim()) {
       const q = searchProducto.trim().toLowerCase();
       arr = arr.filter((x) =>
@@ -227,16 +171,7 @@ export default function TablePedidoCourier({
     }
 
     return arr;
-  }, [
-    itemsBase,
-    filtroDistrito,
-    filtroCantidad,
-    searchProducto,
-    periodo,
-    fechaDesde,
-    fechaHasta,
-    view,
-  ]);
+  }, [itemsBase, filtroDistrito, filtroCantidad, searchProducto]);
 
   // selección de items visibles
   const pageIds = itemsFiltrados.map((p) => p.id);
@@ -333,9 +268,6 @@ export default function TablePedidoCourier({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
-    setPeriodo("hoy");
-    setFechaDesde("");
-    setFechaHasta("");
   };
 
   return (
@@ -375,50 +307,57 @@ export default function TablePedidoCourier({
       </div>
 
       {/* Filtros */}
-      <div className="bg-white p-5 rounded shadow-default flex flex-col gap-4 border-b-4 border-gray90">
-        {/* Fila 1 */}
-        <div className="flex gap-5 items-end">
-          {/* Cantidad */}
-          <Selectx
-            label="Cantidad de productos"
-            name="filtro_cantidad"
-            value={filtroCantidad}
-            onChange={(e) => setFiltroCantidad(e.target.value)}
-            placeholder="Seleccionar cantidad"
-          >
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
-                {two(n)}
-              </option>
-            ))}
-          </Selectx>
+      <div className="bg-white p-5 rounded shadow-default flex gap-4 border-b-4 border-gray90">
+        {/* Distrito */}
+        <Selectx
+          label="Distrito"
+          name="filtro_distrito"
+          value={filtroDistrito}
+          onChange={(e) => setFiltroDistrito(e.target.value)}
+          placeholder="Todos los distritos"
+        >
+          {distritos.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </Selectx>
+        {/* Cantidad */}
+        <Selectx
+          label="Cantidad de productos"
+          name="filtro_cantidad"
+          value={filtroCantidad}
+          onChange={(e) => setFiltroCantidad(e.target.value)}
+          placeholder="Seleccionar cantidad"
+        >
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>
+              {two(n)}
+            </option>
+          ))}
+        </Selectx>
 
-          {/* Búsqueda */}
-          <div className="flex-1 min-w-[220px] flex flex-col gap-[10px]">
-            <label className="text-sm font-medium text-black block">
-              Buscar productos por nombre
-            </label>
-            <SearchInputx
-              placeholder="Buscar productos por nombre..."
-              value={searchProducto}
-              onChange={(e) => setSearchProducto(e.target.value)}
-            />
-          </div>
-
-          {/* Limpiar */}
-          <div className="flex items-end">
-            <Buttonx
-              variant="outlined"
-              onClick={handleClearFilters}
-              label="Limpiar filtros"
-              icon="mynaui:delete"
-            />
-          </div>
+        {/* Búsqueda */}
+        <div className="w-full flex flex-col gap-[10px]">
+          <label className="text-base font-normal text-black text-center block">
+            Buscar productos por nombre
+          </label>
+          <SearchInputx
+          
+            placeholder="Buscar productos por nombre..."
+            value={searchProducto}
+            onChange={(e) => setSearchProducto(e.target.value)}
+          />
         </div>
 
-        {/* Fila 2 */}
-        <div className="flex flex-wrap gap-4 items-end">
-          
+        {/* Limpiar */}
+        <div className="flex items-end">
+          <Buttonx
+            variant="outlined"
+            onClick={handleClearFilters}
+            label="Limpiar filtros"
+            icon="mynaui:delete"
+          />
         </div>
       </div>
 

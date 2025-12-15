@@ -1,15 +1,21 @@
-import { Icon } from '@iconify/react';
-import type { PedidoListItem } from '@/services/repartidor/pedidos/pedidos.types';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { Icon } from "@iconify/react";
+import type { PedidoListItem } from "@/services/repartidor/pedidos/pedidos.types";
+import { useCallback, useMemo, useRef, useState } from "react";
+import Buttonx from "@/shared/common/Buttonx";
+import { InputxTextarea } from "@/shared/common/Inputx";
 
-type ResultadoFinal = 'ENTREGADO' | 'RECHAZADO';
-type MetodoPagoUI = 'EFECTIVO' | 'BILLETERA' | 'DIRECTO_ECOMMERCE';
+// ✅ tus componentes
+import ImageUploadx from "@/shared/common/ImageUploadx";
+import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
+
+type ResultadoFinal = "ENTREGADO" | "RECHAZADO";
+type MetodoPagoUI = "EFECTIVO" | "BILLETERA" | "DIRECTO_ECOMMERCE";
 
 type ConfirmPayload =
-  | { pedidoId: number; resultado: 'RECHAZADO'; observacion?: string }
+  | { pedidoId: number; resultado: "RECHAZADO"; observacion?: string }
   | {
       pedidoId: number;
-      resultado: 'ENTREGADO';
+      resultado: "ENTREGADO";
       metodo: MetodoPagoUI;
       observacion?: string;
       evidenciaFile?: File;
@@ -23,7 +29,7 @@ type Props = {
   onConfirm?: (data: ConfirmPayload) => Promise<void> | void;
 };
 
-type Paso = 'resultado' | 'pago' | 'evidencia' | 'rechazo';
+type Paso = "resultado" | "pago" | "evidencia" | "rechazo";
 
 export default function ModalEntregaRepartidor({
   isOpen,
@@ -31,20 +37,24 @@ export default function ModalEntregaRepartidor({
   pedido,
   onConfirm,
 }: Props) {
-  // --- Hooks (orden estable) ---
-  const [paso, setPaso] = useState<Paso>('resultado');
+  const [paso, setPaso] = useState<Paso>("resultado");
   const [submitting, setSubmitting] = useState(false);
 
   const [resultado, setResultado] = useState<ResultadoFinal | null>(null);
   const [metodo, setMetodo] = useState<MetodoPagoUI | null>(null);
 
   // evidencia
-  const [evidenciaFile, setEvidenciaFile] = useState<File | undefined>(undefined);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null); // solo para descargar/ver
+  const [evidenciaFile, setEvidenciaFile] = useState<File | undefined>(
+    undefined
+  );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // preview modal
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string>("");
+
   // compat (no usados para EFECTIVO)
-  const [, setObservacion] = useState<string>('');
+  const [, setObservacion] = useState<string>("");
   const [, setFechaEntregaReal] = useState<string>(() => {
     const d = new Date();
     d.setSeconds(0, 0);
@@ -54,56 +64,76 @@ export default function ModalEntregaRepartidor({
   });
 
   // rechazo
-  const [obsRechazo, setObsRechazo] = useState<string>('');
+  const [obsRechazo, setObsRechazo] = useState<string>("");
 
   const resumen = useMemo(() => {
     if (!pedido) return null;
-    const fechaProg = pedido.fecha_entrega_programada || pedido.fecha_entrega_real;
-    const distrito = pedido.cliente?.distrito || '—';
-    const telefono = pedido.cliente?.celular || '—';
-    const codigo = pedido.codigo_pedido || `C${String(pedido.id).padStart(2, '0')}`;
-    const direccion = pedido.direccion_envio || '—';
-    const cliente = pedido.cliente?.nombre || '—';
-    const ecommerce = pedido.ecommerce?.nombre_comercial || '—';
+    const fechaProg =
+      pedido.fecha_entrega_programada || pedido.fecha_entrega_real;
+    const distrito = pedido.cliente?.distrito || "—";
+    const telefono = pedido.cliente?.celular || "—";
+    const codigo =
+      pedido.codigo_pedido || `C${String(pedido.id).padStart(2, "0")}`;
+    const direccion = pedido.direccion_envio || "—";
+    const cliente = pedido.cliente?.nombre || "—";
+    const ecommerce = pedido.ecommerce?.nombre_comercial || "—";
+    const referencia = pedido.cliente?.referencia || "—";
     const monto = Number(pedido.monto_recaudar || 0);
-    return { fechaProg, distrito, telefono, codigo, direccion, cliente, ecommerce, monto };
+    return {
+      fechaProg,
+      distrito,
+      telefono,
+      codigo,
+      direccion,
+      cliente,
+      ecommerce,
+      referencia,
+      monto,
+    };
   }, [pedido]);
 
   const requiresEvidencia = (m: MetodoPagoUI | null): boolean =>
-    m === 'BILLETERA' || m === 'DIRECTO_ECOMMERCE';
+    m === "BILLETERA" || m === "DIRECTO_ECOMMERCE";
 
-  const handleMetodo = (m: MetodoPagoUI) => {
-    setMetodo(m);
-    if (requiresEvidencia(m)) setPaso('evidencia');
-    else setPaso('pago');
-  };
+  // ✅ reset SOLO de evidencia (archivo + preview)
+  const resetEvidence = useCallback(() => {
+    setEvidenciaFile(undefined);
+    setPreviewOpen(false);
+    setPreviewSrc("");
+  }, []);
 
-  const onFilePicked = useCallback(
-    (file?: File) => {
+  // ✅ picking unificado (inputs + ImageUploadx)
+  const pickImage = useCallback(
+    (file?: File | null) => {
       if (!file) {
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-        setEvidenciaFile(undefined);
+        resetEvidence();
         return;
       }
-      if (!file.type.startsWith('image/')) return;
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+      if (!file.type?.startsWith("image/")) return;
       setEvidenciaFile(file);
     },
-    [previewUrl]
+    [resetEvidence]
+  );
+
+  // ✅ si cambia el método, resetea evidencia
+  const handleMetodo = useCallback(
+    (m: MetodoPagoUI) => {
+      if (metodo !== m) {
+        resetEvidence(); // 🔥 evita que se “arrastre” la imagen entre métodos
+      }
+      setMetodo(m);
+    },
+    [metodo, resetEvidence]
   );
 
   function reset() {
-    setPaso('resultado');
+    setPaso("resultado");
     setResultado(null);
     setMetodo(null);
-    setObservacion('');
-    setObsRechazo('');
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    setEvidenciaFile(undefined);
+    setObservacion("");
+    setObsRechazo("");
+    resetEvidence();
+
     const d = new Date();
     d.setSeconds(0, 0);
     const off = d.getTimezoneOffset();
@@ -117,9 +147,29 @@ export default function ModalEntregaRepartidor({
   }
 
   function handleNextFromResultado() {
-    if (resultado === 'ENTREGADO') setPaso('pago');
-    if (resultado === 'RECHAZADO') setPaso('rechazo');
+    if (resultado === "ENTREGADO") setPaso("pago");
+    if (resultado === "RECHAZADO") setPaso("rechazo");
   }
+
+  // ✅ volver “limpio” (sin selección marcada)
+  const backToResultadoFromPago = () => {
+    setPaso("resultado");
+    setResultado(null);     // 🔥 limpia selección
+    setMetodo(null);        // 🔥 limpia selección
+    resetEvidence();        // por si había algo
+  };
+
+  const backToPagoFromEvidencia = () => {
+    setPaso("pago");
+    setMetodo(null);        // 🔥 limpia selección
+    resetEvidence();        // 🔥 elimina evidencia
+  };
+
+  const backToResultadoFromRechazo = () => {
+    setPaso("resultado");
+    setResultado(null);     // 🔥 limpia selección
+    setObsRechazo("");      // 🔥 limpia observación
+  };
 
   async function handleConfirm() {
     if (!resultado || !pedido) return;
@@ -128,9 +178,13 @@ export default function ModalEntregaRepartidor({
     try {
       setSubmitting(true);
 
-      if (resultado === 'RECHAZADO') {
+      if (resultado === "RECHAZADO") {
         const obs = obsRechazo.trim() || undefined;
-        await onConfirm?.({ pedidoId: pid, resultado: 'RECHAZADO', observacion: obs });
+        await onConfirm?.({
+          pedidoId: pid,
+          resultado: "RECHAZADO",
+          observacion: obs,
+        });
         closeAll();
         return;
       }
@@ -140,7 +194,7 @@ export default function ModalEntregaRepartidor({
 
       await onConfirm?.({
         pedidoId: pid,
-        resultado: 'ENTREGADO',
+        resultado: "ENTREGADO",
         metodo,
         observacion: undefined,
         evidenciaFile,
@@ -152,123 +206,237 @@ export default function ModalEntregaRepartidor({
     }
   }
 
-  // Guard después de hooks
-  if (!isOpen || !pedido) return null;
+  if (!isOpen || !pedido || !resumen) return null;
 
   const telHref =
-    resumen?.telefono && resumen.telefono !== '—' ? `tel:${resumen.telefono}` : undefined;
+    resumen.telefono && resumen.telefono !== "—"
+      ? `tel:${resumen.telefono}`
+      : undefined;
   const waHref =
-    resumen?.telefono && resumen.telefono !== '—'
-      ? `https://wa.me/${resumen.telefono.replace(/\D/g, '')}`
+    resumen.telefono && resumen.telefono !== "—"
+      ? `https://wa.me/${resumen.telefono.replace(/\D/g, "")}`
       : undefined;
 
+  const fechaFormateada = resumen.fechaProg
+    ? new Date(resumen.fechaProg).toLocaleDateString("es-PE")
+    : "—";
+
+  const montoFormateado = new Intl.NumberFormat("es-PE", {
+    style: "currency",
+    currency: "PEN",
+  }).format(resumen.monto || 0);
+
+  // modo seguro para no romper TS si tu modal usa otros nombres
+  const ImagePreviewModal: any = ImagePreviewModalx;
+
   return (
-    <div className="fixed inset-0 z-[60]">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* overlay */}
       <div className="absolute inset-0 bg-black/40" onClick={closeAll} />
 
-      {/* Panel: layout en columna para header / contenido scroll / footer fijo */}
-      <div className="absolute inset-x-0 bottom-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[460px] bg-white rounded-t-3xl sm:rounded-none sm:rounded-l-3xl shadow-2xl overflow-hidden flex flex-col h-[90vh] sm:h-full">
+      {/* contenedor principal */}
+      <div className="relative z-10 w-full max-w-4xl mx-4 bg-[#F4F5F7] rounded-2xl shadow-2xl border border-gray-200 flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="px-4 pt-4 pb-3 border-b bg-gray-50 shrink-0">
-          <div className="flex items-center gap-2 text-emerald-700">
-            <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
-              <Icon icon="mdi:check-decagram-outline" className="text-lg" />
+        <div className="px-6 pt-4 pb-3 border-b border-gray-200">
+          <div className="flex flex-col items-center gap-2 text-emerald-600">
+            <div className="flex items-center gap-2">
+              <Icon icon="mdi:shield-check-outline" className="text-2xl" />
+              <h2 className="text-xl font-semibold tracking-wide uppercase text-emerald-600 text-center">
+                Confirmar entrega
+              </h2>
             </div>
-            <h2 className="text-[15px] font-semibold tracking-wide uppercase">
-              Validar contacto con el cliente
-            </h2>
+            <p className="text-xs text-gray-500 text-center">
+              Verifica que el pedido fue entregado correctamente
+            </p>
           </div>
-          <p className="text-xs text-gray-500">Validación de información para la entrega</p>
         </div>
 
-        {/* Contenido (scrollable) */}
-        <div className="p-4 space-y-4 overflow-y-auto flex-1 bg-white">
-          {/* Resumen */}
-          <section className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-            <div className="text-[11px] text-gray-500">Cliente</div>
-            <div className="font-medium text-gray-900">{resumen?.cliente}</div>
+        {/* Contenido */}
+        <div className="px-6 pb-4 pt-4 space-y-6 overflow-y-auto flex-1">
+          {/* Resumen + productos */}
+          <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="p-5">
+              <div className="text-xs text-gray-500 text-center">Cliente</div>
+              <div className="text-base md:text-lg font-semibold text-gray-900 text-center">
+                {resumen.cliente}
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 mt-3 text-sm">
-              <Item label="Código" icon="mdi:identifier">{resumen?.codigo}</Item>
-              <Item label="Teléfono" icon="mdi:phone">{resumen?.telefono}</Item>
-              <Item label="Distrito" icon="mdi:map-marker-outline">{resumen?.distrito}</Item>
-              <Item label="Ecommerce" icon="mdi:store-outline">{resumen?.ecommerce}</Item>
-              <Item label="Dirección" icon="mdi:home-map-marker">{resumen?.direccion}</Item>
-              <Item label="S/. Monto" icon="mdi:cash">
-                {new Intl.NumberFormat('es-PE',{style:'currency',currency:'PEN'}).format(resumen?.monto||0)}
-              </Item>
-              <Item label="Fecha" icon="mdi:calendar-blank-outline">
-                {resumen?.fechaProg ? new Date(resumen.fechaProg).toLocaleDateString('es-PE') : '—'}
-              </Item>
-            </div>
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1 text-sm">
+                  <ResumenRow label="Código" value={resumen.codigo} />
+                  <ResumenRow label="Distrito" value={resumen.distrito} />
+                  <ResumenRow label="Dirección" value={resumen.direccion} />
+                  <ResumenRow label="Referencia" value={resumen.referencia} />
+                </div>
 
-            {/* Acciones rápidas */}
-            <div className="mt-4 flex items-center justify-center gap-5">
-              <AccionCircular icon="mdi:phone" label="Llamar" href={telHref} />
-              <AccionCircular icon="mdi:whatsapp" label="WhatsApp" href={waHref} />
-              <AccionCircular icon="mdi:account-voice" label="Otros" onClick={() => {}} />
+                <div className="space-y-2 text-sm">
+                  <InfoIconRow
+                    icon="mdi:phone"
+                    color="text-emerald-600"
+                    label={resumen.telefono}
+                    href={telHref}
+                  />
+                  <InfoIconRow
+                    icon="mdi:store-outline"
+                    color="text-indigo-500"
+                    label={resumen.ecommerce}
+                  />
+                  <InfoIconRow
+                    icon="mdi:cash"
+                    color="text-amber-500"
+                    label={montoFormateado}
+                  />
+                  <InfoIconRow
+                    icon="mdi:calendar-blank-outline"
+                    color="text-purple-500"
+                    label={fechaFormateada}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-center gap-5">
+                <AccionCircular icon="mdi:phone" label="Llamar" href={telHref} />
+                <AccionCircular
+                  icon="mdi:whatsapp"
+                  label="WhatsApp"
+                  href={waHref}
+                />
+                <AccionCircular
+                  icon="mdi:account-voice"
+                  label="Otros"
+                  onClick={() => {}}
+                />
+              </div>
+
+              <div className="mt-4 bg-white rounded-md overflow-hidden shadow-default border border-gray30">
+                <table className="min-w-full table-fixed text-[13px] bg-white">
+                  <thead className="bg-[#E5E7EB]">
+                    <tr className="text-gray70 font-roboto font-medium">
+                      <th className="px-4 py-2 text-left">Producto</th>
+                      <th className="px-4 py-2 text-right w-16">Cant.</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray20">
+                    {pedido.items?.length ? (
+                      pedido.items.map((it, idx) => (
+                        <tr key={idx} className="hover:bg-gray10 transition-colors">
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            <div>{it.nombre}</div>
+                            {it.descripcion && (
+                              <div className="text-xs text-gray-500">
+                                {it.descripcion}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right text-sm text-gray-800 font-medium">
+                            {String(it.cantidad).padStart(2, "0")}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={2} className="px-4 py-4 text-center text-xs text-gray-500">
+                          No hay productos en este pedido.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
 
           {/* Paso: Resultado */}
-          {paso === 'resultado' && (
-            <section>
-              <h3 className="text-sm font-semibold text-gray-900">¿Cuál fue el resultado final?</h3>
-              <p className="text-xs text-gray-500">Elige una de estas opciones</p>
+          {paso === "resultado" && (
+            <section className="mt-2">
+              <h3 className="text-center text-base md:text-lg font-semibold text-gray-900">
+                ¿CUÁL FUE EL RESULTADO FINAL DE LA ENTREGA?
+              </h3>
+              <p className="text-center text-xs text-gray-500 mt-1">
+                Elige una de estas opciones
+              </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <OpcionCard
-                  active={resultado === 'ENTREGADO'}
-                  icon="mdi:check-circle-outline"
-                  title="Entregado"
-                  onClick={() => setResultado('ENTREGADO')}
-                  activeColor="blue"
-                  fill
+                  active={resultado === "ENTREGADO"}
+                  icon="mdi:check"
+                  title="Pedido entregado"
+                  onClick={() => setResultado("ENTREGADO")}
+                  activeColor="emerald"
                 />
                 <OpcionCard
-                  active={resultado === 'RECHAZADO'}
-                  icon="mdi:close-circle-outline"
-                  title="Pedido rechazado"
-                  onClick={() => setResultado('RECHAZADO')}
+                  active={resultado === "RECHAZADO"}
+                  icon="mdi:close"
+                  title="Pedido no entregado"
+                  onClick={() => setResultado("RECHAZADO")}
                   activeColor="red"
-                  fill
                 />
               </div>
             </section>
           )}
 
-          {/* Paso: Forma de pago */}
-          {paso === 'pago' && (
+          {/* Paso: Pago */}
+          {paso === "pago" && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Forma de pago</h3>
-              <p className="text-xs text-gray-500">Elige una de estas opciones</p>
+              <h3 className="text-sm font-semibold text-[#1D3F8C] uppercase tracking-wide text-center">
+                FORMA DE PAGO
+              </h3>
+              <p className="text-xs text-gray-500 text-center">
+                Elige una de estas opciones
+              </p>
 
-              <div className="grid grid-cols-1 gap-3 mt-3">
-                <OpcionCard active={metodo === 'EFECTIVO'} icon="mdi:cash" title="Efectivo" onClick={() => handleMetodo('EFECTIVO')} activeColor="yellow" fill />
-                <OpcionCard active={metodo === 'BILLETERA'} icon="mdi:qrcode-scan" title="Pago por Billetera Digital" onClick={() => handleMetodo('BILLETERA')} activeColor="lime" fill />
-                <OpcionCard active={metodo === 'DIRECTO_ECOMMERCE'} icon="mdi:credit-card-outline" title="Pago directo al Ecommerce" onClick={() => handleMetodo('DIRECTO_ECOMMERCE')} activeColor="blue" fill />
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <OpcionCard
+                  active={metodo === "EFECTIVO"}
+                  icon="mdi:cash"
+                  title="Efectivo"
+                  onClick={() => handleMetodo("EFECTIVO")}
+                  activeColor="emerald"
+                />
+                <OpcionCard
+                  active={metodo === "BILLETERA"}
+                  icon="mdi:qrcode-scan"
+                  title="Pago por Billetera Digital"
+                  onClick={() => handleMetodo("BILLETERA")}
+                  activeColor="yellow"
+                />
+                <OpcionCard
+                  active={metodo === "DIRECTO_ECOMMERCE"}
+                  icon="mdi:credit-card-outline"
+                  title="Pago directo al Ecommerce"
+                  onClick={() => handleMetodo("DIRECTO_ECOMMERCE")}
+                  activeColor="blue"
+                />
               </div>
             </section>
           )}
 
-          {/* Paso: Evidencias (sin dropzone ni preview grande) */}
-          {paso === 'evidencia' && (
+          {/* Paso: Evidencias */}
+          {paso === "evidencia" && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Subir evidencias</h3>
-              <p className="text-xs text-gray-500">Sube una evidencia para verificación del pago</p>
+              <h3 className="text-center text-base md:text-lg font-semibold text-[#1D3F8C] uppercase">
+                SUBIR EVIDENCIAS
+              </h3>
+              <p className="text-center text-xs text-gray-500 mt-1">
+                Sube una evidencia para verificación del pago
+              </p>
 
-              {/* Solo botones */}
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label className="block">
                   <input
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => onFilePicked(e.target.files?.[0])}
+                    onChange={(e) => {
+                      pickImage(e.target.files?.[0] ?? null);
+                      e.currentTarget.value = "";
+                    }}
                   />
-                  <div className="w-full border rounded-xl px-3 py-2 text-sm flex items-center gap-2 cursor-pointer shadow-sm hover:bg-gray-50">
-                    <Icon icon="mdi:upload" className="text-xl" />
-                    Adjuntar imagen
+                  <div className="w-full rounded-2xl bg-white border border-gray-200 px-5 py-3 flex items-center justify-center gap-3 cursor-pointer shadow-[0_6px_18px_rgba(15,23,42,0.12)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 transition">
+                    <Icon icon="mdi:upload" className="text-2xl text-gray-900" />
+                    <span className="text-sm font-medium text-gray-900">
+                      Adjuntar imagen
+                    </span>
                   </div>
                 </label>
 
@@ -279,190 +447,258 @@ export default function ModalEntregaRepartidor({
                     capture="environment"
                     className="hidden"
                     ref={fileInputRef}
-                    onChange={(e) => onFilePicked(e.target.files?.[0])}
+                    onChange={(e) => {
+                      pickImage(e.target.files?.[0] ?? null);
+                      e.currentTarget.value = "";
+                    }}
                   />
-                  <div className="w-full border rounded-xl px-3 py-2 text-sm flex items-center gap-2 cursor-pointer shadow-sm hover:bg-gray-50">
-                    <Icon icon="mdi:camera-outline" className="text-xl" />
-                    Tomar foto
+                  <div className="w-full rounded-2xl bg-white border border-gray-200 px-5 py-3 flex items-center justify-center gap-3 cursor-pointer shadow-[0_6px_18px_rgba(15,23,42,0.12)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 transition">
+                    <Icon
+                      icon="mdi:camera-outline"
+                      className="text-2xl text-gray-900"
+                    />
+                    <span className="text-sm font-medium text-gray-900">
+                      Tomar foto
+                    </span>
                   </div>
                 </label>
               </div>
 
-              {/* Ficha del archivo (sin preview embebido) */}
               {evidenciaFile && (
-                <div className="mt-3 flex items-center justify-between rounded-xl border bg-white px-3 py-2 shadow-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center">
-                      <Icon icon="mdi:image-outline" className="text-lg text-gray-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm text-gray-900 truncate">{evidenciaFile.name || 'evidencia.jpg'}</div>
-                      <div className="text-[11px] text-gray-500">{(evidenciaFile.size / 1024).toFixed(1)} KB</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* Descargar */}
-                    <button
-                      type="button"
-                      title="Descargar"
-                      className="w-9 h-9 rounded-md bg-gray-900 text-white flex items-center justify-center hover:opacity-90"
-                      onClick={() => {
-                        if (!previewUrl) return;
-                        const a = document.createElement('a');
-                        a.href = previewUrl;
-                        a.download = evidenciaFile.name || 'evidencia.jpg';
-                        a.click();
-                      }}
-                    >
-                      <Icon icon="mdi:download" className="text-base" />
-                    </button>
-                    {/* Ver en nueva pestaña */}
-                    <button
-                      type="button"
-                      title="Ver"
-                      className="w-9 h-9 rounded-md bg-gray-900 text-white flex items-center justify-center hover:opacity-90"
-                      onClick={() => {
-                        if (previewUrl) window.open(previewUrl, '_blank');
-                      }}
-                    >
-                      <Icon icon="mdi:eye-outline" className="text-base" />
-                    </button>
-                    {/* Eliminar */}
-                    <button
-                      type="button"
-                      title="Eliminar"
-                      className="w-9 h-9 rounded-md bg-gray-900 text-white flex items-center justify-center hover:opacity-90"
-                      onClick={() => onFilePicked(undefined)}
-                    >
-                      <Icon icon="mdi:trash-can-outline" className="text-base" />
-                    </button>
-                  </div>
+                <div className="mt-4">
+                  <ImageUploadx
+                    value={evidenciaFile}
+                    onChange={(file) => pickImage(file)}
+                    mode="edit"
+                    size="md"
+                    confirmOnDelete={false}
+                    onView={(url) => {
+                      setPreviewSrc(url);
+                      setPreviewOpen(true);
+                    }}
+                  />
                 </div>
               )}
             </section>
           )}
 
           {/* Paso: Rechazo */}
-          {paso === 'rechazo' && (
+          {paso === "rechazo" && (
             <section>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+              <h3 className="text-center text-base md:text-lg font-semibold text-gray-900 uppercase">
                 ¿POR QUÉ EL PEDIDO FUE RECHAZADO?
               </h3>
-              <p className="text-xs text-gray-500">Escribe la observación</p>
+              <p className="text-center text-xs text-gray-500 mt-1">
+                Escribe la observación
+              </p>
 
-              <div className="mt-3">
-                <label className="text-xs text-gray-600">Observación</label>
-                <textarea
-                  className="w-full border rounded-xl px-3 py-2 text-sm min-h-[110px] resize-y focus:outline-none focus:ring-2 focus:ring-red-300"
-                  placeholder="Escribe aquí"
-                  value={obsRechazo}
-                  onChange={(e) => setObsRechazo(e.target.value)}
-                />
-              </div>
+              <InputxTextarea
+                label="Observación"
+                placeholder="Escribe aquí"
+                value={obsRechazo}
+                onChange={(e) => setObsRechazo(e.target.value)}
+                minRows={3}
+                maxRows={5}
+              />
             </section>
           )}
         </div>
 
-        {/* Footer fijo */}
-        <div className="px-4 py-3 border-t bg-white flex items-center gap-3 shrink-0">
-          {paso !== 'resultado' ? (
-            <button
-              className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50"
-              onClick={() => {
-                if (paso === 'pago') setPaso('resultado');
-                else if (paso === 'evidencia') setPaso('pago');
-                else if (paso === 'rechazo') setPaso('resultado');
-              }}
-              disabled={submitting}
-            >
-              ← Volver
-            </button>
-          ) : (
-            <button className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50" onClick={closeAll} disabled={submitting}>
-              Cancelar
-            </button>
+        {/* Footer */}
+        <div className="px-6 py-3 border-t border-gray-200 bg-[#F4F5F7] flex items-center justify-center gap-3">
+          {/* RESULTADO */}
+          {paso === "resultado" && (
+            <>
+              <Buttonx
+                label="Cancelar"
+                variant="outlined"
+                onClick={closeAll}
+                disabled={submitting}
+              />
+              <Buttonx
+                label="Siguiente"
+                variant="quartery"
+                icon="mdi:arrow-right"
+                iconPosition="right"
+                onClick={handleNextFromResultado}
+                disabled={!resultado || submitting}
+              />
+            </>
           )}
 
-          {paso !== 'resultado' && (
-            <button className="border rounded-xl py-2 px-4 text-gray-700 hover:bg-gray-50" onClick={closeAll} disabled={submitting}>
-              Cancelar
-            </button>
-          )}
-
-          {paso === 'resultado' && resultado && (
-            <button
-              className={`ml-auto rounded-xl py-2 px-4 text-white ${
-                resultado === 'RECHAZADO' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
-              } disabled:opacity-50`}
-              onClick={handleNextFromResultado}
-              disabled={!resultado || submitting}
-            >
-              Siguiente →
-            </button>
-          )}
-
-          {paso === 'pago' && (
-            <button
-              className="ml-auto rounded-xl py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-              onClick={() => {
-                if (metodo === 'EFECTIVO') {
-                  handleConfirm();
-                } else if (metodo && requiresEvidencia(metodo)) {
-                  setPaso('evidencia');
+          {/* PAGO */}
+          {paso === "pago" && (
+            <>
+              <Buttonx
+                label="Volver"
+                variant="outlined"
+                icon="mdi:arrow-left"
+                iconPosition="left"
+                onClick={backToResultadoFromPago} // ✅ vuelve y limpia selección
+                disabled={submitting}
+              />
+              <Buttonx
+                label="Cancelar"
+                variant="outlined"
+                onClick={closeAll}
+                disabled={submitting}
+              />
+              <Buttonx
+                label={
+                  metodo === "EFECTIVO"
+                    ? submitting
+                      ? "Guardando..."
+                      : "Confirmar"
+                    : "Siguiente"
                 }
-              }}
-              disabled={submitting || !metodo}
-            >
-              {metodo === 'EFECTIVO' ? (submitting ? 'Guardando...' : 'Confirmar') : 'Siguiente →'}
-            </button>
+                variant="quartery"
+                icon={
+                  metodo === "EFECTIVO"
+                    ? !submitting
+                      ? "mdi:check"
+                      : undefined
+                    : "mdi:arrow-right"
+                }
+                iconPosition="right"
+                onClick={() => {
+                  if (!metodo) return;
+
+                  if (metodo === "EFECTIVO") {
+                    handleConfirm();
+                    return;
+                  }
+
+                  if (requiresEvidencia(metodo)) {
+                    resetEvidence(); // ✅ siempre entrar “limpio” a evidencia
+                    setPaso("evidencia");
+                  }
+                }}
+                disabled={submitting || !metodo}
+              />
+            </>
           )}
 
-          {paso === 'evidencia' && (
-            <button
-              className="ml-auto rounded-xl py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-              onClick={handleConfirm}
-              disabled={submitting || !evidenciaFile}
-            >
-              {submitting ? 'Guardando...' : 'Confirmar'}
-            </button>
+          {/* EVIDENCIA */}
+          {paso === "evidencia" && (
+            <>
+              <Buttonx
+                label="Volver"
+                variant="outlined"
+                icon="mdi:arrow-left"
+                iconPosition="left"
+                onClick={backToPagoFromEvidencia} // ✅ vuelve y limpia selección + evidencia
+                disabled={submitting}
+              />
+              <Buttonx
+                label="Cancelar"
+                variant="outlined"
+                onClick={closeAll}
+                disabled={submitting}
+              />
+              <Buttonx
+                label={submitting ? "Guardando..." : "Confirmar"}
+                variant="quartery"
+                icon={!submitting ? "mdi:check" : undefined}
+                iconPosition="right"
+                onClick={handleConfirm}
+                disabled={submitting || !evidenciaFile}
+              />
+            </>
           )}
 
-          {paso === 'rechazo' && (
-            <button
-              className="ml-auto rounded-xl py-2 px-4 text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
-              onClick={handleConfirm}
-              disabled={submitting}
-            >
-              {submitting ? 'Guardando...' : 'Confirmar'}
-            </button>
+          {/* RECHAZO */}
+          {paso === "rechazo" && (
+            <>
+              <Buttonx
+                label="Volver"
+                variant="outlined"
+                icon="mdi:arrow-left"
+                iconPosition="left"
+                onClick={backToResultadoFromRechazo} // ✅ vuelve y limpia selección + obs
+                disabled={submitting}
+              />
+              <Buttonx
+                label="Cancelar"
+                variant="outlined"
+                onClick={closeAll}
+                disabled={submitting}
+              />
+              <Buttonx
+                label={submitting ? "Guardando..." : "Confirmar"}
+                variant="quartery"
+                icon={!submitting ? "mdi:check" : undefined}
+                iconPosition="right"
+                onClick={handleConfirm}
+                disabled={submitting}
+              />
+            </>
           )}
         </div>
       </div>
+
+      {/* Preview modal */}
+      <ImagePreviewModal
+        open={previewOpen}
+        isOpen={previewOpen}
+        src={previewSrc}
+        imageUrl={previewSrc}
+        title={evidenciaFile?.name || "Evidencia"}
+        onClose={() => setPreviewOpen(false)}
+        onOpenChange={(v: boolean) => setPreviewOpen(v)}
+      />
     </div>
   );
 }
 
 /* ------- Subcomponentes ------- */
 
-function Item({
+function ResumenRow({
   label,
-  icon,
-  children,
+  value,
 }: {
   label: string;
-  icon: string;
-  children: React.ReactNode;
+  value: string | number;
 }) {
   return (
-    <div className="flex items-start gap-2">
-      <Icon icon={icon} className="mt-0.5 text-base text-gray-500" />
-      <div className="min-w-0">
-        <div className="text-[11px] text-gray-500">{label}</div>
-        <div className="text-gray-900 truncate">{children}</div>
-      </div>
+    <div className="text-sm leading-snug">
+      <span className="text-gray-500">{label}:</span>{" "}
+      <span className="text-gray-900">{value}</span>
     </div>
   );
+}
+
+function InfoIconRow({
+  icon,
+  label,
+  href,
+  color,
+}: {
+  icon: string;
+  label: string;
+  href?: string;
+  color?: string;
+}) {
+  const content = (
+    <div className="flex items-center gap-2">
+      <Icon icon={icon} className={`text-lg ${color ?? "text-emerald-600"}`} />
+      <span className="text-gray-900 text-sm">{label}</span>
+    </div>
+  );
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="hover:underline"
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return content;
 }
 
 function AccionCircular({
@@ -482,7 +718,12 @@ function AccionCircular({
     </div>
   );
   return href ? (
-    <a href={href} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1">
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="flex flex-col items-center gap-1"
+    >
       {Circle}
       <span className="text-[11px] text-gray-600">{label}</span>
     </a>
@@ -499,39 +740,55 @@ function OpcionCard({
   icon,
   title,
   onClick,
-  activeColor = 'emerald',
-  fill = false,
+  activeColor = "emerald",
 }: {
   active: boolean;
   icon: string;
   title: string;
   onClick: () => void;
-  activeColor?: 'blue' | 'red' | 'emerald' | 'yellow' | 'lime';
-  fill?: boolean;
+  activeColor?: "blue" | "red" | "emerald" | "yellow" | "lime";
 }) {
   const palette = {
-    blue: { ring: 'ring-blue-300', border: 'border-blue-500', bg: 'bg-blue-600', pale: 'bg-blue-50', text: 'text-blue-600' },
-    red: { ring: 'ring-red-300', border: 'border-red-500', bg: 'bg-red-600', pale: 'bg-red-50', text: 'text-red-600' },
-    emerald: { ring: 'ring-emerald-300', border: 'border-emerald-500', bg: 'bg-emerald-600', pale: 'bg-emerald-50', text: 'text-emerald-600' },
-    yellow: { ring: 'ring-yellow-300', border: 'border-yellow-500', bg: 'bg-yellow-500', pale: 'bg-yellow-50', text: 'text-yellow-600' },
-    lime: { ring: 'ring-lime-300', border: 'border-lime-500', bg: 'bg-lime-500', pale: 'bg-lime-50', text: 'text-lime-600' },
+    emerald: {
+      card: "bg-emerald-500 text-white shadow-[0_6px_18px_rgba(16,185,129,0.45)]",
+      circle: "border-emerald-500 text-emerald-500",
+    },
+    red: {
+      card: "bg-red-500 text-white shadow-[0_6px_18px_rgba(239,68,68,0.45)]",
+      circle: "border-red-500 text-red-500",
+    },
+    yellow: {
+      card: "bg-amber-400 text-white shadow-[0_6px_18px_rgba(251,191,36,0.45)]",
+      circle: "border-amber-400 text-amber-500",
+    },
+    lime: {
+      card: "bg-lime-500 text-white shadow-[0_6px_18px_rgba(132,204,22,0.45)]",
+      circle: "border-lime-500 text-lime-500",
+    },
+    blue: {
+      card: "bg-blue-600 text-white shadow-[0_6px_18px_rgba(37,99,235,0.45)]",
+      circle: "border-blue-600 text-blue-600",
+    },
   }[activeColor];
 
-  const activeFilled = `border ${palette.border} ${fill ? `${palette.bg} text-white` : `${palette.pale} ${palette.text}`} shadow-sm`;
-  const inactive = 'border border-gray-200 hover:bg-gray-50 text-gray-800';
+  const baseCard =
+    "w-full rounded-2xl px-5 py-3 flex items-center justify-center gap-3 transition shadow-sm";
+  const inactiveCard =
+    "bg-white text-gray-900 border border-gray-200 hover:border-gray-300 hover:shadow-md";
 
   return (
     <button
       onClick={onClick}
-      className={`w-full rounded-2xl p-3 text-left flex items-center gap-3 transition focus:outline-none focus:ring-2 ${
-        active ? `${palette.ring} ${activeFilled}` : `ring-gray-200 ${inactive}`
-      }`}
+      type="button"
+      className={`${baseCard} ${active ? palette.card : inactiveCard}`}
     >
-      <div className={`w-9 h-9 rounded-full flex items-center justify-center ${active ? 'bg-white/20' : 'bg-gray-100'}`}>
-        <Icon icon={icon} className={`text-xl ${active ? 'text-white' : 'text-gray-700'}`} />
+      <div
+        className={`w-10 h-10 aspect-square rounded-full shrink-0 flex items-center justify-center bg-white border-2 ${palette.circle}`}
+      >
+        <Icon icon={icon} className="text-lg" />
       </div>
-      <div className={`text-sm font-medium ${active ? 'opacity-95' : ''}`}>{title}</div>
-      {active && <Icon icon="mdi:check" className="ml-auto text-xl text-white" />}
+
+      <div className="text-sm font-medium leading-snug text-center">{title}</div>
     </button>
   );
 }
