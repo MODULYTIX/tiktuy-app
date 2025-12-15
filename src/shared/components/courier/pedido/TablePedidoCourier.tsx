@@ -158,15 +158,6 @@ export default function TablePedidoCourier({
     return x;
   };
 
-  // distritos únicos para el filtro
-  const distritos = useMemo(
-    () =>
-      Array.from(
-        new Set(itemsBase.map((x) => x.cliente?.distrito).filter(Boolean))
-      ).sort(),
-    [itemsBase]
-  );
-
   // filtros visuales (client-side)
   const itemsFiltrados = useMemo(() => {
     let arr = [...itemsBase];
