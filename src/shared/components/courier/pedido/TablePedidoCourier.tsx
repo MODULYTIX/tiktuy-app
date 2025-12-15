@@ -134,7 +134,6 @@ export default function TablePedidoCourier({
 
   const itemsBase = data?.items ?? [];
 
-<<<<<<< HEAD
   // distritos únicos para el filtro
   const distritos = useMemo(
     () =>
@@ -143,21 +142,6 @@ export default function TablePedidoCourier({
       ).sort() as string[],
     [itemsBase]
   );
-=======
-  // helper: fecha de referencia de un pedido según vista
-  const getFechaReferencia = (p: PedidoListItem): string | null => {
-    if (view === "terminados") {
-      return p.fecha_entrega_real ?? p.fecha_entrega_programada ?? null;
-    }
-    return p.fecha_entrega_programada ?? null;
-  };
-
-  const toDateOnly = (d: Date) => {
-    const x = new Date(d);
-    x.setHours(0, 0, 0, 0);
-    return x;
-  };
->>>>>>> 82bf8587b301f1d83aa8fe2825c3be0c92b52d3c
 
   // filtros visuales (client-side)
   const itemsFiltrados = useMemo(() => {
