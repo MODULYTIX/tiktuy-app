@@ -145,17 +145,34 @@ export default function TableStockProductoCourier({
 
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
 
+  // ✅ STOCK con el MISMO formato del código base (badge + texto abajo)
   const renderStock = (p: Producto) => {
-    const stockBajo = (p.stock ?? 0) <= (p.stock_minimo ?? 0);
+    const isInvalid = p.stock == null || p.stock_minimo == null;
+
+    if (isInvalid) {
+      return <span className="text-xs text-red-500">Datos no disponibles</span>;
+    }
+
+    const stock = toNumber(p.stock);
+    const minimo = toNumber(p.stock_minimo);
+
+    // igualito al base: "bajo" cuando stock < mínimo
+    const bajo = stock < minimo;
+    const bg = bajo
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-green-100 text-green-700";
+
+    const texto = bajo ? "Stock bajo" : "Stock normal";
+
     return (
-      <div className="flex items-center gap-2">
-        <span className={stockBajo ? "text-amber-600" : "text-green-600"}>
-          <FaBoxOpen />
+      <div className="flex flex-col items-start gap-1">
+        <span
+          className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}
+        >
+          <FaBoxOpen className="text-[14px]" />
+          {stock}
         </span>
-        <span className="text-gray70">{p.stock ?? 0}</span>
-        <span className="text-xs text-gray-500">
-          {stockBajo ? "Stock bajo" : "Stock normal"}
-        </span>
+        <div className="text-xs text-gray-500">{texto}</div>
       </div>
     );
   };
@@ -175,7 +192,6 @@ export default function TableStockProductoCourier({
         <section className="flex-1 overflow-auto">
           <div className="overflow-x-auto bg-white">
             <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-              {/* Agregamos la columna Miniatura */}
               <colgroup>
                 <col className="w-[8%]" /> {/* Miniatura */}
                 <col className="w-[12%]" /> {/* Código */}
@@ -214,6 +230,7 @@ export default function TableStockProductoCourier({
                   <>
                     {currentData.map((p) => {
                       const precioNum = toNumber(p.precio);
+
                       return (
                         <tr
                           key={p.id}
@@ -250,6 +267,7 @@ export default function TableStockProductoCourier({
                             )}
                           </td>
 
+                          {/* ✅ aquí ya queda con el formato del stock del código base */}
                           <td className="px-4 py-3">{renderStock(p)}</td>
 
                           <td className="px-4 py-3 text-right text-gray70 font-[400]">
@@ -275,7 +293,7 @@ export default function TableStockProductoCourier({
                                 onClick={() =>
                                   typeof onView === "function"
                                     ? onView(p)
-                                    : console.log("ver", p.uuid)
+                                    : console.log("ver", (p as any).uuid)
                                 }
                                 aria-label={`Ver ${p.nombre_producto}`}
                                 type="button"
@@ -290,10 +308,7 @@ export default function TableStockProductoCourier({
 
                     {emptyRows > 0 &&
                       Array.from({ length: emptyRows }).map((_, idx) => (
-                        <tr
-                          key={`empty-${idx}`}
-                          className="hover:bg-transparent"
-                        >
+                        <tr key={`empty-${idx}`} className="hover:bg-transparent">
                           {Array.from({ length: 8 }).map((__, i) => (
                             <td key={i} className="px-4 py-3">
                               &nbsp;

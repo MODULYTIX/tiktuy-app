@@ -386,9 +386,6 @@ export default function StockTable({
                   onClick={() => goToPage(p)}
                   className={[
                     "w-8 h-8 flex items-center justify-center rounded",
-                    page === p
-                      ? "bg-gray90 text-white"
-                      : "bg-gray10 text-gray70 hover:bg-gray20",
                   ].join(" ")}
                 >
                   {p}
