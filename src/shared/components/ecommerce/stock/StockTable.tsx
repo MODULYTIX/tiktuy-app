@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { FaEye, FaEdit } from "react-icons/fa";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
 import Badgex from "@/shared/common/Badgex";
 
 interface Props {
   productos: Producto[];
+
+  /** Backend pagination */
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+
   onVer: (producto: Producto) => void;
   onEditar: (producto: Producto) => void;
   filtrarInactivos?: boolean;
@@ -15,96 +21,66 @@ interface Props {
 const PAGE_SIZE = 5;
 
 /* ---------------------------------------------------
-   SKELETON ROW COMPONENT
+   SKELETON ROW
 ---------------------------------------------------- */
 const SkeletonRow = () => (
   <tr className="animate-pulse">
-    {/* Miniatura */}
-    <td className="px-4 py-4">
-      <div className="w-12 h-12 bg-gray-200 rounded-md"></div>
+    <td className="h-12 px-4 py-3"><div className="w-10 h-10 bg-gray-200 rounded" /></td>
+    <td className="h-12 px-4 py-3"><div className="h-3 w-16 bg-gray-200 rounded" /></td>
+    <td className="h-12 px-4 py-3">
+      <div className="h-3 w-40 bg-gray-200 rounded mb-1" />
+      <div className="h-3 w-28 bg-gray-200 rounded" />
     </td>
-
-    {/* Código */}
-    <td className="px-4 py-4">
-      <div className="h-3 w-16 bg-gray-200 rounded"></div>
-    </td>
-
-    {/* Producto */}
-    <td className="px-4 py-4">
-      <div className="h-3 w-40 bg-gray-200 rounded mb-2"></div>
-      <div className="h-3 w-28 bg-gray-200 rounded"></div>
-    </td>
-
-    {/* Sede */}
-    <td className="px-4 py-4">
-      <div className="h-3 w-24 bg-gray-200 rounded"></div>
-    </td>
-
-    {/* Stock */}
-    <td className="px-4 py-4">
-      <div className="h-3 w-14 bg-gray-200 rounded mb-1"></div>
-      <div className="h-3 w-20 bg-gray-200 rounded"></div>
-    </td>
-
-    {/* Precio */}
-    <td className="px-4 py-4 text-right">
-      <div className="h-3 w-12 bg-gray-200 rounded ml-auto"></div>
-    </td>
-
-    {/* Estado */}
-    <td className="px-4 py-4 text-center">
-      <div className="h-4 w-16 bg-gray-200 rounded mx-auto"></div>
-    </td>
-
-    {/* Acciones */}
-    <td className="px-4 py-4 text-center">
-      <div className="flex items-center justify-center gap-3">
-        <div className="w-4 h-4 bg-gray-200 rounded"></div>
-        <div className="w-4 h-4 bg-gray-200 rounded"></div>
+    <td className="h-12 px-4 py-3"><div className="h-3 w-24 bg-gray-200 rounded" /></td>
+    <td className="h-12 px-4 py-3"><div className="h-3 w-20 bg-gray-200 rounded" /></td>
+    <td className="h-12 px-4 py-3 text-right"><div className="h-3 w-12 bg-gray-200 rounded ml-auto" /></td>
+    <td className="h-12 px-4 py-3 text-center"><div className="h-4 w-16 bg-gray-200 rounded mx-auto" /></td>
+    <td className="h-12 px-4 py-3 text-center">
+      <div className="flex justify-center gap-3">
+        <div className="w-4 h-4 bg-gray-200 rounded" />
+        <div className="w-4 h-4 bg-gray-200 rounded" />
       </div>
     </td>
   </tr>
 );
 
+/* ---------------------------------------------------
+   COMPONENT
+---------------------------------------------------- */
 export default function StockTable({
   productos,
+  currentPage,
+  totalPages,
+  onPageChange,
   onVer,
   onEditar,
   filtrarInactivos = true,
   soloLectura = false,
   loading = false,
 }: Props) {
-  const [page, setPage] = useState(1);
-
   /* ---------------------------------------------------
-    FILTRADO REAL
+     FILTRADO (NO PAGINA)
   ---------------------------------------------------- */
   const productosFiltrados = useMemo(() => {
     const base = [...productos];
-
     if (!filtrarInactivos) return base;
 
     return base.filter((p: any) => {
       const estado = p?.estado?.nombre?.toLowerCase?.() ?? "";
       const tieneStock = typeof p?.stock === "number" && p.stock > 0;
-
       return estado !== "inactivo" && tieneStock;
     });
   }, [productos, filtrarInactivos]);
 
+  const currentData = productosFiltrados;
+
   /* ---------------------------------------------------
-    PAGINACIÓN
+     PAGINADOR
   ---------------------------------------------------- */
-  const totalPages = Math.max(1, Math.ceil(productosFiltrados.length / PAGE_SIZE));
-
-  useEffect(() => {
-    setPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
-
-  const currentData = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return productosFiltrados.slice(start, start + PAGE_SIZE);
-  }, [productosFiltrados, page]);
+  const goToPage = (p: number) => {
+    if (p < 1 || p > totalPages || p === currentPage) return;
+    onPageChange(p);
+  };
 
   const pagerItems = useMemo(() => {
     const maxButtons = 5;
@@ -113,13 +89,13 @@ export default function StockTable({
     if (totalPages <= maxButtons) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
-      let start = Math.max(1, page - 2);
-      let end = Math.min(totalPages, page + 2);
+      let start = Math.max(1, currentPage - 2);
+      let end = Math.min(totalPages, currentPage + 2);
 
-      if (page <= 3) {
+      if (currentPage <= 3) {
         start = 1;
         end = maxButtons;
-      } else if (page >= totalPages - 2) {
+      } else if (currentPage >= totalPages - 2) {
         start = totalPages - (maxButtons - 1);
         end = totalPages;
       }
@@ -136,22 +112,14 @@ export default function StockTable({
         pages.push(totalPages);
       }
     }
-
     return pages;
-  }, [page, totalPages]);
-
-  const goToPage = (p: number) => {
-    if (p < 1 || p > totalPages || p === page) return;
-    setPage(p);
-  };
+  }, [currentPage, totalPages]);
 
   /* ---------------------------------------------------
-    COMPONENTES
+     RENDER STOCK
   ---------------------------------------------------- */
   const renderEstadoStock = (stock?: number, minimo?: number) => {
-    const isInvalid = stock === undefined || minimo === undefined;
-
-    if (isInvalid) {
+    if (stock === undefined || minimo === undefined) {
       return <span className="text-xs text-red-500">Datos no disponibles</span>;
     }
 
@@ -160,252 +128,165 @@ export default function StockTable({
       ? "bg-yellow-100 text-yellow-700"
       : "bg-green-100 text-green-700";
 
-    const texto = bajo ? "Stock bajo" : "Stock normal";
-
     return (
-      <>
+      <div>
         <span className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}>
           📦 {stock}
         </span>
-        <div className="text-xs text-gray-500">{texto}</div>
-      </>
+        <div className="text-xs text-gray-500">
+          {bajo ? "Stock bajo" : "Stock normal"}
+        </div>
+      </div>
     );
   };
 
-  const colClasses = [
-    "w-[6%]", // Miniatura
-    "w-[12%]", // Código
-    "w-[28%]", // Producto
-    "w-[18%]", // Almacén
-    "w-[12%]", // Stock
-    "w-[10%]", // Precio
-    "w-[8%]", // Estado
-    "w-[6%]", // Acciones
-  ];
-
-  const Thumb = ({ url, alt }: { url?: string | null; alt: string }) =>
-    url ? (
-      <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
-        <img
-          src={url}
-          alt={alt}
-          className="w-full h-full object-cover"
-          draggable={false}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-        />
-      </div>
-    ) : (
-      <div className="w-12 h-12 rounded-md bg-gray-100 border border-gray-200 flex items-center justify-center text-[14px]">
-        <span className="opacity-60">📦</span>
-      </div>
-    );
-
   /* ---------------------------------------------------
-    SKELETON MODE
+     LOADING
   ---------------------------------------------------- */
   if (loading) {
     return (
-      <div className="bg-white rounded-md overflow-hidden shadow-default">
-        <section className="flex-1 overflow-auto">
-          <div className="overflow-x-auto bg-white">
-            <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-              <colgroup>
-                {colClasses.map((cls, i) => (
-                  <col key={i} className={cls} />
-                ))}
-              </colgroup>
-
-              <thead className="bg-[#E5E7EB]">
-                <tr className="text-gray70 font-roboto font-medium">
-                  <th className="px-4 py-3"></th>
-                  <th className="px-4 py-3 text-left">Código</th>
-                  <th className="px-4 py-3 text-left">Producto</th>
-                  <th className="px-4 py-3 text-left">Sede</th>
-                  <th className="px-4 py-3 text-left">Stock</th>
-                  <th className="px-4 py-3 text-right">Precio</th>
-                  <th className="px-4 py-3 text-center">Estado</th>
-                  <th className="px-4 py-3 text-center">Acciones</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-gray20">
-                {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                  <SkeletonRow key={i} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+      <table className="min-w-full table-fixed text-[12px]">
+        <tbody>
+          {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+            <SkeletonRow key={i} />
+          ))}
+        </tbody>
+      </table>
     );
   }
 
-  /* ---------------------------------------------------
-    VACÍO
-  ---------------------------------------------------- */
   if (!productosFiltrados.length) {
     return (
-      <div className="p-6 text-center text-gray-500 bg-white rounded shadow-sm">
+      <div className="py-10 text-center text-gray-500 bg-white rounded shadow-default">
         No hay productos activos con stock disponible.
       </div>
     );
   }
 
   /* ===================================================
-      VISTA NORMAL
+     TABLE (DISEÑO  TABLA PEDIDOS)
   ==================================================== */
   return (
-    <div className="bg-white rounded-md overflow-hidden shadow-default">
-      <section className="flex-1 overflow-auto">
-        <div className="overflow-x-auto bg-white">
-          <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-            <colgroup>
-              {colClasses.map((cls, i) => (
-                <col key={i} className={cls} />
-              ))}
-            </colgroup>
+    <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
+      <div className="overflow-x-auto bg-white">
+        <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+          <thead className="bg-[#E5E7EB]">
+            <tr className="text-gray70 font-roboto font-medium">
+              <th className="px-4 py-3">Imagen</th>
+              <th className="px-4 py-3">Código</th>
+              <th className="px-4 py-3">Producto</th>
+              <th className="px-4 py-3">Almacén</th>
+              <th className="px-4 py-3">Stock</th>
+              <th className="px-4 py-3 text-right">Precio</th>
+              <th className="px-4 py-3 text-center">Estado</th>
+              <th className="px-4 py-3 text-center">Acciones</th>
+            </tr>
+          </thead>
 
-            <thead className="bg-[#E5E7EB]">
-              <tr className="text-gray70 font-roboto font-medium">
-                <th className="px-4 py-3"></th>
-                <th className="px-4 py-3 text-left">Código</th>
-                <th className="px-4 py-3 text-left">Producto</th>
-                <th className="px-4 py-3 text-left">Sede</th>
-                <th className="px-4 py-3 text-left">Stock</th>
-                <th className="px-4 py-3 text-right">Precio</th>
-                <th className="px-4 py-3 text-center">Estado</th>
-                <th className="px-4 py-3 text-center">Acciones</th>
-              </tr>
-            </thead>
+          <tbody className="divide-y divide-gray20">
+            {currentData.map((prod: any) => (
+              <tr
+                key={prod.uuid ?? prod.id}
+                className="hover:bg-gray10 transition-colors"
+              >
+                <td className="h-12 px-4 py-3">
+                  <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                    📦
+                  </div>
+                </td>
 
-            <tbody className="divide-y divide-gray20">
-              {currentData.map((prod: any) => (
-                <tr
-                  key={prod.uuid ?? prod.id}
-                  className="hover:bg-gray10 transition-colors"
-                >
-                  <td className="px-4 py-3 align-middle">
-                    <Thumb url={prod.imagen_url} alt={prod.nombre_producto} />
-                  </td>
+                <td className="h-12 px-4 py-3 text-gray70">
+                  {prod.codigo_identificacion}
+                </td>
 
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    {prod.codigo_identificacion}
-                  </td>
+                <td className="h-12 px-4 py-3 text-gray70">
+                  <div className="font-medium">{prod.nombre_producto}</div>
+                  <div className="text-xs text-gray-500 truncate">
+                    {prod.descripcion}
+                  </div>
+                </td>
 
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    <div className="font-semibold line-clamp-2">
-                      {prod.nombre_producto}
-                    </div>
-                    <div className="text-gray-500 text-xs line-clamp-2">
-                      {prod.descripcion}
-                    </div>
-                  </td>
+                <td className="h-12 px-4 py-3 text-gray70">
+                  {prod.almacenamiento?.nombre_almacen ?? "—"}
+                </td>
 
-                  <td className="px-4 py-3 text-gray70 font-[400]">
-                    {prod.almacenamiento?.nombre_almacen || (
-                      <span className="text-gray-400 italic">No asignado</span>
-                    )}
-                  </td>
+                <td className="h-12 px-4 py-3 text-gray70">
+                  {renderEstadoStock(
+                    prod.stock_en_sede ?? prod.stock,
+                    prod.stock_minimo
+                  )}
+                </td>
 
-                  <td className="px-4 py-3">
-                    {renderEstadoStock(prod.stock_en_sede ?? prod.stock, prod.stock_minimo)}
-                  </td>
+                <td className="h-12 px-4 py-3 text-gray70 text-right">
+                  S/ {Number(prod.precio).toFixed(2)}
+                </td>
 
-                  <td className="px-4 py-3 text-right text-gray70 font-[400]">
-                    S/ {Number(prod.precio).toFixed(2)}
-                  </td>
+                <td className="h-12 px-4 py-3 text-center">
+                  <Badgex>{prod?.estado?.nombre ?? "—"}</Badgex>
+                </td>
 
-                  <td className="px-4 py-3 text-center">
-                    <Badgex
-                      className={
-                        prod?.estado?.nombre?.toLowerCase?.() === "inactivo"
-                          ? "bg-gray30"
-                          : ""
-                      }
+                <td className="h-12 px-4 py-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                      onClick={() => onVer(prod)}
                     >
-                      {prod?.estado?.nombre || "Desconocido"}
-                    </Badgex>
-                  </td>
+                      <FaEye />
+                    </button>
 
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-3">
+                    {!soloLectura && (
                       <button
-                        onClick={() => onVer(prod)}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-amber-600 hover:text-amber-800 transition-colors"
+                        onClick={() => onEditar(prod)}
                       >
-                        <FaEye size={16} />
+                        <FaEdit />
                       </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-                      {!soloLectura && (
-                        <button
-                          onClick={() => onEditar(prod)}
-                          className="text-amber-600 hover:text-amber-800"
-                        >
-                          <FaEdit size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+      {/* PAGINADOR (IGUAL A PEDIDOS) */}
+      <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+        <button
+          onClick={() => goToPage(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50"
+        >
+          &lt;
+        </button>
 
-              {/* Empty rows for consistent height */}
-              {Array.from({ length: Math.max(0, PAGE_SIZE - currentData.length) }).map(
-                (_, idx) => (
-                  <tr key={`empty-${idx}`}>
-                    {Array.from({ length: 8 }).map((__, i) => (
-                      <td key={i} className="px-4 py-3">&nbsp;</td>
-                    ))}
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* PAGINATION */}
-        {productosFiltrados.length > 0 && (
-          <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+        {pagerItems.map((p, i) =>
+          typeof p === "string" ? (
+            <span key={i} className="px-2 text-gray70">{p}</span>
+          ) : (
             <button
-              onClick={() => goToPage(page - 1)}
-              disabled={page === 1}
-              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+              key={p}
+              onClick={() => goToPage(p)}
+              className={[
+                "w-8 h-8 flex items-center justify-center rounded",
+                p === currentPage
+                  ? "bg-gray90 text-white"
+                  : "bg-gray10 text-gray70 hover:bg-gray20",
+              ].join(" ")}
             >
-              &lt;
+              {p}
             </button>
-
-            {pagerItems.map((p, i) =>
-              typeof p === "string" ? (
-                <span key={`dots-${i}`} className="px-2 text-gray70">
-                  {p}
-                </span>
-              ) : (
-                <button
-                  key={p}
-                  onClick={() => goToPage(p)}
-                  className={[
-                    "w-8 h-8 flex items-center justify-center rounded",
-                    page === p
-                      ? "bg-gray90 text-white"
-                      : "bg-gray10 text-gray70 hover:bg-gray20",
-                  ].join(" ")}
-                >
-                  {p}
-                </button>
-              )
-            )}
-
-            <button
-              onClick={() => goToPage(page + 1)}
-              disabled={page === totalPages}
-              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-            >
-              &gt;
-            </button>
-          </div>
+          )
         )}
-      </section>
+
+        <button
+          onClick={() => goToPage(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50"
+        >
+          &gt;
+        </button>
+      </div>
     </div>
   );
 }
