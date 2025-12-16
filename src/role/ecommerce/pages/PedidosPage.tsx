@@ -1,160 +1,314 @@
-// src/pages/courier/PedidosPage.tsx
-import { useEffect, useState } from "react";
-import { Icon } from "@iconify/react";
-import TablePedidoCourier from "@/shared/components/courier/pedido/TablePedidoCourier";
-import { useAuth } from "@/auth/context";
-import AsignarRepartidor from "@/shared/components/courier/pedido/AsignarRepartidor";
-import ReasignarRepartidorModal from "@/shared/components/courier/pedido/ReasignarRepartidorModal";
-import type { PedidoListItem } from "@/services/courier/pedidos/pedidos.types";
-import Tittlex from "@/shared/common/Tittlex";
+import { useEffect, useMemo, useState } from 'react';
 
-type Vista = "asignados" | "pendientes" | "terminados";
+import PedidosGenerado from '@/shared/components/ecommerce/pedidos/PedidosGenerado';
+import PedidosAsignado from '@/shared/components/ecommerce/pedidos/PedidosAsignado';
+import PedidosCompletado from '@/shared/components/ecommerce/pedidos/PedidosCompletado';
+import CrearPedidoModal from '@/shared/components/ecommerce/pedidos/CrearPedidoModal';
+
+import { Icon } from '@iconify/react/dist/iconify.js';
+import AnimatedExcelMenu from '@/shared/components/ecommerce/AnimatedExcelMenu';
+import { useAuth } from '@/auth/context';
+import ImportExcelPedidosFlow from '@/shared/components/ecommerce/excel/pedido/ImportExcelPedidosFlow';
+
+import { fetchPedidos } from '@/services/ecommerce/pedidos/pedidos.api';
+import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
+
+import { Selectx, SelectxDate } from '@/shared/common/Selectx';
+import Buttonx from '@/shared/common/Buttonx';
+import Tittlex from '@/shared/common/Tittlex';
+
+import {
+  downloadPedidosTemplate,
+  triggerBrowserDownload,
+} from '@/services/ecommerce/exportExcel/Pedido/exportPedidoExcel.api';
+
+type Vista = 'generado' | 'asignado' | 'completado';
+
+type Filtros = {
+  courier: string;
+  producto: string;
+  fechaInicio: string;
+  fechaFin: string;
+};
 
 export default function PedidosPage() {
   const { token } = useAuth();
 
-  // pestaña activa (persistida)
-  const [vista, setVista] = useState<Vista>(() => {
-    const saved = localStorage.getItem(
-      "courier_vista_pedidos"
-    ) as Vista | null;
-    return saved ?? "asignados";
+  const [vista, setVista] = useState<Vista>(
+    () => (localStorage.getItem('pedidos_vista') as Vista) || 'generado'
+  );
+
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [pedidoId, setPedidoId] = useState<number | null>(null);
+
+  const [filtros, setFiltros] = useState<Filtros>({
+    courier: '',
+    producto: '',
+    fechaInicio: '',
+    fechaFin: '',
   });
 
-  // forzar recarga de la tabla después de asignar / reasignar
-  const [reloadKey, setReloadKey] = useState(0);
-
-  // modal asignación (en lote)
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
-  // modal REASIGNAR (individual)
-  const [modalReasignarOpen, setModalReasignarOpen] = useState(false);
-  const [pedidoAReasignar, setPedidoAReasignar] =
-    useState<PedidoListItem | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleImported = () => setRefreshKey((k) => k + 1);
 
   useEffect(() => {
-    localStorage.setItem("courier_vista_pedidos", vista);
+    localStorage.setItem('pedidos_vista', vista);
   }, [vista]);
 
-  // ---- Asignar (en lote) ----
-  const handleAbrirAsignar = (ids: number[]) => {
-    setSelectedIds(ids);
-    setModalOpen(true);
-  };
-  const handleCerrarAsignar = () => {
-    setModalOpen(false);
-    setSelectedIds([]);
-  };
-  const handleAssigned = () => setReloadKey((k) => k + 1);
+  /* ======================================================================
+     OPCIONES PARA FILTROS (courier y productos)
+     Nota: ahora fetchPedidos devuelve {data, pagination}
+     ====================================================================== */
+  const [pedidosForFilters, setPedidosForFilters] = useState<Pedido[]>([]);
+  const [loadingFilters, setLoadingFilters] = useState(false);
 
-  // ---- Reasignar (individual) ----
-  const handleAbrirReasignar = (pedido: PedidoListItem) => {
-    setPedidoAReasignar(pedido);
-    setModalReasignarOpen(true);
+  useEffect(() => {
+    if (!token) return;
+    setLoadingFilters(true);
+
+    // Usamos page small para minimizar carga -> solo necesitamos opciones
+    fetchPedidos(token, undefined, 1, 200)
+      .then((res) => setPedidosForFilters(res?.data || []))
+      .catch(() => setPedidosForFilters([]))
+      .finally(() => setLoadingFilters(false));
+  }, [token, refreshKey]);
+
+  const courierOptions = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const p of pedidosForFilters) {
+      const id = (p as any).courier_id ?? p.courier?.id;
+      const name = p.courier?.nombre_comercial;
+      if (id != null && name) map.set(Number(id), name);
+    }
+    return Array.from(map.entries())
+      .map(([id, nombre]) => ({ id: String(id), nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [pedidosForFilters]);
+
+  const productoOptions = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const p of pedidosForFilters) {
+      for (const d of p.detalles || []) {
+        const prod = d.producto;
+        if (prod?.id != null) {
+          const nombre = prod.nombre_producto || `Producto ${prod.id}`;
+          if (!map.has(prod.id)) map.set(prod.id, nombre);
+        }
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, nombre]) => ({ id: String(id), nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [pedidosForFilters]);
+
+  /* ======================================================================
+       CREAR / EDITAR
+     ====================================================================== */
+  const handleNuevoPedido = () => {
+    setPedidoId(null);
+    setModalAbierto(true);
   };
-  const handleCerrarReasignar = () => {
-    setModalReasignarOpen(false);
-    setPedidoAReasignar(null);
+
+  const handleCerrarModal = () => {
+    setModalAbierto(false);
+    setPedidoId(null);
   };
-  const handleReassigned = () => setReloadKey((k) => k + 1);
+
+  const refetchPedidos = () => {
+    setModalAbierto(false);
+    setPedidoId(null);
+    setRefreshKey((k) => k + 1);
+  };
+
+  const handleDescargarPlantilla = async () => {
+    try {
+      const res = await downloadPedidosTemplate();
+      triggerBrowserDownload(res);
+    } catch (err) {
+      console.error('Error al descargar plantilla:', err);
+    }
+  };
+
+  const descripcionVista = {
+    generado: 'Consulta los pedidos registrados recientemente.',
+    asignado: 'Los pedidos ya fueron asignados a un repartidor.',
+    completado: 'Pedidos en su estado final.',
+  } as const;
+
+  /* ======================================================================
+       RENDER
+     ====================================================================== */
 
   return (
     <section className="mt-8 flex flex-col gap-[1.25rem]">
-      {/* Header con tabs */}
-      <div className="flex items-end justify-between border-b border-gray30 pb-5">
+
+      {/* Tabs */}
+      <div className="flex justify-between items-end pb-5 border-b border-gray30">
         <Tittlex
-          title="Gestión de Pedidos"
+          title="Panel de Pedidos"
           description="Administra y visualiza el estado de tus pedidos en cada etapa del proceso"
         />
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setVista("asignados")}
-            className={[
-              "flex items-center gap-2 rounded-sm px-3 py-[0.625rem] text-sm font-medium",
-              vista === "asignados"
-                ? "bg-primaryDark text-white"
-                : "bg-gray20 text-primaryDark hover:shadow-default",
-            ].join(" ")}
-          >
-            <Icon
-              icon="solar:bill-list-broken"
-              width={18}
-              height={18}
-            />
-            <span>Asignados</span>
-          </button>
-
-          <span className="h-10 w-[1px] bg-gray40" />
-
-          <button
-            onClick={() => setVista("pendientes")}
-            className={[
-              "flex items-center gap-2 rounded-sm px-3 py-[0.625rem] text-sm font-medium",
-              vista === "pendientes"
-                ? "bg-primaryDark text-white"
-                : "bg-gray20 text-primaryDark hover:shadow-default",
-            ].join(" ")}
-          >
-            <Icon icon="mdi:clock-outline" width={18} height={18} />
-            <span>Pendientes</span>
-          </button>
-
-          <span className="h-10 w-[1px] bg-gray40" />
-
-          <button
-            onClick={() => setVista("terminados")}
-            className={[
-              "flex items-center gap-2 rounded-sm px-3 py-[0.625rem] text-sm font-medium",
-              vista === "terminados"
-                ? "bg-primaryDark text-white"
-                : "bg-gray20 text-primaryDark hover:shadow-default",
-            ].join(" ")}
-          >
-            <Icon
-              icon="mdi:clipboard-check-outline"
-              width={18}
-              height={18}
-            />
-            <span>Terminados</span>
-          </button>
+        <div className="flex gap-3 items-center">
+          <Buttonx
+            label="Generado"
+            icon="ri:ai-generate"
+            variant={vista === 'generado' ? 'secondary' : 'tertiary'}
+            onClick={() => setVista('generado')}
+          />
+          <span className="w-[1px] h-10 bg-gray40" />
+          <Buttonx
+            label="Asignado"
+            icon="solar:bill-list-broken"
+            variant={vista === 'asignado' ? 'secondary' : 'tertiary'}
+            onClick={() => setVista('asignado')}
+          />
+          <span className="w-[1px] h-10 bg-gray40" />
+          <Buttonx
+            label="Completado"
+            icon="carbon:task-complete"
+            variant={vista === 'completado' ? 'secondary' : 'tertiary'}
+            onClick={() => setVista('completado')}
+          />
         </div>
       </div>
 
-      {/* Tabla (se vuelve a montar cuando cambia reloadKey) */}
-      <div className="my-2">
-        <TablePedidoCourier
-          key={reloadKey}
-          view={vista}
-          token={token ?? ""}
-          // 👇 Solo permitimos asignar en la vista "asignados"
-          onAsignar={
-            vista === "asignados" ? handleAbrirAsignar : undefined
-          }
-          // Reasignar lo dejamos disponible donde lo necesites
-          onReasignar={handleAbrirReasignar}
-        />
+      {/* Title section */}
+      <div className="flex justify-between items-end">
+        <div className="space-y-1">
+          <h2 className="text-lg font-bold text-primaryDark">
+            {vista === 'generado'
+              ? 'Pedidos Generados'
+              : vista === 'asignado'
+              ? 'Pedidos Asignados'
+              : 'Pedidos Completados'}
+          </h2>
+          <p className="text-sm text-black font-regular">
+            {descripcionVista[vista]}
+          </p>
+        </div>
+
+        {vista === 'generado' && (
+          <div className="flex gap-2 items-center">
+            <div className="h-10 flex items-stretch">
+              <ImportExcelPedidosFlow token={token ?? ''} onImported={handleImported}>
+                {(openPicker) => (
+                  <AnimatedExcelMenu
+                    onTemplateClick={handleDescargarPlantilla}
+                    onImportClick={openPicker}
+                  />
+                )}
+              </ImportExcelPedidosFlow>
+            </div>
+
+            <Buttonx
+              label="Nuevo Pedido"
+              icon="iconoir:new-tab"
+              variant="primary"
+              onClick={handleNuevoPedido}
+              className="font-light"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Modal Asignar Repartidor (lote) */}
-      <AsignarRepartidor
-        open={modalOpen}
-        onClose={handleCerrarAsignar}
-        token={token ?? ""}
-        selectedIds={selectedIds}
-        onAssigned={handleAssigned}
-      />
+      {/* Filtros */}
+      <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
+        <Selectx
+          id="f-courier"
+          label="Courier"
+          value={filtros.courier}
+          onChange={(e) => setFiltros((prev) => ({ ...prev, courier: e.target.value }))}
+          placeholder="Seleccionar courier"
+          className="w-full"
+        >
+          <option value="">— Seleccionar courier —</option>
+          {loadingFilters ? (
+            <option value="" disabled>Cargando…</option>
+          ) : (
+            courierOptions.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))
+          )}
+        </Selectx>
 
-      {/* Modal Reasignar Repartidor (uno) */}
-      {pedidoAReasignar && (
-        <ReasignarRepartidorModal
-          open={modalReasignarOpen}
-          token={token ?? ""}
-          pedido={pedidoAReasignar}
-          motorizados={[]} // opcional; si tu modal los carga solo, deja []
-          onClose={handleCerrarReasignar}
-          onSuccess={handleReassigned}
+        <Selectx
+          id="f-producto"
+          label="Producto"
+          value={filtros.producto}
+          onChange={(e) => setFiltros((prev) => ({ ...prev, producto: e.target.value }))}
+          placeholder="Seleccionar producto"
+          className="w-full"
+        >
+          <option value="">— Seleccionar producto —</option>
+          {loadingFilters ? (
+            <option value="" disabled>Cargando…</option>
+          ) : (
+            productoOptions.map((p) => (
+              <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))
+          )}
+        </Selectx>
+
+        <SelectxDate
+          id="f-fecha-inicio"
+          label="Fecha Inicio"
+          value={filtros.fechaInicio}
+          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaInicio: e.target.value }))}
+          placeholder="dd/mm/aaaa"
+          className="w-full"
+        />
+
+        <SelectxDate
+          id="f-fecha-fin"
+          label="Fecha Fin"
+          value={filtros.fechaFin}
+          onChange={(e) => setFiltros((prev) => ({ ...prev, fechaFin: e.target.value }))}
+          placeholder="dd/mm/aaaa"
+          className="w-full"
+        />
+
+        <button
+          onClick={() => {
+            setFiltros({ courier: '', producto: '', fechaInicio: '', fechaFin: '' });
+            setRefreshKey((k) => k + 1);
+          }}
+          className="w-155 h-10 flex items-center gap-2 bg-gray10 border border-gray60 px-3 py-2 rounded text-gray60 text-sm hover:bg-gray-100"
+        >
+          <Icon icon="mynaui:delete" width="24" height="24" />
+          Limpiar Filtros
+        </button>
+      </div>
+
+      {/* Vistas */}
+      {vista === 'generado' && (
+        <PedidosGenerado key={`gen-${refreshKey}`} filtros={filtros} />
+      )}
+
+      {vista === 'asignado' && (
+        <PedidosAsignado
+          key={`asi-${refreshKey}`}
+          filtros={filtros}
+          onVer={() => {}}
+          onEditar={() => {}}
+        />
+      )}
+
+      {vista === 'completado' && (
+        <PedidosCompletado
+          key={`comp-${refreshKey}`}
+          filtros={filtros}
+        />
+      )}
+
+      {/* Modal */}
+      {modalAbierto && (
+        <CrearPedidoModal
+          isOpen={modalAbierto}
+          onClose={handleCerrarModal}
+          onPedidoCreado={refetchPedidos}
+          pedidoId={pedidoId ?? undefined}
+          modo={pedidoId ? 'editar' : 'crear'}
         />
       )}
     </section>
