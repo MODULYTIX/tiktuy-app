@@ -3,7 +3,10 @@ import AnimatedExcelMenu from "@/shared/components/ecommerce/AnimatedExcelMenu";
 import StockFilters, { type StockFilterValue } from "@/shared/components/ecommerce/stock/StockFilters";
 import StockTable from "@/shared/components/ecommerce/stock/StockTable";
 import { useAuth } from "@/auth/context";
-import { fetchProductosFiltrados, fetchProductosMovidos } from "@/services/ecommerce/producto/producto.api";
+import {
+  fetchProductosFiltrados,
+  fetchProductosMovidos,
+} from "@/services/ecommerce/producto/producto.api";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
 import ImportExcelFlow from "@/shared/components/ecommerce/excel/ImportExcelFlow";
 
@@ -22,21 +25,26 @@ type UiFilters = StockFilterValue & {
   order?: "new_first" | "price_asc" | "price_desc";
 };
 
+const PER_PAGE = 5;
+
 export default function StockPage() {
   const { token } = useAuth();
 
-  // Modales
+  // ---------------- PAGINACIÓN ----------------
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // ---------------- MODALES ----------------
   const [openCrear, setOpenCrear] = useState(false);
   const [openEditar, setOpenEditar] = useState(false);
   const [openVer, setOpenVer] = useState(false);
 
-  // Selección
+  // ---------------- DATA ----------------
   const [productoSel, setProductoSel] = useState<Producto | null>(null);
-
-  const [productosAll, setProductosAll] = useState<Producto[]>([]);
   const [productosVisibles, setProductosVisibles] = useState<Producto[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false); 
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
+  // ---------------- FILTROS ----------------
   const [filters, setFilters] = useState<UiFilters>({
     almacenamiento_id: "",
     categoria_id: "",
@@ -50,72 +58,65 @@ export default function StockPage() {
     order: "new_first",
   });
 
-  const debounceMs = 100;
+  const debounceMs = 150;
   const debounceRef = useRef<number | null>(null);
 
-  /** ========================
-   * CARGA DE PRODUCTOS
-   * ======================== */
-  const cargarProductos = async (filtros = filters) => {
+  /* ========================
+     CARGA BACKEND
+  ======================== */
+  const cargarProductos = async (
+    filtros = filters,
+    pageToLoad = page
+  ) => {
     if (!token) return;
 
-    setLoadingProducts(true); // 👈 INICIA SKELETON
+    setLoadingProducts(true);
 
     try {
       // -------- PRODUCTOS MOVIDOS -------- //
       if (filtros.movimientos_sedes && Number(filtros.movimientos_sedes) > 0) {
-        try {
-          const movidosResp = await fetchProductosMovidos(token, {
-            almacen_id: Number(filtros.movimientos_sedes),
-            page: 1,
-            perPage: 200,
-          });
+        const resp = await fetchProductosMovidos(token, {
+          almacen_id: Number(filtros.movimientos_sedes),
+          page: pageToLoad,
+          perPage: PER_PAGE,
+        });
 
-          const list = Array.isArray(movidosResp?.data)
-            ? movidosResp.data
-            : [];
-
-          setProductosAll(list);
-          return; // evitar carga normal
-        } catch (err) {
-          console.error("Error al cargar productos movidos:", err);
-        }
+        setProductosVisibles(resp?.data ?? []);
+        setTotalPages(resp?.pagination?.totalPages ?? 1);
+        return;
       }
 
       // -------- PRODUCTOS NORMALES -------- //
-      const serverData = await fetchProductosFiltrados(
+      const resp = await fetchProductosFiltrados(
         {
           ...filtros,
-          movimientos_sedes: filtros.movimientos_sedes || undefined,
+          page: pageToLoad,
+          perPage: PER_PAGE,
           order: filtros.order ?? "new_first",
         },
         token
       );
 
-      const list = Array.isArray(serverData)
-        ? serverData
-        : Array.isArray(serverData?.data)
-          ? serverData.data
-          : [];
-
-      setProductosAll(list);
+      setProductosVisibles(resp?.data ?? []);
+      setTotalPages(resp?.pagination?.totalPages ?? 1);
     } catch (err) {
       console.error("Error cargando productos:", err);
     } finally {
-      setLoadingProducts(false); 
+      setLoadingProducts(false);
     }
   };
 
-  /** ========================
-   * DEBOUNCE FILTROS
-   * ======================== */
+  /* ========================
+     DEBOUNCE FILTROS
+  ======================== */
   useEffect(() => {
     if (!token) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = window.setTimeout(() => {
-      cargarProductos();
+      setPage(1); // reset página al cambiar filtros
+      cargarProductos(filters, 1);
     }, debounceMs);
 
     return () => {
@@ -124,72 +125,24 @@ export default function StockPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, token]);
 
-  /** ========================
-   * FILTRADO + ORDEN CLIENTE
-   * ======================== */
+  /* ========================
+     CAMBIO DE PÁGINA
+  ======================== */
   useEffect(() => {
-    const f = filters;
-    const norm = (s?: string) => (s ?? "").toLowerCase().trim();
+    cargarProductos(filters, page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
-    const filtra = (p: Producto) => {
-      if (f.almacenamiento_id && String(p.almacenamiento_id) !== String(f.almacenamiento_id))
-        return false;
-
-      if (f.categoria_id && String(p.categoria_id) !== String(f.categoria_id))
-        return false;
-
-      if (f.estado === "activo" && p?.estado?.nombre?.toLowerCase() !== "activo")
-        return false;
-
-      if (f.estado === "inactivo" && p?.estado?.nombre?.toLowerCase() !== "inactivo")
-        return false;
-
-      if (f.stock_bajo) {
-        const stock = Number(p.stock);
-        const minimo = Number(p.stock_minimo);
-        if (!Number.isFinite(stock) || !Number.isFinite(minimo)) return false;
-        if (!(stock < minimo)) return false;
-      }
-
-      if (f.search && f.search.trim()) {
-        const q = norm(f.search);
-
-        if (
-          !norm(p.nombre_producto).includes(q) &&
-          !norm(p.descripcion ?? "").includes(q) &&
-          !norm(p.codigo_identificacion ?? "").includes(q)
-        )
-          return false;
-      }
-
-      return true;
-    };
-
-    const ordenar = (arr: Producto[]) => {
-      if (f.precio_bajo) return [...arr].sort((a, b) => Number(a.precio) - Number(b.precio));
-      if (f.precio_alto) return [...arr].sort((a, b) => Number(b.precio) - Number(a.precio));
-
-      return [...arr].sort((a: any, b: any) => {
-        const at = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
-        if (at !== 0 || bt !== 0) return bt - at;
-        return (b.id ?? 0) - (a.id ?? 0);
-      });
-    };
-
-    setProductosVisibles(ordenar(productosAll.filter(filtra)));
-  }, [productosAll, filters]);
-
-  /** ========================
-   * CRUD
-   * ======================== */
+  /* ========================
+     CRUD
+  ======================== */
   const handleProductoCreado = (producto: Producto) => {
-    setProductosAll((prev) => [producto, ...prev]);
+    setProductosVisibles((prev) => [producto, ...prev]);
     setOpenCrear(false);
   };
 
   const handleProductoActualizado = (producto: Producto) => {
-    setProductosAll((prev) =>
+    setProductosVisibles((prev) =>
       prev.map((p) =>
         p.uuid === producto.uuid || p.id === producto.id ? producto : p
       )
@@ -198,9 +151,9 @@ export default function StockPage() {
     setProductoSel(null);
   };
 
-  /** ========================
-   * HANDLERS
-   * ======================== */
+  /* ========================
+     HANDLERS
+  ======================== */
   const handleDescargarPlantilla = async () => {
     try {
       const res = await downloadProductosTemplate();
@@ -215,9 +168,9 @@ export default function StockPage() {
       ? Number(filters.almacenamiento_id)
       : 0;
 
-  /** ========================
-   * RENDER
-   * ======================== */
+  /* ========================
+     RENDER
+  ======================== */
   return (
     <section className="mt-8 space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-end">
@@ -251,9 +204,12 @@ export default function StockPage() {
       {/* TABLE */}
       <StockTable
         productos={productosVisibles}
-        loading={loadingProducts}  
+        loading={loadingProducts}
         filtrarInactivos={false}
         soloLectura={Boolean(filters.movimientos_sedes)}
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
         onVer={(p) => {
           setProductoSel(p);
           setOpenVer(true);
@@ -264,7 +220,7 @@ export default function StockPage() {
         }}
       />
 
-      {/* Crear */}
+      {/* MODALES */}
       <ProductoCrearModal
         open={openCrear}
         onClose={() => setOpenCrear(false)}
@@ -272,7 +228,6 @@ export default function StockPage() {
         almacenamientoId={almacenamientoIdCreacion}
       />
 
-      {/* Editar */}
       <ProductoEditarModal
         open={openEditar}
         onClose={() => setOpenEditar(false)}
@@ -280,7 +235,6 @@ export default function StockPage() {
         onUpdated={handleProductoActualizado}
       />
 
-      {/* Ver */}
       <ProductoVerModal
         open={openVer}
         onClose={() => {
