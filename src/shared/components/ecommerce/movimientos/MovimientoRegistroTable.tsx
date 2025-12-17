@@ -1,6 +1,6 @@
 // src/shared/components/ecommerce/movimientos/MovimientoRegistroTable.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaEye } from "react-icons/fa";
+import { FaEye, FaBoxOpen } from "react-icons/fa";
 import { useAuth } from "@/auth/context";
 import { fetchProductos } from "@/services/ecommerce/producto/producto.api";
 import type {
@@ -39,9 +39,7 @@ const buildQuery = (
   almacenamiento_id: filters.almacenamiento_id
     ? Number(filters.almacenamiento_id)
     : undefined,
-  categoria_id: filters.categoria_id
-    ? Number(filters.categoria_id)
-    : undefined,
+  categoria_id: filters.categoria_id ? Number(filters.categoria_id) : undefined,
   estado: normalizeEstado(filters.estado),
   stock_bajo: filters.stock_bajo || undefined,
   precio_bajo: filters.precio_bajo || undefined,
@@ -133,7 +131,7 @@ export default function MovimientoRegistroTable({
   };
 
   /* ======================================================
-     PAGINADOR (MISMO QUE BaseTablaPedidos)
+     PAGINADOR
   ====================================================== */
   const pagerItems = useMemo(() => {
     const maxButtons = 5;
@@ -198,6 +196,34 @@ export default function MovimientoRegistroTable({
         📦
       </div>
     );
+
+  // ✅ FORMATO STOCK (igual al base: badge + texto abajo)
+  const renderEstadoStock = (stock?: number, minimo?: number) => {
+    const isInvalid = stock === undefined || minimo === undefined;
+
+    if (isInvalid) {
+      return <span className="text-xs text-red-500">Datos no disponibles</span>;
+    }
+
+    const bajo = stock < minimo; // igualito al código base
+    const bg = bajo
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-green-100 text-green-700";
+
+    const texto = bajo ? "Stock bajo" : "Stock normal";
+
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <span
+          className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}
+        >
+          <FaBoxOpen className="text-[14px]" />
+          {stock}
+        </span>
+        <div className="text-xs text-gray-500">{texto}</div>
+      </div>
+    );
+  };
 
   /* ======================================================
      RENDER
@@ -268,7 +294,10 @@ export default function MovimientoRegistroTable({
                   {prod.almacenamiento?.nombre_almacen ?? "—"}
                 </td>
 
-                <td className="h-12 px-4 py-3 text-gray70">{prod.stock}</td>
+                {/* ✅ AQUÍ va el formato de stock con etiqueta */}
+                <td className="h-12 px-4 py-3">
+                  {renderEstadoStock(prod.stock, (prod as any).stock_minimo)}
+                </td>
 
                 <td className="h-12 px-4 py-3 text-gray70 text-right">
                   S/ {Number(prod.precio).toFixed(2)}

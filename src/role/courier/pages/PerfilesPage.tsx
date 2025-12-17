@@ -1,12 +1,12 @@
 // src/app/(courier)/perfiles/page.tsx
 import { useCallback, useEffect, useState } from "react";
-import { CiUser } from "react-icons/ci";
 import { useAuth } from "@/auth/context";
 import { fetchPerfilTrabajadores } from "@/services/ecommerce/perfiles/perfilesTrabajador.api";
 import type { PerfilTrabajador } from "@/services/ecommerce/perfiles/perfilesTrabajador.types";
 import PerfilesCourierTable from "@/shared/components/courier/perfiles/PerfilesCourierTable";
 import PerfilesCourierModal from "@/shared/components/courier/perfiles/PerfilerCourierModal";
 import Tittlex from "@/shared/common/Tittlex";
+import Buttonx from "@/shared/common/Buttonx";
 
 export default function PerfilesPage() {
   const { token } = useAuth();
@@ -33,20 +33,17 @@ export default function PerfilesPage() {
 
   return (
     <section className="mt-8">
-      <div className="flex justify-between">
+      <div className="flex justify-between items-end">
         <Tittlex
           title="Perfiles"
           description="Aquí podrá registrar los encargados específicos por módulos."
         />
-        <div className="flex items-end">
-          <button
+        <Buttonx
+            icon="ci:user"
+            label="Nuevo Perfil"
+            variant="secondary"
             onClick={() => setModalOpen(true)}
-            className="flex gap-2 items-center bg-primaryDark text-white px-3 py-2 rounded-sm"
-          >
-            <CiUser />
-            <span>Nuevo Perfil</span>
-          </button>
-        </div>
+          />
       </div>
 
       <PerfilesCourierTable

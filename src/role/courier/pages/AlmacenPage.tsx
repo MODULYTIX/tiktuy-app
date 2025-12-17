@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { PiGarageLight } from "react-icons/pi";
 import AlmacenCourierTable from "@/shared/components/courier/almacen/AlmacenCourierTable";
 
 // ⛳️ Mantén el modal de EDITAR (sigue funcionando con /almacenamientocourier/:uuid)
@@ -20,6 +19,7 @@ import type {
   AlmacenCourierCreateDTO,
 } from "@/services/courier/almacen/almacenCourier.type";
 import Tittlex from "@/shared/common/Tittlex";
+import Buttonx from "@/shared/common/Buttonx";
 
 export default function AlmacenPage() {
   const [items, setItems] = useState<AlmacenamientoCourier[]>([]);
@@ -85,15 +85,12 @@ export default function AlmacenPage() {
           description="Visualice su sede y sus movimientos"
         />
 
-        <div>
-          <button
-            onClick={openCrear}
-            className="text-white flex px-3 py-2 bg-[#1A253D] items-center gap-2 rounded-sm text-sm hover:opacity-90 transition"
-          >
-            <PiGarageLight size={18} />
-            <span>Nueva Sede</span>
-          </button>
-        </div>
+        <Buttonx
+          label="Nueva Sede"
+          icon="solar:garage-linear"
+          variant="secondary"
+          onClick={openCrear}
+        />
       </div>
 
       <div>

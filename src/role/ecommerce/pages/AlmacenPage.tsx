@@ -181,7 +181,6 @@ export default function AlmacenPage() {
           icon="solar:garage-linear"
           variant="secondary"
           onClick={() => { setAlmacenEditando(null); setShowModal(true); }}
-          className="font-light"
         />
       </div>
 

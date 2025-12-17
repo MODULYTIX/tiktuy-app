@@ -13,6 +13,7 @@ import type {
 
 import Tittlex from "@/shared/common/Tittlex";
 import { InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
+import Buttonx from "@/shared/common/Buttonx";
 
 /* ============== helpers ============== */
 const formatPEN = (v: number) =>
@@ -498,32 +499,14 @@ const CuadreSaldoTable: React.FC<Props> = ({
           </span>
         )}
 
-        <button
-          onClick={abrirModalAbono}
-          disabled={selectedIds.length === 0 || loading}
-          className={[
-            "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-medium",
-            selectedIds.length === 0 || loading
-              ? "cursor-not-allowed bg-blue-200 text-white"
-              : "bg-blue-600 text-white hover:opacity-90",
-          ].join(" ")}
-          title={
-            selectedIds.length === 0
-              ? "Selecciona al menos un pedido"
-              : "Abonar seleccionados"
-          }
-        >
-          <svg
-            className="h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M12 8v8M8 12h8" />
-          </svg>
-          Abonar seleccionados
-        </button>
+        
+        <Buttonx
+    icon="iconoir:new-tab"
+    label="Abonar seleccionados"
+    variant="secondary"
+    onClick={abrirModalAbono}
+    disabled={selectedIds.length === 0 || loading}
+  />
       </div>
 
       {/* Tabla con el mismo formato del Ecommerce */}

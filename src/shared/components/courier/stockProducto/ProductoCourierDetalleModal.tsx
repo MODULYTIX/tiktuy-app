@@ -265,11 +265,9 @@ export default function ProductoDetalleModal({
         {/* Footer */}
         <div className="flex items-center gap-5 justify-start">
           <Buttonx
-            variant="tertiary"
+            variant="outlinedw"
             onClick={onClose}
             label="Cerrar"
-            className="px-4 text-sm text-gray-600 bg-gray-200"
-            type="button"
           />
         </div>
 
