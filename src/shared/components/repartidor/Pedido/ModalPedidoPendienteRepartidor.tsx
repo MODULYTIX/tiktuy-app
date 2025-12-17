@@ -16,7 +16,7 @@ type ConfirmPayload =
   | {
       pedidoId: number;
       resultado: "ENTREGADO";
-      metodo: MetodoPagoUI;
+      metodo_pago_id: number; // ✅ ID REAL de MetodoPago (DB)
       observacion?: string;
       evidenciaFile?: File;
       fecha_entrega_real?: string;
@@ -27,15 +27,33 @@ type Props = {
   onClose: () => void;
   pedido: PedidoListItem | null;
   onConfirm?: (data: ConfirmPayload) => Promise<void> | void;
+
+  /**
+   * ✅ IDs reales de tu tabla MetodoPago
+   * Ejemplo: { EFECTIVO: 1, BILLETERA: 2, DIRECTO_ECOMMERCE: 3 }
+   */
+  metodoPagoIds?: {
+    EFECTIVO: number;
+    BILLETERA: number;
+    DIRECTO_ECOMMERCE: number;
+  };
 };
 
 type Paso = "resultado" | "pago" | "evidencia" | "rechazo";
+
+/** ✅ fallback (evita undefined.EFECTIVO) */
+const DEFAULT_METODO_PAGO_IDS = {
+  EFECTIVO: 1,
+  BILLETERA: 2,
+  DIRECTO_ECOMMERCE: 3,
+} as const;
 
 export default function ModalEntregaRepartidor({
   isOpen,
   onClose,
   pedido,
   onConfirm,
+  metodoPagoIds,
 }: Props) {
   const [paso, setPaso] = useState<Paso>("resultado");
   const [submitting, setSubmitting] = useState(false);
@@ -44,14 +62,15 @@ export default function ModalEntregaRepartidor({
   const [metodo, setMetodo] = useState<MetodoPagoUI | null>(null);
 
   // evidencia
-  const [evidenciaFile, setEvidenciaFile] = useState<File | undefined>(
-    undefined
-  );
+  const [evidenciaFile, setEvidenciaFile] = useState<File | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // preview modal
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string>("");
+
+  // mensajes de error UI
+  const [errorMsg, setErrorMsg] = useState<string>("");
 
   // compat (no usados para EFECTIVO)
   const [, setObservacion] = useState<string>("");
@@ -68,17 +87,16 @@ export default function ModalEntregaRepartidor({
 
   const resumen = useMemo(() => {
     if (!pedido) return null;
-    const fechaProg =
-      pedido.fecha_entrega_programada || pedido.fecha_entrega_real;
+    const fechaProg = pedido.fecha_entrega_programada || pedido.fecha_entrega_real;
     const distrito = pedido.cliente?.distrito || "—";
     const telefono = pedido.cliente?.celular || "—";
-    const codigo =
-      pedido.codigo_pedido || `C${String(pedido.id).padStart(2, "0")}`;
+    const codigo = pedido.codigo_pedido || `C${String(pedido.id).padStart(2, "0")}`;
     const direccion = pedido.direccion_envio || "—";
     const cliente = pedido.cliente?.nombre || "—";
     const ecommerce = pedido.ecommerce?.nombre_comercial || "—";
     const referencia = pedido.cliente?.referencia || "—";
     const monto = Number(pedido.monto_recaudar || 0);
+
     return {
       fechaProg,
       distrito,
@@ -105,6 +123,7 @@ export default function ModalEntregaRepartidor({
   // ✅ picking unificado (inputs + ImageUploadx)
   const pickImage = useCallback(
     (file?: File | null) => {
+      setErrorMsg("");
       if (!file) {
         resetEvidence();
         return;
@@ -118,8 +137,9 @@ export default function ModalEntregaRepartidor({
   // ✅ si cambia el método, resetea evidencia
   const handleMetodo = useCallback(
     (m: MetodoPagoUI) => {
+      setErrorMsg("");
       if (metodo !== m) {
-        resetEvidence(); // 🔥 evita que se “arrastre” la imagen entre métodos
+        resetEvidence();
       }
       setMetodo(m);
     },
@@ -132,6 +152,7 @@ export default function ModalEntregaRepartidor({
     setMetodo(null);
     setObservacion("");
     setObsRechazo("");
+    setErrorMsg("");
     resetEvidence();
 
     const d = new Date();
@@ -147,34 +168,65 @@ export default function ModalEntregaRepartidor({
   }
 
   function handleNextFromResultado() {
+    setErrorMsg("");
     if (resultado === "ENTREGADO") setPaso("pago");
     if (resultado === "RECHAZADO") setPaso("rechazo");
   }
 
-  // ✅ volver “limpio” (sin selección marcada)
   const backToResultadoFromPago = () => {
     setPaso("resultado");
-    setResultado(null);     // 🔥 limpia selección
-    setMetodo(null);        // 🔥 limpia selección
-    resetEvidence();        // por si había algo
+    setResultado(null);
+    setMetodo(null);
+    setErrorMsg("");
+    resetEvidence();
   };
 
   const backToPagoFromEvidencia = () => {
     setPaso("pago");
-    setMetodo(null);        // 🔥 limpia selección
-    resetEvidence();        // 🔥 elimina evidencia
+    setMetodo(null);
+    setErrorMsg("");
+    resetEvidence();
   };
 
   const backToResultadoFromRechazo = () => {
     setPaso("resultado");
-    setResultado(null);     // 🔥 limpia selección
-    setObsRechazo("");      // 🔥 limpia observación
+    setResultado(null);
+    setObsRechazo("");
+    setErrorMsg("");
   };
 
-  async function handleConfirm() {
-    if (!resultado || !pedido) return;
+  /**
+   * ✅ FIX CRÍTICO:
+   * Antes: metodoPagoIds ?? DEFAULT  (si llega objeto con valores undefined, NO caía al default)
+   * Ahora: fallback POR CAMPO + Number()
+   */
+  const metodoIdMap = useMemo(() => {
+    return {
+      EFECTIVO: Number(metodoPagoIds?.EFECTIVO ?? DEFAULT_METODO_PAGO_IDS.EFECTIVO),
+      BILLETERA: Number(metodoPagoIds?.BILLETERA ?? DEFAULT_METODO_PAGO_IDS.BILLETERA),
+      DIRECTO_ECOMMERCE: Number(
+        metodoPagoIds?.DIRECTO_ECOMMERCE ?? DEFAULT_METODO_PAGO_IDS.DIRECTO_ECOMMERCE
+      ),
+    };
+  }, [metodoPagoIds]);
 
+  function resolveMetodoPagoId(m: MetodoPagoUI): number {
+    const id =
+      m === "EFECTIVO"
+        ? metodoIdMap.EFECTIVO
+        : m === "BILLETERA"
+        ? metodoIdMap.BILLETERA
+        : metodoIdMap.DIRECTO_ECOMMERCE;
+
+    return Number(id);
+  }
+
+  async function handleConfirm() {
+    setErrorMsg("");
+
+    if (!resultado || !pedido) return;
     const pid = pedido.id;
+
     try {
       setSubmitting(true);
 
@@ -189,17 +241,33 @@ export default function ModalEntregaRepartidor({
         return;
       }
 
-      if (!metodo) return;
-      if (requiresEvidencia(metodo) && !evidenciaFile) return;
+      if (!metodo) {
+        setErrorMsg("Selecciona una forma de pago.");
+        return;
+      }
+
+      if (requiresEvidencia(metodo) && !evidenciaFile) {
+        setErrorMsg("Este método requiere evidencia (foto).");
+        return;
+      }
+
+      const metodo_pago_id = resolveMetodoPagoId(metodo);
+      if (!Number.isFinite(metodo_pago_id) || metodo_pago_id <= 0) {
+        setErrorMsg(
+          "metodo_pago_id inválido. Revisa que estés pasando metodoPagoIds con los IDs reales (DB)."
+        );
+        return;
+      }
 
       await onConfirm?.({
         pedidoId: pid,
         resultado: "ENTREGADO",
-        metodo,
-        observacion: undefined,
+        metodo_pago_id,
         evidenciaFile,
+        observacion: undefined,
         fecha_entrega_real: undefined,
       });
+
       closeAll();
     } finally {
       setSubmitting(false);
@@ -209,9 +277,8 @@ export default function ModalEntregaRepartidor({
   if (!isOpen || !pedido || !resumen) return null;
 
   const telHref =
-    resumen.telefono && resumen.telefono !== "—"
-      ? `tel:${resumen.telefono}`
-      : undefined;
+    resumen.telefono && resumen.telefono !== "—" ? `tel:${resumen.telefono}` : undefined;
+
   const waHref =
     resumen.telefono && resumen.telefono !== "—"
       ? `https://wa.me/${resumen.telefono.replace(/\D/g, "")}`
@@ -226,7 +293,6 @@ export default function ModalEntregaRepartidor({
     currency: "PEN",
   }).format(resumen.monto || 0);
 
-  // modo seguro para no romper TS si tu modal usa otros nombres
   const ImagePreviewModal: any = ImagePreviewModalx;
 
   return (
@@ -281,11 +347,7 @@ export default function ModalEntregaRepartidor({
                     color="text-indigo-500"
                     label={resumen.ecommerce}
                   />
-                  <InfoIconRow
-                    icon="mdi:cash"
-                    color="text-amber-500"
-                    label={montoFormateado}
-                  />
+                  <InfoIconRow icon="mdi:cash" color="text-amber-500" label={montoFormateado} />
                   <InfoIconRow
                     icon="mdi:calendar-blank-outline"
                     color="text-purple-500"
@@ -296,16 +358,8 @@ export default function ModalEntregaRepartidor({
 
               <div className="mt-4 flex items-center justify-center gap-5">
                 <AccionCircular icon="mdi:phone" label="Llamar" href={telHref} />
-                <AccionCircular
-                  icon="mdi:whatsapp"
-                  label="WhatsApp"
-                  href={waHref}
-                />
-                <AccionCircular
-                  icon="mdi:account-voice"
-                  label="Otros"
-                  onClick={() => {}}
-                />
+                <AccionCircular icon="mdi:whatsapp" label="WhatsApp" href={waHref} />
+                <AccionCircular icon="mdi:account-voice" label="Otros" onClick={() => {}} />
               </div>
 
               <div className="mt-4 bg-white rounded-md overflow-hidden shadow-default border border-gray30">
@@ -323,9 +377,7 @@ export default function ModalEntregaRepartidor({
                           <td className="px-4 py-3 text-sm text-gray-900">
                             <div>{it.nombre}</div>
                             {it.descripcion && (
-                              <div className="text-xs text-gray-500">
-                                {it.descripcion}
-                              </div>
+                              <div className="text-xs text-gray-500">{it.descripcion}</div>
                             )}
                           </td>
                           <td className="px-4 py-3 text-right text-sm text-gray-800 font-medium">
@@ -346,29 +398,40 @@ export default function ModalEntregaRepartidor({
             </div>
           </section>
 
+          {/* Error UI */}
+          {errorMsg && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+              {errorMsg}
+            </div>
+          )}
+
           {/* Paso: Resultado */}
           {paso === "resultado" && (
             <section className="mt-2">
               <h3 className="text-center text-base md:text-lg font-semibold text-gray-900">
                 ¿CUÁL FUE EL RESULTADO FINAL DE LA ENTREGA?
               </h3>
-              <p className="text-center text-xs text-gray-500 mt-1">
-                Elige una de estas opciones
-              </p>
+              <p className="text-center text-xs text-gray-500 mt-1">Elige una de estas opciones</p>
 
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <OpcionCard
                   active={resultado === "ENTREGADO"}
                   icon="mdi:check"
                   title="Pedido entregado"
-                  onClick={() => setResultado("ENTREGADO")}
+                  onClick={() => {
+                    setErrorMsg("");
+                    setResultado("ENTREGADO");
+                  }}
                   activeColor="emerald"
                 />
                 <OpcionCard
                   active={resultado === "RECHAZADO"}
                   icon="mdi:close"
                   title="Pedido no entregado"
-                  onClick={() => setResultado("RECHAZADO")}
+                  onClick={() => {
+                    setErrorMsg("");
+                    setResultado("RECHAZADO");
+                  }}
                   activeColor="red"
                 />
               </div>
@@ -381,9 +444,7 @@ export default function ModalEntregaRepartidor({
               <h3 className="text-sm font-semibold text-[#1D3F8C] uppercase tracking-wide text-center">
                 FORMA DE PAGO
               </h3>
-              <p className="text-xs text-gray-500 text-center">
-                Elige una de estas opciones
-              </p>
+              <p className="text-xs text-gray-500 text-center">Elige una de estas opciones</p>
 
               <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <OpcionCard
@@ -407,6 +468,12 @@ export default function ModalEntregaRepartidor({
                   onClick={() => handleMetodo("DIRECTO_ECOMMERCE")}
                   activeColor="blue"
                 />
+              </div>
+
+              <div className="mt-3 text-xs text-gray-500 text-center">
+                IDs configurados: EFECTIVO={String(metodoIdMap.EFECTIVO)} · BILLETERA=
+                {String(metodoIdMap.BILLETERA)} · DIRECTO_ECOMMERCE=
+                {String(metodoIdMap.DIRECTO_ECOMMERCE)}
               </div>
             </section>
           )}
@@ -434,9 +501,7 @@ export default function ModalEntregaRepartidor({
                   />
                   <div className="w-full rounded-2xl bg-white border border-gray-200 px-5 py-3 flex items-center justify-center gap-3 cursor-pointer shadow-[0_6px_18px_rgba(15,23,42,0.12)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 transition">
                     <Icon icon="mdi:upload" className="text-2xl text-gray-900" />
-                    <span className="text-sm font-medium text-gray-900">
-                      Adjuntar imagen
-                    </span>
+                    <span className="text-sm font-medium text-gray-900">Adjuntar imagen</span>
                   </div>
                 </label>
 
@@ -453,13 +518,8 @@ export default function ModalEntregaRepartidor({
                     }}
                   />
                   <div className="w-full rounded-2xl bg-white border border-gray-200 px-5 py-3 flex items-center justify-center gap-3 cursor-pointer shadow-[0_6px_18px_rgba(15,23,42,0.12)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 transition">
-                    <Icon
-                      icon="mdi:camera-outline"
-                      className="text-2xl text-gray-900"
-                    />
-                    <span className="text-sm font-medium text-gray-900">
-                      Tomar foto
-                    </span>
+                    <Icon icon="mdi:camera-outline" className="text-2xl text-gray-900" />
+                    <span className="text-sm font-medium text-gray-900">Tomar foto</span>
                   </div>
                 </label>
               </div>
@@ -488,9 +548,7 @@ export default function ModalEntregaRepartidor({
               <h3 className="text-center text-base md:text-lg font-semibold text-gray-900 uppercase">
                 ¿POR QUÉ EL PEDIDO FUE RECHAZADO?
               </h3>
-              <p className="text-center text-xs text-gray-500 mt-1">
-                Escribe la observación
-              </p>
+              <p className="text-center text-xs text-gray-500 mt-1">Escribe la observación</p>
 
               <InputxTextarea
                 label="Observación"
@@ -506,15 +564,9 @@ export default function ModalEntregaRepartidor({
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-gray-200 bg-[#F4F5F7] flex items-center justify-center gap-3">
-          {/* RESULTADO */}
           {paso === "resultado" && (
             <>
-              <Buttonx
-                label="Cancelar"
-                variant="outlined"
-                onClick={closeAll}
-                disabled={submitting}
-              />
+              <Buttonx label="Cancelar" variant="outlined" onClick={closeAll} disabled={submitting} />
               <Buttonx
                 label="Siguiente"
                 variant="quartery"
@@ -526,7 +578,6 @@ export default function ModalEntregaRepartidor({
             </>
           )}
 
-          {/* PAGO */}
           {paso === "pago" && (
             <>
               <Buttonx
@@ -534,15 +585,10 @@ export default function ModalEntregaRepartidor({
                 variant="outlined"
                 icon="mdi:arrow-left"
                 iconPosition="left"
-                onClick={backToResultadoFromPago} // ✅ vuelve y limpia selección
+                onClick={backToResultadoFromPago}
                 disabled={submitting}
               />
-              <Buttonx
-                label="Cancelar"
-                variant="outlined"
-                onClick={closeAll}
-                disabled={submitting}
-              />
+              <Buttonx label="Cancelar" variant="outlined" onClick={closeAll} disabled={submitting} />
               <Buttonx
                 label={
                   metodo === "EFECTIVO"
@@ -553,15 +599,15 @@ export default function ModalEntregaRepartidor({
                 }
                 variant="quartery"
                 icon={
-                  metodo === "EFECTIVO"
-                    ? !submitting
-                      ? "mdi:check"
-                      : undefined
-                    : "mdi:arrow-right"
+                  metodo === "EFECTIVO" ? (!submitting ? "mdi:check" : undefined) : "mdi:arrow-right"
                 }
                 iconPosition="right"
                 onClick={() => {
-                  if (!metodo) return;
+                  setErrorMsg("");
+                  if (!metodo) {
+                    setErrorMsg("Selecciona una forma de pago.");
+                    return;
+                  }
 
                   if (metodo === "EFECTIVO") {
                     handleConfirm();
@@ -569,7 +615,7 @@ export default function ModalEntregaRepartidor({
                   }
 
                   if (requiresEvidencia(metodo)) {
-                    resetEvidence(); // ✅ siempre entrar “limpio” a evidencia
+                    resetEvidence();
                     setPaso("evidencia");
                   }
                 }}
@@ -578,7 +624,6 @@ export default function ModalEntregaRepartidor({
             </>
           )}
 
-          {/* EVIDENCIA */}
           {paso === "evidencia" && (
             <>
               <Buttonx
@@ -586,15 +631,10 @@ export default function ModalEntregaRepartidor({
                 variant="outlined"
                 icon="mdi:arrow-left"
                 iconPosition="left"
-                onClick={backToPagoFromEvidencia} // ✅ vuelve y limpia selección + evidencia
+                onClick={backToPagoFromEvidencia}
                 disabled={submitting}
               />
-              <Buttonx
-                label="Cancelar"
-                variant="outlined"
-                onClick={closeAll}
-                disabled={submitting}
-              />
+              <Buttonx label="Cancelar" variant="outlined" onClick={closeAll} disabled={submitting} />
               <Buttonx
                 label={submitting ? "Guardando..." : "Confirmar"}
                 variant="quartery"
@@ -606,7 +646,6 @@ export default function ModalEntregaRepartidor({
             </>
           )}
 
-          {/* RECHAZO */}
           {paso === "rechazo" && (
             <>
               <Buttonx
@@ -614,15 +653,10 @@ export default function ModalEntregaRepartidor({
                 variant="outlined"
                 icon="mdi:arrow-left"
                 iconPosition="left"
-                onClick={backToResultadoFromRechazo} // ✅ vuelve y limpia selección + obs
+                onClick={backToResultadoFromRechazo}
                 disabled={submitting}
               />
-              <Buttonx
-                label="Cancelar"
-                variant="outlined"
-                onClick={closeAll}
-                disabled={submitting}
-              />
+              <Buttonx label="Cancelar" variant="outlined" onClick={closeAll} disabled={submitting} />
               <Buttonx
                 label={submitting ? "Guardando..." : "Confirmar"}
                 variant="quartery"
@@ -652,13 +686,7 @@ export default function ModalEntregaRepartidor({
 
 /* ------- Subcomponentes ------- */
 
-function ResumenRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
+function ResumenRow({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="text-sm leading-snug">
       <span className="text-gray-500">{label}:</span>{" "}
@@ -687,12 +715,7 @@ function InfoIconRow({
 
   if (href) {
     return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer"
-        className="hover:underline"
-      >
+      <a href={href} target="_blank" rel="noreferrer" className="hover:underline">
         {content}
       </a>
     );
@@ -717,21 +740,30 @@ function AccionCircular({
       <Icon icon={icon} className="text-2xl" />
     </div>
   );
-  return href ? (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="flex flex-col items-center gap-1"
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className="flex flex-col items-center gap-1">
+        {Circle}
+        <span className="text-[11px] text-gray-600">{label}</span>
+      </a>
+    );
+  }
+
+  // ✅ NO button (evita warning de button anidado)
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onClick?.();
+      }}
+      className="flex flex-col items-center gap-1 cursor-pointer select-none"
     >
       {Circle}
       <span className="text-[11px] text-gray-600">{label}</span>
-    </a>
-  ) : (
-    <button onClick={onClick} className="flex flex-col items-center gap-1">
-      {Circle}
-      <span className="text-[11px] text-gray-600">{label}</span>
-    </button>
+    </div>
   );
 }
 

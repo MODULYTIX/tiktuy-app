@@ -9,7 +9,7 @@ export default function ImportExcelPedidosFlow({
   token,
   onImported = () => { },
   children,
-  allowMultiCourier = true, // ← ya NO afecta nada, pero lo mantenemos por compatibilidad
+  allowMultiCourier = true, 
 }: {
   token: string;
   onImported?: () => void;
@@ -38,11 +38,11 @@ export default function ImportExcelPedidosFlow({
       setPreviewData(data as PreviewResponseDTO);
       setPreviewModalOpen(true);
     } catch (err) {
-      console.error('❌ Error preview Excel:', err);
+      console.error('Error preview Excel:', err);
       alert('No se pudo generar la previsualización del Excel de pedidos.');
     } finally {
       setLoadingModalOpen(false);
-      if (inputRef.current) inputRef.current.value = ''; // limpiar input file
+      if (inputRef.current) inputRef.current.value = '';
     }
   };
 
@@ -74,7 +74,7 @@ export default function ImportExcelPedidosFlow({
           token={token}
           data={previewData}
           onImported={onImported}
-          allowMultiCourier={allowMultiCourier} // aunque ya no se usa, lo mantiene el componente
+          allowMultiCourier={allowMultiCourier}
         />
       )}
     </>

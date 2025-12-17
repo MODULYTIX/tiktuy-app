@@ -15,7 +15,7 @@ import Badgex from "@/shared/common/Badgex";
 type EstadoTexto = "activo" | "pendiente";
 
 interface EcommerceRow {
-  ecommerce_id: number;          // <- usamos ecommerce_id para acciones (invitación)
+  ecommerce_id: number; // <- usamos ecommerce_id para acciones (invitación)
   nombre_comercial: string;
   ruc: string;
   ciudad: string;
@@ -241,6 +241,7 @@ export default function PanelControlTable() {
   // Modal de WhatsApp (invitar / actualizar link)
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteOtherId, setInviteOtherId] = useState<number | null>(null);
+  const [inviteSedeId, setInviteSedeId] = useState<number | null>(null); // ✅ NUEVO
 
   // Carga
   const loadRows = async () => {
@@ -453,11 +454,12 @@ export default function PanelControlTable() {
                               title="Ver detalle"
                             />
 
-                            {/* WhatsApp: verde si ya hay link, gris si no. Abre el modal para registrar/actualizar */}
+                            {/* WhatsApp */}
                             <button
                               type="button"
                               onClick={() => {
                                 setInviteOtherId(entry.ecommerce_id); // otherId = ecommerce_id
+                                setInviteSedeId((entry._raw as any)?.sede_id ?? null); // ✅ NUEVO: sedeId
                                 setInviteOpen(true);
                               }}
                               className="p-1 rounded hover:bg-gray10"
@@ -564,7 +566,12 @@ export default function PanelControlTable() {
         <PanelControlInviteEcommer
           open={inviteOpen}
           otherId={inviteOtherId ?? undefined} // Courier -> otherId = ecommerce_id
-          onClose={() => setInviteOpen(false)}
+          sedeId={inviteSedeId ?? undefined}   // ✅ NUEVO: sedeId requerido
+          onClose={() => {
+            setInviteOpen(false);
+            setInviteOtherId(null);
+            setInviteSedeId(null);
+          }}
           onSaved={async () => {
             await loadRows(); // recarga para actualizar color del ícono
             snackbar.show("Cambios guardados");

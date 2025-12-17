@@ -1,5 +1,10 @@
-export type RepartidorVista = 'hoy' | 'pendientes' | 'terminados';
+// src/services/repartidor/pedidos/pedidos.types.ts
 
+export type RepartidorVista = "hoy" | "pendientes" | "terminados";
+
+/* =========================
+ * QUERIES
+ * ========================= */
 export interface ListPedidosHoyQuery {
   page?: number;
   perPage?: number;
@@ -10,8 +15,8 @@ export interface ListByEstadoQuery {
   perPage?: number;
   desde?: string | Date;
   hasta?: string | Date;
-  sortBy?: 'programada' | 'real' | 'creacion' | 'actualizada';
-  order?: 'asc' | 'desc';
+  sortBy?: "programada" | "real" | "creacion" | "actualizada";
+  order?: "asc" | "desc";
 }
 
 export interface Paginated<T> {
@@ -94,15 +99,15 @@ export interface PedidoListItem {
 export type PedidoDetalle = PedidoListItem;
 
 /* =========================
- * Tipos para CAMBIO DE ESTADO
+ * CAMBIO DE ESTADO
  * ========================= */
 
 // 1) Estado inicial (desde "Pendiente")
 export type EstadoInicialResultado =
-  | 'RECEPCION_HOY'
-  | 'NO_RESPONDE'
-  | 'REPROGRAMADO'
-  | 'ANULO';
+  | "RECEPCION_HOY"
+  | "NO_RESPONDE"
+  | "REPROGRAMADO"
+  | "ANULO";
 
 export interface UpdateEstadoInicialBody {
   resultado: EstadoInicialResultado;
@@ -118,17 +123,41 @@ export interface UpdateEstadoInicialResponse {
 }
 
 // 2) Resultado / Cierre de entrega
-export type ResultadoEntrega = 'ENTREGADO' | 'RECHAZADO';
+export type ResultadoEntrega = "ENTREGADO" | "RECHAZADO";
 
-export interface UpdateResultadoBody {
-  resultado: ResultadoEntrega;
-  monto_recaudado?: number | string;
-  observacion?: string;
-  evidenciaFile?: File | Blob; // se envía en campo 'evidencia' del FormData
-  fecha_entrega_real?: string | Date; // opcional: si no se envía, el backend usa "now()"
-  // Solo para lógica de UI; el backend no lo consume
-  metodo?: 'EFECTIVO' | 'BILLETERA' | 'DIRECTO_ECOMMERCE';
-}
+// Solo UI (backend no lo consume)
+export type MetodoPagoUI = "EFECTIVO" | "BILLETERA" | "DIRECTO_ECOMMERCE";
+
+/**
+ * ✅ CORREGIDO:
+ * - ENTREGADO: requiere metodo_pago_id (DB) porque el backend lo valida/guarda
+ * - RECHAZADO: NO debe enviarse metodo_pago_id
+ */
+export type UpdateResultadoBody =
+  | {
+      resultado: "ENTREGADO";
+      metodo_pago_id: number; // ✅ requerido (ID real en DB)
+
+      monto_recaudado?: number | string;
+      observacion?: string;
+      evidenciaFile?: File | Blob; // se envía en FormData como "evidencia"
+      fecha_entrega_real?: string | Date;
+
+      metodo?: MetodoPagoUI; // UI-only
+    }
+  | {
+      resultado: "RECHAZADO";
+      metodo_pago_id?: never; // ✅ no aplica
+
+      monto_recaudado?: number | string;
+      observacion?: string;
+
+      // No se usa normalmente, pero lo dejo por compat si tu UI lo manda:
+      evidenciaFile?: File | Blob;
+      fecha_entrega_real?: string | Date;
+
+      metodo?: MetodoPagoUI; // UI-only
+    };
 
 export interface UpdateResultadoResponse {
   pedido_id: number;

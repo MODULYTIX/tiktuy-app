@@ -170,7 +170,7 @@ export default function PedidosTableGenerado({
 
         <thead className="bg-[#E5E7EB]">
           <tr className="text-gray70 font-medium">
-            <th className="px-2 py-3 text-center">Fec. Creación</th>
+            <th className="px-2 py-3 text-center">Fec. Entrega</th>
             <th className="px-4 py-3 text-left">Courier</th>
             <th className="px-4 py-3 text-left">Cliente</th>
             <th className="px-4 py-3 text-left">Producto</th>
@@ -205,11 +205,12 @@ export default function PedidosTableGenerado({
           ) : (
             <>
               {visiblePedidos.map((p) => {
-                const fecha = new Date(p.fecha_creacion).toLocaleDateString();
-                const monto = p.detalles?.reduce(
-                  (acc, d) => acc + d.cantidad * d.precio_unitario,
-                  0
-                );
+                const fecha = p.fecha_entrega_programada
+                  ? new Date(p.fecha_entrega_programada).toLocaleDateString()
+                  : '-'; const monto = p.detalles?.reduce(
+                    (acc, d) => acc + d.cantidad * d.precio_unitario,
+                    0
+                  );
 
                 return (
                   <tr

@@ -205,7 +205,7 @@ export default function EcommerceHomePage() {
     <section className="mt-8 flex flex-col gap-5">
       <Tittlex
         title="Panel de Control"
-        description="Monitoreo de asociación por SEDES (ciudad ↔ courier)"
+        description="Monitoreo de asociación por SEDES"
       />
 
       {/* Filtros */}

@@ -3,6 +3,8 @@
 export interface ListPedidosHoyQuery {
   page?: number;
   perPage?: number;
+  desde?: string | Date; // ✅ nuevo
+  hasta?: string | Date; // ✅ nuevo
 }
 
 export interface ListByEstadoQuery {
