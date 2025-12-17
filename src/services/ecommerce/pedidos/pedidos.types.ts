@@ -4,6 +4,7 @@ export interface ProductoInfo {
   id: number;
   nombre_producto: string;
   stock: number;
+  descripcion: string;
 }
 
 export interface PedidoDetalle {

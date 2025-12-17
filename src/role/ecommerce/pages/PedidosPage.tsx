@@ -39,7 +39,7 @@ export default function PedidosPage() {
   );
 
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [pedidoId, setPedidoId] = useState<number | null>(null);
+  const [, setPedidoId] = useState<number | null>(null);
 
   const [filtros, setFiltros] = useState<Filtros>({
     courier: '',
@@ -180,8 +180,8 @@ export default function PedidosPage() {
             {vista === 'generado'
               ? 'Pedidos Generados'
               : vista === 'asignado'
-              ? 'Pedidos Asignados'
-              : 'Pedidos Completados'}
+                ? 'Pedidos Asignados'
+                : 'Pedidos Completados'}
           </h2>
           <p className="text-sm text-black font-regular">
             {descripcionVista[vista]}
@@ -289,8 +289,8 @@ export default function PedidosPage() {
         <PedidosAsignado
           key={`asi-${refreshKey}`}
           filtros={filtros}
-          onVer={() => {}}
-          onEditar={() => {}}
+          onVer={() => { }}
+          onEditar={() => { }}
         />
       )}
 
@@ -307,9 +307,8 @@ export default function PedidosPage() {
           isOpen={modalAbierto}
           onClose={handleCerrarModal}
           onPedidoCreado={refetchPedidos}
-          pedidoId={pedidoId ?? undefined}
-          modo={pedidoId ? 'editar' : 'crear'}
         />
+
       )}
     </section>
   );

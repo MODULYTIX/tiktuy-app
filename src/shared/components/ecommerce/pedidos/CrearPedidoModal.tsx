@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { Icon } from "@iconify/react";
+
 import {
   crearPedido,
-  fetchPedidoById,
   fetchProductosPorSede,
   fetchZonasTarifariasPorSede,
 } from "@/services/ecommerce/pedidos/pedidos.api";
@@ -18,6 +19,7 @@ import type {
   CrearPedidoDTO,
 } from "@/services/ecommerce/pedidos/pedidos.types";
 
+/* ===================== TIPOS ===================== */
 type ProductoUI = {
   id: number;
   nombre_producto: string;
@@ -25,32 +27,34 @@ type ProductoUI = {
   stock: number;
 };
 
-interface CrearPedidoModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onPedidoCreado: () => void;
-  pedidoId?: number;
-  modo?: "crear" | "editar" | "ver";
-}
+type DetalleUI = {
+  producto_id: number;
+  nombre: string;
+  cantidad: number;
+  precio_unitario: number;
+};
 
+/* ===================== COMPONENTE ===================== */
 export default function CrearPedidoModal({
   isOpen,
   onClose,
   onPedidoCreado,
-  pedidoId,
-  modo = "crear",
-}: CrearPedidoModalProps) {
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onPedidoCreado: () => void;
+}) {
   const { token } = useAuth();
 
-  const [productos, setProductos] = useState<ProductoUI[]>([]);
   const [sedes, setSedes] = useState<any[]>([]);
-
+  const [productos, setProductos] = useState<ProductoUI[]>([]);
   const [zonas, setZonas] = useState<ZonaTarifariaSede[]>([]);
   const [distritos, setDistritos] = useState<string[]>([]);
 
   const [distritoSeleccionado, setDistritoSeleccionado] = useState("");
   const [zonaSeleccionada, setZonaSeleccionada] = useState("");
 
+  const [detalles, setDetalles] = useState<DetalleUI[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
@@ -60,134 +64,103 @@ export default function CrearPedidoModal({
     celular_cliente: "",
     direccion_envio: "",
     referencia_direccion: "",
-    distrito: "",
-    monto_recaudar: "",
-    fecha_entrega_programada: "",
     producto_id: "",
     cantidad: "",
     precio_unitario: "",
     stock_max: "",
+    fecha_entrega_programada: "", // 👈 FECHA ÚNICA DEL PEDIDO
   });
 
-  /* ==================== CARGAR SEDES ==================== */
+  /* ===================== CARGAS ===================== */
   useEffect(() => {
     if (!isOpen || !token) return;
-
-    (async () => {
-      const sedesRaw = await fetchSedesEcommerceCourierAsociados(token);
-      setSedes(sedesRaw);
-    })();
+    fetchSedesEcommerceCourierAsociados(token).then(setSedes);
   }, [isOpen, token]);
 
-  /* ==================== CARGAR PRODUCTOS ==================== */
   useEffect(() => {
     if (!form.sede_id || !token) return;
 
-    (async () => {
-      const list = await fetchProductosPorSede(Number(form.sede_id), token);
-      setProductos(
-        list.map((p) => ({
-          id: p.id,
-          nombre_producto: p.nombre_producto,
-          precio: p.precio,
-          stock: p.stock,
-        }))
-      );
-    })();
-  }, [form.sede_id, token]);
+    fetchProductosPorSede(Number(form.sede_id), token).then(setProductos);
 
-  /* ==================== CARGAR ZONAS + DISTRITOS ==================== */
-  useEffect(() => {
-    if (!form.sede_id) {
-      setZonas([]);
-      setDistritos([]);
+    fetchZonasTarifariasPorSede(Number(form.sede_id)).then((data) => {
+      setZonas(data);
+      setDistritos([...new Set(data.map((z) => z.distrito))]);
       setDistritoSeleccionado("");
       setZonaSeleccionada("");
+    });
+  }, [form.sede_id, token]);
+
+  useEffect(() => {
+    const prod = productos.find((p) => p.id === Number(form.producto_id));
+    if (!prod) return;
+
+    setForm((p) => ({
+      ...p,
+      precio_unitario: String(prod.precio),
+      stock_max: String(prod.stock),
+    }));
+  }, [form.producto_id, productos]);
+
+  const handleChange = (e: any) =>
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+
+  /* ===================== AGREGAR PRODUCTO ===================== */
+  const handleAgregarProducto = () => {
+    if (!form.producto_id || !form.cantidad) {
+      alert("Seleccione producto y cantidad");
       return;
     }
 
-    (async () => {
-      try {
-        const data = await fetchZonasTarifariasPorSede(Number(form.sede_id));
-        setZonas(data);
+    const prod = productos.find(
+      (p) => p.id === Number(form.producto_id)
+    );
+    if (!prod) return;
 
-        const unique = Array.from(new Set(data.map((z) => z.distrito)));
-        setDistritos(unique);
-      } catch (e) {
-        console.error("❌ Error cargando zonas:", e);
-        setZonas([]);
-        setDistritos([]);
-      }
-
-      setDistritoSeleccionado("");
-      setZonaSeleccionada("");
-    })();
-  }, [form.sede_id]);
-
-  /* ==================== EDITAR PEDIDO ==================== */
-  useEffect(() => {
-    if (modo === "crear" || !pedidoId || !token) return;
-
-    (async () => {
-      const data = await fetchPedidoById(pedidoId, token);
-      const detalle = data.detalles?.[0] || {};
-
-      setForm({
-        sede_id: String(data.sede_id),
-        nombre_cliente: data.nombre_cliente,
-        numero_cliente: data.numero_cliente ?? "",
-        celular_cliente: data.celular_cliente,
-        direccion_envio: data.direccion_envio,
-        referencia_direccion: data.referencia_direccion ?? "",
-        distrito: data.distrito,
-        monto_recaudar: String(data.monto_recaudar),
-        fecha_entrega_programada: data.fecha_entrega_programada
-          ? data.fecha_entrega_programada.slice(0, 10)
-          : "",
-        producto_id: String(detalle.producto_id ?? ""),
-        cantidad: String(detalle.cantidad ?? ""),
-        precio_unitario: String(detalle.precio_unitario ?? ""),
-        stock_max: "",
-      });
-
-      setDistritoSeleccionado(data.distrito);
-      if (data.zona_tarifaria_id) {
-        setZonaSeleccionada(String(data.zona_tarifaria_id));
-      }
-    })();
-  }, [modo, pedidoId, token]);
-
-  /* ==================== STOCK + MONTO ==================== */
-  useEffect(() => {
-    const prod = productos.find((p) => p.id === Number(form.producto_id));
-    if (prod) {
-      setForm((prev) => ({
-        ...prev,
-        precio_unitario: String(prod.precio),
-        stock_max: String(prod.stock),
-      }));
+    const cantidad = Number(form.cantidad);
+    if (cantidad > prod.stock) {
+      alert(`Stock insuficiente. Disponible: ${prod.stock}`);
+      return;
     }
-  }, [form.producto_id, productos]);
 
-  useEffect(() => {
-    const total = Number(form.cantidad) * Number(form.precio_unitario);
-    if (!isNaN(total)) {
-      setForm((prev) => ({ ...prev, monto_recaudar: String(total) }));
-    }
-  }, [form.cantidad, form.precio_unitario]);
+    setDetalles((prev) => [
+      ...prev,
+      {
+        producto_id: prod.id,
+        nombre: prod.nombre_producto,
+        cantidad,
+        precio_unitario: prod.precio,
+      },
+    ]);
 
-  const handleChange = (e: any) =>
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm((p) => ({
+      ...p,
+      producto_id: "",
+      cantidad: "",
+      precio_unitario: "",
+      stock_max: "",
+    }));
+  };
 
-  /* ==================== SUBMIT ==================== */
+  const handleRemoveDetalle = (index: number) => {
+    setDetalles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const montoTotal = detalles.reduce(
+    (s, d) => s + d.cantidad * d.precio_unitario,
+    0
+  );
+
+  /* ===================== SUBMIT ===================== */
   const handleSubmit = async () => {
-    if (submitting) return;
+    if (!detalles.length) {
+      alert("Debe agregar al menos un producto");
+      return;
+    }
 
-    if (!distritoSeleccionado)
-      return alert("Debe seleccionar un distrito.");
-
-    if (!zonaSeleccionada)
-      return alert("No se encontró zona tarifaria para este distrito.");
+    if (!form.fecha_entrega_programada) {
+      alert("Debe seleccionar la fecha de entrega");
+      return;
+    }
 
     const payload: CrearPedidoDTO = {
       codigo_pedido: `PED-${Date.now()}`,
@@ -199,17 +172,13 @@ export default function CrearPedidoModal({
       direccion_envio: form.direccion_envio,
       referencia_direccion: form.referencia_direccion,
       distrito: distritoSeleccionado,
-      monto_recaudar: Number(form.monto_recaudar),
-      fecha_entrega_programada: form.fecha_entrega_programada
-        ? `${form.fecha_entrega_programada}T12:00:00.000Z`
-        : null,
-      detalles: [
-        {
-          producto_id: Number(form.producto_id),
-          cantidad: Number(form.cantidad),
-          precio_unitario: Number(form.precio_unitario),
-        },
-      ],
+      monto_recaudar: montoTotal,
+      fecha_entrega_programada: `${form.fecha_entrega_programada}T12:00:00.000Z`,
+      detalles: detalles.map((d) => ({
+        producto_id: d.producto_id,
+        cantidad: d.cantidad,
+        precio_unitario: d.precio_unitario,
+      })),
     };
 
     setSubmitting(true);
@@ -222,171 +191,124 @@ export default function CrearPedidoModal({
     }
   };
 
-  /* ==================== UI ==================== */
   if (!isOpen) return null;
 
-  const zonaInfo = zonas.find((z) => String(z.id) === zonaSeleccionada);
-
+  /* ===================== UI ===================== */
   return (
-    <div className="fixed inset-0 z-50 bg-black/20 flex justify-end">
-      <div className="w-full max-w-md h-full bg-white p-6 shadow-xl overflow-y-auto flex flex-col gap-5">
+    <div className="fixed inset-0 z-50 bg-black/30 flex justify-end">
+      <div className="w-full max-w-xl h-full bg-white p-6 shadow-2xl overflow-y-auto flex flex-col gap-6">
 
         <Tittlex
           variant="modal"
           icon="lsicon:shopping-cart-filled"
-          title="REGISTRAR NUEVO PEDIDO"
-          description="Complete los datos del cliente y el producto."
+          title="Registrar pedido"
+          description="Un pedido puede tener varios productos y una sola fecha de entrega."
         />
 
-        <div className="flex flex-col gap-5">
+        {/* SEDE */}
+        <Selectx label="Sede" name="sede_id" value={form.sede_id} onChange={handleChange}>
+          <option value="">Seleccionar opción</option>
+          {sedes.map((s) => (
+            <option key={s.sede_id} value={s.sede_id}>{s.nombre}</option>
+          ))}
+        </Selectx>
 
-          {/* SEDE */}
-          <Selectx
-            label="Sede"
-            labelVariant = "left"
-            name="sede_id"
-            value={form.sede_id}
-            onChange={(e) => {
-              handleChange(e);
-              setDistritoSeleccionado("");
-              setZonaSeleccionada("");
-            }}
-          >
-            <option value="">Seleccione una sede</option>
-            {sedes.map((s) => (
-              <option key={s.sede_id} value={s.sede_id}>
-                {s.nombre}
-              </option>
+        {/* DISTRITO */}
+        <Selectx
+          label="Distrito"
+          value={distritoSeleccionado}
+          onChange={(e) => {
+            const d = e.target.value;
+            setDistritoSeleccionado(d);
+            const zona = zonas.find((z) => z.distrito === d);
+            setZonaSeleccionada(zona ? String(zona.id) : "");
+          }}
+        >
+          <option value="">Seleccionar opción</option>
+          {distritos.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </Selectx>
+
+        {/* CLIENTE */}
+        <Inputx label="Nombre cliente" name="nombre_cliente" value={form.nombre_cliente} onChange={handleChange} />
+        <InputxPhone label="Teléfono" name="celular_cliente" countryCode="+51" value={form.celular_cliente} onChange={handleChange} />
+        <Inputx label="Dirección" name="direccion_envio" value={form.direccion_envio} onChange={handleChange} />
+        <Inputx label="Referencia" name="referencia_direccion" value={form.referencia_direccion} onChange={handleChange} />
+
+        {/* FECHA ENTREGA (ÚNICA) */}
+        <Inputx
+          type="date"
+          label="Fecha de entrega"
+          name="fecha_entrega_programada"
+          value={form.fecha_entrega_programada}
+          onChange={handleChange}
+        />
+
+        {/* PRODUCTO */}
+        <div className="grid grid-cols-2 gap-4">
+          <Selectx label="Producto" name="producto_id" value={form.producto_id} onChange={handleChange}>
+            <option value="">Seleccionar</option>
+            {productos.map((p) => (
+              <option key={p.id} value={p.id}>{p.nombre_producto}</option>
             ))}
           </Selectx>
 
-          {/* DISTRITO */}
-          <Selectx
-            label="Distrito"
-            labelVariant = "left"
-            value={distritoSeleccionado}
-            onChange={(e) => {
-              const dist = e.target.value;
-              setDistritoSeleccionado(dist);
-
-              const zonasDelDistrito = zonas.filter(
-                (z) => z.distrito === dist
-              );
-
-              if (zonasDelDistrito.length > 0) {
-                setZonaSeleccionada(String(zonasDelDistrito[0].id));
-              } else {
-                setZonaSeleccionada("");
-              }
-            }}
-          >
-            <option value="">Seleccione distrito</option>
-            {distritos.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </Selectx>
-
-          {/* ZONA MOSTRADA AUTOMÁTICAMENTE */}
-          {zonaInfo && (
-            <div className="text-sm text-gray-700 bg-gray-100 p-2 rounded">
-              <b>Zona tarifaria: </b>
-              {zonaInfo.zona_tarifario} — S/ {zonaInfo.tarifa_cliente}
-            </div>
-          )}
-
-          {/* CLIENTE */}
-          <Inputx
-            label="Nombre"
-            name="nombre_cliente"
-            value={form.nombre_cliente}
+          <InputxNumber
+            label={`Cantidad (Stock ${form.stock_max || 0})`}
+            name="cantidad"
+            value={form.cantidad}
             onChange={handleChange}
           />
-
-          <InputxPhone
-            label="Teléfono"
-            name="celular_cliente"
-            countryCode="+51"
-            value={form.celular_cliente}
-            onChange={handleChange}
-          />
-
-          <Inputx
-            label="Dirección"
-            name="direccion_envio"
-            value={form.direccion_envio}
-            onChange={handleChange}
-          />
-
-          <Inputx
-            label="Referencia"
-            name="referencia_direccion"
-            value={form.referencia_direccion}
-            onChange={handleChange}
-          />
-
-          {/* PRODUCTO */}
-          <div className="flex gap-5">
-            <Selectx
-              label="Producto"
-              name="producto_id"
-              labelVariant = "left"
-              value={form.producto_id}
-              onChange={handleChange}
-            >
-              <option value="">Seleccione</option>
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre_producto}
-                </option>
-              ))}
-            </Selectx>
-
-            <InputxNumber
-              label={`Cantidad (Stock: ${form.stock_max || 0})`}
-              name="cantidad"
-              value={form.cantidad}
-              onChange={handleChange}
-            />
-          </div>
-
-          {/* MONTO + FECHA */}
-          <div className="flex gap-5">
-            <InputxNumber
-              label="Monto"
-              name="monto_recaudar"
-              value={form.monto_recaudar}
-              onChange={handleChange}
-            />
-
-            <Inputx
-              type="date"
-              label="Fecha Entrega"
-              name="fecha_entrega_programada"
-              value={form.fecha_entrega_programada}
-              onChange={handleChange}
-            />
-          </div>
         </div>
 
-        {/* BOTONES */}
-        <div className="flex gap-4">
+        <button
+          onClick={handleAgregarProducto}
+          className="border border-dashed rounded-lg py-2 flex items-center justify-center gap-2 text-gray-700 hover:bg-gray-50"
+        >
+          <Icon icon="mdi:plus-circle-outline" />
+          Agregar producto
+        </button>
+
+        {/* LISTA PRODUCTOS */}
+        {detalles.length > 0 && (
+          <div className="bg-gray-50 border rounded-lg p-4 space-y-2">
+            <div className="flex items-center gap-2 font-semibold text-gray-700">
+              <Icon icon="mdi:cart-outline" />
+              Productos agregados
+            </div>
+
+            {detalles.map((d, i) => (
+              <div key={i} className="flex justify-between text-sm">
+                <span>{d.nombre} x {d.cantidad}</span>
+                <button onClick={() => handleRemoveDetalle(i)}>
+                  <Icon icon="mdi:delete-outline" className="text-red-500" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* FOOTER */}
+        <div className="flex gap-3 mt-auto">
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="bg-gray-900 text-white px-4 py-2 rounded"
+            className="flex-1 bg-gray-900 text-white py-2 rounded-lg flex items-center justify-center gap-2"
           >
-            {submitting ? "Guardando..." : "Guardar pedido"}
+            <Icon icon="mdi:content-save-outline" />
+            Guardar pedido (S/ {montoTotal.toFixed(2)})
           </button>
 
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded text-gray-700"
+            className="px-4 py-2 border rounded-lg text-gray-700 flex items-center gap-2"
           >
+            <Icon icon="mdi:close" />
             Cancelar
           </button>
         </div>
+
       </div>
     </div>
   );

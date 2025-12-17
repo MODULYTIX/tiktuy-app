@@ -65,10 +65,9 @@ export async function fetchPedidoById(
    ========================================================== */
 // El pedido se crea SIEMPRE en estado "Asignado" en el backend
 export async function crearPedido(
-  data: CrearPedidoDTO, // viene del formulario (usa sede_id, NO courier_id)
+  data: CrearPedidoDTO,
   token: string
 ): Promise<Pedido> {
-  console.log('🚀 Enviando payload a /pedido:', data);
 
   const res = await fetch(`${API_URL}/pedido`, {
     method: 'POST',
@@ -81,7 +80,7 @@ export async function crearPedido(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: 'Sin cuerpo de error' }));
-    console.error('❌ Error al crear pedido (backend):', error);
+    console.error(' Error al crear pedido (backend):', error);
     throw new Error('Error al crear pedido');
   }
 
@@ -103,12 +102,14 @@ export type UpdatePedidoGeneradoPayload = {
   monto_recaudar?: number;
   fecha_entrega_programada?: string | null;
 
-  detalle?: {
-    producto_id?: number;
-    cantidad?: number;
-    precio_unitario?: number;
-  };
+  detalles?: {
+    id: number;
+    producto_id: number;
+    cantidad: number;
+    precio_unitario: number;
+  }[];
 };
+
 
 export async function actualizarPedidoGenerado(
   id: number,
@@ -126,7 +127,7 @@ export async function actualizarPedidoGenerado(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: 'Sin cuerpo de error' }));
-    console.error('❌ Error backend:', error);
+    console.error(' Error backend:', error);
     throw new Error('Error al actualizar pedido (generado)');
   }
   return res.json();
@@ -155,7 +156,7 @@ export async function actualizarPedidoAsignado(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: 'Sin cuerpo de error' }));
-    console.error('❌ Error backend:', error);
+    console.error(' Error backend:', error);
     throw new Error('Error al actualizar pedido asignado');
   }
   return res.json();
@@ -173,7 +174,7 @@ export async function fetchProductosPorSede(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: "Sin cuerpo de error" }));
-    console.error("❌ Error al obtener productos de la sede:", error);
+    console.error(" Error al obtener productos de la sede:", error);
     throw new Error("Error al obtener productos de la sede");
   }
 
@@ -191,7 +192,7 @@ export async function fetchZonasTarifariasPorSede(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: "Sin cuerpo de error" }));
-    console.error("❌ Error al obtener zonas tarifarias:", error);
+    console.error(" Error al obtener zonas tarifarias:", error);
     throw new Error("Error al obtener zonas tarifarias");
   }
 
