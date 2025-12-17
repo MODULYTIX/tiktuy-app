@@ -9,6 +9,8 @@ import type {
   ReassignPedidoPayload,
   ReassignPedidoApiResponse,
   PedidoDetalle,
+  ReprogramarPedidoPayload,
+  ReprogramarPedidoResponse,
 } from './pedidos.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -264,6 +266,43 @@ export async function reassignPedido(
   }
 
   return handle<ReassignPedidoApiResponse>(res, 'Error al reasignar pedido');
+}
+
+/* --------------------------
+   POST: Reprogramar pedido (antes de asignar)
+   POST /courier-pedidos/reprogramar-antes-asignar
+---------------------------*/
+export async function reprogramarPedido(
+  token: string,
+  payload: ReprogramarPedidoPayload,
+  opts?: { signal?: AbortSignal }
+): Promise<ReprogramarPedidoResponse> {
+  // ✅ guard para evitar el toISOString(undefined)
+  if (!payload?.pedido_id) throw new Error("pedido_id es requerido");
+  if (payload.fecha_entrega_programada === undefined || payload.fecha_entrega_programada === null) {
+    throw new Error("fecha_entrega_programada es requerida");
+  }
+
+  const res = await fetch(`${BASE_URL}/reprogramar-antes-asignar`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      pedido_id: payload.pedido_id,
+      fecha_entrega_programada: toIso(payload.fecha_entrega_programada), // ✅
+      observacion: payload.observacion ?? "", // ✅
+    }),
+    signal: opts?.signal,
+  });
+
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({ message: "Sin cuerpo de error" }));
+    console.error("❌ Error al reprogramar pedido - backend:", errBody);
+  }
+
+  return handle<ReprogramarPedidoResponse>(res, "Error al reprogramar pedido");
 }
 
 /* --------------------------

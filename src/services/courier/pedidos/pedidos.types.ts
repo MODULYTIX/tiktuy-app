@@ -148,3 +148,23 @@ export interface PedidoDetalle {
     subtotal: number;
   }>;
 }
+
+/* ----- Reprogramar (antes de asignar) ----- */
+export interface ReprogramarPedidoPayload {
+  pedido_id: number;
+  fecha_entrega_programada: string | Date; 
+  observacion?: string;
+}
+
+export interface ReprogramarPedidoResponse {
+  pedido_id: number;
+  codigo_pedido: string;
+  estado_id: number;
+  fecha_anterior: string | null;
+  fecha_nueva: string; // ISO
+  motivo: string | null;
+  creado_en: string;
+  creado_por_id: number;
+}
+
+
