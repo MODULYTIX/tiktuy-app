@@ -1,6 +1,5 @@
 // src/pages/courier/PedidosPage.tsx
 import { useEffect, useState } from "react";
-import { Icon } from "@iconify/react";
 import TablePedidoCourier from "@/shared/components/courier/pedido/TablePedidoCourier";
 import { useAuth } from "@/auth/context";
 import AsignarRepartidor from "@/shared/components/courier/pedido/AsignarRepartidor";

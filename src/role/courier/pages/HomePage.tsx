@@ -1,6 +1,5 @@
 // src/pages/courier/CourierHomePage.tsx
 import { useCallback, useState } from "react";
-import { Icon } from "@iconify/react";
 import PanelControlRepartidor from "@/shared/components/courier/panelControl/PanelControlRepartidorTable";
 import PanelControlTable from "@/shared/components/courier/panelControl/PanelControlEcommerceTable";
 import PanelControlInvitacion from "@/shared/components/courier/panelControl/PanelControlInvitacion";
