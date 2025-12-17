@@ -291,7 +291,7 @@ export async function reprogramarPedido(
     },
     body: JSON.stringify({
       pedido_id: payload.pedido_id,
-      fecha_entrega_programada: toIso(payload.fecha_entrega_programada), // ✅
+      fecha_entrega_programada: payload.fecha_entrega_programada, // ✅
       observacion: payload.observacion ?? "", // ✅
     }),
     signal: opts?.signal,

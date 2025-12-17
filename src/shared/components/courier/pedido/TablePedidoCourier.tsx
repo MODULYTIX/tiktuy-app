@@ -45,6 +45,27 @@ const PEN = new Intl.NumberFormat("es-PE", {
 });
 const two = (n: number) => String(n).padStart(2, "0");
 
+// ✅ NUEVO: forzar formato en Perú para evitar “-1 día”
+const fmtPE = new Intl.DateTimeFormat("es-PE", {
+  timeZone: "America/Lima",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function formatFechaPE(fecha: string | null | undefined) {
+  if (!fecha) return "—";
+
+  // Si viene "YYYY-MM-DD" (date-only), NO usar new Date(fecha)
+  // porque JS lo interpreta UTC y en Perú queda día anterior.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return fmtPE.format(new Date(`${fecha}T00:00:00-05:00`)); // ✅ Perú real
+  }
+
+  // Si viene ISO (con Z u offset), lo formateamos en Lima
+  return fmtPE.format(new Date(fecha));
+}
+
 export default function TablePedidoCourier({
   view,
   token,
@@ -314,12 +335,9 @@ export default function TablePedidoCourier({
       setReprogLoading(true);
       setError("");
 
-      // ✅ Aquí SOLO cambiamos lo necesario:
-      // el modal entrega fecha_entrega_programada/observacion
-      // tu API (pedidos.api.ts) debe mapear a lo que el backend valida
       await reprogramarPedido(token, {
         pedido_id: pedidoReprog.id,
-        fecha_entrega_programada: payload.fecha_entrega_programada, // tu type actual
+        fecha_entrega_programada: payload.fecha_entrega_programada,
         observacion: payload.observacion ?? "",
       });
 
@@ -557,9 +575,8 @@ export default function TablePedidoCourier({
                       </td>
 
                       <td className="h-12 px-4 py-3 text-gray70">
-                        {fecha
-                          ? new Date(fecha).toLocaleDateString("es-PE")
-                          : "—"}
+                        {/* ✅ CAMBIO: mostrar SIEMPRE en Perú */}
+                        {formatFechaPE(fecha)}
                       </td>
 
                       <td className="h-12 px-4 py-3 text-gray70">
