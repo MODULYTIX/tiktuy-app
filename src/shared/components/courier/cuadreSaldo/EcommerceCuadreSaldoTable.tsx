@@ -191,7 +191,12 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     setOpenDetalle(true);
     setDetalleLoading(true);
     try {
-      const arr = await getEcommercePedidosDia(token, ecoId, fecha, sedeIdNumber);
+      const arr = await getEcommercePedidosDia(
+        token,
+        ecoId,
+        fecha,
+        sedeIdNumber
+      );
       const list = Array.isArray(arr) ? arr : (arr as any)?.items ?? [];
       setDetalleItems(list as any[]);
     } catch (e: any) {
@@ -203,7 +208,8 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   };
 
   const prepararAbonoMultiFecha = async () => {
-    if (!ecoId || typeof ecoId !== "number" || selectedFechas.length === 0) return;
+    if (!ecoId || typeof ecoId !== "number" || selectedFechas.length === 0)
+      return;
     try {
       setLoading(true);
       const porFecha = await Promise.all(
@@ -313,28 +319,13 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       {/* Barra superior */}
       <div className="flex items-center justify-between">
         <div className="text-lg font-semibold">Ecommerce</div>
-        <button
+        <Buttonx
+          icon="iconoir:new-tab"
+          label="Abonar Ecommerce"
+          variant="secondary"
           onClick={prepararAbonoMultiFecha}
           disabled={selectedFechas.length === 0 || loading}
-          className={[
-            "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
-            selectedFechas.length === 0 || loading
-              ? "bg-blue-200 text-white cursor-not-allowed"
-              : "bg-blue-600 text-white hover:opacity-90",
-          ].join(" ")}
-          title="Abonar Ecommerce (fechas seleccionadas)"
-        >
-          <svg
-            className="h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M12 8v8M8 12h8" />
-          </svg>
-          Abonar Ecommerce
-        </button>
+        />
       </div>
 
       {/* Filtros */}
@@ -444,7 +435,9 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                   <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={rows.length > 0 && selectedFechas.length === rows.length}
+                      checked={
+                        rows.length > 0 && selectedFechas.length === rows.length
+                      }
                       onChange={toggleAllFechas}
                       aria-label="Seleccionar todo"
                       className="h-4 w-4 accent-blue-600"
@@ -508,9 +501,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                           {formatPEN(r.neto)}
                         </td>
                         <td className="px-4 py-3">
-                          <Badgex className={pillCls}>
-                            {estado}
-                          </Badgex>
+                          <Badgex className={pillCls}>{estado}</Badgex>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end">

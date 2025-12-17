@@ -1,22 +1,22 @@
 // src/pages/courier/PedidosPage.tsx
-import { useEffect, useState } from 'react';
-import { Icon } from '@iconify/react';
-import TablePedidoCourier from '@/shared/components/courier/pedido/TablePedidoCourier';
-import { useAuth } from '@/auth/context';
-import AsignarRepartidor from '@/shared/components/courier/pedido/AsignarRepartidor';
-import ReasignarRepartidorModal from '@/shared/components/courier/pedido/ReasignarRepartidorModal';
-import type { PedidoListItem } from '@/services/courier/pedidos/pedidos.types';
-import Tittlex from '@/shared/common/Tittlex';
+import { useEffect, useState } from "react";
+import TablePedidoCourier from "@/shared/components/courier/pedido/TablePedidoCourier";
+import { useAuth } from "@/auth/context";
+import AsignarRepartidor from "@/shared/components/courier/pedido/AsignarRepartidor";
+import ReasignarRepartidorModal from "@/shared/components/courier/pedido/ReasignarRepartidorModal";
+import type { PedidoListItem } from "@/services/courier/pedidos/pedidos.types";
+import Tittlex from "@/shared/common/Tittlex";
+import Buttonx from "@/shared/common/Buttonx";
 
-type Vista = 'asignados' | 'pendientes' | 'terminados';
+type Vista = "asignados" | "pendientes" | "terminados";
 
 export default function PedidosPage() {
   const { token } = useAuth();
 
   // pestaña activa (persistida)
   const [vista, setVista] = useState<Vista>(() => {
-    const saved = localStorage.getItem('courier_vista_pedidos') as Vista | null;
-    return saved ?? 'asignados';
+    const saved = localStorage.getItem("courier_vista_pedidos") as Vista | null;
+    return saved ?? "asignados";
   });
 
   // forzar recarga de la tabla después de asignar / reasignar
@@ -28,10 +28,11 @@ export default function PedidosPage() {
 
   // modal REASIGNAR (individual)
   const [modalReasignarOpen, setModalReasignarOpen] = useState(false);
-  const [pedidoAReasignar, setPedidoAReasignar] = useState<PedidoListItem | null>(null);
+  const [pedidoAReasignar, setPedidoAReasignar] =
+    useState<PedidoListItem | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('courier_vista_pedidos', vista);
+    localStorage.setItem("courier_vista_pedidos", vista);
   }, [vista]);
 
   // ---- Asignar (en lote) ----
@@ -66,42 +67,30 @@ export default function PedidosPage() {
         />
 
         <div className="flex gap-3 items-center">
-          <button
-            onClick={() => setVista('asignados')}
-            className={[
-              'flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium',
-              vista === 'asignados' ? 'bg-primaryDark text-white' : 'bg-gray20 text-primaryDark hover:shadow-default',
-            ].join(' ')}
-          >
-            <Icon icon="solar:bill-list-broken" width={18} height={18} />
-            <span>Asignados</span>
-          </button>
+          <Buttonx
+            label="Asignados"
+            icon="solar:bill-list-broken"
+            variant={vista === "asignados" ? "secondary" : "tertiary"}
+            onClick={() => setVista("asignados")}
+          />
 
           <span className="w-[1px] h-10 bg-gray40" />
 
-          <button
-            onClick={() => setVista('pendientes')}
-            className={[
-              'flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium',
-              vista === 'pendientes' ? 'bg-primaryDark text-white' : 'bg-gray20 text-primaryDark hover:shadow-default',
-            ].join(' ')}
-          >
-            <Icon icon="mdi:clock-outline" width={18} height={18} />
-            <span>Pendientes</span>
-          </button>
+          <Buttonx
+            label="Pendientes"
+            icon="mdi:clock-outline"
+            variant={vista === "pendientes" ? "secondary" : "tertiary"}
+            onClick={() => setVista("pendientes")}
+          />
 
           <span className="w-[1px] h-10 bg-gray40" />
 
-          <button
-            onClick={() => setVista('terminados')}
-            className={[
-              'flex items-center gap-2 px-3 py-[0.625rem] rounded-sm text-sm font-medium',
-              vista === 'terminados' ? 'bg-primaryDark text-white' : 'bg-gray20 text-primaryDark hover:shadow-default',
-            ].join(' ')}
-          >
-            <Icon icon="mdi:clipboard-check-outline" width={18} height={18} />
-            <span>Terminados</span>
-          </button>
+          <Buttonx
+            label="Terminados"
+            icon="carbon:task-complete"
+            variant={vista === "terminados" ? "secondary" : "tertiary"}
+            onClick={() => setVista("terminados")}
+          />
         </div>
       </div>
 
@@ -110,7 +99,7 @@ export default function PedidosPage() {
         <TablePedidoCourier
           key={reloadKey}
           view={vista}
-          token={token ?? ''}
+          token={token ?? ""}
           onAsignar={handleAbrirAsignar}
           // 👇 IMPORTANTÍSIMO: pásale este callback para abrir el modal y NO usar window.prompt
           onReasignar={handleAbrirReasignar}
@@ -121,7 +110,7 @@ export default function PedidosPage() {
       <AsignarRepartidor
         open={modalOpen}
         onClose={handleCerrarAsignar}
-        token={token ?? ''}
+        token={token ?? ""}
         selectedIds={selectedIds}
         onAssigned={handleAssigned}
       />
@@ -130,9 +119,9 @@ export default function PedidosPage() {
       {pedidoAReasignar && (
         <ReasignarRepartidorModal
           open={modalReasignarOpen}
-          token={token ?? ''}
+          token={token ?? ""}
           pedido={pedidoAReasignar}
-          motorizados={[]}              // opcional; si tu modal los carga solo, deja []
+          motorizados={[]} // opcional; si tu modal los carga solo, deja []
           onClose={handleCerrarReasignar}
           onSuccess={handleReassigned}
         />

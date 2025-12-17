@@ -1,12 +1,11 @@
 import { useState, useCallback } from "react";
-import { Icon } from "@iconify/react";
-
 import TableZonaMine from "@/shared/components/courier/zona/TableZonaMine";
 import ZonaFilterCourier from "@/shared/components/courier/zona/ZonaFilterCourier";
 import NewZonaTarifariaDrawer from "@/shared/components/courier/zona/NewZonaTarifariaDrawer";
 import EditZonaTarifariaDrawer from "@/shared/components/courier/zona/EditZonaTarifariaDrawer";
 import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import Tittlex from "@/shared/common/Tittlex";
+import Buttonx from "@/shared/common/Buttonx";
 
 export default function ZonasPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -37,22 +36,19 @@ export default function ZonasPage() {
 
   return (
     <section className="mt-8">
-      <div className="flex justify-between">
+      <div className="flex justify-between items-end">
         <Tittlex
           title="Zonas de Atención"
           description="Listado y creación de zonas asociadas a tu usuario (todas las sedes de tu
             courie"
         />
 
-        <div className="flex items-end">
-          <button
-            className="flex gap-2 items-center bg-primaryDark text-white px-3 py-2 rounded-sm"
-            onClick={() => setDrawerOpen(true)}
-          >
-            <Icon icon="iconoir:new-tab" width="24" height="24" />
-            <span>Nuevo Distrito de Atención</span>
-          </button>
-        </div>
+        <Buttonx
+          icon="iconoir:new-tab"
+          label="Nuevo Distrito de Atención"
+          variant="secondary"
+          onClick={() => setDrawerOpen(true)}
+        />
       </div>
 
       <div className="my-8">

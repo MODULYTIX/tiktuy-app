@@ -1,7 +1,7 @@
 // src/services/courierInvite/courierInvite.types.ts
 
 export interface CourierWhatsappLink {
-  id: number;                 // id de EcommerceSede (o tu tabla de asociación)
+  id: number;                
   ecommerce_id: number;
   courier_id: number;
   sede_id: number;

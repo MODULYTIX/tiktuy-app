@@ -204,7 +204,7 @@ export default function PedidosPage() {
             <Buttonx
               label="Nuevo Pedido"
               icon="iconoir:new-tab"
-              variant="primary"
+              variant="secondary"
               onClick={handleNuevoPedido}
               className="font-light"
             />

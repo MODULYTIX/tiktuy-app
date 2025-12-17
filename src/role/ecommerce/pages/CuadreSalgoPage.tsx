@@ -168,7 +168,7 @@ const CuadreSaldoPage: React.FC = () => {
         <Buttonx
               label={`Validar (${selected.length})`}
               icon="iconoir:new-tab"
-              variant="primary"
+              variant="secondary"
               onClick={() => setOpenValidar(true)}
               disabled={selected.length === 0}
             />

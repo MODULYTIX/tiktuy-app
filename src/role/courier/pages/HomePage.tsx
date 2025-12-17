@@ -1,12 +1,12 @@
 // src/pages/courier/CourierHomePage.tsx
 import { useCallback, useState } from "react";
-import { Icon } from "@iconify/react";
 import PanelControlRepartidor from "@/shared/components/courier/panelControl/PanelControlRepartidorTable";
 import PanelControlTable from "@/shared/components/courier/panelControl/PanelControlEcommerceTable";
 import PanelControlInvitacion from "@/shared/components/courier/panelControl/PanelControlInvitacion";
 import PanelControlRegistroEcommerce from "@/shared/components/courier/panelControl/PanelControlRegistroEcommerce";
 import PanelControlRegistroRepartidor from "@/shared/components/courier/panelControl/PanelControlRegistroRepartidor";
 import Tittlex from "@/shared/common/Tittlex";
+import Buttonx from "@/shared/common/Buttonx";
 
 export default function CourierHomePage() {
   const [activeTab, setActiveTab] = useState<"ecommerce" | "motorizado">(
@@ -42,34 +42,22 @@ export default function CourierHomePage() {
 
         <div className="flex gap-3">
           {/* Toggle Ecommerce */}
-          <button
+          <Buttonx
+            label="Ecommerce"
+            icon="carbon:task-complete"
+            variant={activeTab === "ecommerce" ? "secondary" : "tertiary"}
             onClick={() => setActiveTab("ecommerce")}
-            className={[
-              "flex items-center gap-2 w-auto px-3 py-2.5 rounded font-bold transition",
-              activeTab === "ecommerce"
-                ? "bg-gray90 text-white hover:shadow-default"
-                : "bg-gray20 text-gray90 hover:bg-gray30 hover:shadow-default",
-            ].join(" ")}
-          >
-            <Icon icon="carbon:task-complete" width="20" height="20" />
-            Ecommerce
-          </button>
+          />
 
           <span aria-hidden className="w-px self-stretch bg-gray30" />
 
           {/* Toggle Motorizado */}
-          <button
+          <Buttonx
+            label="Motorizado"
+            icon="solar:bill-list-broken"
+            variant={activeTab === "motorizado" ? "secondary" : "tertiary"}
             onClick={() => setActiveTab("motorizado")}
-            className={[
-              "flex items-center gap-2 w-auto px-3 py-2.5 rounded font-bold transition",
-              activeTab === "motorizado"
-                ? "bg-gray90 text-white hover:shadow-default"
-                : "bg-gray20 text-gray90 hover:bg-gray30 hover:shadow-default",
-            ].join(" ")}
-          >
-            <Icon icon="solar:bill-list-broken" width="20" height="20" />
-            Motorizado
-          </button>
+          />
         </div>
       </div>
 
@@ -84,26 +72,26 @@ export default function CourierHomePage() {
           {/* Invitar:
               - En tab "ecommerce": invita a ecommerce (compartir/solicitar)
               - En tab "motorizado": invita a motorizado (flujo Courier -> Motorizado) */}
-          <button
+          <Buttonx
+            label="Invitar"
+            icon="mdi:share-variant-outline"
+            variant="outlined"
             onClick={openModal}
-            className="flex items-center gap-2 border-2 font-bold border-black px-4 py-2 rounded text-sm hover:bg-gray10"
-          >
-            <Icon icon="mdi:share-variant-outline" />
-            Invitar
-          </button>
+          />
 
           {/* Registrar:
               - En tab "ecommerce": registrar ecommerce
               - En tab "motorizado": registrar repartidor */}
-          <button
+          <Buttonx
+            icon="mdi:plus-box-outline"
+            label={
+              activeTab === "ecommerce"
+                ? "Registrar Ecommerce"
+                : "Registrar Repartidor"
+            }
+            variant="secondary"
             onClick={openDrawer}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
-          >
-            <Icon icon="mdi:plus-box-outline" />
-            {activeTab === "ecommerce"
-              ? "Registrar Ecommerce"
-              : "Registrar Repartidor"}
-          </button>
+          />
         </div>
       </div>
 
