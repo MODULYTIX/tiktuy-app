@@ -34,9 +34,10 @@ async function readMsg(r: Response): Promise<string | undefined> {
  */
 export async function getCourierWhatsappLink(
   token: string,
-  otherId: number,
-  sedeId: number
+  params: { otherId: number; sedeId: number }
 ): Promise<CourierWhatsappLink> {
+  const { otherId, sedeId } = params;
+
   if (!Number.isFinite(otherId) || otherId <= 0) throw new Error('otherId inválido');
   if (!Number.isFinite(sedeId) || sedeId <= 0) throw new Error('sedeId inválido');
 
@@ -56,6 +57,7 @@ export async function getCourierWhatsappLink(
     if (r.status === 401) throw new Error('No autorizado');
     throw new Error(msg || 'No se pudo obtener el link de WhatsApp');
   }
+
   return r.json();
 }
 
