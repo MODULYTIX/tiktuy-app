@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { useAuth } from '@/auth/context';
-import { fetchPedidoById } from '@/services/ecommerce/pedidos/pedidos.api';
-import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
-import Tittlex from '@/shared/common/Tittlex';
-import { Inputx, InputxPhone, InputxNumber } from '@/shared/common/Inputx';
+import { useEffect, useRef, useState } from "react";
+import { Icon } from "@iconify/react";
+import { useAuth } from "@/auth/context";
+import { fetchPedidoById } from "@/services/ecommerce/pedidos/pedidos.api";
+import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
+import Tittlex from "@/shared/common/Tittlex";
 
 type Props = {
   open: boolean;
@@ -24,6 +24,7 @@ export default function VerPedidoGeneradoModal({
   const [loading, setLoading] = useState(false);
   const [pedido, setPedido] = useState<Pedido | null>(null);
 
+  /* ===================== FETCH ===================== */
   useEffect(() => {
     if (!open || !token || !pedidoId) return;
     setLoading(true);
@@ -33,50 +34,55 @@ export default function VerPedidoGeneradoModal({
       .finally(() => setLoading(false));
   }, [open, pedidoId, token]);
 
-  // Cerrar al click fuera
+  /* ===================== CLICK FUERA ===================== */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) onClose();
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose();
+      }
     };
-    if (open) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [open, onClose]);
 
   if (!open) return null;
 
-  const det = pedido?.detalles?.[0];
-  const monto =
-    det?.precio_unitario && det?.cantidad
-      ? (Number(det.precio_unitario) * Number(det.cantidad)).toFixed(2)
-      : (pedido?.monto_recaudar != null ? Number(pedido.monto_recaudar).toFixed(2) : '');
+  /* ===================== DERIVADOS ===================== */
+  const detalles = pedido?.detalles ?? [];
+  const cantProductos = detalles.reduce((s, d) => s + d.cantidad, 0);
 
-  const fechaEntrega = pedido?.fecha_entrega_programada
-    ? new Date(pedido.fecha_entrega_programada)
-    : null;
+  const montoTotal =
+    pedido?.monto_recaudar != null
+      ? Number(pedido.monto_recaudar).toFixed(2)
+      : "0.00";
 
-  const fechaEntregaStr = fechaEntrega
-    ? fechaEntrega.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    : '';
+  const fechaEntregaStr = pedido?.fecha_entrega_programada
+    ? new Date(pedido.fecha_entrega_programada).toLocaleDateString("es-PE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    : "—";
 
+  /* ===================== UI ===================== */
   return (
-    <div className="fixed inset-0 z-50 bg-black/20 bg-opacity-40 flex justify-end">
+    <div className="fixed inset-0 z-50 bg-black/30 flex justify-end">
       <div
         ref={modalRef}
-        className="w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto animate-slide-in-right flex flex-col gap-5">
-        {/* Header */}
+        className="w-full max-w-lg h-full bg-white shadow-2xl p-6 overflow-y-auto animate-slide-in-right flex flex-col gap-6"
+      >
+        {/* HEADER */}
         <Tittlex
           variant="modal"
           icon="lsicon:shopping-cart-filled"
           title="DETALLE DEL PEDIDO"
-          description="Consulta toda la información registrada de este pedido, incluyendo los datos del cliente, el producto y la entrega."
+          description={`Cód. Pedido: ${pedido?.codigo_pedido ?? "—"}`}
         />
 
-        {/* Loading / Empty */}
-        {!pedidoId || !token ? (
-          <p className="text-sm text-gray-600">Seleccione un pedido.</p>
-        ) : loading ? (
+        {/* LOADING / EMPTY */}
+        {loading ? (
           <div className="space-y-3">
-            {Array.from({ length: 10 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="h-4 bg-gray-200 animate-pulse rounded" />
             ))}
           </div>
@@ -84,101 +90,86 @@ export default function VerPedidoGeneradoModal({
           <p className="text-sm text-gray-600">No se encontró el pedido.</p>
         ) : (
           <>
-            {/* Campos (2 columnas) */}
-            <div className="flex flex-col gap-5 h-full">
-              <div className='flex flex-row gap-5 w-full'>
-                <Inputx
-                  label="Courier"
-                  value={pedido.courier?.nombre_comercial ?? ''}
-                  placeholder="—"
-                  readOnly
-                />
-                <Inputx
-                  label="Nombre"
-                  value={pedido.nombre_cliente}
-                  placeholder="Nombre del cliente"
-                  readOnly
-                />
+            {/* ===================== RESUMEN ===================== */}
+            <div className="bg-gray-50 border rounded-lg p-4 space-y-2 text-sm">
+              <div className="text-center">
+                <p className="text-gray-500">Cliente</p>
+                <p className="font-semibold text-base">
+                  {pedido.nombre_cliente}
+                </p>
               </div>
 
-              <div className='flex flex-row gap-5 w-full'>
-                <InputxPhone
-                  label="Teléfono"
-                  countryCode="+51"
-                  value={pedido.celular_cliente}
-                  placeholder="987654321"
-                  readOnly
-                />
-                <Inputx
-                  label="Distrito"
-                  value={pedido.distrito}
-                  placeholder="Distrito"
-                  readOnly
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <p className="text-gray-500">Dirección</p>
+                  <p>{pedido.direccion_envio}</p>
+                </div>
 
-              <div className="col-span-2">
-                <Inputx
-                  label="Dirección"
-                  value={pedido.direccion_envio}
-                  placeholder="Av. Grau J 499"
-                  readOnly
-                />
-              </div>
+                <div>
+                  <p className="text-gray-500">F. Entrega</p>
+                  <p>{fechaEntregaStr}</p>
+                </div>
 
-              <div className="col-span-2">
-                <Inputx
-                  label="Referencia"
-                  value={pedido.referencia_direccion}
-                  placeholder="(opcional)"
-                  readOnly
-                />
-              </div>
+                <div>
+                  <p className="text-gray-500">Cant. Productos</p>
+                  <p>{cantProductos}</p>
+                </div>
 
-              <div className='flex flex-row gap-5 w-full'>
-                <Inputx
-                  label="Producto"
-                  value={det?.producto?.nombre_producto}
-                  placeholder="Producto"
-                  readOnly
-                />
-                <InputxNumber
-                  label="Cantidad"
-                  value={det?.cantidad != null ? String(det.cantidad) : ''}
-                  placeholder="0"
-                  readOnly
-                  min={0}
-                  max={10000}
-                />
-              </div>
-
-              <div className='flex flex-row gap-5 w-full'>
-                <InputxNumber
-                  label="Monto"
-                  value={
-                    monto ? `S/. ${Number(monto).toLocaleString('es-PE', { minimumFractionDigits: 2 })}` : ''
-                  }
-                  placeholder="S/. 0.00"
-                  readOnly
-                  min={0}
-                  max={100000}
-                />
-                <Inputx
-                  label="Fecha Entrega"
-                  value={fechaEntregaStr}
-                  placeholder="dd/mm/aaaa"
-                  readOnly
-                />
+                <div>
+                  <p className="text-gray-500">Monto</p>
+                  <p className="font-semibold">
+                    S/. {Number(montoTotal).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Footer: botón a la derecha */}
-            <div className="flex justify-start">
+            {/* ===================== TABLA PRODUCTOS ===================== */}
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-gray-100 px-4 py-2 text-sm font-medium flex justify-between">
+                <span>Producto</span>
+                <span>Cant.</span>
+              </div>
+
+              {detalles.map((d) => (
+                <div
+                  key={d.id}
+                  className="px-4 py-3 flex justify-between text-sm border-t"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {d.producto?.nombre_producto}
+                    </p>
+                    {d.producto?.descripcion && (
+                      <p className="text-xs text-gray-500">
+                        {d.producto.descripcion}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="font-medium">{d.cantidad}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* ===================== FOOTER ===================== */}
+            <div className="flex justify-start gap-3 mt-2">
+              {onEditar && pedidoId && (
+                <button
+                  onClick={() => onEditar(pedidoId)}
+                  className="bg-gray-900 text-white px-4 py-2 rounded text-sm flex items-center gap-2 hover:bg-gray-800"
+                >
+                  <Icon icon="mdi:pencil-outline" />
+                  Editar
+                </button>
+              )}
+
               <button
-                onClick={() => { if (pedidoId && onEditar) onEditar(pedidoId); }}
-                className="bg-gray-900 text-white px-4 py-2 rounded text-sm hover:bg-gray-800"
+                onClick={onClose}
+                className="px-4 py-2 border rounded text-sm text-gray-700 flex items-center gap-2"
               >
-                Editar
+                <Icon icon="mdi:close" />
+                Cerrar
               </button>
             </div>
           </>

@@ -22,23 +22,7 @@ import type {
   ZonaTarifariaSede,
 } from '@/services/ecommerce/pedidos/pedidos.types';
 
-// ---------- helpers fecha local <-> ISO ----------
-const toISOFromLocal = (local: string) => {
-  if (!local) return '';
-  const [date, time] = local.split('T');
-  const [y, m, d] = date.split('-').map(Number);
-  const [hh, mm] = time.split(':').map(Number);
-  return new Date(y, m - 1, d, hh, mm).toISOString();
-};
-
-const toLocalInput = (iso?: string | null) => {
-  if (!iso) return '';
-  const dt = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(
-    dt.getHours()
-  )}:${pad(dt.getMinutes())}`;
-};
+// ---------- helpers fecha local ----------
 
 // Para sedes asociadas (lo que usa este modal)
 type SedeOptionRaw = {
@@ -439,7 +423,7 @@ export default function ImportPreviewPedidosModal({
 
   // ---------- UI ----------
   return (
-    <CenteredModal title="" onClose={onClose} widthClass="max-w-[1400px] w-[95vw]">
+    <CenteredModal title="" onClose={onClose} widthClass="max-w-[1680px] w-[98vw]">
       {/* Header visual */}
       <div className="pb-3 border-gray-200 flex items-center gap-3">
         <span className="text-[#1F2A7A]">
@@ -522,7 +506,7 @@ export default function ImportPreviewPedidosModal({
 
       {/* ===== Tabla ===== */}
       <div className="rounded-lg border border-gray-200 overflow-auto max-h-[60vh]">
-        <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
+        <table className="w-full table-auto border-separate border-spacing-0 text-sm">
           <colgroup>
             <col className="w-9" />
             <col className="w-[14%]" />
@@ -530,11 +514,11 @@ export default function ImportPreviewPedidosModal({
             <col className="w-[10%]" />
             <col className="w-[18%]" />
             <col className="w-[14%]" />
+            <col className="w-[16%]" />
+            <col className="w-[16%]" />
             <col className="w-[14%]" />
-            <col className="w-[18%]" />
+            <col className="w-[14%]" />
             <col className="w-[10%]" />
-            <col className="w-[14%]" />
-            <col className="w-[14%]" />
           </colgroup>
 
           <thead>
@@ -685,8 +669,8 @@ export default function ImportPreviewPedidosModal({
                               options={productosOptions}
                               placeholder="Nombre del producto"
                               className={`w-full ${hasError
-                                  ? 'bg-red-50 border-red-300 rounded-md'
-                                  : ''
+                                ? 'bg-red-50 border-red-300 rounded-md'
+                                : ''
                                 }`}
                             />
 
@@ -761,16 +745,19 @@ export default function ImportPreviewPedidosModal({
                   {/* FECHA ENTREGA */}
                   <td className="border-b border-gray-200 px-3 py-2 align-middle">
                     <input
-                      type="datetime-local"
-                      value={toLocalInput(g.fecha_entrega)}
+                      type="date"
+                      value={g.fecha_entrega ? g.fecha_entrega.slice(0, 10) : ''}
                       onChange={(e) =>
                         patchGroup(gi, {
-                          fecha_entrega: toISOFromLocal(e.target.value) || undefined,
+                          fecha_entrega: e.target.value
+                            ? new Date(e.target.value).toISOString()
+                            : undefined,
                         })
                       }
-                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
-                      title={toLocalInput(g.fecha_entrega)}
+                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5
+    focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
                     />
+
                   </td>
                 </tr>
               );
