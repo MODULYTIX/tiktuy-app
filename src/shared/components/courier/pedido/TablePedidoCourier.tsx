@@ -52,6 +52,10 @@ export default function TablePedidoCourier({
   const [page, setPage] = useState(1);
   const [perPage] = useState(6);
 
+  /* ✅ filtros de FECHA (server-side) */
+  const [desde, setDesde] = useState<string>(""); // YYYY-MM-DD
+  const [hasta, setHasta] = useState<string>(""); // YYYY-MM-DD
+
   /* filtros (client-side, visuales) */
   const [filtroDistrito, setFiltroDistrito] = useState("");
   const [filtroCantidad, setFiltroCantidad] = useState("");
@@ -79,16 +83,37 @@ export default function TablePedidoCourier({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
+    // 👇 si NO quieres que se reseteen fechas al cambiar vista, borra estas 2 líneas
+    // setDesde("");
+    // setHasta("");
   }, [view]);
+
+  // ✅ si cambia rango => volver a la primera página
+  useEffect(() => {
+    setPage(1);
+  }, [desde, hasta]);
 
   // querys para backend
   const qHoy: ListPedidosHoyQuery = useMemo(
-    () => ({ page, perPage }),
-    [page, perPage]
+    () => ({
+      page,
+      perPage,
+      ...(desde ? { desde } : {}),
+      ...(hasta ? { hasta } : {}),
+    }),
+    [page, perPage, desde, hasta]
   );
+
   const qEstado: ListByEstadoQuery = useMemo(
-    () => ({ page, perPage, sortBy: "programada", order: "asc" }),
-    [page, perPage]
+    () => ({
+      page,
+      perPage,
+      sortBy: "programada",
+      order: "asc",
+      ...(desde ? { desde } : {}),
+      ...(hasta ? { hasta } : {}),
+    }),
+    [page, perPage, desde, hasta]
   );
 
   // fetch según vista
@@ -268,6 +293,8 @@ export default function TablePedidoCourier({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
+    setDesde(""); // ✅ nuevo
+    setHasta(""); // ✅ nuevo
   };
 
   return (
@@ -307,57 +334,90 @@ export default function TablePedidoCourier({
       </div>
 
       {/* Filtros */}
-      <div className="bg-white p-5 rounded shadow-default flex gap-4 border-b-4 border-gray90">
-        {/* Distrito */}
-        <Selectx
-          label="Distrito"
-          name="filtro_distrito"
-          value={filtroDistrito}
-          onChange={(e) => setFiltroDistrito(e.target.value)}
-          placeholder="Todos los distritos"
-        >
-          {distritos.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </Selectx>
-        {/* Cantidad */}
-        <Selectx
-          label="Cantidad de productos"
-          name="filtro_cantidad"
-          value={filtroCantidad}
-          onChange={(e) => setFiltroCantidad(e.target.value)}
-          placeholder="Seleccionar cantidad"
-        >
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>
-              {two(n)}
-            </option>
-          ))}
-        </Selectx>
+      <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-4 items-end">
+          {/* ✅ Fecha inicio */}
+          <div className="w-full flex flex-col gap-[10px]">
+            <label className="text-base font-normal text-black text-center block">
+              Inicio
+            </label>
+            <input
+              type="date"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+              className="h-10 w-full rounded border border-gray-300 px-3 text-sm"
+              disabled={loading}
+            />
+          </div>
 
-        {/* Búsqueda */}
-        <div className="w-full flex flex-col gap-[10px]">
-          <label className="text-base font-normal text-black text-center block">
-            Buscar productos por nombre
-          </label>
-          <SearchInputx
-          
-            placeholder="Buscar productos por nombre..."
-            value={searchProducto}
-            onChange={(e) => setSearchProducto(e.target.value)}
-          />
-        </div>
+          {/* ✅ Fecha fin */}
+          <div className="w-full flex flex-col gap-[10px]">
+            <label className="text-base font-normal text-black text-center block">
+              Fin
+            </label>
+            <input
+              type="date"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+              className="h-10 w-full rounded border border-gray-300 px-3 text-sm"
+              disabled={loading}
+            />
+          </div>
 
-        {/* Limpiar */}
-        <div className="flex items-end">
-          <Buttonx
-            variant="outlined"
-            onClick={handleClearFilters}
-            label="Limpiar filtros"
-            icon="mynaui:delete"
-          />
+          {/* Distrito */}
+          <Selectx
+            label="Distrito"
+            name="filtro_distrito"
+            value={filtroDistrito}
+            onChange={(e) => setFiltroDistrito(e.target.value)}
+            placeholder="Todos los distritos"
+            disabled={loading}
+          >
+            {distritos.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </Selectx>
+
+          {/* Cantidad */}
+          <Selectx
+            label="Cantidad de productos"
+            name="filtro_cantidad"
+            value={filtroCantidad}
+            onChange={(e) => setFiltroCantidad(e.target.value)}
+            placeholder="Seleccionar cantidad"
+            disabled={loading}
+          >
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {two(n)}
+              </option>
+            ))}
+          </Selectx>
+
+          {/* Limpiar */}
+          <div className="flex items-end">
+            <Buttonx
+              variant="outlined"
+              onClick={handleClearFilters}
+              label="Limpiar filtros"
+              icon="mynaui:delete"
+              disabled={loading}
+            />
+          </div>
+
+          {/* Búsqueda */}
+          <div className="col-span-full w-full flex flex-col gap-[10px] mt-1">
+            <label className="text-base font-normal text-black text-center block">
+              Buscar productos por nombre
+            </label>
+            <SearchInputx
+              placeholder="Buscar productos por nombre..."
+              value={searchProducto}
+              onChange={(e) => setSearchProducto(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -433,10 +493,7 @@ export default function TablePedidoCourier({
                   const montoNumber = Number(p.monto_recaudar || 0);
 
                   return (
-                    <tr
-                      key={p.id}
-                      className="hover:bg-gray10 transition-colors"
-                    >
+                    <tr key={p.id} className="hover:bg-gray10 transition-colors">
                       <td className="h-12 px-4 py-3">
                         <input
                           type="checkbox"
