@@ -84,7 +84,7 @@ export default function PanelControlInviteEcommer({
     (async () => {
       setLoading(true);
       try {
-        // ✅ FIX: ahora el API recibe (token, { otherId, sedeId })
+        //  FIX: ahora el API recibe (token, { otherId, sedeId })
         const res = await getCourierWhatsappLink(token, { otherId: otherId!, sedeId: sedeId! });
 
         const current = res?.link_whatsapp ?? '';

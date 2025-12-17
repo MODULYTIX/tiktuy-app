@@ -68,7 +68,7 @@ export default function CrearPedidoModal({
     cantidad: "",
     precio_unitario: "",
     stock_max: "",
-    fecha_entrega_programada: "", // 👈 FECHA ÚNICA DEL PEDIDO
+    fecha_entrega_programada: "", 
   });
 
   /* ===================== CARGAS ===================== */
