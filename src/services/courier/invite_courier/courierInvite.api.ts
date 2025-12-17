@@ -30,17 +30,19 @@ async function readMsg(r: Response): Promise<string | undefined> {
 }
 
 /**
- * GET /courier-invite/whatsapp?otherId=123
+ * GET /courier-invite/whatsapp?otherId=123&sedeId=10
  */
 export async function getCourierWhatsappLink(
   token: string,
-  otherId: number
+  otherId: number,
+  sedeId: number
 ): Promise<CourierWhatsappLink> {
-  if (!Number.isFinite(otherId) || otherId <= 0) {
-    throw new Error('otherId inválido');
-  }
+  if (!Number.isFinite(otherId) || otherId <= 0) throw new Error('otherId inválido');
+  if (!Number.isFinite(sedeId) || sedeId <= 0) throw new Error('sedeId inválido');
+
   const url = new URL(`${API}/courier-invite/whatsapp`);
   url.searchParams.set('otherId', String(otherId));
+  url.searchParams.set('sedeId', String(sedeId));
 
   const t = withTimeout();
   const r = await fetch(url.toString(), {
@@ -59,12 +61,15 @@ export async function getCourierWhatsappLink(
 
 /**
  * POST /courier-invite/whatsapp
- * body: { otherId, link }
+ * body: { otherId, sedeId, link }
  */
 export async function createCourierWhatsappLink(
   token: string,
   body: UpdateWhatsappLinkBody
 ): Promise<CourierWhatsappLink> {
+  if (!Number.isFinite(body.otherId) || body.otherId <= 0) throw new Error('otherId inválido');
+  if (!Number.isFinite(body.sedeId) || body.sedeId <= 0) throw new Error('sedeId inválido');
+
   const payload = { ...body, link: body.link?.trim?.() ?? body.link };
 
   const t = withTimeout();
@@ -79,6 +84,7 @@ export async function createCourierWhatsappLink(
     const msg = await readMsg(r);
     if (r.status === 409) throw new Error('Ya existe un link para esta asociación');
     if (r.status === 400) throw new Error(msg || 'Datos inválidos');
+    if (r.status === 404) throw new Error('Asociación no encontrada');
     throw new Error(msg || 'No se pudo crear el link de WhatsApp');
   }
   return r.json();
@@ -86,12 +92,15 @@ export async function createCourierWhatsappLink(
 
 /**
  * PATCH /courier-invite/whatsapp
- * body: { otherId, link }
+ * body: { otherId, sedeId, link }
  */
 export async function updateCourierWhatsappLink(
   token: string,
   body: UpdateWhatsappLinkBody
 ): Promise<CourierWhatsappLink> {
+  if (!Number.isFinite(body.otherId) || body.otherId <= 0) throw new Error('otherId inválido');
+  if (!Number.isFinite(body.sedeId) || body.sedeId <= 0) throw new Error('sedeId inválido');
+
   const payload = { ...body, link: body.link?.trim?.() ?? body.link };
 
   const t = withTimeout();
@@ -113,12 +122,15 @@ export async function updateCourierWhatsappLink(
 
 /**
  * POST /courier-invite/whatsapp/request
- * body: { otherId }
+ * body: { otherId, sedeId }
  */
 export async function requestCourierWhatsappLink(
   token: string,
   body: RequestWhatsappLinkBody
 ): Promise<{ ok: boolean }> {
+  if (!Number.isFinite(body.otherId) || body.otherId <= 0) throw new Error('otherId inválido');
+  if (!Number.isFinite(body.sedeId) || body.sedeId <= 0) throw new Error('sedeId inválido');
+
   const t = withTimeout();
   const r = await fetch(`${API}/courier-invite/whatsapp/request`, {
     method: 'POST',

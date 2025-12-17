@@ -10,15 +10,17 @@ import {
 } from '@/services/courier/invite_courier/courierInvite.api';
 
 type Props = {
-  open: boolean;               // visibilidad del modal
-  otherId?: number;            // Courier => ecommerce_id, Ecommerce => courier_id
-  onClose: () => void;         // cerrar modal
-  onSaved?: () => void;        // callback al guardar/actualizar/solicitar OK
+  open: boolean; // visibilidad del modal
+  otherId?: number; // Courier => ecommerce_id, Ecommerce => courier_id
+  sedeId?: number; // ✅ NUEVO: sede_id de la asociación (EcommerceSede)
+  onClose: () => void; // cerrar modal
+  onSaved?: () => void; // callback al guardar/actualizar/solicitar OK
 };
 
 export default function PanelControlInviteEcommer({
   open,
   otherId,
+  sedeId,
   onClose,
   onSaved,
 }: Props) {
@@ -40,40 +42,51 @@ export default function PanelControlInviteEcommer({
     try {
       const u = new URL(value);
       const hostOk =
-        u.hostname === 'chat.whatsapp.com' ||
-        u.hostname.endsWith('.whatsapp.com');
+        u.hostname === 'chat.whatsapp.com' || u.hostname.endsWith('.whatsapp.com');
       return hostOk && u.pathname.length > 1;
     } catch {
       return false;
     }
   }, [link]);
 
-  const changed = useMemo(
-    () => link.trim() !== (initialLink ?? ''),
-    [link, initialLink]
-  );
+  const changed = useMemo(() => link.trim() !== (initialLink ?? ''), [link, initialLink]);
+
+  // ✅ Ahora la asociación requiere otherId + sedeId
+  const canAct =
+    Boolean(token) &&
+    typeof otherId === 'number' &&
+    Number.isFinite(otherId) &&
+    otherId > 0 &&
+    typeof sedeId === 'number' &&
+    Number.isFinite(sedeId) &&
+    sedeId > 0;
 
   // Carga inicial al abrir
   useEffect(() => {
     if (!open) return;
+
     setError(null);
     setOkMsg(null);
 
     // focus suave en el input
     const t = setTimeout(() => inputRef.current?.focus(), 50);
 
-    // Si falta token o otherId, no intentamos cargar
-    if (!token || typeof otherId !== 'number' || otherId <= 0) {
+    // Si falta token / otherId / sedeId, no intentamos cargar
+    if (!token || !canAct) {
       setLink('');
       setInitialLink('');
+      setLoading(false);
       return () => clearTimeout(t);
     }
 
     let mounted = true;
+
     (async () => {
       setLoading(true);
       try {
-        const res = await getCourierWhatsappLink(token, otherId);
+        // ✅ FIX: ahora el API recibe (token, { otherId, sedeId })
+        const res = await getCourierWhatsappLink(token, { otherId: otherId!, sedeId: sedeId! });
+
         const current = res?.link_whatsapp ?? '';
         if (!mounted) return;
         setLink(current);
@@ -92,7 +105,7 @@ export default function PanelControlInviteEcommer({
       clearTimeout(t);
       mounted = false;
     };
-  }, [open, token, otherId]);
+  }, [open, token, canAct, otherId, sedeId]);
 
   // Cerrar modal con ESC
   useEffect(() => {
@@ -104,22 +117,32 @@ export default function PanelControlInviteEcommer({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  const canAct = Boolean(token) && typeof otherId === 'number' && otherId > 0;
-
   async function handleSave() {
     if (!canAct || !isValid || !changed) return;
+
     setSaving(true);
     setError(null);
     setOkMsg(null);
+
     try {
       const trimmed = link.trim();
+
       if (initialLink) {
-        await updateCourierWhatsappLink(token!, { otherId: otherId!, link: trimmed });
+        await updateCourierWhatsappLink(token!, {
+          otherId: otherId!,
+          sedeId: sedeId!,
+          link: trimmed,
+        });
         setOkMsg('Link de WhatsApp actualizado');
       } else {
-        await createCourierWhatsappLink(token!, { otherId: otherId!, link: trimmed });
+        await createCourierWhatsappLink(token!, {
+          otherId: otherId!,
+          sedeId: sedeId!,
+          link: trimmed,
+        });
         setOkMsg('Link de WhatsApp registrado');
       }
+
       setInitialLink(trimmed);
       onSaved?.();
       onClose();
@@ -132,11 +155,13 @@ export default function PanelControlInviteEcommer({
 
   async function handleRequest() {
     if (!canAct) return;
+
     setRequesting(true);
     setError(null);
     setOkMsg(null);
+
     try {
-      await requestCourierWhatsappLink(token!, { otherId: otherId! });
+      await requestCourierWhatsappLink(token!, { otherId: otherId!, sedeId: sedeId! });
       setOkMsg('Solicitud enviada al contraparte');
       onSaved?.();
       onClose();
@@ -152,11 +177,8 @@ export default function PanelControlInviteEcommer({
   return (
     <div className="fixed inset-0 z-[60]">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/30"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} aria-hidden="true" />
+
       {/* Modal */}
       <div
         role="dialog"
@@ -167,13 +189,8 @@ export default function PanelControlInviteEcommer({
         {/* Header */}
         <div className="border-b px-6 pt-5 pb-4">
           <div className="flex items-start justify-between">
-            <h2 className="text-[20px] font-bold text-[#1E3A8A]">
-              Invitar a grupo de WhatsApp
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-sm text-[#1E3A8A] hover:underline"
-            >
+            <h2 className="text-[20px] font-bold text-[#1E3A8A]">Invitar a grupo de WhatsApp</h2>
+            <button onClick={onClose} className="text-sm text-[#1E3A8A] hover:underline">
               Cerrar
             </button>
           </div>
@@ -207,12 +224,8 @@ export default function PanelControlInviteEcommer({
           {/* Mensajes */}
           <div className="mt-2 min-h-[20px]">
             {loading && <p className="text-[13px] text-gray-500">Cargando…</p>}
-            {!loading && error && (
-              <p className="text-[13px] text-red-600">{error}</p>
-            )}
-            {!loading && okMsg && (
-              <p className="text-[13px] text-green-600">{okMsg}</p>
-            )}
+            {!loading && error && <p className="text-[13px] text-red-600">{error}</p>}
+            {!loading && okMsg && <p className="text-[13px] text-green-600">{okMsg}</p>}
             {!loading && link && !isValid && (
               <p className="text-[12px] text-orange-600">
                 Debe ser un enlace válido de WhatsApp (chat.whatsapp.com o subdominios *.whatsapp.com)
@@ -220,7 +233,8 @@ export default function PanelControlInviteEcommer({
             )}
             {!canAct && (
               <p className="text-[12px] text-orange-600">
-                Selecciona primero una contraparte válida para asociar el link.
+                Selecciona primero una contraparte válida y una sede válida (sedeId) para asociar el
+                link.
               </p>
             )}
           </div>
@@ -229,7 +243,7 @@ export default function PanelControlInviteEcommer({
         {/* Footer */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4">
           <div className="flex items-center gap-3">
-            {/* Solicitar link: solo si NO hay link aún y hay otherId */}
+            {/* Solicitar link: solo si NO hay link aún y hay otherId+sedeId */}
             {!initialLink && (
               <button
                 type="button"
