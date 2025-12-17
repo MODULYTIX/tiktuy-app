@@ -25,6 +25,25 @@ type VistaUI = "asignados" | "pendientes" | "terminados";
 const toRepartidorVista = (v: VistaUI): RepartidorVista =>
   v === "asignados" ? "hoy" : v;
 
+/** ✅ IDs reales de tu tabla MetodoPago (según tu BD) */
+const METODO_PAGO_IDS = {
+  EFECTIVO: 1,
+  BILLETERA: 2,
+  DIRECTO_ECOMMERCE: 3,
+} as const;
+
+/** ✅ Tipo que el ModalEntregaRepartidor ya está enviando */
+type ConfirmEntregaPayload =
+  | { pedidoId: number; resultado: "RECHAZADO"; observacion?: string }
+  | {
+      pedidoId: number;
+      resultado: "ENTREGADO";
+      metodo_pago_id: number;
+      observacion?: string;
+      evidenciaFile?: File;
+      fecha_entrega_real?: string;
+    };
+
 export default function PedidosPage() {
   const auth = useContext(AuthContext);
   const token = auth?.token ?? "";
@@ -60,7 +79,7 @@ export default function PedidosPage() {
     setLoadingDetalle(true);
     try {
       const detalle = await fetchPedidoDetalle(token, id);
-      setPedidoDetalle(detalle);
+      setPedidoDetalle(detalle as any);
     } catch (err: any) {
       console.error("Error al obtener detalle:", err);
       alert(String(err?.message || "No se pudo obtener el detalle del pedido"));
@@ -100,43 +119,37 @@ export default function PedidosPage() {
     }
   }
 
-  async function handleConfirmEntrega(
-    data:
-      | { pedidoId: number; resultado: "RECHAZADO"; observacion?: string }
-      | {
-          pedidoId: number;
-          resultado: "ENTREGADO";
-          metodo: "EFECTIVO" | "BILLETERA" | "DIRECTO_ECOMMERCE";
-          observacion?: string;
-          evidenciaFile?: File;
-        }
-  ) {
+  /** ✅ FIX: ahora usamos metodo_pago_id (lo que exige el backend) */
+  async function handleConfirmEntrega(data: ConfirmEntregaPayload) {
     try {
       if (data.resultado === "RECHAZADO") {
         await patchResultado(token, data.pedidoId, {
           resultado: "RECHAZADO",
           observacion: data.observacion,
+          fecha_entrega_real: undefined,
         });
       } else {
-        const obs = [
-          data.observacion?.trim(),
-          data.metodo ? `[Pago: ${data.metodo}]` : undefined,
-        ]
-          .filter(Boolean)
-          .join(" | ");
+        // ✅ Validación defensiva por si alguien cambia el modal
+        if (!Number.isFinite(data.metodo_pago_id) || data.metodo_pago_id <= 0) {
+          throw new Error(
+            "metodo_pago_id inválido (undefined/NaN). Revisa metodoPagoIds."
+          );
+        }
+
         await patchResultado(token, data.pedidoId, {
           resultado: "ENTREGADO",
-          observacion: obs || undefined,
+          metodo_pago_id: data.metodo_pago_id,
+          observacion: data.observacion,
           evidenciaFile: data.evidenciaFile,
+          fecha_entrega_real: data.fecha_entrega_real,
         });
       }
+
       setOpenModalEntrega(false);
       setPedidoEntrega(null);
     } catch (err: any) {
       console.error("Error al guardar resultado final:", err);
-      alert(
-        String(err?.message || "Error al actualizar el resultado del pedido")
-      );
+      alert(String(err?.message || "Error al actualizar el resultado del pedido"));
     }
   }
 
@@ -234,6 +247,7 @@ export default function PedidosPage() {
         pedido={pedidoSeleccionado}
         onConfirm={handleConfirmResultado}
       />
+
       <ModalEntregaRepartidor
         isOpen={openModalEntrega}
         onClose={() => {
@@ -242,7 +256,9 @@ export default function PedidosPage() {
         }}
         pedido={pedidoEntrega}
         onConfirm={handleConfirmEntrega}
+        metodoPagoIds={METODO_PAGO_IDS} // ✅ CLAVE: le pasamos ids reales
       />
+
       <ModalPedidoDetalle
         isOpen={openModalDetalle}
         onClose={() => {
