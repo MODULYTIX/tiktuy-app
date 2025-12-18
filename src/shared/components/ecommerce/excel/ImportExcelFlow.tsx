@@ -13,7 +13,7 @@ type Phase = 'idle' | 'loading' | 'preview';
 
 export default function ImportExcelFlow({
   token,
-  onImported = () => {},
+  onImported = () => { },
   children,
 }: {
   token: string;
@@ -39,8 +39,8 @@ export default function ImportExcelFlow({
   ): Option[] => {
     const names = new Set<string>();
     for (const it of arr ?? []) {
-      const raw = it[key]; // acceso tipado por clave
-      const v = (raw == null ? '' : String(raw)).trim(); // conversión segura a string
+      const raw = it[key];
+      const v = (raw == null ? '' : String(raw)).trim();
       if (v) names.add(v);
     }
     return Array.from(names).map((n) => ({ value: n, label: n }));
@@ -97,6 +97,12 @@ export default function ImportExcelFlow({
   const closePreview = useCallback(() => {
     setPhase('idle');
     setPreviewData(null);
+    setAlmacenOptions(null);
+    setCategoriaOptions(null);
+
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   }, []);
 
   return (
@@ -119,6 +125,7 @@ export default function ImportExcelFlow({
 
       {phase === 'preview' && previewData && (
         <ImportProductosPreviewModal
+          key={Date.now()}
           open
           onClose={closePreview}
           token={token}
@@ -134,6 +141,7 @@ export default function ImportExcelFlow({
           preloadedCategoriaOptions={categoriaOptions ?? []}
         />
       )}
+
     </>
   );
 }

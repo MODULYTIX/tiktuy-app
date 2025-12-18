@@ -9,7 +9,7 @@ export default function ImportExcelPedidosFlow({
   token,
   onImported = () => { },
   children,
-  allowMultiCourier = true, 
+  allowMultiCourier = true,
 }: {
   token: string;
   onImported?: () => void;
@@ -21,6 +21,13 @@ export default function ImportExcelPedidosFlow({
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewResponseDTO | null>(null);
 
+  const closePreview = () => {
+    setPreviewModalOpen(false);
+    setPreviewData(null);
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
+
   /* ===================== Abrir selector ===================== */
   const openPicker = () => {
     inputRef.current?.click();
@@ -30,6 +37,9 @@ export default function ImportExcelPedidosFlow({
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    setPreviewData(null);
+    setPreviewModalOpen(false);
 
     setLoadingModalOpen(true);
 
@@ -45,6 +55,7 @@ export default function ImportExcelPedidosFlow({
       if (inputRef.current) inputRef.current.value = '';
     }
   };
+
 
   return (
     <>
@@ -69,14 +80,22 @@ export default function ImportExcelPedidosFlow({
       {/* Preview modal */}
       {previewData && (
         <ImportPreviewPedidosModal
+          key={Date.now()}
           open={previewModalOpen}
-          onClose={() => setPreviewModalOpen(false)}
+          onClose={closePreview}
           token={token}
           data={previewData}
-          onImported={onImported}
+          onImported={() => {
+            try {
+              onImported();
+            } finally {
+              closePreview();
+            }
+          }}
           allowMultiCourier={allowMultiCourier}
         />
       )}
+
     </>
   );
 }
