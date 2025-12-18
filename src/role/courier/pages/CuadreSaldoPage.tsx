@@ -1,5 +1,5 @@
 // src/pages/courier/cuadre-saldo/CuadreSaldoPage.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import RepartidorTable from "@/shared/components/courier/cuadreSaldo/CuadreSaldoTable";
 import EcommerceCuadreSaldoTable from "@/shared/components/courier/cuadreSaldo/EcommerceCuadreSaldoTable";
@@ -7,11 +7,9 @@ import EcommerceCuadreSaldoTable from "@/shared/components/courier/cuadreSaldo/E
 import { listMotorizados } from "@/services/courier/cuadre_saldo/cuadreSaldo.api";
 import type { MotorizadoItem } from "@/services/courier/cuadre_saldo/cuadreSaldo.types";
 
-// ⬇ Importa tus componentes de entrada estilizados (ajusta la ruta)
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import Tittlex from "@/shared/common/Tittlex";
-
 
 /* ============== Helpers ============== */
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -19,7 +17,6 @@ const toYMD = (d: Date) =>
   `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const todayLocal = () => toYMD(new Date());
 const getToken = () => localStorage.getItem("token") ?? "";
-
 
 /* ============== Página ============== */
 type Tab = "ECOMMERCE" | "REPARTIDOR";
@@ -37,6 +34,16 @@ const CuadreSaldoPage: React.FC = () => {
   // Fechas por defecto = HOY
   const [repDesde, setRepDesde] = useState<string>(todayLocal());
   const [repHasta, setRepHasta] = useState<string>(todayLocal());
+
+  // ✅ estado para controlar botón "Abonar seleccionados" (desde el table)
+  const [repSelCount, setRepSelCount] = useState(0);
+  const [repSelLoading, setRepSelLoading] = useState(false);
+  const [repCanAbonar, setRepCanAbonar] = useState(false);
+
+  // ✅ referencia a acciones expuestas por CuadreSaldoTable
+  const repActionsRef = useRef<{ openAbonarSeleccionados: () => void } | null>(
+    null
+  );
 
   // cargar motorizados del courier autenticado
   useEffect(() => {
@@ -89,13 +96,23 @@ const CuadreSaldoPage: React.FC = () => {
 
       {/* Contenido por pestaña */}
       {tab === "ECOMMERCE" ? (
-        // El componente ya incluye sus propios filtros, detalle y abono
         <EcommerceCuadreSaldoTable token={token} />
       ) : (
         <>
-          {/* Filtros Repartidor (modelo unificado + auto-render de la tabla) */}
-          <div className="text-lg font-semibold mb-5">Repartidor</div>
+          {/* ✅ Título + botón alineado a la derecha */}
+          <div className="mb-5 flex items-center justify-between">
+            <div className="text-lg font-semibold">Repartidor</div>
 
+            <Buttonx
+              icon="iconoir:new-tab"
+              label="Abonar seleccionados"
+              variant="secondary"
+              onClick={() => repActionsRef.current?.openAbonarSeleccionados()}
+              disabled={!repCanAbonar || repSelLoading || repSelCount === 0}
+            />
+          </div>
+
+          {/* Filtros Repartidor */}
           <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
             <Selectx
               id="f-motorizado"
@@ -143,21 +160,24 @@ const CuadreSaldoPage: React.FC = () => {
             />
           </div>
 
-          {/* Tabla Repartidor (se muestra automáticamente al elegir motorizado) */}
-          {token && motorizadoId !== "" ? (
+          {/* Tabla Repartidor */}
+          {token && (
             <RepartidorTable
               token={token}
-              motorizadoId={Number(motorizadoId)}
+              motorizadoId={motorizadoId === "" ? undefined : Number(motorizadoId)}
               desde={repDesde}
               hasta={repHasta}
+              // ✅ recibe updates de selección y loading
+              onSelectionChange={(info) => {
+                setRepSelCount(info.selectedCount);
+                setRepSelLoading(info.loading);
+                setRepCanAbonar(info.canAbonar);
+              }}
+              // ✅ toma acciones expuestas por el componente
+              exposeActions={(actions) => {
+                repActionsRef.current = actions;
+              }}
             />
-          ) : (
-            <div className="mt-5 rounded-xl border border-dashed p-6 text-sm text-gray-600">
-              Selecciona un <b>motorizado</b> y (opcional) ajusta el rango de
-              fechas para ver los pedidos.
-              <br />
-              Por defecto, la fecha es <b>hoy</b>.
-            </div>
           )}
         </>
       )}
