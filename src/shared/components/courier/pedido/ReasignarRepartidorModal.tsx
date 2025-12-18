@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchPedidoDetalle, reassignPedido } from '@/services/courier/pedidos/pedidos.api';
-import type { PedidoListItem, PedidoDetalle } from '@/services/courier/pedidos/pedidos.types';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchPedidoDetalle, reassignPedido } from "@/services/courier/pedidos/pedidos.api";
+import type { PedidoListItem, PedidoDetalle } from "@/services/courier/pedidos/pedidos.types";
 import Tittlex from "@/shared/common/Tittlex";
-import { Selectx } from '@/shared/common/Selectx';
-import { InputxTextarea } from '@/shared/common/Inputx';
-import Buttonx from '@/shared/common/Buttonx';
+import { Selectx } from "@/shared/common/Selectx";
+import { InputxTextarea } from "@/shared/common/Inputx";
+import Buttonx from "@/shared/common/Buttonx";
 
 type MotorizadoBasic = { id: number; nombre: string };
 
@@ -31,8 +31,27 @@ const API_URL = import.meta.env.VITE_API_URL as string;
 const ESTADO_ID_DISPONIBLE = 18;
 
 /* ---- utilidades de formato ---- */
-const PEN = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 });
-const two = (n: number) => String(n).padStart(2, '0');
+const PEN = new Intl.NumberFormat("es-PE", {
+  style: "currency",
+  currency: "PEN",
+  minimumFractionDigits: 2,
+});
+const two = (n: number) => String(n).padStart(2, "0");
+
+// ✅ formatear fecha SIEMPRE en Perú para evitar “-1 día”
+const fmtPE = new Intl.DateTimeFormat("es-PE", {
+  timeZone: "America/Lima",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+function formatFechaPE(fecha: string | null | undefined) {
+  if (!fecha) return "-";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return fmtPE.format(new Date(`${fecha}T00:00:00-05:00`));
+  }
+  return fmtPE.format(new Date(fecha));
+}
 
 export default function ReasignarRepartidorModal({
   open,
@@ -44,6 +63,34 @@ export default function ReasignarRepartidorModal({
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  const [detalle, setDetalle] = useState<PedidoDetalle | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [motosLoading, setMotosLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [motorizadoId, setMotorizadoId] = useState<number | "">("");
+  const [observacion, setObservacion] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  // lista local (se usa si no llega por props)
+  const [motorizadosLocal, setMotorizadosLocal] = useState<MotorizadoBasic[]>([]);
+
+  // 🔎 Excluir al repartidor actual del select
+  const motorizadoActualId = pedido.motorizado?.id ?? null;
+  const motorizadosFiltrados = useMemo(
+    () => motorizadosLocal.filter((m) => m.id !== motorizadoActualId),
+    [motorizadosLocal, motorizadoActualId]
+  );
+
+  const cantidad = useMemo(
+    () =>
+      detalle?.cantidad_productos ??
+      pedido.items_total_cantidad ??
+      (pedido.items ?? []).reduce((a, it) => a + it.cantidad, 0),
+    [detalle, pedido]
+  );
+
+  // ✅ Click afuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
@@ -53,20 +100,6 @@ export default function ReasignarRepartidorModal({
     if (open) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open, onClose]);
-
-  if (!open) return null;
-
-  const [detalle, setDetalle] = useState<PedidoDetalle | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [motosLoading, setMotosLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  const [motorizadoId, setMotorizadoId] = useState<number | ''>('');
-  const [observacion, setObservacion] = useState(''); // 👈 NUEVO (obligatorio)
-  const [error, setError] = useState<string | null>(null);
-
-  // lista local (se usa si no llega por props)
-  const [motorizadosLocal, setMotorizadosLocal] = useState<MotorizadoBasic[]>([]);
 
   // si vienen por props, úsalo
   useEffect(() => {
@@ -78,7 +111,7 @@ export default function ReasignarRepartidorModal({
   // cargar motorizados del API si no llegaron por props
   useEffect(() => {
     if (!open) return;
-    if (Array.isArray(motorizadosProp) && motorizadosProp.length) return; // ya tenemos lista
+    if (Array.isArray(motorizadosProp) && motorizadosProp.length) return;
 
     const ac = new AbortController();
     (async () => {
@@ -89,24 +122,26 @@ export default function ReasignarRepartidorModal({
           headers: { Authorization: `Bearer ${token}` },
           signal: ac.signal,
         });
-        if (!res.ok) throw new Error('Error al cargar repartidores');
+        if (!res.ok) throw new Error("Error al cargar repartidores");
 
         const data: MotorizadoApi[] = await res.json();
 
         const soloDisponibles = data.filter(
           (m) =>
             m.estado_id === ESTADO_ID_DISPONIBLE ||
-            (m.estado?.nombre && m.estado.nombre.toLowerCase() === 'disponible')
+            (m.estado?.nombre && m.estado.nombre.toLowerCase() === "disponible")
         );
 
         const mapped: MotorizadoBasic[] = soloDisponibles.map((m) => ({
           id: m.id,
-          nombre: `${m.usuario?.nombres ?? ''} ${m.usuario?.apellidos ?? ''}`.trim() || `Motorizado ${m.id}`,
+          nombre:
+            `${m.usuario?.nombres ?? ""} ${m.usuario?.apellidos ?? ""}`.trim() ||
+            `Motorizado ${m.id}`,
         }));
 
         setMotorizadosLocal(mapped);
       } catch (e: any) {
-        if (e?.name !== 'AbortError') setError(e?.message ?? 'No se pudo cargar repartidores');
+        if (e?.name !== "AbortError") setError(e?.message ?? "No se pudo cargar repartidores");
       } finally {
         setMotosLoading(false);
       }
@@ -118,8 +153,8 @@ export default function ReasignarRepartidorModal({
   // reset UI cuando se abre/cierra
   useEffect(() => {
     if (open) {
-      setMotorizadoId('');
-      setObservacion('');
+      setMotorizadoId("");
+      setObservacion("");
       setError(null);
       setDetalle(null);
     }
@@ -138,8 +173,8 @@ export default function ReasignarRepartidorModal({
         const d = await fetchPedidoDetalle(token, pedido.id, { signal: ac.signal });
         setDetalle(d);
       } catch (e: any) {
-        if (e?.name === 'AbortError') return;
-        setError(e?.message ?? 'No se pudo cargar el detalle');
+        if (e?.name === "AbortError") return;
+        setError(e?.message ?? "No se pudo cargar el detalle");
       } finally {
         setLoading(false);
       }
@@ -148,31 +183,16 @@ export default function ReasignarRepartidorModal({
     return () => ac.abort();
   }, [open, token, pedido.id]);
 
-  const cantidad = useMemo(
-    () =>
-      detalle?.cantidad_productos ??
-      pedido.items_total_cantidad ??
-      (pedido.items ?? []).reduce((a, it) => a + it.cantidad, 0),
-    [detalle, pedido]
-  );
-
-  // 🔎 Excluir al repartidor actual del select
-  const motorizadoActualId = pedido.motorizado?.id ?? null;
-  const motorizadosFiltrados = useMemo(
-    () => motorizadosLocal.filter((m) => m.id !== motorizadoActualId),
-    [motorizadosLocal, motorizadoActualId]
-  );
-
   async function handleSubmit() {
     if (!motorizadoId || submitting) return;
 
     if (pedido.motorizado?.id && pedido.motorizado.id === motorizadoId) {
-      setError('El pedido ya está asignado a ese repartidor.');
+      setError("El pedido ya está asignado a ese repartidor.");
       return;
     }
 
     if (!observacion.trim()) {
-      setError('La observación es obligatoria.');
+      setError("La observación es obligatoria.");
       return;
     }
 
@@ -182,31 +202,31 @@ export default function ReasignarRepartidorModal({
       await reassignPedido(token, {
         pedido_id: pedido.id,
         motorizado_id: Number(motorizadoId),
-        observacion: observacion.trim(), // 👈 se envía al backend
+        observacion: observacion.trim(),
       });
       onSuccess?.();
       onClose();
     } catch (e: any) {
-      setError(e?.message ?? 'Error al reasignar');
+      setError(e?.message ?? "Error al reasignar");
     } finally {
       setSubmitting(false);
     }
   }
 
+  // ✅ IMPORTANTE: este return va DESPUÉS de todos los hooks
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="flex-1 bg-black/40" />
-      {/* panel lateral */}
-      <div ref={panelRef} className="w-[520px] h-full max-w-[92vw] flex flex-col gap-5 bg-white rounded-xl shadow-default animate-slide-in-right p-5">
+
+      <div
+        ref={panelRef}
+        className="w-[520px] h-full max-w-[92vw] flex flex-col gap-5 bg-white rounded-xl shadow-default animate-slide-in-right p-5"
+      >
         {/* Header */}
         <div className="flex gap-1 justify-between items-center">
-          <Tittlex
-            variant="modal"
-            title="REASIGNAR PEDIDO"
-            icon="mdi:package-variant-closed"
-          />
+          <Tittlex variant="modal" title="REASIGNAR PEDIDO" icon="mdi:package-variant-closed" />
           <div className="flex gap-1">
             <label className="block text-xs font-semibold text-gray-600">Cód. Pedido:</label>
             <div className="text-xs text-gray-600">{pedido.codigo_pedido}</div>
@@ -215,63 +235,41 @@ export default function ReasignarRepartidorModal({
 
         {/* Body */}
         <div className="h-full flex flex-col gap-5">
-          {/* Card resumen */}
           <div className="flex flex-col gap-5 border border-gray-200 rounded-md p-3">
             <div className="flex flex-col gap-2">
               <div className="w-full items-center flex flex-col">
-                <label className="block text-xs font-light text-gray-400">
-                  Cliente
-                </label>
+                <label className="block text-xs font-light text-gray-400">Cliente</label>
                 <div className="text-gray-800 font-semibold text-base">{pedido.cliente.nombre}</div>
               </div>
 
               <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-400">
-                  Dirección:
-                </label>
+                <label className="block text-sm font-light text-gray-400">Dirección:</label>
                 <div className="text-gray-800 text-sm">
-                  {pedido.cliente?.direccion ?? pedido.direccion_envio ?? '-'}
+                  {pedido.cliente?.direccion ?? (pedido as any).direccion_envio ?? "-"}
                 </div>
               </div>
 
               <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-400">
-                  F. Entrega:
-                </label>
-                <div className="text-gray-800 text-sm">
-                  {pedido.fecha_entrega_programada
-                    ? new Date(pedido.fecha_entrega_programada).toLocaleDateString('es-PE')
-                    : '-'}
-                </div>
+                <label className="block text-sm font-light text-gray-400">F. Entrega:</label>
+                <div className="text-gray-800 text-sm">{formatFechaPE(pedido.fecha_entrega_programada)}</div>
               </div>
 
               <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-400">
-                  Cant. de Productos:
-                </label>
-                <div className="text-gray-800 text-sm">
-                  {two(cantidad || 0)}
-                </div>
+                <label className="block text-sm font-light text-gray-400">Cant. de Productos:</label>
+                <div className="text-gray-800 text-sm">{two(cantidad || 0)}</div>
               </div>
 
               <div className="flex gap-1">
                 <label className="block text-sm font-light text-gray-400">Monto:</label>
-                <div className="text-gray-800 text-sm">
-                  {PEN.format(Number(pedido.monto_recaudar || 0))}
-                </div>
+                <div className="text-gray-800 text-sm">{PEN.format(Number(pedido.monto_recaudar || 0))}</div>
               </div>
 
               <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-400">
-                  Actual repartador:
-                </label>
-                <div className="text-gray-800 text-sm">
-                  {pedido.motorizado?.nombres}
-                </div>
+                <label className="block text-sm font-light text-gray-400">Actual repartador:</label>
+                <div className="text-gray-800 text-sm">{pedido.motorizado?.nombres}</div>
               </div>
             </div>
 
-            {/* Tabla productos mini */}
             <div className="shadow-default rounded h-[200px]">
               <table className="w-full text-sm">
                 <thead className="bg-gray20">
@@ -313,15 +311,12 @@ export default function ReasignarRepartidorModal({
             </div>
           </div>
 
-          {/* Selector de repartidor (excluyendo actual) */}
           <div>
             <Selectx
               label="Repartidor"
               placeholder="Seleccione repartidor"
               value={motorizadoId}
-              onChange={(e) =>
-                setMotorizadoId(e.target.value ? Number(e.target.value) : "")
-              }
+              onChange={(e) => setMotorizadoId(e.target.value ? Number(e.target.value) : "")}
               disabled={motosLoading || submitting}
               labelVariant="left"
             >
@@ -333,13 +328,10 @@ export default function ReasignarRepartidorModal({
             </Selectx>
 
             {!motosLoading && motorizadosFiltrados.length === 0 && (
-              <div className="text-xs text-gray-500 mt-1">
-                No hay repartidores disponibles.
-              </div>
+              <div className="text-xs text-gray-500 mt-1">No hay repartidores disponibles.</div>
             )}
           </div>
 
-          {/* Observación (obligatoria) */}
           <InputxTextarea
             label="Observación"
             placeholder="Motivo de la reasignación (p. ej., cambio de zona, capacidad, etc.)"
@@ -350,23 +342,18 @@ export default function ReasignarRepartidorModal({
             minRows={3}
             maxRows={6}
           />
+
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
 
-        {/* Footer */}
         <div className="md:col-span-2 flex justify-start gap-3">
           <Buttonx
             variant="secondary"
-            label={submitting ? 'Procesando…' : 'Reasignar'}
+            label={submitting ? "Procesando…" : "Reasignar"}
             onClick={handleSubmit}
             disabled={!motorizadoId || !observacion.trim() || submitting}
           />
-          <Buttonx
-            variant="outlined"
-            label="Cancelar"
-            onClick={onClose}
-            disabled={submitting}
-          />
+          <Buttonx variant="outlined" label="Cancelar" onClick={onClose} disabled={submitting} />
         </div>
       </div>
     </div>

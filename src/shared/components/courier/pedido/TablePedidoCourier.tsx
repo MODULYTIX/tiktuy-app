@@ -16,9 +16,12 @@ import {
   fetchPedidosTerminados,
   fetchPedidoDetalle,
   reassignPedido,
+  reprogramarPedido, // ✅ NUEVO
 } from "@/services/courier/pedidos/pedidos.api";
 
 import DetallePedidoDrawer from "./DetallePedidoDrawer";
+import ReprogramarPedidoModal from "./ReprogramarPedidoModal"; // ✅ NUEVO
+
 import { Selectx } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import { SearchInputx } from "@/shared/common/SearchInputx";
@@ -41,6 +44,27 @@ const PEN = new Intl.NumberFormat("es-PE", {
   minimumFractionDigits: 2,
 });
 const two = (n: number) => String(n).padStart(2, "0");
+
+// ✅ NUEVO: forzar formato en Perú para evitar “-1 día”
+const fmtPE = new Intl.DateTimeFormat("es-PE", {
+  timeZone: "America/Lima",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function formatFechaPE(fecha: string | null | undefined) {
+  if (!fecha) return "—";
+
+  // Si viene "YYYY-MM-DD" (date-only), NO usar new Date(fecha)
+  // porque JS lo interpreta UTC y en Perú queda día anterior.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return fmtPE.format(new Date(`${fecha}T00:00:00-05:00`)); // ✅ Perú real
+  }
+
+  // Si viene ISO (con Z u offset), lo formateamos en Lima
+  return fmtPE.format(new Date(fecha));
+}
 
 export default function TablePedidoCourier({
   view,
@@ -73,8 +97,13 @@ export default function TablePedidoCourier({
   const [detalle, setDetalle] = useState<PedidoDetalle | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  /* trigger para refetch luego de reasignar */
+  /* trigger para refetch luego de reasignar / reprogramar */
   const [reloadTick, setReloadTick] = useState(0);
+
+  /* ✅ Reprogramar (modal) */
+  const [reprogOpen, setReprogOpen] = useState(false);
+  const [pedidoReprog, setPedidoReprog] = useState<PedidoListItem | null>(null);
+  const [reprogLoading, setReprogLoading] = useState(false);
 
   // reset cuando cambia la vista
   useEffect(() => {
@@ -259,7 +288,7 @@ export default function TablePedidoCourier({
       setDetalle(data);
       setDrawerOpen(true);
     } catch (err) {
-      console.error(" Error al cargar detalle:", err);
+      console.error("Error al cargar detalle:", err);
     }
   };
 
@@ -289,12 +318,45 @@ export default function TablePedidoCourier({
     }
   };
 
+  // ✅ Reprogramar (abrir modal)
+  const openReprogramar = (p: PedidoListItem) => {
+    setPedidoReprog(p);
+    setReprogOpen(true);
+  };
+
+  // ✅ Confirmar reprogramación (ALINEADO)
+  const handleConfirmReprogramar = async (payload: {
+    fecha_entrega_programada: string; // YYYY-MM-DD
+    observacion?: string;
+  }) => {
+    if (!pedidoReprog) return;
+
+    try {
+      setReprogLoading(true);
+      setError("");
+
+      await reprogramarPedido(token, {
+        pedido_id: pedidoReprog.id,
+        fecha_entrega_programada: payload.fecha_entrega_programada,
+        observacion: payload.observacion ?? "",
+      });
+
+      setReprogOpen(false);
+      setPedidoReprog(null);
+      setReloadTick((t) => t + 1);
+    } catch (e: any) {
+      setError(e?.message ?? "Error al reprogramar pedido");
+    } finally {
+      setReprogLoading(false);
+    }
+  };
+
   const handleClearFilters = () => {
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
-    setDesde(""); // ✅ nuevo
-    setHasta(""); // ✅ nuevo
+    setDesde("");
+    setHasta("");
   };
 
   return (
@@ -489,6 +551,7 @@ export default function TablePedidoCourier({
                     p.items_total_cantidad ??
                     p.items?.reduce((s, it) => s + it.cantidad, 0) ??
                     0;
+
                   const direccion = p.cliente?.direccion ?? "";
                   const montoNumber = Number(p.monto_recaudar || 0);
 
@@ -510,31 +573,38 @@ export default function TablePedidoCourier({
                           disabled={view !== "asignados"}
                         />
                       </td>
+
                       <td className="h-12 px-4 py-3 text-gray70">
-                        {fecha
-                          ? new Date(fecha).toLocaleDateString("es-PE")
-                          : "—"}
+                        {/* ✅ CAMBIO: mostrar SIEMPRE en Perú */}
+                        {formatFechaPE(fecha)}
                       </td>
+
                       <td className="h-12 px-4 py-3 text-gray70">
                         {p.ecommerce?.nombre_comercial ?? "—"}
                       </td>
+
                       <td className="h-12 px-4 py-3 text-gray70">
                         {p.cliente?.nombre ?? "—"}
                       </td>
+
                       <td
                         className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]"
                         title={direccion}
                       >
                         {direccion || "—"}
                       </td>
+
                       <td className="h-12 px-4 py-3 text-center text-gray70">
                         {two(cantidad)}
                       </td>
+
                       <td className="h-12 px-4 py-3 text-gray70">
                         {PEN.format(montoNumber)}
                       </td>
+
                       <td className="h-12 px-4 py-3">
                         <div className="flex items-center justify-center gap-3">
+                          {/* 👁️ Detalle */}
                           <button
                             className="text-blue-600 hover:text-blue-800 transition-colors"
                             onClick={() => handleVerDetalle(p.id)}
@@ -544,6 +614,19 @@ export default function TablePedidoCourier({
                             <FaEye />
                           </button>
 
+                          {/* ✅ Reprogramar (solo ASIGNADOS) */}
+                          {view === "asignados" && (
+                            <button
+                              className="text-amber-600 hover:text-amber-800 transition-colors"
+                              onClick={() => openReprogramar(p)}
+                              title="Reprogramar pedido"
+                              aria-label={`Reprogramar ${p.id}`}
+                            >
+                              <Icon icon="mdi:calendar-edit" width={18} />
+                            </button>
+                          )}
+
+                          {/* 🔁 Reasignar (solo PENDIENTES) */}
                           {view === "pendientes" && (
                             <button
                               className="text-indigo-600 hover:text-indigo-800 transition-colors"
@@ -627,6 +710,19 @@ export default function TablePedidoCourier({
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         detalle={detalle}
+      />
+
+      {/* ✅ Modal Reprogramar */}
+      <ReprogramarPedidoModal
+        open={reprogOpen}
+        loading={reprogLoading}
+        pedidoCodigo={pedidoReprog?.codigo_pedido}
+        fechaActual={pedidoReprog?.fecha_entrega_programada ?? null}
+        onClose={() => {
+          setReprogOpen(false);
+          setPedidoReprog(null);
+        }}
+        onConfirm={handleConfirmReprogramar}
       />
     </div>
   );
