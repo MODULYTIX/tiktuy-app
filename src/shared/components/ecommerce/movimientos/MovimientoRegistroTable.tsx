@@ -197,7 +197,7 @@ export default function MovimientoRegistroTable({
       </div>
     );
 
-  // ✅ FORMATO STOCK (igual al base: badge + texto abajo)
+  //  FORMATO STOCK (igual al base: badge + texto abajo)
   const renderEstadoStock = (stock?: number, minimo?: number) => {
     const isInvalid = stock === undefined || minimo === undefined;
 
@@ -294,7 +294,7 @@ export default function MovimientoRegistroTable({
                   {prod.almacenamiento?.nombre_almacen ?? "—"}
                 </td>
 
-                {/* ✅ AQUÍ va el formato de stock con etiqueta */}
+                {/*  AQUÍ va el formato de stock con etiqueta */}
                 <td className="h-12 px-4 py-3">
                   {renderEstadoStock(prod.stock, (prod as any).stock_minimo)}
                 </td>

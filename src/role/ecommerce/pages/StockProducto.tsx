@@ -178,6 +178,7 @@ export default function StockPage() {
     setProductoSel(null);
   };
 
+
   /* ========================
      RENDER
   ======================== */

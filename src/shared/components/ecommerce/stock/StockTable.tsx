@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { FaEye, FaEdit } from "react-icons/fa";
+import { FaEye, FaEdit, FaBoxOpen } from "react-icons/fa";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
 import Badgex from "@/shared/common/Badgex";
 
@@ -131,7 +131,8 @@ export default function StockTable({
     return (
       <div>
         <span className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}>
-          📦 {stock}
+          <FaBoxOpen className="text-[14px]" />
+          {stock}
         </span>
         <div className="text-xs text-gray-500">
           {bajo ? "Stock bajo" : "Stock normal"}
@@ -163,6 +164,18 @@ export default function StockTable({
     );
   }
 
+
+  const Thumb = ({ url, alt }: { url?: string | null; alt: string }) =>
+    url ? (
+      <div className="w-10 h-10 rounded bg-gray-100 border border-gray-200 overflow-hidden">
+        <img src={url} alt={alt} className="w-full h-full object-cover" />
+      </div>
+    ) : (
+      <div className="w-10 h-10 rounded bg-gray-100 border border-gray-200 flex items-center justify-center">
+        📦
+      </div>
+    );
+
   /* ===================================================
      TABLE (DISEÑO  TABLA PEDIDOS)
   ==================================================== */
@@ -190,9 +203,7 @@ export default function StockTable({
                 className="hover:bg-gray10 transition-colors"
               >
                 <td className="h-12 px-4 py-3">
-                  <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                    📦
-                  </div>
+                  <Thumb url={prod.imagen_url} alt={prod.nombre_producto} />
                 </td>
 
                 <td className="h-12 px-4 py-3 text-gray70">
