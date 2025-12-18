@@ -6,18 +6,16 @@ import {
   getCourierWhatsappLink,
   createCourierWhatsappLink,
   updateCourierWhatsappLink,
-  requestCourierWhatsappLink,
 } from "@/services/courier/invite_courier/courierInvite.api";
 import Buttonx from "@/shared/common/Buttonx";
 import { Inputx } from "@/shared/common/Inputx";
-import Tittlex from "@/shared/common/Tittlex";
 
 type Props = {
-  open: boolean; // visibilidad del modal
-  otherId?: number; // Courier => ecommerce_id, Ecommerce => courier_id
-  sedeId?: number; // ✅ NUEVO: sede_id de la asociación (EcommerceSede)
-  onClose: () => void; // cerrar modal
-  onSaved?: () => void; // callback al guardar/actualizar/solicitar OK
+  open: boolean; 
+  otherId?: number; 
+  sedeId?: number; 
+  onClose: () => void;
+  onSaved?: () => void;
 };
 
 export default function PanelControlInviteEcommer({
@@ -32,7 +30,7 @@ export default function PanelControlInviteEcommer({
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [requesting, setRequesting] = useState(false);
+  const [requesting, ] = useState(false);
   const [link, setLink] = useState("");
   const [initialLink, setInitialLink] = useState<string>(""); // estado previo
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +56,6 @@ export default function PanelControlInviteEcommer({
     [link, initialLink]
   );
 
-  // ✅ Ahora la asociación requiere otherId + sedeId
   const canAct =
     Boolean(token) &&
     typeof otherId === "number" &&

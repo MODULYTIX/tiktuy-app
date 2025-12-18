@@ -1,6 +1,5 @@
 import { IoClose } from "react-icons/io5";
 import { useEffect, useRef, useState } from "react";
-import { GrUserAdmin } from "react-icons/gr";
 import { editarTrabajador } from "@/services/ecommerce/perfiles/perfilesTrabajador.api";
 import type { PerfilTrabajador } from "@/services/ecommerce/perfiles/perfilesTrabajador.types";
 
