@@ -9,27 +9,32 @@ type ButtonVariant =
   | "outlined"
   | "outlinedw";
 
-interface ButtonProps {
+type NativeButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
+
+interface ButtonProps
+  extends Omit<NativeButtonProps, "onClick" | "disabled" | "type"> {
   label: string;
   icon?: string;
-  variant: ButtonVariant;
+  variant?: ButtonVariant;
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
   iconPosition?: "left" | "right";
   type?: "button" | "submit" | "reset";
-  form?: string; // ← agregar esto si quieres
+  form?: string;
 }
 
 const Buttonx: React.FC<ButtonProps> = ({
   label,
   icon,
-  variant,
+  variant = "primary",
   onClick,
   disabled = false,
   className = "",
   iconPosition = "left",
   type = "button",
+  form,
+  ...rest // ✅ aquí entra: role, title, aria-*, data-*, id, name, etc.
 }) => {
   const baseStyle =
     "flex items-center gap-2 font-roboto text-sm justify-center rounded-md";
@@ -47,7 +52,9 @@ const Buttonx: React.FC<ButtonProps> = ({
 
   return (
     <button
-      type={type} 
+      {...rest}
+      type={type}
+      form={form}
       className={`${baseStyle} ${variantStyles[variant]} h-10 w-auto px-3 py-2 ${
         disabled ? "opacity-50 cursor-not-allowed" : ""
       } ${className} whitespace-nowrap`}

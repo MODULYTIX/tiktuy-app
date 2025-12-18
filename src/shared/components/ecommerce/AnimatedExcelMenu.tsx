@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { PiMicrosoftExcelLogoFill } from 'react-icons/pi';
-import { HiOutlineDownload, HiOutlineUpload } from 'react-icons/hi';
+import { useState, useRef, useEffect } from "react";
+import Buttonx from "@/shared/common/Buttonx";
 
 interface Props {
   onTemplateClick: () => void;
@@ -21,17 +20,17 @@ export default function AnimatedExcelMenu({
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShow(false);
+      if (e.key === "Escape") setShow(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
-  const menuId = 'excel-actions-popover';
+  const menuId = "excel-actions-popover";
 
   return (
     <div className="relative flex items-end " ref={ref}>
@@ -40,51 +39,50 @@ export default function AnimatedExcelMenu({
         id={menuId}
         role="menu"
         aria-hidden={!show}
-        className={`flex items-center gap-2 px-5 py-[0.625rem] transition-all duration-300 ${
+        className={`flex items-center gap-2 transition-all duration-300 ${
           show
-            ? 'opacity-100 translate-x-0'
-            : 'opacity-0 translate-x-10 pointer-events-none'
+            ? "opacity-100 translate-x-0"
+            : "opacity-0 translate-x-10 pointer-events-none"
         }`}
       >
-        <button
+        <Buttonx
           type="button"
           onClick={onTemplateClick}
           role="menuitem"
-          className="flex items-center gap-1 px-5 py-[0.625rem] rounded text-sm bg-gray-100 hover:bg-gray-200 transition"
-        >
-          <HiOutlineDownload size={16} />
-          Descargar plantilla
-        </button>
-        <button
+          label="Descargar plantilla"
+          icon="material-symbols:upload-rounded"
+          variant="tertiary"
+        />
+
+        <Buttonx
           type="button"
           onClick={onImportClick}
           role="menuitem"
-          className="flex items-center gap-1 px-5 py-[0.625rem] rounded text-sm bg-green-600 text-white hover:bg-green-700 transition"
-        >
-          <HiOutlineUpload size={16} />
-          Importar archivo
-        </button>
+          label="Importar archivo"
+          icon="material-symbols:download-rounded"
+          variant="secondary"
+        />
       </div>
 
       {/* Separador */}
       <div
-        className={`h-8 w-px bg-gray-300 mx-2 transition-all duration-300 ${
-          show ? 'opacity-100' : 'opacity-0 w-0 mx-0'
+        className={`h-10 w-px bg-gray-300 mx-2 transition-all duration-300 ${
+          show ? "opacity-100" : "opacity-0 w-0 mx-0"
         }`}
       />
 
       {/* Botón Excel */}
-      <button
+      <Buttonx
         type="button"
+        variant="outlined"
+        icon="mdi:microsoft-excel"
+        label="" // si no quieres texto
         aria-label="Acciones de Excel"
         aria-haspopup="menu"
         aria-expanded={show}
         aria-controls={menuId}
         onClick={() => setShow((prev) => !prev)}
-        className="border px-3 py-[6px] rounded hover:bg-gray-100 transition"
-      >
-        <PiMicrosoftExcelLogoFill size={22} />
-      </button>
+      />
     </div>
   );
 }

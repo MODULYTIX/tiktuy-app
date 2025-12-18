@@ -8,7 +8,6 @@ import ImageUploadx from "@/shared/common/ImageUploadx";
 import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
 
 type Props = {
-  open: boolean;
   onClose: () => void;
   data: Producto | null;
 };
@@ -19,7 +18,8 @@ function normalizarEstado(value: unknown): EstadoId | "" {
   if (!value) return "";
   if (typeof value === "string") {
     const k = value.toLowerCase().trim();
-    if (k === "activo" || k === "inactivo" || k === "descontinuado") return k as EstadoId;
+    if (k === "activo" || k === "inactivo" || k === "descontinuado")
+      return k as EstadoId;
   }
   if (typeof value === "object" && value) {
     const v = value as any;
@@ -36,11 +36,11 @@ const ESTADO_LABEL: Record<EstadoId, string> = {
   descontinuado: "Descontinuado",
 };
 
-export default function ProductoVerModal({ open, onClose, data }: Props) {
+export default function ProductoVerModal({ onClose, data }: Props) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
 
-  if (!open || !data) return null;
+  if (!data) return null;
 
   const codigo = String((data as any).codigo_identificacion ?? "");
   const nombre = String((data as any).nombre_producto ?? "");
@@ -50,11 +50,14 @@ export default function ProductoVerModal({ open, onClose, data }: Props) {
   const categoriaLabel = (data as any).categoria?.nombre ?? categoriaId;
 
   const almacenId = String((data as any).almacenamiento_id ?? "");
-  const almacenLabel = (data as any).almacenamiento?.nombre_almacen ?? almacenId;
+  const almacenLabel =
+    (data as any).almacenamiento?.nombre_almacen ?? almacenId;
 
   const estadoId =
-    normalizarEstado((data as any).estado?.nombre ?? (data as any).estado) || "";
-  const estadoLabel = (estadoId ? ESTADO_LABEL[estadoId as EstadoId] : "") ?? "";
+    normalizarEstado((data as any).estado?.nombre ?? (data as any).estado) ||
+    "";
+  const estadoLabel =
+    (estadoId ? ESTADO_LABEL[estadoId as EstadoId] : "") ?? "";
 
   const precioStr =
     (data as any).precio != null && !Number.isNaN(Number((data as any).precio))
@@ -67,7 +70,8 @@ export default function ProductoVerModal({ open, onClose, data }: Props) {
       : "";
 
   const stockMinStr =
-    (data as any).stock_minimo != null && !Number.isNaN(Number((data as any).stock_minimo))
+    (data as any).stock_minimo != null &&
+    !Number.isNaN(Number((data as any).stock_minimo))
       ? String(Number((data as any).stock_minimo))
       : "";
 
@@ -83,13 +87,9 @@ export default function ProductoVerModal({ open, onClose, data }: Props) {
   const imagenUrl: string | null = (data as any).imagen_url ?? null;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-
-      {/* Panel */}
-      <div className="w-full max-w-xl bg-white h-full flex flex-col gap-5 p-5">
-        {/* Header */}
+    <div className="flex flex-col h-full w-[460px] overflow-x-hidden">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
         <Tittlex
           variant="modal"
           icon="vaadin:stock"
@@ -97,11 +97,28 @@ export default function ProductoVerModal({ open, onClose, data }: Props) {
           description="Consulta toda la información registrada de este producto, incluyendo sus datos básicos, ubicación en almacén, stock y condiciones asociadas."
         />
 
-        {/* Body scrollable */}
-        <div className="h-full flex flex-col gap-5 overflow-y-auto">
+        <div className="flex flex-col gap-5">
           <div className="flex gap-5">
-            <Inputx name="codigo_identificacion" label="Código" value={codigo} readOnly disabled type="text" />
-            <Inputx name="nombre_producto" label="Nombre del Producto" value={nombre} readOnly disabled type="text" />
+            <div className="flex-1 min-w-0">
+              <Inputx
+                name="codigo_identificacion"
+                label="Código"
+                value={codigo}
+                readOnly
+                disabled
+                type="text"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <Inputx
+                name="nombre_producto"
+                label="Nombre del Producto"
+                value={nombre}
+                readOnly
+                disabled
+                type="text"
+              />
+            </div>
           </div>
 
           <InputxTextarea
@@ -116,11 +133,28 @@ export default function ProductoVerModal({ open, onClose, data }: Props) {
           />
 
           <div className="flex gap-5">
-            <Inputx name="categoria" label="Categoría" value={categoriaLabel} readOnly disabled type="text" />
-            <Inputx name="estado" label="Estado" value={estadoLabel} readOnly disabled type="text" />
+            <div className="flex-1 min-w-0">
+              <Inputx
+                name="categoria"
+                label="Categoría"
+                value={categoriaLabel}
+                readOnly
+                disabled
+                type="text"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <Inputx
+                name="estado"
+                label="Estado"
+                value={estadoLabel}
+                readOnly
+                disabled
+                type="text"
+              />
+            </div>
           </div>
 
-          {/* Imagen (solo-lectura, usa el nuevo modo) */}
           <ImageUploadx
             label="Imagen"
             value={imagenUrl ?? null}
@@ -133,33 +167,107 @@ export default function ProductoVerModal({ open, onClose, data }: Props) {
           />
 
           <div className="flex gap-5">
-            <InputxNumber label="Precio" name="precio" value={precioStr} readOnly disabled decimals={2} step={0.01} placeholder="0.00" />
-            <InputxNumber label="Cantidad" name="stock" value={stockStr} readOnly disabled decimals={0} step={1} placeholder="0" inputMode="numeric" />
+            <div className="flex-1 min-w-0">
+              <InputxNumber
+                label="Precio"
+                name="precio"
+                value={precioStr}
+                readOnly
+                disabled
+                decimals={2}
+                step={0.01}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <InputxNumber
+                label="Cantidad"
+                name="stock"
+                value={stockStr}
+                readOnly
+                disabled
+                decimals={0}
+                step={1}
+                placeholder="0"
+                inputMode="numeric"
+              />
+            </div>
           </div>
 
           <div className="flex gap-5">
-            <InputxNumber label="Stock Mínimo" name="stock_minimo" value={stockMinStr} readOnly disabled decimals={0} step={1} placeholder="0" inputMode="numeric" />
-            <InputxNumber label="Peso (kg)" name="peso" value={pesoStr} readOnly disabled decimals={3} step={0.001} placeholder="0.000" />
+            <div className="flex-1 min-w-0">
+              <InputxNumber
+                label="Stock Mínimo"
+                name="stock_minimo"
+                value={stockMinStr}
+                readOnly
+                disabled
+                decimals={0}
+                step={1}
+                placeholder="0"
+                inputMode="numeric"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <InputxNumber
+                label="Peso (kg)"
+                name="peso"
+                value={pesoStr}
+                readOnly
+                disabled
+                decimals={3}
+                step={0.001}
+                placeholder="0.000"
+              />
+            </div>
           </div>
 
           <div className="flex gap-5">
-            <Inputx name="almacen" label="Sede" value={almacenLabel} readOnly disabled type="text" />
-            <Inputx name="fecha_registro" label="Fecha Registro" value={fechaStr} readOnly disabled type="text" />
+            <div className="flex-1 min-w-0">
+              <Inputx
+                name="almacen"
+                label="Sede"
+                value={almacenLabel}
+                readOnly
+                disabled
+                type="text"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <Inputx
+                name="fecha_registro"
+                label="Fecha Registro"
+                value={fechaStr}
+                readOnly
+                disabled
+                type="text"
+              />
+            </div>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="flex items-center gap-5 justify-start">
-          <Buttonx variant="tertiary" onClick={onClose} label="Cerrar" className="px-4 text-sm text-gray-600 bg-gray-200" type="button" />
-        </div>
-
-        {/* Lightbox */}
-        <ImagePreviewModalx
-          open={previewOpen}
-          src={previewSrc ?? ""}
-          onClose={() => { setPreviewOpen(false); setPreviewSrc(null); }}
-        />
       </div>
+
+      {/* Footer fijo */}
+      <div className="p-5 pt-3 border-t border-gray-200 bg-white">
+        <div className="flex items-center gap-5 justify-start">
+          <Buttonx
+            variant="tertiary"
+            onClick={onClose}
+            label="Cerrar"
+            className="px-4 text-sm text-gray-600 bg-gray-200"
+            type="button"
+          />
+        </div>
+      </div>
+
+      <ImagePreviewModalx
+        open={previewOpen}
+        src={previewSrc ?? ""}
+        onClose={() => {
+          setPreviewOpen(false);
+          setPreviewSrc(null);
+        }}
+      />
     </div>
   );
 }

@@ -38,7 +38,6 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
   ) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handlePhoneChange = (v: string) => {
-    // normaliza a solo dígitos
     setPhoneLocal(v.replace(/\D/g, ""));
   };
 
@@ -61,7 +60,6 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
       telefono: telefonoCompleto,
     };
 
-    // validación mínima (como tu versión original)
     const required: (keyof RegistroManualPayload)[] = [
       "nombres",
       "apellidos",
@@ -74,9 +72,8 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
       "direccion",
       "rubro",
     ];
-    const missing = required.filter(
-      (k) => String(payload[k] ?? "").trim() === ""
-    );
+
+    const missing = required.filter((k) => String(payload[k] ?? "").trim() === "");
     if (missing.length > 0) {
       setErrorMsg("Por favor completa todos los campos obligatorios.");
       return;
@@ -85,12 +82,11 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
     try {
       setLoading(true);
       const res = await registrarManualEcommerce(payload, token);
+
       if (res.ok) {
         setSuccessMsg(res.data.mensaje);
-        // reset opcional
         setForm(initialForm);
         setPhoneLocal("");
-        // Si deseas cerrar automáticamente:
         // onClose();
       } else {
         setErrorMsg(res.error || "No se pudo registrar el ecommerce.");
@@ -103,8 +99,7 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
   }
 
   return (
-    // Contenedor padre: padding 20 y separación 20 entre bloques
-    <div className=" w-[520px] h-full flex flex-col p-5 gap-5 text-[12px]">
+    <div className="w-[460px] max-w-[92vw] h-full flex flex-col p-5 gap-5 text-[12px] bg-white">
       {/* Header */}
       <Tittlex
         variant="modal"
@@ -125,7 +120,7 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
         </div>
       )}
 
-      {/* Formulario (crece) */}
+      {/* Formulario */}
       <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5 flex-1">
         <div className="flex flex-col h-full gap-5 w-full">
           {/* Fila 1 */}
@@ -185,9 +180,7 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
               name="comercial"
               placeholder="Ejem. Electrosur"
               value={form.nombre_comercial}
-              onChange={(e) =>
-                handleInput("nombre_comercial", e.target.value)
-              }
+              onChange={(e) => handleInput("nombre_comercial", e.target.value)}
               required
             />
           </div>
@@ -212,7 +205,7 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
             />
           </div>
 
-          {/* Fila 5 (2 columnas) */}
+          {/* Fila 5 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <Inputx
               label="Dirección"
@@ -233,22 +226,22 @@ export default function PanelControlRegistroEcommerce({ onClose }: Props) {
           </div>
         </div>
 
-        {/* Botones (siempre abajo/izquierda) */}
-        <div className="flex items-center gap-5">
+        {/* Botones */}
+        <div className="flex items-center gap-5 mt-auto">
           <Buttonx
-            type="submit"               // 👈 CLAVE: esto dispara handleSubmit
-            variant="quartery"
+            type="submit"
+            variant="tertiary"
             disabled={loading}
             label={loading ? "Creando..." : "Crear nuevo"}
-            icon={loading ? "line-md:loading-twotone-loop" : undefined}
-            className={`px-4 text-sm ${
-              loading ? "[&_svg]:animate-spin" : ""
-            }`}
+            icon={loading ? "line-md:loading-twotone-loop" : "mdi:content-save-outline"}
+            className={`px-4 text-sm ${loading ? "[&_svg]:animate-spin" : ""}`}
           />
           <Buttonx
-            variant="outlined"
+            type="button"
+            variant="outlinedw"
             onClick={onClose}
             label="Cancelar"
+            icon="mdi:close"
             className="px-4 text-sm border"
             disabled={loading}
           />

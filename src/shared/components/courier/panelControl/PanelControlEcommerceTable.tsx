@@ -61,7 +61,8 @@ function toRow(item: EcommerceSede): EcommerceRow {
     null;
 
   const hasWhatsapp = Boolean(
-    (item as any).link_whatsapp && String((item as any).link_whatsapp).trim().length > 0
+    (item as any).link_whatsapp &&
+      String((item as any).link_whatsapp).trim().length > 0
   );
 
   return {
@@ -141,53 +142,89 @@ function DetalleEcommerceModal({
     >
       {/* Drawer derecho */}
       <div
-        className="max-w-[520px] h-full bg-white overflow-y-auto"
+        className="w-[460px] max-w-[92vw] h-full bg-white overflow-y-auto shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex flex-col gap-1 p-5">
-          {/* Fila superior: icono + título + estado */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-primaryDark">
-              <Icon icon="lucide:layout-panel-top" width={22} height={22} color="#1E3A8A" />
+              <Icon
+                icon="lucide:layout-panel-top"
+                width={22}
+                height={22}
+                color="#1E3A8A"
+              />
               <h2 className="text-primary text-[20px] font-bold uppercase font-roboto">
                 DETALLE DEL ECOMMERCE
               </h2>
             </div>
+
             <div className="flex items-center gap-2 text-sm whitespace-nowrap">
               <span className="text-gray60 leading-none">Estado:</span>
               <span
                 className={[
                   "inline-flex items-center h-7 px-3 rounded-[4px] text-sm font-medium leading-none",
-                  estado === "activo" ? "bg-gray90 text-white" : "bg-gray30 text-gray80",
+                  estado === "activo"
+                    ? "bg-gray90 text-white"
+                    : "bg-gray30 text-gray80",
                 ].join(" ")}
               >
                 {estado === "activo" ? "Activo" : "Pendiente"}
               </span>
             </div>
           </div>
+
           <p className="text-sm text-gray60 leading-relaxed mt-1">
-            Consulta la información del comercio electrónico: datos generales, ubicación,
-            contacto y rubro de actividad.
+            Consulta la información del comercio electrónico: datos generales,
+            ubicación, contacto y rubro de actividad.
           </p>
         </div>
 
         {/* Body */}
         <div className="p-5 grid gap-5">
           {/* fila 1 */}
-          <div className="w-full flex flex-col-2 gap-5">
-            <Inputx name="nombre" label="Nombre" value={nombres} readOnly disabled type="text" />
-            <Inputx name="apellido" label="Apellido" value={apellidos} readOnly disabled type="text" />
+          <div className="w-full flex gap-5">
+            <Inputx
+              name="nombre"
+              label="Nombre"
+              value={nombres}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="apellido"
+              label="Apellido"
+              value={apellidos}
+              readOnly
+              disabled
+              type="text"
+            />
           </div>
 
           {/* fila 2 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Inputx name="DNI / CI" label="DNI / CI" value={dni_ci} readOnly disabled type="text" />
-            <Inputx name="Correo" label="Correo" value={correo} readOnly disabled type="text" />
+            <Inputx
+              name="dni_ci"
+              label="DNI / CI"
+              value={dni_ci}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="correo"
+              label="Correo"
+              value={correo}
+              readOnly
+              disabled
+              type="text"
+            />
           </div>
 
           {/* fila 3 */}
-          <div className="w-full flex flex-col-2 gap-5">
+          <div className="w-full flex gap-5">
             <InputxNumber
               label="Teléfono"
               name="telefono"
@@ -210,15 +247,43 @@ function DetalleEcommerceModal({
           </div>
 
           {/* fila 4 */}
-          <div className="w-full flex flex-col-2 gap-5">
-            <Inputx name="ruc" label="RUC" value={ruc} readOnly disabled type="text" />
-            <Inputx name="ciudad" label="Ciudad" value={ciudad} readOnly disabled type="text" />
+          <div className="w-full flex gap-5">
+            <Inputx
+              name="ruc"
+              label="RUC"
+              value={ruc}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="ciudad"
+              label="Ciudad"
+              value={ciudad}
+              readOnly
+              disabled
+              type="text"
+            />
           </div>
 
           {/* fila 5 */}
-          <div className="w-full flex flex-col-2 gap-5">
-            <Inputx name="direccion" label="Dirección" value={direccion} readOnly disabled type="text" />
-            <Inputx name="rubro" label="Rubro" value={rubro} readOnly disabled type="text" />
+          <div className="w-full flex gap-5">
+            <Inputx
+              name="direccion"
+              label="Dirección"
+              value={direccion}
+              readOnly
+              disabled
+              type="text"
+            />
+            <Inputx
+              name="rubro"
+              label="Rubro"
+              value={rubro}
+              readOnly
+              disabled
+              type="text"
+            />
           </div>
         </div>
       </div>
@@ -458,8 +523,10 @@ export default function PanelControlTable() {
                             <button
                               type="button"
                               onClick={() => {
-                                setInviteOtherId(entry.ecommerce_id); // otherId = ecommerce_id
-                                setInviteSedeId((entry._raw as any)?.sede_id ?? null); // ✅ NUEVO: sedeId
+                                setInviteOtherId(entry.ecommerce_id);
+                                setInviteSedeId(
+                                  (entry._raw as any)?.sede_id ?? null
+                                );
                                 setInviteOpen(true);
                               }}
                               className="p-1 rounded hover:bg-gray10"
@@ -546,7 +613,9 @@ export default function PanelControlTable() {
       <div
         aria-live="polite"
         className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 transition-all duration-300 ${
-          snackbar.open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3 pointer-events-none"
+          snackbar.open
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-3 pointer-events-none"
         }`}
       >
         <div className="rounded-full px-4 py-2 bg-gray90 text-white shadow-lg text-[12px]">
@@ -565,15 +634,15 @@ export default function PanelControlTable() {
       {inviteOpen && (
         <PanelControlInviteEcommer
           open={inviteOpen}
-          otherId={inviteOtherId ?? undefined} // Courier -> otherId = ecommerce_id
-          sedeId={inviteSedeId ?? undefined}   // ✅ NUEVO: sedeId requerido
+          otherId={inviteOtherId ?? undefined}
+          sedeId={inviteSedeId ?? undefined}
           onClose={() => {
             setInviteOpen(false);
             setInviteOtherId(null);
             setInviteSedeId(null);
           }}
           onSaved={async () => {
-            await loadRows(); // recarga para actualizar color del ícono
+            await loadRows();
             snackbar.show("Cambios guardados");
           }}
         />

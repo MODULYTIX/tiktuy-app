@@ -1,18 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { Icon } from '@iconify/react';
-import { useAuth } from '@/auth/context';
+// src/shared/components/ecommerce/pedidos/Generado/EditarPedidoGeneradoModal.tsx
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/auth/context";
 import {
   fetchPedidoById,
   actualizarPedidoGenerado,
-} from '@/services/ecommerce/pedidos/pedidos.api';
-import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
+} from "@/services/ecommerce/pedidos/pedidos.api";
+import { fetchProductos } from "@/services/ecommerce/producto/producto.api";
 
-import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
-import type { Producto } from '@/services/ecommerce/producto/producto.types';
+import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
+import type { Producto } from "@/services/ecommerce/producto/producto.types";
 
-import Tittlex from '@/shared/common/Tittlex';
-import { InputxNumber } from '@/shared/common/Inputx';
-import { Selectx } from '@/shared/common/Selectx';
+import Tittlex from "@/shared/common/Tittlex";
+import { InputxNumber } from "@/shared/common/Inputx";
+import { Selectx } from "@/shared/common/Selectx";
+import Buttonx from "@/shared/common/Buttonx";
 
 /* ===================== TYPES ===================== */
 type DetalleForm = {
@@ -54,7 +55,7 @@ export default function EditarPedidoGeneradoModal({
     fetchPedidoById(pedidoId, token).then((p) => {
       setPedido(p);
       setDetalles(
-        p.detalles.map((d) => ({
+        (p?.detalles ?? []).map((d: any) => ({
           id: d.id,
           producto_id: d.producto_id,
           cantidad: d.cantidad,
@@ -65,10 +66,7 @@ export default function EditarPedidoGeneradoModal({
   }, [open, pedidoId, token]);
 
   /* ===================== HELPERS ===================== */
-  const montoTotal = detalles.reduce(
-    (s, d) => s + d.cantidad * d.precio_unitario,
-    0
-  );
+  const montoTotal = detalles.reduce((s, d) => s + d.cantidad * d.precio_unitario, 0);
 
   const handleDetalleChange = (
     index: number,
@@ -82,7 +80,7 @@ export default function EditarPedidoGeneradoModal({
 
   /* ===================== GUARDAR ===================== */
   const handleGuardar = async () => {
-    if (!pedidoId || !token) return;
+    if (!pedidoId || !token || saving) return;
     setSaving(true);
 
     try {
@@ -90,8 +88,6 @@ export default function EditarPedidoGeneradoModal({
         pedidoId,
         {
           monto_recaudar: montoTotal,
-
-          //  MULTI-PRODUCTO REAL
           detalles: detalles.map((d) => ({
             id: d.id,
             producto_id: d.producto_id,
@@ -109,7 +105,6 @@ export default function EditarPedidoGeneradoModal({
     }
   };
 
-
   if (!open || !pedido) return null;
 
   /* ===================== UI ===================== */
@@ -117,7 +112,11 @@ export default function EditarPedidoGeneradoModal({
     <div className="fixed inset-0 z-50 bg-black/30 flex justify-end">
       <div
         ref={modalRef}
-        className="w-full max-w-xl h-full bg-white shadow-xl p-6 overflow-y-auto flex flex-col gap-5"
+        className={[
+          "h-full bg-white shadow-xl flex flex-col gap-5 p-5",
+          "w-[460px] max-w-[92vw]", // ✅ ancho fijo
+          "overflow-y-auto",
+        ].join(" ")}
       >
         <Tittlex
           variant="modal"
@@ -128,17 +127,25 @@ export default function EditarPedidoGeneradoModal({
 
         {/* INFO */}
         <div className="text-sm text-gray-700 space-y-1">
-          <p><b>Cliente:</b> {pedido.nombre_cliente}</p>
-          <p><b>Dirección:</b> {pedido.direccion_envio}</p>
-          <p><b>F. Entrega:</b> {pedido.fecha_entrega_programada?.slice(0, 10)}</p>
-          <p><b>Cant. Productos:</b> {detalles.length}</p>
+          <p>
+            <b>Cliente:</b> {pedido.nombre_cliente}
+          </p>
+          <p>
+            <b>Dirección:</b> {pedido.direccion_envio}
+          </p>
+          <p>
+            <b>F. Entrega:</b> {pedido.fecha_entrega_programada?.slice(0, 10)}
+          </p>
+          <p>
+            <b>Cant. Productos:</b> {detalles.length}
+          </p>
           <p className="font-semibold">
             <b>Monto:</b> S/. {montoTotal.toFixed(2)}
           </p>
         </div>
 
         {/* TABLA */}
-        <div className="border rounded-lg overflow-hidden mt-3">
+        <div className="border rounded-lg overflow-hidden mt-1">
           <div className="grid grid-cols-3 bg-gray-100 px-3 py-2 text-sm font-medium">
             <span>Producto</span>
             <span>Cantidad</span>
@@ -155,7 +162,7 @@ export default function EditarPedidoGeneradoModal({
                 labelVariant="left"
                 value={String(d.producto_id)}
                 onChange={(e) =>
-                  handleDetalleChange(i, 'producto_id', Number(e.target.value))
+                  handleDetalleChange(i, "producto_id", Number(e.target.value))
                 }
               >
                 {productos.map((p) => (
@@ -165,12 +172,11 @@ export default function EditarPedidoGeneradoModal({
                 ))}
               </Selectx>
 
-
               <InputxNumber
                 label="Cantidad"
                 value={String(d.cantidad)}
                 onChange={(e) =>
-                  handleDetalleChange(i, 'cantidad', Number(e.target.value))
+                  handleDetalleChange(i, "cantidad", Number(e.target.value))
                 }
                 min={1}
               />
@@ -184,22 +190,22 @@ export default function EditarPedidoGeneradoModal({
 
         {/* FOOTER */}
         <div className="flex gap-3 mt-auto">
-          <button
+          <Buttonx
+            variant="tertiary"
             onClick={handleGuardar}
             disabled={saving}
-            className="bg-gray-900 text-white px-4 py-2 rounded flex items-center gap-2"
-          >
-            <Icon icon="mdi:content-save-outline" />
-            Guardar cambios
-          </button>
+            label={saving ? "Guardando..." : "Guardar cambios"}
+            icon={saving ? "line-md:loading-twotone-loop" : "mdi:content-save-outline"}
+            className={`px-4 text-sm ${saving ? "[&_svg]:animate-spin" : ""}`}
+          />
 
-          <button
+          <Buttonx
+            variant="outlinedw"
             onClick={onClose}
-            className="border px-4 py-2 rounded flex items-center gap-2"
-          >
-            <Icon icon="mdi:close" />
-            Cancelar
-          </button>
+            disabled={saving}
+            label="Cancelar"
+            className="px-4 text-sm border"
+          />
         </div>
       </div>
     </div>

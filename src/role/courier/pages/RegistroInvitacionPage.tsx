@@ -515,7 +515,7 @@ export default function RegistroInvitacionPage() {
       {/* Overlay para suavizar el fondo */}
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
-      <div className="w-full max-w-6xl h-auto bg-white rounded-3xl shadow-2xl p-8 md:p-10 lg:p-12 z-10 flex flex-col gap-8">
+      <div className="w-full max-w-6xl justify-center h-auto bg-white rounded-3xl shadow-2xl p-8 md:p-10 lg:p-12 z-10 flex flex-col gap-8">
         {/* Header */}
         <div className="flex flex-col gap-2 text-center">
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-wide text-[#1A237E] uppercase">
@@ -528,9 +528,9 @@ export default function RegistroInvitacionPage() {
 
         {/* Stepper */}
         <div className="mb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center">
             {/* Paso 1 */}
-            <div className="flex items-center flex-1">
+            <div className="flex items-center justify-end">
               <div
                 className={`flex items-center justify-center w-9 h-9 rounded-full border-2 text-sm font-semibold transition-all duration-300 ${
                   step >= STEP.One
@@ -559,7 +559,7 @@ export default function RegistroInvitacionPage() {
             />
 
             {/* Paso 2 */}
-            <div className="flex items-center flex-1">
+            <div className="flex w-auto items-center">
               <div
                 className={`flex items-center justify-center w-9 h-9 rounded-full border-2 text-sm font-semibold transition-all duration-300 ${
                   step >= STEP.Two
@@ -588,7 +588,7 @@ export default function RegistroInvitacionPage() {
             />
 
             {/* Paso 3 */}
-            <div className="flex items-center flex-1">
+            <div className="flex items-center">
               <div
                 className={`flex items-center justify-center w-9 h-9 rounded-full border-2 text-sm font-semibold transition-all duration-300 ${
                   step >= STEP.Three

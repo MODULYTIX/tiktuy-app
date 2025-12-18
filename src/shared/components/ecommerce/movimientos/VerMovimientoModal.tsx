@@ -8,7 +8,7 @@ import { useState } from "react";
 import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
 
 type Props = {
-  open: boolean;
+  open: boolean;          // lo dejo para no romper tu flujo actual
   onClose: () => void;
   data: Producto | null;
 };
@@ -19,7 +19,8 @@ function normalizarEstado(value: unknown): EstadoId | "" {
   if (!value) return "";
   if (typeof value === "string") {
     const k = value.toLowerCase().trim();
-    if (k === "activo" || k === "inactivo" || k === "descontinuado") return k as EstadoId;
+    if (k === "activo" || k === "inactivo" || k === "descontinuado")
+      return k as EstadoId;
   }
   if (typeof value === "object" && value) {
     const v = value as any;
@@ -42,7 +43,6 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
 
   if (!open || !data) return null;
 
-  // Derivados (solo lectura)
   const codigo = String((data as any).codigo_identificacion ?? "");
   const nombre = String((data as any).nombre_producto ?? "");
   const descripcion = String((data as any).descripcion ?? "");
@@ -68,7 +68,8 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
       : "";
 
   const stockMinStr =
-    (data as any).stock_minimo != null && !Number.isNaN(Number((data as any).stock_minimo))
+    (data as any).stock_minimo != null &&
+    !Number.isNaN(Number((data as any).stock_minimo))
       ? String(Number((data as any).stock_minimo))
       : "";
 
@@ -80,9 +81,12 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
   const imagenUrl: string | null = (data as any).imagen_url ?? null;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <div className="w-full max-w-md bg-white shadow-lg h-full flex flex-col gap-5 px-5 py-5">
+    <div
+      className="flex flex-col h-full w-[460px] overflow-x-hidden"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Content scroll */}
+      <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
         <Tittlex
           variant="modal"
           icon="mdi:eye-outline"
@@ -90,8 +94,7 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
           description="Consulta los datos del producto antes de registrar el movimiento."
         />
 
-        {/* Cuerpo (misma estructura que 'ver producto', solo lectura) */}
-        <div className="flex-1 overflow-y-auto flex flex-col gap-5">
+        <div className="flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-5">
             <Inputx
               name="codigo_identificacion"
@@ -101,7 +104,6 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
               disabled
               type="text"
             />
-
             <Inputx
               name="nombre_producto"
               label="Nombre del Producto"
@@ -123,32 +125,9 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
             maxRows={8}
           />
 
-          <Inputx
-            name="categoria"
-            label="Categoría"
-            value={categoriaLabel}
-            readOnly
-            disabled
-            type="text"
-          />
-
-          <Inputx
-            name="almacen"
-            label="Almacén"
-            value={almacenLabel}
-            readOnly
-            disabled
-            type="text"
-          />
-
-          <Inputx
-            name="estado"
-            label="Estado"
-            value={estadoLabel}
-            readOnly
-            disabled
-            type="text"
-          />
+          <Inputx name="categoria" label="Categoría" value={categoriaLabel} readOnly disabled type="text" />
+          <Inputx name="almacen" label="Almacén" value={almacenLabel} readOnly disabled type="text" />
+          <Inputx name="estado" label="Estado" value={estadoLabel} readOnly disabled type="text" />
 
           <div className="grid grid-cols-2 gap-5">
             <InputxNumber
@@ -161,7 +140,6 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
               step={0.01}
               placeholder="0.00"
             />
-
             <InputxNumber
               label="Cantidad"
               name="stock"
@@ -187,7 +165,6 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
               placeholder="0"
               inputMode="numeric"
             />
-
             <InputxNumber
               label="Peso (kg)"
               name="peso"
@@ -199,7 +176,7 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
               placeholder="0.000"
             />
           </div>
-          {/* Imagen (solo-lectura, usa el nuevo modo) */}
+
           <ImageUploadx
             label="Imagen"
             value={imagenUrl ?? null}
@@ -210,10 +187,11 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
               setPreviewOpen(true);
             }}
           />
-
         </div>
+      </div>
 
-        {/* Footer */}
+      {/* Footer fijo */}
+      <div className="p-5 pt-3 border-t border-gray-200 bg-white">
         <div className="flex items-center gap-5">
           <Buttonx
             variant="outlined"
@@ -222,13 +200,16 @@ export default function VerMovimientoModal({ open, onClose, data }: Props) {
             className="px-4 text-sm border"
           />
         </div>
-        {/* Lightbox */}
-        <ImagePreviewModalx
-          open={previewOpen}
-          src={previewSrc ?? ""}
-          onClose={() => { setPreviewOpen(false); setPreviewSrc(null); }}
-        />
       </div>
+
+      <ImagePreviewModalx
+        open={previewOpen}
+        src={previewSrc ?? ""}
+        onClose={() => {
+          setPreviewOpen(false);
+          setPreviewSrc(null);
+        }}
+      />
     </div>
   );
 }

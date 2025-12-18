@@ -16,8 +16,8 @@ import Buttonx from "@/shared/common/Buttonx";
 import { Selectx } from "@/shared/common/Selectx";
 
 interface Props {
-  onClose: () => void;        // cerrar sin recargar
-  onCreated?: () => void;     // cerrar + recargar tabla (opcional)
+  onClose: () => void; // cerrar sin recargar
+  onCreated?: () => void; // cerrar + recargar tabla (opcional)
 }
 
 type FormState = Omit<RegistroManualMotorizadoPayload, "tipo_vehiculo"> & {
@@ -63,8 +63,7 @@ export default function PanelControlRegistroRepartidor({
   const handleInput = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
-  const handlePhoneChange = (v: string) =>
-    setPhoneLocal(v.replace(/\D/g, "")); // solo dígitos
+  const handlePhoneChange = (v: string) => setPhoneLocal(v.replace(/\D/g, ""));
 
   const validate = (f: FormState, phone: string): Errors => {
     const e: Errors = {};
@@ -126,8 +125,8 @@ export default function PanelControlRegistroRepartidor({
       setLoading(true);
       const res = await registrarManualMotorizado(payload, token);
       if (res.ok) {
-        if (onCreated) onCreated(); // recargar tabla
-        else onClose();             // o solo cerrar
+        if (onCreated) onCreated();
+        else onClose();
       } else {
         setFormError(res.error || "No se pudo registrar.");
       }
@@ -139,8 +138,7 @@ export default function PanelControlRegistroRepartidor({
   }
 
   return (
-    <div className="w-full h-full max-w-[720px] flex flex-col p-5 gap-5 text-[12px]">
-      {/* Header con tu Tittlex */}
+    <div className="w-[460px] max-w-[92vw] h-full flex flex-col p-5 gap-5 text-[12px] bg-white">
       <Tittlex
         variant="modal"
         icon="mdi:clipboard-account-outline"
@@ -148,9 +146,7 @@ export default function PanelControlRegistroRepartidor({
         description="Completa el formulario para registrar un nuevo repartidor en la plataforma. Esta información habilitará su perfil logístico y permitirá monitorear sus entregas."
       />
 
-      {/* Formulario */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-5 flex-1">
-        {/* Bloque 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <Inputx
@@ -183,7 +179,6 @@ export default function PanelControlRegistroRepartidor({
           </div>
         </div>
 
-        {/* Bloque 2 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <Inputx
@@ -217,7 +212,6 @@ export default function PanelControlRegistroRepartidor({
           </div>
         </div>
 
-        {/* Bloque 3 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <InputxPhone
@@ -252,7 +246,6 @@ export default function PanelControlRegistroRepartidor({
           </div>
         </div>
 
-        {/* Bloque 4 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <Selectx
@@ -261,15 +254,13 @@ export default function PanelControlRegistroRepartidor({
               labelVariant="left"
               value={form.tipo_vehiculo}
               onChange={(e) =>
-                handleInput(
-                  "tipo_vehiculo",
-                  e.target.value as TipoVehiculo | ""
-                )
+                handleInput("tipo_vehiculo", e.target.value as TipoVehiculo | "")
               }
               placeholder="Selecciona una opción"
               className={errors.tipo_vehiculo ? "border-red-400" : ""}
               required
             >
+              <option value="">Seleccionar opción</option>
               {TIPOS_VEHICULO.map((tv) => (
                 <option key={tv} value={tv}>
                   {tv}
@@ -299,28 +290,23 @@ export default function PanelControlRegistroRepartidor({
           </div>
         </div>
 
-        {/* Error backend */}
-        {formError && (
-          <div className="text-[12px] text-red-600">{formError}</div>
-        )}
+        {formError && <div className="text-[12px] text-red-600">{formError}</div>}
 
-        {/* Botones (abajo) */}
-        <div className="mt-auto flex gap-5">
+        <div className="mt-auto flex items-center gap-5">
           <Buttonx
-            variant="quartery"
+            type="submit"
+            variant="tertiary"
             disabled={loading}
-            type="submit"                     // 🔹 ahora sí dispara el submit
             label={loading ? "Creando..." : "Crear nuevo"}
-            icon={loading ? "line-md:loading-twotone-loop" : undefined}
-            className={`px-4 text-sm ${
-              loading ? "[&_svg]:animate-spin" : ""
-            }`}
+            icon={loading ? "line-md:loading-twotone-loop" : "mdi:content-save-outline"}
+            className={`px-4 text-sm ${loading ? "[&_svg]:animate-spin" : ""}`}
           />
           <Buttonx
-            variant="outlined"
-            type="button"                      // 🔹 para que no dispare submit
+            type="button"
+            variant="outlinedw"
             onClick={onClose}
             label="Cancelar"
+            icon="mdi:close"
             className="px-4 text-sm border"
             disabled={loading}
           />

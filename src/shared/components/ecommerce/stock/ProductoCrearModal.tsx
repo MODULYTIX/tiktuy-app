@@ -26,10 +26,9 @@ import ImageUploadx from "@/shared/common/ImageUploadx";
 import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
 
 // ========================
-// Utilidades / Tipos
+// Tipos
 // ========================
 type Props = {
-  open: boolean;
   onClose: () => void;
   onCreated?: (producto: Producto) => void;
   /** Sede que se usará automáticamente (requerido) */
@@ -77,9 +76,7 @@ function generarCodigoConFecha(): string {
   const hora = String(now.getHours()).padStart(2, "0");
   const minutos = String(now.getMinutes()).padStart(2, "0");
   const year = String(now.getFullYear()).slice(2);
-  const meses = [
-    "ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC",
-  ];
+  const meses = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
   const mesAbrev = meses[now.getMonth()];
   const charset = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789";
   const aleatorio = charset[Math.floor(Math.random() * charset.length)];
@@ -103,7 +100,6 @@ type FormState = {
   fecha_registro: string;
 };
 
-// ✅ Ajuste en getInitialForm → evita poner "0" como string
 const getInitialForm = (almacenamientoId: number): FormState => ({
   codigo_identificacion: generarCodigoConFecha(),
   nombre_producto: "",
@@ -132,7 +128,6 @@ function parseNum(input: string, decimals = 2): number {
 }
 
 export default function ProductoCrearModal({
-  open,
   onClose,
   onCreated,
   almacenamientoId,
@@ -143,52 +138,44 @@ export default function ProductoCrearModal({
   const [form, setForm] = useState<FormState>(getInitialForm(almacenamientoId));
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  // Imagen (UI + envío opcional) — solo File
+  // Imagen
   const [file, setFile] = useState<File | null>(null);
-
-  // Progreso visual para el overlay del uploader (0–100)
   const [uploadPct, setUploadPct] = useState<number | undefined>(undefined);
 
   // Preview modal (lightbox)
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
 
-  // Cargar categorías
+  // Cargar categorías (cuando se monta el contenido)
   useEffect(() => {
-    if (!token || !open) return;
+    if (!token) return;
     fetchCategorias(token).then(setCategorias).catch(console.error);
-  }, [token, open]);
+  }, [token]);
 
-  // Reset al abrir/cerrar o cuando cambia la sede por prop
+  // Reset cuando cambia sede (o cuando se vuelve a montar el modal)
   useEffect(() => {
-    if (open) {
-      setForm(getInitialForm(almacenamientoId));
-      setFile(null);
-      setUploadPct(undefined);
-      setPreviewOpen(false);
-      setPreviewSrc(null);
-    }
-  }, [open, almacenamientoId]);
+    setForm(getInitialForm(almacenamientoId));
+    setFile(null);
+    setUploadPct(undefined);
+    setPreviewOpen(false);
+    setPreviewSrc(null);
+  }, [almacenamientoId]);
 
-  // Simulación de progreso mientras se guarda si hay archivo
   useEffect(() => {
     if (saving && file) {
       setUploadPct(10);
       const id = window.setInterval(() => {
         setUploadPct((p) => {
           const curr = typeof p === "number" ? p : 10;
-          return Math.min(curr + 3, 90); // hasta 90% mientras el backend responde
+          return Math.min(curr + 3, 90);
         });
       }, 120);
       return () => window.clearInterval(id);
     }
-    // cuando deja de guardar o no hay archivo, ocultar barra
     setUploadPct(undefined);
   }, [saving, file]);
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
@@ -202,14 +189,11 @@ export default function ProductoCrearModal({
     onClose();
   };
 
-  // Opciones categoría
   const catOptions: CreatableOption[] = useMemo(
     () =>
       categorias
         .slice()
-        .sort((a, b) =>
-          a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
-        )
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }))
         .map((c) => ({ id: c.id, label: c.nombre })),
     [categorias]
   );
@@ -248,8 +232,7 @@ export default function ProductoCrearModal({
     const stock_minimo = parseNum(form.stock_minimo, 0);
     const peso = parseNum(form.peso, 3);
 
-    if ([precio, stock, stock_minimo, peso].some((n) => Number.isNaN(n)))
-      return;
+    if ([precio, stock, stock_minimo, peso].some((n) => Number.isNaN(n))) return;
 
     const almacenamiento_id =
       !form.almacenamiento_id || form.almacenamiento_id === "0"
@@ -310,14 +293,12 @@ export default function ProductoCrearModal({
         delete (cleanPayload as any).almacenamiento_id;
       }
 
-      const producto = await crearProducto(cleanPayload as unknown as any, token);
+      const producto = await crearProducto(cleanPayload as any, token);
 
       if (!form.categoriaSelectedId && (producto as any)?.categoria) {
         const nueva = (producto as any).categoria as Categoria;
         setCategorias((prev) => {
-          const dup = prev.some(
-            (c) => canonical(c.nombre) === canonical(nueva.nombre)
-          );
+          const dup = prev.some((c) => canonical(c.nombre) === canonical(nueva.nombre));
           return dup ? prev : [...prev, nueva];
         });
       }
@@ -332,16 +313,10 @@ export default function ProductoCrearModal({
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
-      <div className="flex-1 bg-black/40" onClick={handleClose} />
-
-      {/* Panel */}
-      <div className="w-full max-w-2xl bg-white shadow-lg h-full flex flex-col gap-5 p-5">
-        {/* Header */}
+    <div className="flex flex-col h-full w-[460px] overflow-x-hidden">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
         <Tittlex
           variant="modal"
           icon="vaadin:stock"
@@ -349,14 +324,12 @@ export default function ProductoCrearModal({
           description="Registra un nuevo producto en tu inventario especificando su información básica, ubicación en almacén y condiciones de stock."
         />
 
-        {/* Body scrollable */}
         <form
           id="crear-producto-form"
           ref={formRef}
           onSubmit={handleSubmit}
-          className="h-full flex flex-col gap-5 w-full overflow-y-auto"
+          className="flex flex-col gap-5 w-full"
         >
-          {/* Código / Nombre */}
           <div className="flex flex-col gap-5">
             <Inputx
               name="codigo_identificacion"
@@ -379,7 +352,6 @@ export default function ProductoCrearModal({
             />
           </div>
 
-          {/* Descripción */}
           <InputxTextarea
             name="descripcion"
             label="Descripción"
@@ -393,43 +365,41 @@ export default function ProductoCrearModal({
           />
 
           <div className="flex gap-5">
-            {/* Categoría (creatable) */}
-            <SelectxCreatable
-              label="Categoría"
-              labelVariant="left"
-              placeholder="Escribe para buscar o crear…"
-              inputValue={form.categoriaInput}
-              selectedId={form.categoriaSelectedId}
-              options={catOptions}
-              disabled={saving}
-              required
-              onInputChange={onCategoriaInputChange}
-              onSelectOption={onCategoriaSelect}
-              onCreateFromInput={onCategoriaCreate}
-            />
+            <div className="flex-1 min-w-0">
+              <SelectxCreatable
+                label="Categoría"
+                labelVariant="left"
+                placeholder="Escribe para buscar o crear…"
+                inputValue={form.categoriaInput}
+                selectedId={form.categoriaSelectedId}
+                options={catOptions}
+                disabled={saving}
+                required
+                onInputChange={onCategoriaInputChange}
+                onSelectOption={onCategoriaSelect}
+                onCreateFromInput={onCategoriaCreate}
+              />
+            </div>
 
-            {/* Estado */}
-            <Selectx
-              labelVariant="left"
-              label="Estado"
-              value={form.estado}
-              onChange={(e) =>
-                setForm((p) => ({
-                  ...p,
-                  estado: e.target.value as EstadoId,
-                }))
-              }
-              disabled={saving}
-            >
-              {ESTADO_OPCIONES.map((op) => (
-                <option key={op.id} value={op.id}>
-                  {op.nombre}
-                </option>
-              ))}
-            </Selectx>
+            <div className="flex-1 min-w-0">
+              <Selectx
+                labelVariant="left"
+                label="Estado"
+                value={form.estado}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, estado: e.target.value as EstadoId }))
+                }
+                disabled={saving}
+              >
+                {ESTADO_OPCIONES.map((op) => (
+                  <option key={op.id} value={op.id}>
+                    {op.nombre}
+                  </option>
+                ))}
+              </Selectx>
+            </div>
           </div>
 
-          {/* Subir imagen */}
           <ImageUploadx
             label="Subir imagen"
             mode="create"
@@ -439,69 +409,78 @@ export default function ProductoCrearModal({
               setPreviewSrc(url);
               requestAnimationFrame(() => setPreviewOpen(true));
             }}
-            uploading={saving && !!file}      // ⬅️ overlay solo si hay archivo y se está guardando
-            progress={uploadPct}              // ⬅️ barra 0–90% simulada; se completa al terminar
+            uploading={saving && !!file}
+            progress={uploadPct}
             uploadText="Subiendo imagen…"
-            minUploadMs={2000}                // ⬅️ mínimo visible 2s
+            minUploadMs={2000}
             maxSizeMB={5}
             size="md"
           />
 
-          {/* Números */}
           <div className="flex gap-5">
-            <InputxNumber
-              label="Precio"
-              name="precio"
-              value={form.precio}
-              onChange={handleChange}
-              decimals={2}
-              step={0.01}
-              min={0}
-              placeholder="0.00"
-              disabled={saving}
-            />
-            <InputxNumber
-              label="Cantidad"
-              name="stock"
-              value={form.stock}
-              onChange={handleChange}
-              decimals={0}
-              step={1}
-              min={0}
-              placeholder="0"
-              inputMode="numeric"
-              disabled={saving}
-            />
+            <div className="flex-1 min-w-0">
+              <InputxNumber
+                label="Precio"
+                name="precio"
+                value={form.precio}
+                onChange={handleChange}
+                decimals={2}
+                step={0.01}
+                min={0}
+                placeholder="0.00"
+                disabled={saving}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <InputxNumber
+                label="Cantidad"
+                name="stock"
+                value={form.stock}
+                onChange={handleChange}
+                decimals={0}
+                step={1}
+                min={0}
+                placeholder="0"
+                inputMode="numeric"
+                disabled={saving}
+              />
+            </div>
           </div>
 
           <div className="flex gap-5">
-            <InputxNumber
-              label="Stock Mínimo"
-              name="stock_minimo"
-              value={form.stock_minimo}
-              onChange={handleChange}
-              decimals={0}
-              step={1}
-              min={0}
-              placeholder="0"
-              inputMode="numeric"
-              disabled={saving}
-            />
-            <InputxNumber
-              label="Peso (kg)"
-              name="peso"
-              value={form.peso}
-              onChange={handleChange}
-              decimals={3}
-              step={0.001}
-              min={0}
-              placeholder="0.000"
-              disabled={saving}
-            />
+            <div className="flex-1 min-w-0">
+              <InputxNumber
+                label="Stock Mínimo"
+                name="stock_minimo"
+                value={form.stock_minimo}
+                onChange={handleChange}
+                decimals={0}
+                step={1}
+                min={0}
+                placeholder="0"
+                inputMode="numeric"
+                disabled={saving}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <InputxNumber
+                label="Peso (kg)"
+                name="peso"
+                value={form.peso}
+                onChange={handleChange}
+                decimals={3}
+                step={0.001}
+                min={0}
+                placeholder="0.000"
+                disabled={saving}
+              />
+            </div>
           </div>
         </form>
+      </div>
 
-        {/* Footer sticky */}
+      {/* Footer fijo */}
+      <div className="p-5 pt-3 border-t border-gray-200 bg-white">
         <div className="flex items-center gap-5 justify-start">
           <Buttonx
             variant="quartery"
@@ -520,17 +499,16 @@ export default function ProductoCrearModal({
             type="button"
           />
         </div>
-
-        {/* Lightbox de imagen */}
-        <ImagePreviewModalx
-          open={previewOpen}
-          src={previewSrc ?? ""}
-          onClose={() => {
-            setPreviewOpen(false);
-            setPreviewSrc(null);
-          }}
-        />
       </div>
+
+      <ImagePreviewModalx
+        open={previewOpen}
+        src={previewSrc ?? ""}
+        onClose={() => {
+          setPreviewOpen(false);
+          setPreviewSrc(null);
+        }}
+      />
     </div>
   );
 }

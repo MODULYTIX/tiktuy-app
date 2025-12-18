@@ -1,3 +1,4 @@
+// src/shared/components/ecommerce/movimientos/MovimientoValidacionTable.tsx
 import { useEffect, useMemo, useState } from "react";
 import { FaEye } from "react-icons/fa";
 import { useAuth } from "@/auth/context";
@@ -9,11 +10,10 @@ import ValidarMovimientoModal from "./modal/MovimientoValidacionModal";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import Badgex from "@/shared/common/Badgex";
 import type { MovimientoEcommerceFilters } from "./MoviminentoValidadoFilter";
-
+import ModalSlideRight from "@/shared/common/ModalSlideRight";
 
 const PAGE_SIZE = 6;
 
-//  Ahora acepta PROPS
 interface Props {
   filters: MovimientoEcommerceFilters;
 }
@@ -25,16 +25,22 @@ export default function MovimientoValidacionTable({ filters }: Props) {
   const [movimientos, setMovimientos] = useState<MovimientoAlmacen[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // modal "ver"
+  // modal "ver" (NO TOCAR)
   const [verOpen, setVerOpen] = useState(false);
   const [verUuid, setVerUuid] = useState<string | null>(null);
 
-  // modal "validar"
+  // modal "validar" (SLIDE RIGHT)
   const [validarOpen, setValidarOpen] = useState(false);
   const [movAValidar, setMovAValidar] = useState<MovimientoAlmacen | null>(null);
 
   // paginación
   const [page, setPage] = useState(1);
+
+  // Close helper validar
+  const closeValidar = () => {
+    setValidarOpen(false);
+    setMovAValidar(null);
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -68,7 +74,7 @@ export default function MovimientoValidacionTable({ filters }: Props) {
       alive = false;
       ac.abort();
     };
-  }, [token]);
+  }, [token, notify]);
 
   // Alias: Activo → Proceso
   const normalizeEstado = (nombre?: string) => {
@@ -96,10 +102,10 @@ export default function MovimientoValidacionTable({ filters }: Props) {
   const fmtFecha = (iso?: string) =>
     iso
       ? new Intl.DateTimeFormat("es-PE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).format(new Date(iso))
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date(iso))
       : "-";
 
   const handleVerClick = (mov: MovimientoAlmacen) => {
@@ -116,11 +122,10 @@ export default function MovimientoValidacionTable({ filters }: Props) {
 
   const mergeMovimientoActualizado = (up: MovimientoAlmacen) => {
     setMovimientos((prev) => prev.map((m) => (m.uuid === up.uuid ? up : m)));
-    setValidarOpen(false);
-    setMovAValidar(null);
+    closeValidar();
   };
 
-  // 🟢 APLICAR FILTROS AQUÍ
+  // FILTROS
   const filtrados = useMemo(() => {
     return movimientos.filter((m) => {
       const estadoNorm = normalizeEstado(m.estado?.nombre);
@@ -155,7 +160,7 @@ export default function MovimientoValidacionTable({ filters }: Props) {
     () =>
       [...filtrados].sort((a, b) =>
         new Date(a.fecha_movimiento ?? "").getTime() <
-          new Date(b.fecha_movimiento ?? "").getTime()
+        new Date(b.fecha_movimiento ?? "").getTime()
           ? 1
           : -1
       ),
@@ -177,24 +182,24 @@ export default function MovimientoValidacionTable({ filters }: Props) {
     if (totalPages <= maxButtons) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
-      let start = Math.max(1, page - 2);
-      let end = Math.min(totalPages, page + 2);
+      let startP = Math.max(1, page - 2);
+      let endP = Math.min(totalPages, page + 2);
 
       if (page <= 3) {
-        start = 1;
-        end = maxButtons;
+        startP = 1;
+        endP = maxButtons;
       } else if (page >= totalPages - 2) {
-        start = totalPages - (maxButtons - 1);
-        end = totalPages;
+        startP = totalPages - (maxButtons - 1);
+        endP = totalPages;
       }
 
-      for (let i = start; i <= end; i++) pages.push(i);
+      for (let i = startP; i <= endP; i++) pages.push(i);
 
-      if (start > 1) {
+      if (startP > 1) {
         pages.unshift("...");
         pages.unshift(1);
       }
-      if (end < totalPages) {
+      if (endP < totalPages) {
         pages.push("...");
         pages.push(totalPages);
       }
@@ -235,8 +240,7 @@ export default function MovimientoValidacionTable({ filters }: Props) {
             <tbody className="divide-y divide-gray20">
               {current.map((m) => {
                 const estadoNorm = normalizeEstado(m.estado?.nombre).toLowerCase();
-                const puedeValidar =
-                  estadoNorm === "proceso" || estadoNorm === "en proceso";
+                const puedeValidar = estadoNorm === "proceso" || estadoNorm === "en proceso";
 
                 return (
                   <tr key={m.uuid} className="hover:bg-gray10 transition-colors">
@@ -288,17 +292,16 @@ export default function MovimientoValidacionTable({ filters }: Props) {
                 Array.from({ length: emptyRows }).map((_, idx) => (
                   <tr key={`empty-${idx}`}>
                     {Array.from({ length: 7 }).map((__, i) => (
-                      <td key={i} className="px-4 py-3">&nbsp;</td>
+                      <td key={i} className="px-4 py-3">
+                        &nbsp;
+                      </td>
                     ))}
                   </tr>
                 ))}
 
               {!loading && current.length === 0 && (
                 <tr>
-                  <td
-                    className="px-4 py-6 text-center text-gray70 italic"
-                    colSpan={7}
-                  >
+                  <td className="px-4 py-6 text-center text-gray70 italic" colSpan={7}>
                     No hay movimientos.
                   </td>
                 </tr>
@@ -349,7 +352,7 @@ export default function MovimientoValidacionTable({ filters }: Props) {
         )}
       </section>
 
-      {/* Modal de VER */}
+      {/* Modal de VER (NO TOCAR) */}
       <VerMovimientoRealizadoModal
         open={verOpen}
         onClose={() => {
@@ -359,16 +362,15 @@ export default function MovimientoValidacionTable({ filters }: Props) {
         uuid={verUuid ?? ""}
       />
 
-      {/* Modal de VALIDAR */}
-      <ValidarMovimientoModal
-        open={validarOpen}
-        onClose={() => {
-          setValidarOpen(false);
-          setMovAValidar(null);
-        }}
-        movimiento={movAValidar}
-        onValidated={mergeMovimientoActualizado}
-      />
+      {/* Modal de VALIDAR (SLIDE RIGHT) */}
+      <ModalSlideRight open={validarOpen} onClose={closeValidar}>
+        <ValidarMovimientoModal
+          open={validarOpen}
+          onClose={closeValidar}
+          movimiento={movAValidar}
+          onValidated={mergeMovimientoActualizado}
+        />
+      </ModalSlideRight>
     </div>
   );
 }

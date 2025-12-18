@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import AnimatedExcelMenu from "@/shared/components/ecommerce/AnimatedExcelMenu";
-import StockFilters, { type StockFilterValue } from "@/shared/components/ecommerce/stock/StockFilters";
+import StockFilters, {
+  type StockFilterValue,
+} from "@/shared/components/ecommerce/stock/StockFilters";
 import StockTable from "@/shared/components/ecommerce/stock/StockTable";
 import { useAuth } from "@/auth/context";
 import {
@@ -15,6 +17,7 @@ import ProductoVerModal from "@/shared/components/ecommerce/stock/ProductoVerMod
 import ProductoEditarModal from "@/shared/components/ecommerce/stock/ProductoEditarModal";
 import Buttonx from "@/shared/common/Buttonx";
 import Tittlex from "@/shared/common/Tittlex";
+import ModalSlideRight from "@/shared/common/ModalSlideRight";
 
 import {
   downloadProductosTemplate,
@@ -64,10 +67,7 @@ export default function StockPage() {
   /* ========================
      CARGA BACKEND
   ======================== */
-  const cargarProductos = async (
-    filtros = filters,
-    pageToLoad = page
-  ) => {
+  const cargarProductos = async (filtros = filters, pageToLoad = page) => {
     if (!token) return;
 
     setLoadingProducts(true);
@@ -115,7 +115,7 @@ export default function StockPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = window.setTimeout(() => {
-      setPage(1); // reset página al cambiar filtros
+      setPage(1);
       cargarProductos(filters, 1);
     }, debounceMs);
 
@@ -168,6 +168,16 @@ export default function StockPage() {
       ? Number(filters.almacenamiento_id)
       : 0;
 
+  const closeEditar = () => {
+    setOpenEditar(false);
+    setProductoSel(null);
+  };
+
+  const closeVer = () => {
+    setOpenVer(false);
+    setProductoSel(null);
+  };
+
   /* ========================
      RENDER
   ======================== */
@@ -180,7 +190,10 @@ export default function StockPage() {
         />
 
         <div className="flex gap-2 items-end">
-          <ImportExcelFlow token={token ?? ""} onImported={() => cargarProductos()}>
+          <ImportExcelFlow
+            token={token ?? ""}
+            onImported={() => cargarProductos()}
+          >
             {(openPicker) => (
               <AnimatedExcelMenu
                 onTemplateClick={handleDescargarPlantilla}
@@ -201,7 +214,6 @@ export default function StockPage() {
 
       <StockFilters onFilterChange={(f) => setFilters(f)} />
 
-      {/* TABLE */}
       <StockTable
         productos={productosVisibles}
         loading={loadingProducts}
@@ -220,29 +232,26 @@ export default function StockPage() {
         }}
       />
 
-      {/* MODALES */}
-      <ProductoCrearModal
-        open={openCrear}
-        onClose={() => setOpenCrear(false)}
-        onCreated={handleProductoCreado}
-        almacenamientoId={almacenamientoIdCreacion}
-      />
+      {/* MODALES SLIDE RIGHT */}
+      <ModalSlideRight open={openCrear} onClose={() => setOpenCrear(false)}>
+        <ProductoCrearModal
+          onClose={() => setOpenCrear(false)}
+          onCreated={handleProductoCreado}
+          almacenamientoId={almacenamientoIdCreacion}
+        />
+      </ModalSlideRight>
 
-      <ProductoEditarModal
-        open={openEditar}
-        onClose={() => setOpenEditar(false)}
-        initialData={productoSel}
-        onUpdated={handleProductoActualizado}
-      />
+      <ModalSlideRight open={openEditar} onClose={closeEditar}>
+        <ProductoEditarModal
+          onClose={closeEditar}
+          initialData={productoSel}
+          onUpdated={handleProductoActualizado}
+        />
+      </ModalSlideRight>
 
-      <ProductoVerModal
-        open={openVer}
-        onClose={() => {
-          setOpenVer(false);
-          setProductoSel(null);
-        }}
-        data={productoSel}
-      />
+      <ModalSlideRight open={openVer} onClose={closeVer}>
+        <ProductoVerModal onClose={closeVer} data={productoSel} />
+      </ModalSlideRight>
     </section>
   );
 }

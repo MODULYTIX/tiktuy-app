@@ -1,9 +1,10 @@
+// src/shared/components/ecommerce/pedidos/Generado/VerPedidoGeneradoModal.tsx
 import { useEffect, useRef, useState } from "react";
-import { Icon } from "@iconify/react";
 import { useAuth } from "@/auth/context";
 import { fetchPedidoById } from "@/services/ecommerce/pedidos/pedidos.api";
 import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
 import Tittlex from "@/shared/common/Tittlex";
+import Buttonx from "@/shared/common/Buttonx";
 
 type Props = {
   open: boolean;
@@ -49,12 +50,10 @@ export default function VerPedidoGeneradoModal({
 
   /* ===================== DERIVADOS ===================== */
   const detalles = pedido?.detalles ?? [];
-  const cantProductos = detalles.reduce((s, d) => s + d.cantidad, 0);
+  const cantProductos = detalles.reduce((s, d) => s + (Number(d.cantidad) || 0), 0);
 
   const montoTotal =
-    pedido?.monto_recaudar != null
-      ? Number(pedido.monto_recaudar).toFixed(2)
-      : "0.00";
+    pedido?.monto_recaudar != null ? Number(pedido.monto_recaudar) : 0;
 
   const fechaEntregaStr = pedido?.fecha_entrega_programada
     ? new Date(pedido.fecha_entrega_programada).toLocaleDateString("es-PE", {
@@ -69,7 +68,10 @@ export default function VerPedidoGeneradoModal({
     <div className="fixed inset-0 z-50 bg-black/30 flex justify-end">
       <div
         ref={modalRef}
-        className="w-full max-w-lg h-full bg-white shadow-2xl p-6 overflow-y-auto animate-slide-in-right flex flex-col gap-6"
+        className={[
+          "h-full bg-white shadow-2xl flex flex-col gap-6 p-5 overflow-y-auto",
+          "w-[460px] max-w-[92vw]", // ✅ ancho fijo
+        ].join(" ")}
       >
         {/* HEADER */}
         <Tittlex
@@ -94,9 +96,7 @@ export default function VerPedidoGeneradoModal({
             <div className="bg-gray-50 border rounded-lg p-4 space-y-2 text-sm">
               <div className="text-center">
                 <p className="text-gray-500">Cliente</p>
-                <p className="font-semibold text-base">
-                  {pedido.nombre_cliente}
-                </p>
+                <p className="font-semibold text-base">{pedido.nombre_cliente}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-3">
@@ -118,7 +118,11 @@ export default function VerPedidoGeneradoModal({
                 <div>
                   <p className="text-gray-500">Monto</p>
                   <p className="font-semibold">
-                    S/. {Number(montoTotal).toLocaleString("es-PE", { minimumFractionDigits: 2 })}
+                    S/.{" "}
+                    {montoTotal.toLocaleString("es-PE", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </p>
                 </div>
               </div>
@@ -131,46 +135,54 @@ export default function VerPedidoGeneradoModal({
                 <span>Cant.</span>
               </div>
 
-              {detalles.map((d) => (
+              {detalles.map((d: any) => (
                 <div
                   key={d.id}
                   className="px-4 py-3 flex justify-between text-sm border-t"
                 >
-                  <div>
-                    <p className="font-medium">
-                      {d.producto?.nombre_producto}
+                  <div className="min-w-0 pr-3">
+                    <p className="font-medium truncate">
+                      {d.producto?.nombre_producto ?? "—"}
                     </p>
                     {d.producto?.descripcion && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 line-clamp-2">
                         {d.producto.descripcion}
                       </p>
                     )}
                   </div>
 
-                  <div className="font-medium">{d.cantidad}</div>
+                  <div className="font-medium whitespace-nowrap">
+                    {Number(d.cantidad) || 0}
+                  </div>
                 </div>
               ))}
+
+              {detalles.length === 0 && (
+                <div className="px-4 py-6 text-sm text-gray-500 italic text-center">
+                  No hay productos en este pedido.
+                </div>
+              )}
             </div>
 
             {/* ===================== FOOTER ===================== */}
             <div className="flex justify-start gap-3 mt-2">
               {onEditar && pedidoId && (
-                <button
+                <Buttonx
+                  variant="tertiary"
                   onClick={() => onEditar(pedidoId)}
-                  className="bg-gray-900 text-white px-4 py-2 rounded text-sm flex items-center gap-2 hover:bg-gray-800"
-                >
-                  <Icon icon="mdi:pencil-outline" />
-                  Editar
-                </button>
+                  label="Editar"
+                  icon="mdi:pencil-outline"
+                  className="px-4 text-sm"
+                />
               )}
 
-              <button
+              <Buttonx
+                variant="outlinedw"
                 onClick={onClose}
-                className="px-4 py-2 border rounded text-sm text-gray-700 flex items-center gap-2"
-              >
-                <Icon icon="mdi:close" />
-                Cerrar
-              </button>
+                label="Cerrar"
+                icon="mdi:close"
+                className="px-4 text-sm border"
+              />
             </div>
           </>
         )}
