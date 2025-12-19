@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/context";
 
 import Buttonx from "@/shared/common/Buttonx";
@@ -7,6 +7,17 @@ import Cardx from "@/shared/common/Cards";
 
 import { getCourierIngresosReporte } from "@/services/courier/reporte/reporteCourier.api";
 import type { VistaReporte } from "@/services/ecommerce/reportes/ecommerceReportes.types";
+import { Icon } from "@iconify/react";
+
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 
 /* =========================
    Helpers
@@ -50,9 +61,44 @@ export default function ReporteIngresosC() {
     // eslint-disable-next-line
   }, [vista]);
 
+  /* =========================
+     KPIs derivados
+  ========================= */
+  const kpis = useMemo(() => {
+    if (!data) {
+      return {
+        ingresos: 0,
+        pedidos: 0,
+        promedio: 0,
+      };
+    }
+
+    const ingresos = Number(data.kpis?.ingresosTotales ?? 0);
+    const pedidos = Number(data.kpis?.totalPedidos ?? 0);
+
+    return {
+      ingresos,
+      pedidos,
+      promedio: pedidos > 0 ? ingresos / pedidos : 0,
+    };
+  }, [data]);
+
+  /* =========================
+     Datos para gráfico
+  ========================= */
+  const chartData = useMemo(() => {
+    if (!data?.grafico?.labels || !data?.grafico?.series) return [];
+
+    return data.grafico.labels.map((label: string, i: number) => ({
+      label,
+      ingresos: Number(data.grafico.series[i] ?? 0),
+    }));
+  }, [data]);
+
   return (
     <div className="mt-6 flex flex-col gap-6">
-      {/* FILTROS */}
+
+      {/* ================= FILTROS ================= */}
       <Cardx className="flex flex-wrap gap-4 items-center">
         <div className="flex gap-2">
           {(["diario", "mensual", "anual"] as VistaReporte[]).map(v => (
@@ -89,13 +135,89 @@ export default function ReporteIngresosC() {
         )}
       </Cardx>
 
-      {/* KPIs */}
+      {/* ================= KPIs ================= */}
       {data && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+
+          <Cardx>
+            <div className="flex items-center gap-2 text-gray60 text-xs mb-1">
+              <Icon icon="mdi:cash-multiple" />
+              Ingresos Totales
+            </div>
+            <p className="text-2xl font-semibold">
+              S/ {kpis.ingresos.toFixed(2)}
+            </p>
+          </Cardx>
+
+          <Cardx>
+            <div className="flex items-center gap-2 text-gray60 text-xs mb-1">
+              <Icon icon="mdi:package-variant" />
+              Total Pedidos
+            </div>
+            <p className="text-2xl font-semibold">
+              {kpis.pedidos}
+            </p>
+          </Cardx>
+
+          <Cardx>
+            <div className="flex items-center gap-2 text-gray60 text-xs mb-1">
+              <Icon icon="mdi:chart-line" />
+              Promedio por Pedido
+            </div>
+            <p className="text-2xl font-semibold">
+              S/ {kpis.promedio.toFixed(2)}
+            </p>
+          </Cardx>
+
+          <Cardx>
+            <div className="flex items-center gap-2 text-gray60 text-xs mb-1">
+              <Icon icon="mdi:calendar-range" />
+              Período
+            </div>
+            <p className="text-sm font-medium capitalize">
+              {vista}
+            </p>
+            {vista === "diario" && (
+              <p className="text-xs text-gray60">
+                {desde} → {hasta}
+              </p>
+            )}
+          </Cardx>
+
+        </div>
+      )}
+
+      {/* ================= GRÁFICO ================= */}
+      {chartData.length > 0 && (
         <Cardx>
-          <p className="text-xs text-gray60">Ingresos Totales</p>
-          <p className="text-3xl font-semibold">
-            S/ {data.kpis.ingresosTotales.toFixed(2)}
-          </p>
+          <div className="flex items-center gap-2 mb-4">
+            <Icon icon="mdi:finance" className="text-indigo-500" />
+            <p className="text-sm font-medium">Evolución de ingresos</p>
+          </div>
+
+          <div className="w-full h-[260px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" />
+                <YAxis />
+                <Tooltip
+                  formatter={(value) =>
+                    typeof value === "number"
+                      ? `S/ ${value.toFixed(2)}`
+                      : "S/ 0.00"
+                  }
+                />
+                <Line
+                  type="monotone"
+                  dataKey="ingresos"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </Cardx>
       )}
 
