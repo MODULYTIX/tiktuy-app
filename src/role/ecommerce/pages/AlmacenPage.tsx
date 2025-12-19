@@ -6,11 +6,11 @@ import {
 } from "@/services/ecommerce/almacenamiento/almacenamiento.api";
 import type { Almacenamiento } from "@/services/ecommerce/almacenamiento/almacenamiento.types";
 import CrearAlmacenModal from "@/shared/components/ecommerce/CrearAlmacenModal";
-import { FaEdit } from "react-icons/fa";
 import Buttonx from "@/shared/common/Buttonx";
 import Tittlex from "@/shared/common/Tittlex";
 import Badgex from "@/shared/common/Badgex";
 import ModalSlideRight from "@/shared/common/ModalSlideRight";
+import TableActionx from "@/shared/common/TableActionx"; // Importamos el nuevo componente
 
 const PAGE_SIZE = 5;
 
@@ -221,21 +221,20 @@ export default function AlmacenPage() {
                         </td>
 
                         <td className="h-12 px-4 py-3">
-                          <div className="flex items-center justify-center">
-                            <FaEdit
-                              size={18}
-                              className="text-amber-600 hover:text-amber-800 cursor-pointer transition-colors"
+                          <div className="flex items-center justify-center gap-2">
+                            <TableActionx
+                              variant="edit"
                               title="Editar"
                               onClick={() => {
                                 setAlmacenEditando(alm);
                                 setShowModal(true);
                               }}
+                              size="sm"
                             />
                           </div>
                         </td>
                       </tr>
                     ))}
-
                     {Array.from({
                       length: Math.max(0, PAGE_SIZE - dataPaginada.length),
                     }).map((_, idx) => (
@@ -273,11 +272,9 @@ export default function AlmacenPage() {
                   key={p}
                   onClick={() => goToPage(p)}
                   aria-current={paginaActual === p ? "page" : undefined}
-                  className={[
+                  className={[ 
                     "w-8 h-8 flex items-center justify-center rounded",
-                    paginaActual === p
-                      ? "bg-gray90 text-white"
-                      : "bg-gray10 text-gray70 hover:bg-gray20",
+                    paginaActual === p ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
                   ].join(" ")}
                 >
                   {p}

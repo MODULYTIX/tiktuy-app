@@ -9,6 +9,7 @@ import type {
 } from "@/services/ecommerce/producto/producto.types";
 import type { Filters } from "./MovimientoRegistroFilters";
 import Badgex from "@/shared/common/Badgex";
+import TableActionx from "@/shared/common/TableActionx";
 
 interface Props {
   filters: Filters;
@@ -308,12 +309,12 @@ export default function MovimientoRegistroTable({
                 </td>
 
                 <td className="h-12 px-4 py-3 text-center">
-                  <button
+                  <TableActionx
+                    variant="view"
+                    title="Ver"
                     onClick={() => onViewProduct?.(prod)}
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    <FaEye size={16} />
-                  </button>
+                    size="sm"
+                  />
                 </td>
               </tr>
             ))}

@@ -11,6 +11,7 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import Badgex from "@/shared/common/Badgex";
 import type { MovimientoEcommerceFilters } from "./MoviminentoValidadoFilter";
 import ModalSlideRight from "@/shared/common/ModalSlideRight";
+import TableActionx from "@/shared/common/TableActionx";
 
 const PAGE_SIZE = 6;
 
@@ -31,7 +32,9 @@ export default function MovimientoValidacionTable({ filters }: Props) {
 
   // modal "validar" (SLIDE RIGHT)
   const [validarOpen, setValidarOpen] = useState(false);
-  const [movAValidar, setMovAValidar] = useState<MovimientoAlmacen | null>(null);
+  const [movAValidar, setMovAValidar] = useState<MovimientoAlmacen | null>(
+    null
+  );
 
   // paginación
   const [page, setPage] = useState(1);
@@ -57,8 +60,8 @@ export default function MovimientoValidacionTable({ filters }: Props) {
         const list = Array.isArray(resp)
           ? resp
           : Array.isArray((resp as any)?.data)
-            ? (resp as any).data
-            : [];
+          ? (resp as any).data
+          : [];
 
         setMovimientos(list);
       } catch (err) {
@@ -91,7 +94,9 @@ export default function MovimientoValidacionTable({ filters }: Props) {
       return <Badgex className="bg-gray90 text-white">{nombreNorm}</Badgex>;
     }
     if (k === "proceso" || k === "en proceso") {
-      return <Badgex className="bg-yellow-100 text-yellow-700">{nombreNorm}</Badgex>;
+      return (
+        <Badgex className="bg-yellow-100 text-yellow-700">{nombreNorm}</Badgex>
+      );
     }
     if (k === "observado") {
       return <Badgex className="bg-red-100 text-red-700">{nombreNorm}</Badgex>;
@@ -239,11 +244,17 @@ export default function MovimientoValidacionTable({ filters }: Props) {
 
             <tbody className="divide-y divide-gray20">
               {current.map((m) => {
-                const estadoNorm = normalizeEstado(m.estado?.nombre).toLowerCase();
-                const puedeValidar = estadoNorm === "proceso" || estadoNorm === "en proceso";
+                const estadoNorm = normalizeEstado(
+                  m.estado?.nombre
+                ).toLowerCase();
+                const puedeValidar =
+                  estadoNorm === "proceso" || estadoNorm === "en proceso";
 
                 return (
-                  <tr key={m.uuid} className="hover:bg-gray10 transition-colors">
+                  <tr
+                    key={m.uuid}
+                    className="hover:bg-gray10 transition-colors"
+                  >
                     <td className="px-4 py-3 text-gray70 font-[400]">
                       {m.uuid.slice(0, 8).toUpperCase()}
                     </td>
@@ -259,27 +270,29 @@ export default function MovimientoValidacionTable({ filters }: Props) {
                     <td className="px-4 py-3 text-gray70 font-[400]">
                       {fmtFecha(m.fecha_movimiento)}
                     </td>
-                    <td className="px-4 py-3 text-center">{renderEstado(m.estado)}</td>
+                    <td className="px-4 py-3 text-center">
+                      {renderEstado(m.estado)}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-3">
                         {/* Ver */}
-                        <button
-                          className="text-blue-600 hover:text-blue-800"
-                          onClick={() => handleVerClick(m)}
+                        <TableActionx
+                          variant="view"
                           title="Ver detalle"
-                        >
-                          <FaEye />
-                        </button>
+                          onClick={() => handleVerClick(m)}
+                          size="sm"
+                        />
 
                         {/* Validar */}
                         {puedeValidar && (
-                          <button
-                            className="text-emerald-600 hover:text-emerald-800"
-                            onClick={() => handleAbrirValidar(m)}
+                          <TableActionx
+                            variant="custom"
                             title="Validar movimiento"
-                          >
-                            <Icon icon="ci:check-big" width="18" height="18" />
-                          </button>
+                            icon="ci:check-big"
+                            colorClassName="bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-200 hover:ring-emerald-400 focus-visible:ring-emerald-500"
+                            onClick={() => handleAbrirValidar(m)}
+                            size="sm"
+                          />
                         )}
                       </div>
                     </td>
@@ -301,7 +314,10 @@ export default function MovimientoValidacionTable({ filters }: Props) {
 
               {!loading && current.length === 0 && (
                 <tr>
-                  <td className="px-4 py-6 text-center text-gray70 italic" colSpan={7}>
+                  <td
+                    className="px-4 py-6 text-center text-gray70 italic"
+                    colSpan={7}
+                  >
                     No hay movimientos.
                   </td>
                 </tr>

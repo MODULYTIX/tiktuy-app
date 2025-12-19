@@ -435,7 +435,7 @@ export default function PanelControlRepartidorTable() {
         >
           {/* Panel */}
           <aside
-            className="absolute right-0 top-0 h-full w-[520px] max-w-[92vw] bg-white shadow-2xl border-l border-gray30 overflow-y-auto"
+            className="absolute right-0 top-0 h-full w-[460px] max-w-[92vw] bg-white shadow-2xl border-l border-gray30 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

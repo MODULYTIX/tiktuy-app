@@ -1,7 +1,8 @@
 import { useMemo } from "react";
-import { FaEye, FaEdit } from "react-icons/fa";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
 import Badgex from "@/shared/common/Badgex";
+import TableActionx from "@/shared/common/TableActionx";
+
 
 interface Props {
   productos: Producto[];
@@ -25,20 +26,32 @@ const PAGE_SIZE = 5;
 ---------------------------------------------------- */
 const SkeletonRow = () => (
   <tr className="animate-pulse">
-    <td className="h-12 px-4 py-3"><div className="w-10 h-10 bg-gray-200 rounded" /></td>
-    <td className="h-12 px-4 py-3"><div className="h-3 w-16 bg-gray-200 rounded" /></td>
+    <td className="h-12 px-4 py-3">
+      <div className="w-10 h-10 bg-gray-200 rounded" />
+    </td>
+    <td className="h-12 px-4 py-3">
+      <div className="h-3 w-16 bg-gray-200 rounded" />
+    </td>
     <td className="h-12 px-4 py-3">
       <div className="h-3 w-40 bg-gray-200 rounded mb-1" />
       <div className="h-3 w-28 bg-gray-200 rounded" />
     </td>
-    <td className="h-12 px-4 py-3"><div className="h-3 w-24 bg-gray-200 rounded" /></td>
-    <td className="h-12 px-4 py-3"><div className="h-3 w-20 bg-gray-200 rounded" /></td>
-    <td className="h-12 px-4 py-3 text-right"><div className="h-3 w-12 bg-gray-200 rounded ml-auto" /></td>
-    <td className="h-12 px-4 py-3 text-center"><div className="h-4 w-16 bg-gray-200 rounded mx-auto" /></td>
+    <td className="h-12 px-4 py-3">
+      <div className="h-3 w-24 bg-gray-200 rounded" />
+    </td>
+    <td className="h-12 px-4 py-3">
+      <div className="h-3 w-20 bg-gray-200 rounded" />
+    </td>
+    <td className="h-12 px-4 py-3 text-right">
+      <div className="h-3 w-12 bg-gray-200 rounded ml-auto" />
+    </td>
+    <td className="h-12 px-4 py-3 text-center">
+      <div className="h-4 w-16 bg-gray-200 rounded mx-auto" />
+    </td>
     <td className="h-12 px-4 py-3 text-center">
       <div className="flex justify-center gap-3">
-        <div className="w-4 h-4 bg-gray-200 rounded" />
-        <div className="w-4 h-4 bg-gray-200 rounded" />
+        <div className="w-8 h-8 bg-gray-200 rounded-md" />
+        <div className="w-8 h-8 bg-gray-200 rounded-md" />
       </div>
     </td>
   </tr>
@@ -124,18 +137,14 @@ export default function StockTable({
     }
 
     const bajo = stock < minimo;
-    const bg = bajo
-      ? "bg-yellow-100 text-yellow-700"
-      : "bg-green-100 text-green-700";
+    const bg = bajo ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700";
 
     return (
       <div>
         <span className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}>
           📦 {stock}
         </span>
-        <div className="text-xs text-gray-500">
-          {bajo ? "Stock bajo" : "Stock normal"}
-        </div>
+        <div className="text-xs text-gray-500">{bajo ? "Stock bajo" : "Stock normal"}</div>
       </div>
     );
   };
@@ -185,25 +194,16 @@ export default function StockTable({
 
           <tbody className="divide-y divide-gray20">
             {currentData.map((prod: any) => (
-              <tr
-                key={prod.uuid ?? prod.id}
-                className="hover:bg-gray10 transition-colors"
-              >
+              <tr key={prod.uuid ?? prod.id} className="hover:bg-gray10 transition-colors">
                 <td className="h-12 px-4 py-3">
-                  <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                    📦
-                  </div>
+                  <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">📦</div>
                 </td>
 
-                <td className="h-12 px-4 py-3 text-gray70">
-                  {prod.codigo_identificacion}
-                </td>
+                <td className="h-12 px-4 py-3 text-gray70">{prod.codigo_identificacion}</td>
 
                 <td className="h-12 px-4 py-3 text-gray70">
                   <div className="font-medium">{prod.nombre_producto}</div>
-                  <div className="text-xs text-gray-500 truncate">
-                    {prod.descripcion}
-                  </div>
+                  <div className="text-xs text-gray-500 truncate">{prod.descripcion}</div>
                 </td>
 
                 <td className="h-12 px-4 py-3 text-gray70">
@@ -211,10 +211,7 @@ export default function StockTable({
                 </td>
 
                 <td className="h-12 px-4 py-3 text-gray70">
-                  {renderEstadoStock(
-                    prod.stock_en_sede ?? prod.stock,
-                    prod.stock_minimo
-                  )}
+                  {renderEstadoStock(prod.stock_en_sede ?? prod.stock, prod.stock_minimo)}
                 </td>
 
                 <td className="h-12 px-4 py-3 text-gray70 text-right">
@@ -226,22 +223,33 @@ export default function StockTable({
                 </td>
 
                 <td className="h-12 px-4 py-3">
-                  <div className="flex items-center justify-center gap-3">
-                    <button
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                  <div className="flex items-center justify-center gap-2">
+                    <TableActionx
+                      variant="view"
+                      title="Ver"
                       onClick={() => onVer(prod)}
-                    >
-                      <FaEye />
-                    </button>
+                      size="sm"
+                    />
 
                     {!soloLectura && (
-                      <button
-                        className="text-amber-600 hover:text-amber-800 transition-colors"
+                      <TableActionx
+                        variant="edit"
+                        title="Editar"
                         onClick={() => onEditar(prod)}
-                      >
-                        <FaEdit />
-                      </button>
+                        size="sm"
+                      />
                     )}
+
+                    {/* Ejemplo de custom (si luego lo necesitas):
+                    <TableActionx
+                      variant="custom"
+                      title="Eliminar"
+                      icon="solar:trash-bin-trash-bold"
+                      colorClassName="bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100 hover:ring-rose-300 focus-visible:ring-rose-400"
+                      onClick={() => onEliminar(prod)}
+                      size="sm"
+                    />
+                    */}
                   </div>
                 </td>
               </tr>
@@ -262,16 +270,16 @@ export default function StockTable({
 
         {pagerItems.map((p, i) =>
           typeof p === "string" ? (
-            <span key={i} className="px-2 text-gray70">{p}</span>
+            <span key={i} className="px-2 text-gray70">
+              {p}
+            </span>
           ) : (
             <button
               key={p}
               onClick={() => goToPage(p)}
               className={[
                 "w-8 h-8 flex items-center justify-center rounded",
-                p === currentPage
-                  ? "bg-gray90 text-white"
-                  : "bg-gray10 text-gray70 hover:bg-gray20",
+                p === currentPage ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
               ].join(" ")}
             >
               {p}

@@ -116,7 +116,7 @@ export default function ProductoDetalleModal({
       <div className="flex-1 bg-black/40" onClick={onClose} />
 
       {/* Panel derecho (formato base) */}
-      <div className="w-full max-w-xl bg-white h-full flex flex-col gap-5 p-5">
+      <div className="w-[460px] max-w-xl bg-white h-full flex flex-col gap-5 p-5">
         {/* Header: Tittlex variante modal */}
         <Tittlex
           variant="modal"

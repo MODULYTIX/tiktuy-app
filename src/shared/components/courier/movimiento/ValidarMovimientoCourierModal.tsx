@@ -11,8 +11,11 @@ import {
   fetchCourierMovimientoDetalle,
   validarCourierMovimiento,
 } from "@/services/courier/movimiento/movimientoCourier.api";
-
 import type { CourierMovimientoDetalle } from "@/services/courier/movimiento/movimientoCourier.type";
+
+import Buttonx from "@/shared/common/Buttonx";
+import ImageUploadx from "@/shared/common/ImageUploadx";
+import { InputxTextarea } from "@/shared/common/Inputx";
 
 const detalleCache = new Map<string, CourierMovimientoDetalle>();
 
@@ -47,10 +50,10 @@ const estadoChip = (estado?: string) => {
 const fmtFecha = (iso?: string) =>
   iso
     ? new Intl.DateTimeFormat("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(new Date(iso))
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(new Date(iso))
     : "—";
 
 export default function ValidarMovimientoCourierModal({
@@ -64,7 +67,7 @@ export default function ValidarMovimientoCourierModal({
 
   const [loading, setLoading] = useState(false);
   const [detalle, setDetalle] = useState<CourierMovimientoDetalle | null>(
-    () => detalleCache.get(uuid) || null
+    detalleCache.get(uuid) || null
   );
   const [, setError] = useState<string | null>(null);
   const [observaciones, setObservaciones] = useState("");
@@ -145,7 +148,10 @@ export default function ValidarMovimientoCourierModal({
       if (editoAlgo || obs) {
         notify("Movimiento observado", "error");
       } else {
-        notify("Movimiento validado correctamente. Stock actualizado.", "success");
+        notify(
+          "Movimiento validado correctamente. Stock actualizado.",
+          "success"
+        );
       }
 
       onValidated?.();
@@ -174,7 +180,7 @@ export default function ValidarMovimientoCourierModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b">
+        <div className="sticky top-0 bg-white">
           <div className="flex items-start justify-between px-6 pt-5 pb-3">
             <div className="flex items-center gap-2">
               <Icon
@@ -222,9 +228,9 @@ export default function ValidarMovimientoCourierModal({
           </div>
 
           {/* Tabla editable */}
-          <div className="mt-4 border rounded-md overflow-hidden">
+          <div className="mt-4 rounded-md overflow-hidden shadow-default">
             <table className="w-full text-sm">
-              <thead className="bg-slate-100 text-slate-700">
+              <thead className="bg-gray-100 text-gray-700">
                 <tr>
                   <th className="p-3 text-left font-semibold">Código</th>
                   <th className="p-3 text-left font-semibold">Producto</th>
@@ -232,19 +238,17 @@ export default function ValidarMovimientoCourierModal({
                   <th className="p-3 text-right font-semibold">Cantidad</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-200">
                 {detalle?.productos?.map((dp) => {
                   const max = dp.cantidad_validada ?? dp.cantidad ?? 0;
                   const val = cantidades[dp.producto.id] ?? max;
 
                   return (
-                    <tr key={dp.id} className="border-t">
+                    <tr key={dp.id} className="hover:bg-gray-50">
                       <td className="p-3">
                         {dp.producto?.codigo_identificacion}
                       </td>
-                      <td className="p-3">
-                        {dp.producto?.nombre_producto}
-                      </td>
+                      <td className="p-3">{dp.producto?.nombre_producto}</td>
                       <td className="p-3 text-slate-600">
                         {dp.producto?.descripcion || "—"}
                       </td>
@@ -266,9 +270,7 @@ export default function ValidarMovimientoCourierModal({
                             }
                             className="w-[72px] h-8 border rounded px-2 text-right text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-gray-100"
                           />
-                          <span className="text-xs text-gray-500">
-                            / {max}
-                          </span>
+                          <span className="text-xs text-gray-500">/ {max}</span>
                         </div>
                       </td>
                     </tr>
@@ -279,82 +281,41 @@ export default function ValidarMovimientoCourierModal({
           </div>
 
           {/* Observaciones */}
-          <div className="mt-5">
-            <label className="block text-sm font-semibold text-gray-800">
-              Observaciones
-            </label>
-            <textarea
-              rows={3}
-              disabled={!canValidate}
+          <div className="mt-5 mb-5">
+            <InputxTextarea
+              label="Observaciones"
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
               placeholder="Ejem. Algunos productos llegaron con pequeñas diferencias."
-              className={`w-full border rounded-md px-3 py-2 text-sm resize-none mt-2 ${canValidate
-                  ? "bg-white"
-                  : "bg-gray-50 cursor-not-allowed"
-                }`}
+              disabled={!canValidate}
+              minRows={3}
+              maxRows={5}
             />
           </div>
 
           {/* Evidencia */}
-          <div className="mt-5">
-            <label className="block text-sm font-semibold text-gray-800">
-              Adjuntar evidencia
-            </label>
-            <div className="mt-2 flex items-center justify-between gap-3 border-2 border-dashed rounded-md px-4 py-4">
-              <div className="flex items-center gap-3 text-xs text-gray-500">
-                <span className="inline-flex w-8 h-8 items-center justify-center rounded-full bg-gray-100">
-                  <Icon icon="mdi:tray-arrow-up" width="20" height="20" />
-                </span>
-                <div>
-                  Seleccione un archivo, arrástrelo o suéltelo.{" "}
-                  <span className="text-gray-400">JPG, PNG o PDF</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  ref={inputRef}
-                  type="file"
-                  className="hidden"
-                  accept="image/*,.pdf"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  disabled={!canValidate}
-                />
-                <button
-                  type="button"
-                  onClick={() => inputRef.current?.click()}
-                  disabled={!canValidate}
-                  className={`px-3 py-2 text-sm rounded border ${canValidate
-                      ? "hover:bg-gray-100"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    }`}
-                >
-                  Seleccione archivo
-                </button>
-                {file && (
-                  <span className="text-xs text-gray-600 truncate max-w-[200px]">
-                    {file.name}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+          <ImageUploadx
+            label="Seleccione un archivo, arrástrelo o suéltelo."
+            value={file}
+            onChange={setFile}
+            maxSizeMB={5}
+            accept="image/*,.pdf"
+            disabled={!canValidate}
+          />
 
           {/* Footer */}
           <div className="pt-6 pb-4 flex items-center gap-3">
-            <button
+            <Buttonx
+              label={loading ? "Validando…" : "Validar"}
+              variant="secondary"
               onClick={handleValidate}
               disabled={!canValidate || loading}
-              className="px-4 py-2 rounded bg-black text-white hover:bg-gray-800 disabled:opacity-60"
-            >
-              {loading ? "Validando…" : "Validar"}
-            </button>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border rounded hover:bg-gray-100"
-            >
-              Cancelar
-            </button>
+            />
+            <Buttonx
+            label="Cancelar"
+            variant="outlinedw"
+            onClick={onClose}
+            />
             <div className="ml-auto text-xs text-gray-400">
               {detalle?.fecha_movimiento && (
                 <>Fec. generación: {fmtFecha(detalle.fecha_movimiento)}</>

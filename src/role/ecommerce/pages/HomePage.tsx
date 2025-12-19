@@ -1,4 +1,3 @@
-// src/pages/ecommerce/EcommerceHomePage.tsx
 import { useAuth } from "@/auth/context/useAuth";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
@@ -20,6 +19,7 @@ import { Selectx } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import Tittlex from "@/shared/common/Tittlex";
 import Badgex from "@/shared/common/Badgex";
+import TableActionx from "@/shared/common/TableActionx"; // Importamos el componente de acción
 
 /** Adaptador para el modal (espera un CourierAsociado) */
 function sedeToCourierAsociado(s: SedeConEstado): CourierAsociado {
@@ -340,60 +340,50 @@ export default function EcommerceHomePage() {
                           </td>
                           <td className="px-4 py-3 text-center">
                             <Badgex
-                              className={
-                                asociado ? "" : "bg-gray30 text-gray80"
-                              }
+                              className={asociado ? "" : "bg-gray30 text-gray80"}
                             >
                               {asociado ? "Asociado" : "No Asociado"}
                             </Badgex>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-center gap-3">
-                              <button
+                              <TableActionx
+                                variant="view"
+                                title="Ver"
                                 onClick={() => {
                                   setSelected(modalEntry);
                                   setModalMode("view");
                                   setOpenModal(true);
                                 }}
-                                className="p-1 hover:bg-gray10 rounded"
-                                type="button"
-                              >
-                                <Icon
-                                  icon="mdi:eye-outline"
-                                  className="text-blue-700"
-                                />
-                              </button>
+                                size="sm"
+                              />
                               {!asociado && (
-                                <button
+                                <TableActionx
+                                  variant="custom"
+                                  icon="mdi:check-circle-outline"
+                                  colorClassName="bg-green-100 text-green-700 ring-1 ring-green-300 hover:bg-green-200 hover:ring-green-400 focus-visible:ring-green-500"
+                                  title="Asociar"
                                   onClick={() => {
                                     setSelected(modalEntry);
                                     setModalMode("associate");
                                     setOpenModal(true);
                                   }}
-                                  className="p-1 hover:bg-gray10 rounded"
-                                  type="button"
-                                >
-                                  <Icon
-                                    icon="mdi:check-circle-outline"
-                                    className="text-green-600"
-                                  />
-                                </button>
+                                  size="sm"
+                                />
                               )}
                               {asociado && (
-                                <button
+                                <TableActionx
+                                  variant="custom"
+                                  icon="mdi:lock-alert-outline"
+                                  colorClassName="bg-red-100 text-red-700 ring-1 ring-red-300 hover:bg-red-200 hover:ring-red-400 focus-visible:ring-red-500"
+                                  title="Desasociar"
                                   onClick={() => {
                                     setSelected(modalEntry);
                                     setModalMode("desassociate");
                                     setOpenModal(true);
                                   }}
-                                  className="p-1 hover:bg-gray10 rounded"
-                                  type="button"
-                                >
-                                  <Icon
-                                    icon="mdi:lock-alert-outline"
-                                    className="text-red-600"
-                                  />
-                                </button>
+                                  size="sm"
+                                />
                               )}
                             </div>
                           </td>
@@ -472,21 +462,7 @@ export default function EcommerceHomePage() {
         </section>
       </div>
 
-      {/* Snackbar */}
-      <div
-        aria-live="polite"
-        className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-50 transition-all duration-300 ${
-          snackbar.open
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 translate-y-3 pointer-events-none"
-        }`}
-      >
-        <div className="rounded-full px-4 py-2 bg-gray90 text-white shadow-lg text-[12px]">
-          {snackbar.message}
-        </div>
-      </div>
-
-      {/* Modal */}
+      {/* Modal */} 
       {openModal && selected && token && (
         <ModalAsociarseCourier
           open={openModal}

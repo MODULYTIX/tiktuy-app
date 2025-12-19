@@ -193,7 +193,7 @@ export default function EditZonaTarifariaDrawer({
       />
 
       {/* Drawer derecho */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl p-5 flex flex-col gap-5 overflow-y-auto">
+      <div className="w-[460px] absolute right-0 top-0 h-full max-w-xl bg-white shadow-2xl p-5 flex flex-col gap-5 overflow-y-auto">
         <Tittlex
           variant="modal"
           icon="solar:point-on-map-broken"
@@ -269,8 +269,7 @@ export default function EditZonaTarifariaDrawer({
           </div>
 
           {/* Fila 3: Estado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Selectx
+          <Selectx
               label="Estado"
               value={form.estado_id}
               onChange={(e) =>
@@ -283,7 +282,6 @@ export default function EditZonaTarifariaDrawer({
                 </option>
               ))}
             </Selectx>
-          </div>
         </div>
 
         {/* Acciones */}

@@ -17,11 +17,11 @@ type Props = {
 };
 
 type CreateForm = {
-  ciudad: string;          // se envía como "ciudad" al backend (se guarda en distrito)
+  ciudad: string; // se envía como "ciudad" al backend (se guarda en distrito)
   zona_tarifario: string;
   tarifa_cliente: string;
   pago_motorizado: string;
-  estado_id: string;       // opcional: si no lo mandas, backend usa "Activo/zona"
+  estado_id: string; // opcional: si no lo mandas, backend usa "Activo/zona"
 };
 
 const ESTADOS_ZONA = [
@@ -124,7 +124,7 @@ export default function NewZonaTarifariaDrawer({
       />
 
       {/* Drawer derecho */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl p-5 flex flex-col gap-5 overflow-y-auto">
+      <div className="w-[460px] absolute right-0 top-0 h-full max-w-xl bg-white shadow-2xl p-5 flex flex-col gap-5 overflow-y-auto">
         <Tittlex
           variant="modal"
           icon="solar:point-on-map-broken"
@@ -150,6 +150,7 @@ export default function NewZonaTarifariaDrawer({
 
             <Selectx
               label="Zona"
+              labelVariant="left"
               placeholder="Seleccionar zona"
               value={form.zona_tarifario}
               onChange={(e) =>
@@ -198,6 +199,7 @@ export default function NewZonaTarifariaDrawer({
           <div className="flex gap-5">
             <Selectx
               label="Estado"
+              labelVariant="left"
               value={form.estado_id}
               onChange={(e) =>
                 handleChange("estado_id", (e.target as HTMLSelectElement).value)

@@ -186,7 +186,7 @@ export default function AlmacenCourierEditarModal({ isOpen, onClose, almacen, on
         isSubmitting ? "cursor-wait" : ""
       }`}
     >
-      <div className="w-[480px] max-w-[92vw] h-full bg-white rounded-l-md shadow-lg flex flex-col gap-5 p-5">
+      <div className="w-[460px] max-w-[92vw] h-full bg-white rounded-l-md shadow-lg flex flex-col gap-5 p-5">
         {/* Header con Tittlex */}
         <Tittlex
           variant="modal"
