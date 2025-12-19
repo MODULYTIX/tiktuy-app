@@ -25,14 +25,14 @@ type VistaUI = "asignados" | "pendientes" | "terminados";
 const toRepartidorVista = (v: VistaUI): RepartidorVista =>
   v === "asignados" ? "hoy" : v;
 
-/** ✅ IDs reales de tu tabla MetodoPago (según tu BD) */
+/** IDs reales de tu tabla MetodoPago (según tu BD) */
 const METODO_PAGO_IDS = {
   EFECTIVO: 1,
   BILLETERA: 2,
   DIRECTO_ECOMMERCE: 3,
 } as const;
 
-/** ✅ Tipo que el ModalEntregaRepartidor ya está enviando */
+/** Tipo que el ModalEntregaRepartidor ya está enviando */
 type ConfirmEntregaPayload =
   | { pedidoId: number; resultado: "RECHAZADO"; observacion?: string }
   | {
@@ -119,7 +119,7 @@ export default function PedidosPage() {
     }
   }
 
-  /** ✅ FIX: ahora usamos metodo_pago_id (lo que exige el backend) */
+  /** FIX: ahora usamos metodo_pago_id (lo que exige el backend) */
   async function handleConfirmEntrega(data: ConfirmEntregaPayload) {
     try {
       if (data.resultado === "RECHAZADO") {
@@ -129,7 +129,7 @@ export default function PedidosPage() {
           fecha_entrega_real: undefined,
         });
       } else {
-        // ✅ Validación defensiva por si alguien cambia el modal
+        // Validación defensiva por si alguien cambia el modal
         if (!Number.isFinite(data.metodo_pago_id) || data.metodo_pago_id <= 0) {
           throw new Error(
             "metodo_pago_id inválido (undefined/NaN). Revisa metodoPagoIds."
@@ -256,7 +256,7 @@ export default function PedidosPage() {
         }}
         pedido={pedidoEntrega}
         onConfirm={handleConfirmEntrega}
-        metodoPagoIds={METODO_PAGO_IDS} // ✅ CLAVE: le pasamos ids reales
+        metodoPagoIds={METODO_PAGO_IDS} 
       />
 
       <ModalPedidoDetalle

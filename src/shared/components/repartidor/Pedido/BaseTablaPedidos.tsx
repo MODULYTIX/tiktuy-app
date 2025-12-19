@@ -7,9 +7,10 @@ import type {
   ListPedidosHoyQuery,
   ListByEstadoQuery,
 } from '@/services/repartidor/pedidos/pedidos.types';
-import { Selectx } from '@/shared/common/Selectx';
+import { Selectx, SelectxDate } from '@/shared/common/Selectx';
 import Buttonx from '@/shared/common/Buttonx';
 import { SearchInputx } from '@/shared/common/SearchInputx';
+
 
 type ViewKind = 'hoy' | 'pendientes' | 'terminados';
 type PropsBase = {
@@ -33,11 +34,15 @@ export default function BaseTablaPedidos({
   view, token, onVerDetalle, onCambiarEstado, fetcher, title, subtitle,
 }: PropsBase) {
   const [page, setPage] = useState(1);
-  const [perPage] = useState(5); // 👈 bajé a 5 para que se vea el paginador fácil en pruebas
+  const [perPage] = useState(5);
 
   const [filtroDistrito, setFiltroDistrito] = useState('');
   const [filtroCantidad, setFiltroCantidad] = useState('');
   const [searchProducto, setSearchProducto] = useState('');
+
+  // ✅ SOLO ESTO ES NUEVO
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
 
   const [data, setData] = useState<Paginated<PedidoListItem> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,10 +53,25 @@ export default function BaseTablaPedidos({
     setFiltroDistrito('');
     setFiltroCantidad('');
     setSearchProducto('');
+    setDesde('');
+    setHasta('');
   }, [view]);
 
-  const qHoy: ListPedidosHoyQuery = useMemo(() => ({ page, perPage }), [page, perPage]);
-  const qEstado: ListByEstadoQuery = useMemo(() => ({ page, perPage, sortBy: 'programada', order: 'asc' }), [page, perPage]);
+  // ✅ SOLO SE AGREGA desde / hasta (si existen)
+  const qHoy: ListPedidosHoyQuery = useMemo(
+    () => ({
+      page,
+      perPage,
+      ...(desde ? { desde } : {}),
+      ...(hasta ? { hasta } : {}),
+    }),
+    [page, perPage, desde, hasta]
+  );
+
+  const qEstado: ListByEstadoQuery = useMemo(
+    () => ({ page, perPage, sortBy: 'programada', order: 'asc' }),
+    [page, perPage]
+  );
 
   useEffect(() => {
     const ac = new AbortController();
@@ -63,7 +83,9 @@ export default function BaseTablaPedidos({
         const resp = await fetcher(token, query, { signal: ac.signal });
         setData(resp);
       } catch (e) {
-        if ((e as Error).name !== 'AbortError') setError(e instanceof Error ? e.message : 'Error al cargar pedidos');
+        if ((e as Error).name !== 'AbortError') {
+          setError(e instanceof Error ? e.message : 'Error al cargar pedidos');
+        }
       } finally {
         setLoading(false);
       }
@@ -82,7 +104,8 @@ export default function BaseTablaPedidos({
     if (filtroDistrito) arr = arr.filter((x) => x.cliente.distrito === filtroDistrito);
     if (filtroCantidad) {
       const cant = Number(filtroCantidad);
-      const byCount = (x: PedidoListItem) => x.items_total_cantidad ?? (x.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
+      const byCount = (x: PedidoListItem) =>
+        x.items_total_cantidad ?? (x.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
       arr = arr.filter((x) => byCount(x) === cant);
     }
     if (searchProducto.trim()) {
@@ -92,11 +115,9 @@ export default function BaseTablaPedidos({
     return arr;
   }, [itemsBase, filtroDistrito, filtroCantidad, searchProducto]);
 
-  // cálculo local de páginas 👇
   const totalItems = data?.totalItems ?? itemsBase.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
 
-  // paginador modelo base
   const pagerItems = useMemo(() => {
     const maxButtons = 5;
     const pages: (number | string)[] = [];
@@ -129,28 +150,31 @@ export default function BaseTablaPedidos({
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros (DISEÑO INTACTO) */}
       <div className="bg-white p-5 rounded shadow-default flex gap-4 items-end border-b-4 border-gray90 mb-5">
-        <Selectx
-          label="Distrito"
-          value={filtroDistrito}
-          onChange={(e) => setFiltroDistrito(e.target.value)}
-          placeholder="Seleccionar distrito"
-          className="w-full"
-        >
+        {view === 'hoy' && (
+          <>
+            <SelectxDate
+              label="Desde"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+              className="w-full"
+            />
+            <SelectxDate
+              label="Hasta"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+              className="w-full"
+            />
+          </>
+        )}
+
+        <Selectx label="Distrito" value={filtroDistrito} onChange={(e) => setFiltroDistrito(e.target.value)} className="w-full">
           <option value="">Seleccionar distrito</option>
-          {distritos.map((d) => (
-            <option key={d} value={d}>{d}</option>
-          ))}
+          {distritos.map((d) => <option key={d} value={d}>{d}</option>)}
         </Selectx>
 
-        <Selectx
-          label="Cantidad"
-          value={filtroCantidad}
-          onChange={(e) => setFiltroCantidad(e.target.value)}
-          placeholder="Seleccionar cantidad"
-          className="w-full"
-        >
+        <Selectx label="Cantidad" value={filtroCantidad} onChange={(e) => setFiltroCantidad(e.target.value)} className="w-full">
           <option value="">Seleccionar cantidad</option>
           {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
             <option key={n} value={n}>{two(n)}</option>
@@ -158,19 +182,24 @@ export default function BaseTablaPedidos({
         </Selectx>
 
         <SearchInputx
-                    value={searchProducto}
-                    onChange={(e) => setSearchProducto(e.target.value)}
-                    placeholder="Buscar productos por nombre" // Aquí defines el texto del placeholder
-                    className="w-full"
-                  />
+          value={searchProducto}
+          onChange={(e) => setSearchProducto(e.target.value)}
+          placeholder="Buscar productos por nombre"
+          className="w-full"
+        />
 
         <Buttonx
-              label="Limpiar Filtros"
-              icon="mynaui:delete"
-              variant="outlined" // Si deseas el fondo azul, usa la variante "primary"
-              onClick={() => { setFiltroDistrito(''); setFiltroCantidad(''); setSearchProducto(''); }} // Asegúrate de que esto sea una función válida
-              disabled={false}
-            />
+          label="Limpiar Filtros"
+          icon="mynaui:delete"
+          variant="outlined"
+          onClick={() => {
+            setFiltroDistrito('');
+            setFiltroCantidad('');
+            setSearchProducto('');
+            setDesde('');
+            setHasta('');
+          }}
+        />
       </div>
 
       {/* Estados */}
