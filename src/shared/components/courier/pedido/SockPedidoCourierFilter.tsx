@@ -78,11 +78,11 @@ export default function StockPedidoFilterCourier({
           {/* Sede */}
           <div className="flex-1 min-w-[200px]">
             <Selectx
-              label="Sede"
+              label="Ecommerce"
               name="sedeId"
               value={view.sedeId}
               onChange={(e) => set({ sedeId: e.target.value })}
-              placeholder="Seleccionar sede"
+              placeholder="Seleccionar Ecommerce"
               disabled={loading}
             >
               {options.almacenes.map((opt) => (
