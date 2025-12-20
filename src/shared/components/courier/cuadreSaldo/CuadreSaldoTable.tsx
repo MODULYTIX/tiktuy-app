@@ -13,7 +13,6 @@ import type {
 
 import Tittlex from "@/shared/common/Tittlex";
 import { InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
-import Buttonx from "@/shared/common/Buttonx";
 
 /* ============== helpers ============== */
 const formatPEN = (v: number) =>
@@ -40,8 +39,8 @@ type ConfirmAbonoModalProps = {
   count: number;
   onCancel: () => void;
   onConfirm: () => void;
-  resumenLeft?: string; // etiqueta opcional (ej. "Motorizado: 12")
-  resumenRight?: string; // texto opcional derecho (ej. ciudad/fecha)
+  resumenLeft?: string;
+  resumenRight?: string;
 };
 
 const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
@@ -84,7 +83,6 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
 
         {/* Body */}
         <div className="space-y-4 px-5 pt-4 pb-3">
-          {/* Resumen */}
           <div className="rounded-xl border border-gray30 bg-gray10/60 px-4 py-3">
             <div className="mb-2 text-center text-sm font-semibold text-gray-700">
               Resumen
@@ -105,7 +103,6 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
             </div>
           </div>
 
-          {/* Checkbox */}
           <label className="flex cursor-pointer items-start gap-2 text-xs text-gray-700">
             <input
               type="checkbox"
@@ -177,18 +174,18 @@ const EditServicioModal: React.FC<EditModalProps> = ({
     [pedido?.servicioSugerido]
   );
   const baseCour = useMemo(
-    () => pedido?.servicioCourierEfectivo ?? null,
-    [pedido?.servicioCourierEfectivo]
+    () => (pedido as any)?.servicioCourierEfectivo ?? null,
+    [pedido]
   );
 
   useEffect(() => {
     if (open && pedido) {
       setMontoRep(
-        String(pedido.servicioRepartidor ?? pedido.servicioSugerido ?? 0)
+        String((pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0)
       );
-      setMotivo(pedido.motivo ?? "");
+      setMotivo((pedido as any).motivo ?? "");
       setMontoCour(
-        String(pedido.servicioCourier ?? pedido.servicioCourierEfectivo ?? 0)
+        String((pedido as any).servicioCourier ?? (pedido as any).servicioCourierEfectivo ?? 0)
       );
     }
   }, [open, pedido]);
@@ -206,25 +203,25 @@ const EditServicioModal: React.FC<EditModalProps> = ({
     try {
       const chg: EditModalChange = { id: pedido.id };
 
-      const repPrev = pedido.servicioRepartidor ?? pedido.servicioSugerido ?? 0;
+      const repPrev = (pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0;
       const courPrev =
-        pedido.servicioCourier ?? pedido.servicioCourierEfectivo ?? 0;
-      const motivoPrev = pedido.motivo ?? "";
+        (pedido as any).servicioCourier ?? (pedido as any).servicioCourierEfectivo ?? 0;
+      const motivoPrev = (pedido as any).motivo ?? "";
 
       if (valRep !== repPrev || (motivo || "") !== motivoPrev) {
         const resp = await updateServicio(token, pedido.id, {
           servicio: valRep,
           motivo: motivo || undefined,
         });
-        chg.servicioRepartidor = resp.servicio;
-        chg.motivo = resp.motivo ?? null;
+        chg.servicioRepartidor = (resp as any).servicio;
+        chg.motivo = (resp as any).motivo ?? null;
       }
 
       if (valCour !== courPrev) {
         const resp2 = await updateServicioCourier(token, pedido.id, {
           servicio: valCour,
         });
-        chg.servicioCourier = resp2.servicioCourier;
+        chg.servicioCourier = (resp2 as any).servicioCourier;
       }
 
       onSaved(chg);
@@ -258,9 +255,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
 
         {/* Body */}
         <div className="space-y-4 px-5 py-4">
-          {/* Montos */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {/* Servicio Motorizado */}
             <div className="space-y-1.5">
               <InputxNumber
                 label="Servicio motorizado (repartidor)"
@@ -275,7 +270,6 @@ const EditServicioModal: React.FC<EditModalProps> = ({
               </p>
             </div>
 
-            {/* Servicio Courier */}
             <div className="space-y-1.5">
               <InputxNumber
                 label="Servicio courier"
@@ -293,7 +287,6 @@ const EditServicioModal: React.FC<EditModalProps> = ({
             </div>
           </div>
 
-          {/* Motivo */}
           <InputxTextarea
             label="Motivo (opcional)"
             placeholder="Describe brevemente el motivo del ajuste"
@@ -331,6 +324,19 @@ type Props = {
   desde?: string;
   hasta?: string;
   pageSize?: number;
+
+  // ✅ NUEVO: para controlar el botón desde la Page
+  onSelectionChange?: (info: {
+    selectedCount: number;
+    totalServicio: number;
+    loading: boolean;
+    canAbonar: boolean;
+  }) => void;
+
+  // ✅ NUEVO: expone acciones al padre (abrir modal)
+  exposeActions?: (actions: {
+    openAbonarSeleccionados: () => void;
+  }) => void;
 };
 
 const CuadreSaldoTable: React.FC<Props> = ({
@@ -339,6 +345,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
   desde,
   hasta,
   pageSize = 10,
+  onSelectionChange,
+  exposeActions,
 }) => {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<PedidoListItem[]>([]);
@@ -368,7 +376,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
       };
       const resp = await listPedidos(token, params);
       setRows(resp.items);
-      setSelectedIds([]); // al recargar, limpiar selección
+      setSelectedIds([]);
     } catch (e) {
       console.error(e);
       setError("Error al obtener pedidos finalizados");
@@ -377,12 +385,10 @@ const CuadreSaldoTable: React.FC<Props> = ({
     }
   }, [token, motorizadoId, desde, hasta, page, pageSize]);
 
-  // reiniciar página cuando cambian filtros
   useEffect(() => {
     setPage(1);
   }, [motorizadoId, desde, hasta, pageSize]);
 
-  // cargar datos
   useEffect(() => {
     void load();
   }, [load]);
@@ -391,12 +397,11 @@ const CuadreSaldoTable: React.FC<Props> = ({
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== chg.id) return r;
-        const next: PedidoListItem = { ...r };
+        const next: any = { ...r };
 
         if (chg.servicioRepartidor !== undefined) {
           next.servicioRepartidor = chg.servicioRepartidor;
-          next.servicioEfectivo =
-            chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
+          next.servicioEfectivo = chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
         }
         if (chg.motivo !== undefined) {
           next.motivo = chg.motivo ?? null;
@@ -404,8 +409,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
         if (chg.servicioCourier !== undefined) {
           next.servicioCourier = chg.servicioCourier;
           if ("servicioCourierEfectivo" in next) {
-            (next as any).servicioCourierEfectivo =
-              chg.servicioCourier ?? (next as any).servicioCourierEfectivo ?? 0;
+            next.servicioCourierEfectivo =
+              chg.servicioCourier ?? next.servicioCourierEfectivo ?? 0;
           }
         }
         return next;
@@ -415,7 +420,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
   // ==== selección: sólo filas NO abonadas ====
   const selectableIds = useMemo(
-    () => rows.filter((r) => !r.abonado).map((r) => r.id),
+    () => rows.filter((r: any) => !r.abonado).map((r) => r.id),
     [rows]
   );
   const isAllSelected =
@@ -435,18 +440,18 @@ const CuadreSaldoTable: React.FC<Props> = ({
     () =>
       rows
         .filter((r) => selectedIds.includes(r.id))
-        .reduce((acc, r) => acc + Number(r.servicioEfectivo ?? 0), 0),
+        .reduce((acc: number, r: any) => acc + Number(r.servicioEfectivo ?? 0), 0),
     [rows, selectedIds]
   );
 
   // ==== abono (por fila)
   const toggleAbono = useCallback(
-    async (row: PedidoListItem) => {
+    async (row: any) => {
       try {
         const next = !row.abonado;
         await abonarPedidos(token, { pedidoIds: [row.id], abonado: next });
         setRows((prev) =>
-          prev.map((r) => (r.id === row.id ? { ...r, abonado: next } : r))
+          prev.map((r: any) => (r.id === row.id ? { ...r, abonado: next } : r))
         );
         if (next) setSelectedIds((prev) => prev.filter((id) => id !== row.id));
       } catch (e) {
@@ -457,7 +462,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     [token]
   );
 
-  // ==== abono múltiple -> abre modal
+  // ==== abono múltiple -> abre modal (se llamará desde la Page)
   const abrirModalAbono = useCallback(() => {
     if (selectedIds.length === 0) return;
     setOpenConfirm(true);
@@ -470,9 +475,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
         pedidoIds: selectedIds,
         abonado: true,
       });
-      // reflejar en UI
       setRows((prev) =>
-        prev.map((r) =>
+        prev.map((r: any) =>
           selectedIds.includes(r.id) ? { ...r, abonado: true } : r
         )
       );
@@ -486,29 +490,27 @@ const CuadreSaldoTable: React.FC<Props> = ({
     }
   }, [token, selectedIds]);
 
+  // ✅ Exponer acción al padre
+  useEffect(() => {
+    if (!exposeActions) return;
+    exposeActions({
+      openAbonarSeleccionados: abrirModalAbono,
+    });
+  }, [exposeActions, abrirModalAbono]);
+
+  // ✅ Notificar al padre cambios de selección
+  useEffect(() => {
+    if (!onSelectionChange) return;
+    onSelectionChange({
+      selectedCount: selectedIds.length,
+      totalServicio: totalServicioSeleccionado,
+      loading,
+      canAbonar: selectedIds.length > 0 && !loading,
+    });
+  }, [onSelectionChange, selectedIds.length, totalServicioSeleccionado, loading]);
+
   return (
-    <div className="mt-5 flex flex-col gap-4">
-      {/* Toolbar superior sin fondo de tarjeta */}
-      <div className="flex items-center justify-between gap-3">
-        {error ? (
-          <span className="text-[12px] text-red-600">{error}</span>
-        ) : (
-          <span className="text-[12px] text-gray-600">
-            Seleccionados: <b>{selectedIds.length}</b> · Servicio:{" "}
-            <b>{formatPEN(totalServicioSeleccionado)}</b>
-          </span>
-        )}
-
-        
-        <Buttonx
-    icon="iconoir:new-tab"
-    label="Abonar seleccionados"
-    variant="secondary"
-    onClick={abrirModalAbono}
-    disabled={selectedIds.length === 0 || loading}
-  />
-      </div>
-
+    <div className="mt-5 flex flex-col gap-3">
       {/* Tabla con el mismo formato del Ecommerce */}
       <div className="relative mt-0 overflow-hidden rounded-md border border-gray30 bg-white shadow-default">
         {loading && (
@@ -553,112 +555,120 @@ const CuadreSaldoTable: React.FC<Props> = ({
               </thead>
 
               <tbody className="divide-y divide-gray20">
-                {rows.length === 0 && !loading && (
+                {rows.length === 0 ? (
                   <tr className="hover:bg-transparent">
                     <td
                       colSpan={8}
                       className="px-4 py-8 text-center italic text-gray70"
                     >
-                      No hay datos para el filtro seleccionado.
+                      Sin resultados para el filtro seleccionado.
                     </td>
                   </tr>
-                )}
+                ) : (
+                  rows.map((r: any) => {
+                    const checked = selectedIds.includes(r.id);
+                    const disableCheck = r.abonado;
+                    return (
+                      <tr key={r.id} className="transition-colors hover:bg-gray10">
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            disabled={disableCheck}
+                            checked={checked}
+                            onChange={() => toggleOne(r.id)}
+                            aria-label={`Seleccionar pedido ${r.id}`}
+                            className="h-4 w-4 accent-blue-600"
+                          />
+                        </td>
 
-                {rows.map((r) => {
-                  const checked = selectedIds.includes(r.id);
-                  const disableCheck = r.abonado;
-                  return (
-                    <tr
-                      key={r.id}
-                      className="transition-colors hover:bg-gray10"
-                    >
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          disabled={disableCheck}
-                          checked={checked}
-                          onChange={() => toggleOne(r.id)}
-                          aria-label={`Seleccionar pedido ${r.id}`}
-                          className="h-4 w-4 accent-blue-600"
-                        />
-                      </td>
+                        <td className="px-4 py-3 text-gray70">
+                          {toDMY(r.fechaEntrega)}
+                        </td>
+                        <td className="px-4 py-3 text-gray70">{r.cliente}</td>
+                        <td className="px-4 py-3 text-gray70">
+                          {r.metodoPago ?? "-"}
+                        </td>
+                        <td className="px-4 py-3 text-gray70">
+                          {formatPEN(r.monto)}
+                        </td>
 
-                      <td className="px-4 py-3 text-gray70">
-                        {toDMY(r.fechaEntrega)}
-                      </td>
-                      <td className="px-4 py-3 text-gray70">{r.cliente}</td>
-                      <td className="px-4 py-3 text-gray70">
-                        {r.metodoPago ?? "-"}
-                      </td>
-                      <td className="px-4 py-3 text-gray70">
-                        {formatPEN(r.monto)}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray80">
-                            {formatPEN(r.servicioEfectivo)}
-                          </span>
-                          {r.servicioRepartidor != null && (
-                            <span className="rounded-full bg-gray20 px-2 py-0.5 text-[11px] text-gray80">
-                              editado
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray80">
+                              {formatPEN(r.servicioEfectivo)}
                             </span>
-                          )}
-                        </div>
-                      </td>
+                            {r.servicioRepartidor != null && (
+                              <span className="rounded-full bg-gray20 px-2 py-0.5 text-[11px] text-gray80">
+                                editado
+                              </span>
+                            )}
+                          </div>
+                        </td>
 
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => toggleAbono(r)}
-                          className={[
-                            "rounded-full px-3 py-1 text-[11px] font-semibold",
-                            r.abonado
-                              ? "bg-emerald-600 text-white"
-                              : "bg-gray-200 text-gray-900",
-                          ].join(" ")}
-                          title={r.abonado ? "Quitar abono" : "Marcar abonado"}
-                        >
-                          {r.abonado ? "Abonado" : "Sin abonar"}
-                        </button>
-                      </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => toggleAbono(r)}
+                            className={[
+                              "rounded-full px-3 py-1 text-[11px] font-semibold",
+                              r.abonado
+                                ? "bg-emerald-600 text-white"
+                                : "bg-gray-200 text-gray-900",
+                            ].join(" ")}
+                            title={r.abonado ? "Quitar abono" : "Marcar abonado"}
+                          >
+                            {r.abonado ? "Abonado" : "Sin abonar"}
+                          </button>
+                        </td>
 
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Editar sólo si NO está abonado */}
-                          {!r.abonado && (
-                            <button
-                              onClick={() => {
-                                setEditing(r);
-                                setOpenEdit(true);
-                              }}
-                              className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
-                              title="Editar servicio (repartidor / courier)"
-                            >
-                              Editar
-                            </button>
-                          )}
-                          {/* Abonar sólo este (con modal) */}
-                          {!r.abonado && (
-                            <button
-                              onClick={() => {
-                                setSelectedIds([r.id]);
-                                setOpenConfirm(true);
-                              }}
-                              className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
-                              title="Abonar este pedido"
-                            >
-                              Abonar
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            {!r.abonado && (
+                              <button
+                                onClick={() => {
+                                  setEditing(r);
+                                  setOpenEdit(true);
+                                }}
+                                className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
+                                title="Editar servicio (repartidor / courier)"
+                              >
+                                Editar
+                              </button>
+                            )}
+
+                            {!r.abonado && (
+                              <button
+                                onClick={() => {
+                                  setSelectedIds([r.id]);
+                                  setOpenConfirm(true);
+                                }}
+                                className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
+                                title="Abonar este pedido"
+                              >
+                                Abonar
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
         </section>
+      </div>
+
+      {/* ✅ AHORA este resumen va DEBAJO de la tabla */}
+      <div className="flex items-center justify-between">
+        {error ? (
+          <span className="text-[12px] text-red-600">{error}</span>
+        ) : (
+          <span className="text-[12px] text-gray-600">
+            Seleccionados: <b>{selectedIds.length}</b> · Servicio:{" "}
+            <b>{formatPEN(totalServicioSeleccionado)}</b>
+          </span>
+        )}
       </div>
 
       {/* modal editar */}

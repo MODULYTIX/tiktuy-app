@@ -1,38 +1,29 @@
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "@/auth/context/AuthContext";
-import type {
-  RepartidorVista,
-  PedidoListItem,
-} from "@/services/repartidor/pedidos/pedidos.types";
+import type { RepartidorVista, PedidoListItem } from "@/services/repartidor/pedidos/pedidos.types";
 
 import ModalRepartidorMotorizado from "@/shared/components/repartidor/Pedido/ModalPedidoRepartidor";
 import ModalEntregaRepartidor from "@/shared/components/repartidor/Pedido/ModalPedidoPendienteRepartidor";
 import ModalPedidoDetalle from "@/shared/components/repartidor/Pedido/VerDetallePedido";
 
-import {
-  patchEstadoInicial,
-  patchResultado,
-  fetchPedidoDetalle,
-} from "@/services/repartidor/pedidos/pedidos.api";
+import { patchEstadoInicial, patchResultado, fetchPedidoDetalle } from "@/services/repartidor/pedidos/pedidos.api";
 
 import TablePedidosHoy from "@/shared/components/repartidor/Pedido/TablePedidosHoy";
 import TablePedidosPendientes from "@/shared/components/repartidor/Pedido/TablePedidosPendientes";
 import TablePedidosTerminados from "@/shared/components/repartidor/Pedido/TablePedidosTerminados";
+
 import Tittlex from "@/shared/common/Tittlex";
 import Buttonx from "@/shared/common/Buttonx";
 
 type VistaUI = "asignados" | "pendientes" | "terminados";
-const toRepartidorVista = (v: VistaUI): RepartidorVista =>
-  v === "asignados" ? "hoy" : v;
+const toRepartidorVista = (v: VistaUI): RepartidorVista => (v === "asignados" ? "hoy" : v);
 
-/** ✅ IDs reales de tu tabla MetodoPago (según tu BD) */
 const METODO_PAGO_IDS = {
   EFECTIVO: 1,
   BILLETERA: 2,
   DIRECTO_ECOMMERCE: 3,
 } as const;
 
-/** ✅ Tipo que el ModalEntregaRepartidor ya está enviando */
 type ConfirmEntregaPayload =
   | { pedidoId: number; resultado: "RECHAZADO"; observacion?: string }
   | {
@@ -49,28 +40,22 @@ export default function PedidosPage() {
   const token = auth?.token ?? "";
 
   const [vista, setVista] = useState<VistaUI>(() => {
-    const saved = localStorage.getItem(
-      "repartidor_vista_pedidos"
-    ) as VistaUI | null;
+    const saved = localStorage.getItem("repartidor_vista_pedidos") as VistaUI | null;
     return saved ?? "asignados";
   });
+
   useEffect(() => {
     localStorage.setItem("repartidor_vista_pedidos", vista);
   }, [vista]);
 
   const [openModalCambio, setOpenModalCambio] = useState(false);
-  const [pedidoSeleccionado, setPedidoSeleccionado] =
-    useState<PedidoListItem | null>(null);
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<PedidoListItem | null>(null);
 
   const [openModalEntrega, setOpenModalEntrega] = useState(false);
-  const [pedidoEntrega, setPedidoEntrega] = useState<PedidoListItem | null>(
-    null
-  );
+  const [pedidoEntrega, setPedidoEntrega] = useState<PedidoListItem | null>(null);
 
   const [openModalDetalle, setOpenModalDetalle] = useState(false);
-  const [pedidoDetalle, setPedidoDetalle] = useState<PedidoListItem | null>(
-    null
-  );
+  const [pedidoDetalle, setPedidoDetalle] = useState<PedidoListItem | null>(null);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
 
   const handleVerDetalle = async (id: number) => {
@@ -119,7 +104,6 @@ export default function PedidosPage() {
     }
   }
 
-  /** ✅ FIX: ahora usamos metodo_pago_id (lo que exige el backend) */
   async function handleConfirmEntrega(data: ConfirmEntregaPayload) {
     try {
       if (data.resultado === "RECHAZADO") {
@@ -129,11 +113,8 @@ export default function PedidosPage() {
           fecha_entrega_real: undefined,
         });
       } else {
-        // ✅ Validación defensiva por si alguien cambia el modal
         if (!Number.isFinite(data.metodo_pago_id) || data.metodo_pago_id <= 0) {
-          throw new Error(
-            "metodo_pago_id inválido (undefined/NaN). Revisa metodoPagoIds."
-          );
+          throw new Error("metodo_pago_id inválido (undefined/NaN). Revisa metodoPagoIds.");
         }
 
         await patchResultado(token, data.pedidoId, {
@@ -156,88 +137,60 @@ export default function PedidosPage() {
   const view = toRepartidorVista(vista);
 
   return (
-    <section className="mt-4 md:mt-8 px-3 sm:px-4 lg:px-0">
-      {/* Header Desktop */}
-      <div className="hidden md:flex md:items-center md:justify-between gap-3">
-        <Tittlex
-          title="Mis Pedidos"
-          description="Revisa tus pedidos asignados, gestiona pendientes y finalizados"
-        />
-        <div className="flex gap-2 items-center">
-          <Buttonx
-            label="Asignados (Hoy)"
-            icon="solar:bill-list-broken"
-            variant={vista === "asignados" ? "secondary" : "tertiary"}
-            onClick={() => setVista("asignados")}
-          />
-          <Buttonx
-            label="Pendientes"
-            icon="mdi:clock-outline"
-            variant={vista === "pendientes" ? "secondary" : "tertiary"}
-            onClick={() => setVista("pendientes")}
-          />
-          <Buttonx
-            label="Terminados"
-            icon="mdi:clipboard-check-outline"
-            variant={vista === "terminados" ? "secondary" : "tertiary"}
-            onClick={() => setVista("terminados")}
+    <section className="mt-4 md:mt-8 w-full min-w-0">
+      <header className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <div className="text-center md:text-left">
+          <Tittlex
+            title="Mis Pedidos"
+            description="Revisa tus pedidos asignados, gestiona pendientes y finalizados"
           />
         </div>
-      </div>
 
-      {/* Header Mobile */}
-      <div className="flex flex-col md:hidden text-center mt-2">
-        <h2 className="text-lg font-semibold text-blue-700">
-          Gestión de Pedidos
-        </h2>
-        <p className="text-sm text-gray-600 mb-2">
-          Administra y visualiza el estado de tus pedidos
-        </p>
-        <div className="flex justify-center gap-2 overflow-x-auto scrollbar-hide pb-2">
-          <Buttonx
-            label="Asignados"
-            variant={vista === "asignados" ? "secondary" : "tertiary"}
-            onClick={() => setVista("asignados")}
-          />
-          <Buttonx
-            label="Pendientes"
-            variant={vista === "pendientes" ? "secondary" : "tertiary"}
-            onClick={() => setVista("pendientes")}
-          />
-          <Buttonx
-            label="Terminados"
-            variant={vista === "terminados" ? "secondary" : "tertiary"}
-            onClick={() => setVista("terminados")}
-          />
-        </div>
-      </div>
+        <nav className="w-full md:w-auto min-w-0">
+          <div
+            className="
+              flex flex-wrap items-center justify-center gap-2
+              md:flex-nowrap md:justify-end
+              w-full md:w-auto
+            "
+          >
+            <Buttonx
+              label="Asignados (Hoy)"
+              icon="solar:bill-list-broken"
+              variant={vista === "asignados" ? "secondary" : "tertiary"}
+              onClick={() => setVista("asignados")}
+            />
+            <Buttonx
+              label="Pendientes"
+              icon="mdi:clock-outline"
+              variant={vista === "pendientes" ? "secondary" : "tertiary"}
+              onClick={() => setVista("pendientes")}
+            />
+            <Buttonx
+              label="Terminados"
+              icon="mdi:clipboard-check-outline"
+              variant={vista === "terminados" ? "secondary" : "tertiary"}
+              onClick={() => setVista("terminados")}
+            />
+          </div>
+        </nav>
+      </header>
 
-      {/* Tablas */}
-      <div className="my-4 md:my-8 ">
+      {/* ✅ OJO: aquí ya NO hay overflow-x-auto */}
+      <div className="my-4 md:my-8 w-full min-w-0">
         {view === "hoy" && (
-          <TablePedidosHoy
-            token={token}
-            onVerDetalle={handleVerDetalle}
-            onCambiarEstado={handleCambiarEstado}
-          />
+          <TablePedidosHoy token={token} onVerDetalle={handleVerDetalle} onCambiarEstado={handleCambiarEstado} />
         )}
+
         {view === "pendientes" && (
-          <TablePedidosPendientes
-            token={token}
-            onVerDetalle={handleVerDetalle}
-            onCambiarEstado={handleCambiarEstado}
-          />
+          <TablePedidosPendientes token={token} onVerDetalle={handleVerDetalle} onCambiarEstado={handleCambiarEstado} />
         )}
+
         {view === "terminados" && (
-          <TablePedidosTerminados
-            token={token}
-            onVerDetalle={handleVerDetalle}
-            onCambiarEstado={handleCambiarEstado}
-          />
+          <TablePedidosTerminados token={token} onVerDetalle={handleVerDetalle} onCambiarEstado={handleCambiarEstado} />
         )}
       </div>
 
-      {/* Modales */}
       <ModalRepartidorMotorizado
         isOpen={openModalCambio}
         onClose={() => {
@@ -256,7 +209,7 @@ export default function PedidosPage() {
         }}
         pedido={pedidoEntrega}
         onConfirm={handleConfirmEntrega}
-        metodoPagoIds={METODO_PAGO_IDS} // ✅ CLAVE: le pasamos ids reales
+        metodoPagoIds={METODO_PAGO_IDS}
       />
 
       <ModalPedidoDetalle

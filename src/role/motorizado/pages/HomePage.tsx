@@ -1,4 +1,5 @@
 // src/pages/motorizado/MotorizadoHomePage.tsx
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -70,7 +71,6 @@ function KpiCard({
     <div className="relative overflow-hidden rounded-xl bg-white border border-gray-200 p-4 shadow-[0_8px_14px_rgba(0,0,0,0.12)]">
       <div className="grid grid-cols-[minmax(0,1fr)_72px] items-center gap-3">
         <div className="min-h-[76px] md:min-h-[80px] flex flex-col justify-between min-w-0">
-          {/* Título con borde que crece con 1 o 2 líneas */}
           <div className={`min-w-0 pl-2 border-l-2 ${c.border}`}>
             <p
               className="text-[12.5px] leading-[1.15] font-medium text-gray-700 overflow-hidden"
@@ -84,14 +84,11 @@ function KpiCard({
               {title}
             </p>
           </div>
-          <p
-            className={`mt-2 font-semibold leading-none tabular-nums ${c.number} ${c.text}`}
-          >
+          <p className={`mt-2 font-semibold leading-none tabular-nums ${c.number} ${c.text}`}>
             {display}
           </p>
         </div>
 
-        {/* Icono ocupa el alto máximo de su celda */}
         <div className="h-[56px] md:h-[60px] flex items-center justify-center ml-1">
           <Icon
             icon={icon}
@@ -193,7 +190,6 @@ export default function MotorizadoHomePage() {
     return () => ac.abort();
   }, [token, load]);
 
-  // Toggle con UX de carga y duración mínima
   const onToggle = async () => {
     if (!token || switchBusy || activo === null) return;
 
@@ -219,28 +215,20 @@ export default function MotorizadoHomePage() {
   };
 
   return (
-    <div className="mt-8 flex flex-col gap-y-5">
-      {/* Header SIN fondo ni borde, con switch ABAJO a la derecha */}
+    <div className="mt-4 md:mt-6 lg:mt-8 flex flex-col gap-y-5">
+      {/* Header */}
       <header className="bg-transparent">
-        <div className="mx-auto max-w-7xl">
-          {/* Grid 2x2: título arriba izq, subtítulo abajo izq, switch abajo der */}
-          <div className="grid grid-cols-[1fr_auto] grid-rows-[auto_auto] items-end gap-x-4 gap-y-1">
-            <Tittlex
-              title="Panel de Control"
-              description="Active o desactive su estado para realizar pedidos"
-            />
-
-            {/* Switch abajo-derecha */}
-            <div className="col-start-2 self-end">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <Tittlex title="Panel de Control" description="Active o desactive su estado para realizar pedidos" />
+            <div className="flex justify-end">
               <div className="flex items-center gap-3">
                 <span
-                  className={`text-[14px] font-medium ${
-                    switchBusy
-                      ? "text-sky-700"
-                      : activo
+                  className={`text-[14px] font-medium ${switchBusy
+                    ? "text-sky-700"
+                    : activo
                       ? "text-emerald-600"
-                      : "text-gray-600"
-                  }`}
+                      : "text-gray-600"}`}
                   aria-live="polite"
                 >
                   {estadoText}
@@ -277,24 +265,14 @@ export default function MotorizadoHomePage() {
                   </span>
                 </button>
               </div>
-              {toggleErr && (
-                <p
-                  className="mt-1 text-xs text-red-600"
-                  role="status"
-                  aria-live="polite"
-                >
-                  {toggleErr}
-                </p>
-              )}
             </div>
           </div>
         </div>
       </header>
 
       {/* Body */}
-      <main className="mx-auto max-w-7xl px-6 py-6">
-        {/* KPIs */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <main className="lg:pt-16 pt-2 p-6 bg-gray-50 min-h-screen">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
             title="Pedidos Asignados Hoy"
             value={kpis.asignadosHoy}
@@ -340,12 +318,8 @@ export default function MotorizadoHomePage() {
                     className="shrink-0"
                   />
                   <div className="flex-1">
-                    <h3 className="text-[15px] font-semibold text-blue-800">
-                      {ctaTitle}
-                    </h3>
-                    <p className="mt-1 text-[13px] text-blue-900/80">
-                      {ctaSubtitle}
-                    </p>
+                    <h3 className="text-[15px] font-semibold text-blue-800">{ctaTitle}</h3>
+                    <p className="mt-1 text-[13px] text-blue-900/80">{ctaSubtitle}</p>
                     <div className="mt-4">
                       <Link
                         to={GESTION_PEDIDOS_PATH}
@@ -361,9 +335,7 @@ export default function MotorizadoHomePage() {
             ) : (
               <div className="flex flex-col items-center justify-center text-gray-400">
                 <Icon icon="mdi:check-circle-outline" width="24" height="24" />
-                <p className="mt-6 text-sm">
-                  No tienes pedidos pendientes por ahora.
-                </p>
+                <p className="mt-6 text-sm">No tienes pedidos pendientes por ahora.</p>
               </div>
             )
           ) : (

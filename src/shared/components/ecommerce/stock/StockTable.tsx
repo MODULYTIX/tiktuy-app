@@ -1,8 +1,8 @@
 import { useMemo } from "react";
+import { FaEye, FaEdit, FaBoxOpen } from "react-icons/fa";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
 import Badgex from "@/shared/common/Badgex";
 import TableActionx from "@/shared/common/TableActionx";
-
 
 interface Props {
   productos: Producto[];
@@ -137,14 +137,21 @@ export default function StockTable({
     }
 
     const bajo = stock < minimo;
-    const bg = bajo ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700";
+    const bg = bajo
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-green-100 text-green-700";
 
     return (
       <div>
-        <span className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}>
-          📦 {stock}
+        <span
+          className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}
+        >
+          <FaBoxOpen className="text-[14px]" />
+          {stock}
         </span>
-        <div className="text-xs text-gray-500">{bajo ? "Stock bajo" : "Stock normal"}</div>
+        <div className="text-xs text-gray-500">
+          {bajo ? "Stock bajo" : "Stock normal"}
+        </div>
       </div>
     );
   };
@@ -172,6 +179,17 @@ export default function StockTable({
     );
   }
 
+  const Thumb = ({ url, alt }: { url?: string | null; alt: string }) =>
+    url ? (
+      <div className="w-10 h-10 rounded bg-gray-100 border border-gray-200 overflow-hidden">
+        <img src={url} alt={alt} className="w-full h-full object-cover" />
+      </div>
+    ) : (
+      <div className="w-10 h-10 rounded bg-gray-100 border border-gray-200 flex items-center justify-center">
+        📦
+      </div>
+    );
+
   /* ===================================================
      TABLE (DISEÑO  TABLA PEDIDOS)
   ==================================================== */
@@ -194,16 +212,23 @@ export default function StockTable({
 
           <tbody className="divide-y divide-gray20">
             {currentData.map((prod: any) => (
-              <tr key={prod.uuid ?? prod.id} className="hover:bg-gray10 transition-colors">
+              <tr
+                key={prod.uuid ?? prod.id}
+                className="hover:bg-gray10 transition-colors"
+              >
                 <td className="h-12 px-4 py-3">
-                  <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">📦</div>
+                  <Thumb url={prod.imagen_url} alt={prod.nombre_producto} />
                 </td>
 
-                <td className="h-12 px-4 py-3 text-gray70">{prod.codigo_identificacion}</td>
+                <td className="h-12 px-4 py-3 text-gray70">
+                  {prod.codigo_identificacion}
+                </td>
 
                 <td className="h-12 px-4 py-3 text-gray70">
                   <div className="font-medium">{prod.nombre_producto}</div>
-                  <div className="text-xs text-gray-500 truncate">{prod.descripcion}</div>
+                  <div className="text-xs text-gray-500 truncate">
+                    {prod.descripcion}
+                  </div>
                 </td>
 
                 <td className="h-12 px-4 py-3 text-gray70">
@@ -211,7 +236,10 @@ export default function StockTable({
                 </td>
 
                 <td className="h-12 px-4 py-3 text-gray70">
-                  {renderEstadoStock(prod.stock_en_sede ?? prod.stock, prod.stock_minimo)}
+                  {renderEstadoStock(
+                    prod.stock_en_sede ?? prod.stock,
+                    prod.stock_minimo
+                  )}
                 </td>
 
                 <td className="h-12 px-4 py-3 text-gray70 text-right">
@@ -279,7 +307,9 @@ export default function StockTable({
               onClick={() => goToPage(p)}
               className={[
                 "w-8 h-8 flex items-center justify-center rounded",
-                p === currentPage ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
+                p === currentPage
+                  ? "bg-gray90 text-white"
+                  : "bg-gray10 text-gray70 hover:bg-gray20",
               ].join(" ")}
             >
               {p}
