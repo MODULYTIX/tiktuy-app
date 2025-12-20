@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaEye, FaBoxOpen } from "react-icons/fa";
+import { FaBoxOpen } from "react-icons/fa";
 import { useAuth } from "@/auth/context";
 import { fetchProductos } from "@/services/ecommerce/producto/producto.api";
 import type {

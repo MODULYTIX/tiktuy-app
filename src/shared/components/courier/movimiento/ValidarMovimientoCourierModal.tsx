@@ -1,5 +1,5 @@
 // src/shared/components/courier/movimiento/ValidarMovimientoCourierModal.tsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 import { HiX } from "react-icons/hi";
@@ -72,7 +72,6 @@ export default function ValidarMovimientoCourierModal({
   const [, setError] = useState<string | null>(null);
   const [observaciones, setObservaciones] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
 
   const canValidate = useMemo(
