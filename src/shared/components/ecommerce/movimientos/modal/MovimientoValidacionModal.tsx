@@ -137,7 +137,9 @@ export default function ValidarMovimientoModal({
         </div>
 
         {/* Tabla */}
-        <div className="rounded-xl border border-gray-200 overflow-hidden">
+        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col">
+
+          {/* HEADER FIJO */}
           <table className="w-full table-fixed text-sm border-separate border-spacing-0">
             <colgroup>
               <col className="w-[16%]" />
@@ -154,54 +156,71 @@ export default function ValidarMovimientoModal({
                 <th className="px-4 text-center font-medium">Cantidad</th>
               </tr>
             </thead>
-
-            <tbody className="bg-white">
-              {movimiento.productos.map((det) => {
-                const max = det.cantidad ?? 0;
-                const val = cantidades[det.producto.id] ?? max;
-
-                return (
-                  <tr key={det.id} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-900">
-                      {det.producto?.codigo_identificacion ?? "-"}
-                    </td>
-
-                    <td className="px-4 py-3 text-gray-900">
-                      <div className="max-w-[180px] truncate cursor-pointer">
-                        {det.producto?.nombre_producto || "-"}
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3 text-gray-700">
-                      <div className="max-w-[260px] truncate cursor-pointer">
-                        {(det.producto as any)?.descripcion || "-"}
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-center items-center gap-2">
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          step={1}
-                          min={0}
-                          max={max}
-                          value={val}
-                          onChange={(e) =>
-                            handleCantidadChange(det.producto.id, Number(e.target.value), max)
-                          }
-                          disabled={!enProceso}
-                          className="w-[64px] h-9 rounded-lg border px-2 text-center text-sm shadow-sm"
-                        />
-                        <span className="text-sm text-gray-600">/ {max}</span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
           </table>
+
+          {/* BODY CON SCROLL */}
+          <div className="overflow-y-auto max-h-[336px]">
+            <table className="w-full table-fixed text-sm border-separate border-spacing-0">
+              <colgroup>
+                <col className="w-[16%]" />
+                <col className="w-[30%]" />
+                <col className="w-[30%]" />
+                <col className="w-[22%]" />
+              </colgroup>
+
+              <tbody className="bg-white">
+                {movimiento.productos.map((det) => {
+                  const max = det.cantidad ?? 0;
+                  const val = cantidades[det.producto.id] ?? max;
+
+                  return (
+                    <tr key={det.id} className="border-t hover:bg-gray-50">
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-900">
+                        {det.producto?.codigo_identificacion ?? "-"}
+                      </td>
+
+                      <td className="px-4 py-3 text-gray-900">
+                        <div className="max-w-[180px] truncate cursor-pointer">
+                          {det.producto?.nombre_producto || "-"}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3 text-gray-700">
+                        <div className="max-w-[260px] truncate cursor-pointer">
+                          {(det.producto as any)?.descripcion || "-"}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-center items-center gap-2">
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            step={1}
+                            min={0}
+                            max={max}
+                            value={val}
+                            onChange={(e) =>
+                              handleCantidadChange(
+                                det.producto.id,
+                                Number(e.target.value),
+                                max
+                              )
+                            }
+                            disabled={!enProceso}
+                            className="w-[64px] h-9 rounded-lg border px-2 text-center text-sm shadow-sm"
+                          />
+                          <span className="text-sm text-gray-600">/ {max}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
+
 
         {/* Observaciones */}
         <InputxTextarea

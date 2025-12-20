@@ -1,4 +1,3 @@
-// src/shared/components/ecommerce/movimientos/MovimientoRegistroTable.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaEye, FaBoxOpen } from "react-icons/fa";
 import { useAuth } from "@/auth/context";
@@ -12,7 +11,10 @@ import Badgex from "@/shared/common/Badgex";
 
 interface Props {
   filters: Filters;
-  onSelectProducts: (productos: Producto[]) => void;
+  onSelectProducts: (payload: {
+    pageProducts: Producto[];
+    selectedIds: string[];
+  }) => void;
   onViewProduct?: (producto: Producto) => void;
 }
 
@@ -59,21 +61,39 @@ export default function MovimientoRegistroTable({
   const [totalPages, setTotalPages] = useState(1);
   const [, setLoading] = useState(false);
 
-  /* ======================================================
-     FETCH BACKEND
-  ====================================================== */
   const cargarProductos = async (pageToLoad = page) => {
     if (!token) return;
 
     setLoading(true);
+
     try {
-      const resp = await fetchProductos(token, buildQuery(filters, pageToLoad));
-      const list = Array.isArray(resp?.data) ? resp.data : [];
-      setProductos(list);
-      setTotalPages(
-        resp?.pagination?.totalPages ??
-          Math.max(1, Math.ceil(list.length / PAGE_SIZE))
-      );
+      let visibles: Producto[] = [];
+      let currentPage = pageToLoad;
+      let totalPagesFromApi = 1;
+
+      while (visibles.length < PAGE_SIZE) {
+        const resp = await fetchProductos(
+          token,
+          buildQuery(filters, currentPage)
+        );
+
+        const list = Array.isArray(resp?.data) ? resp.data : [];
+        totalPagesFromApi = resp?.pagination?.totalPages ?? 1;
+
+        // solo productos con stock
+        const conStock = list.filter((p) => Number(p.stock) > 0);
+
+        visibles.push(...conStock);
+
+        // si ya no hay más páginas, salimos
+        if (currentPage >= totalPagesFromApi) break;
+
+        currentPage++;
+      }
+
+      // SIEMPRE máximo 6
+      setProductos(visibles.slice(0, PAGE_SIZE));
+      setTotalPages(totalPagesFromApi);
     } catch (err) {
       console.error("Error cargando productos:", err);
     } finally {
@@ -81,36 +101,39 @@ export default function MovimientoRegistroTable({
     }
   };
 
+
   useEffect(() => {
     setPage(1);
     cargarProductos(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   useEffect(() => {
     cargarProductos(page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  /* ======================================================
-     SELECCIÓN → PADRE
-  ====================================================== */
+
+  const productosVisibles = useMemo(
+    () => productos.filter((p) => Number(p.stock) > 0),
+    [productos]
+  );
+
+
   useEffect(() => {
-    onSelectProducts(productos.filter((p) => selectedIds.includes(p.uuid)));
-  }, [selectedIds, productos, onSelectProducts]);
+    onSelectProducts({
+      pageProducts: productosVisibles,
+      selectedIds,
+    });
+  }, [productosVisibles, selectedIds, onSelectProducts]);
 
-  const toggleCheckbox = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
 
-  /* ======================================================
-     CHECKBOX MAESTRO
-  ====================================================== */
-  const pageIds = useMemo(() => productos.map((p) => p.uuid), [productos]);
+  const pageIds = useMemo(
+    () => productosVisibles.map((p) => p.uuid),
+    [productosVisibles]
+  );
+
   const allPageSelected =
     pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+
   const somePageSelected =
     !allPageSelected && pageIds.some((id) => selectedIds.includes(id));
 
@@ -130,9 +153,15 @@ export default function MovimientoRegistroTable({
     });
   };
 
-  /* ======================================================
-     PAGINADOR
-  ====================================================== */
+  const toggleCheckbox = (uuid: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(uuid)
+        ? prev.filter((id) => id !== uuid)
+        : [...prev, uuid]
+    );
+  };
+
+  //  PAGINADOR 
   const pagerItems = useMemo(() => {
     const maxButtons = 5;
     const pages: (number | string)[] = [];
@@ -171,9 +200,7 @@ export default function MovimientoRegistroTable({
     setPage(p);
   };
 
-  /* ======================================================
-     UI HELPERS
-  ====================================================== */
+  //  UI HELPERS
   const COLS = [
     "w-[2%]",
     "w-[4%]",
@@ -197,37 +224,30 @@ export default function MovimientoRegistroTable({
       </div>
     );
 
-  //  FORMATO STOCK (igual al base: badge + texto abajo)
   const renderEstadoStock = (stock?: number, minimo?: number) => {
-    const isInvalid = stock === undefined || minimo === undefined;
-
-    if (isInvalid) {
+    if (stock === undefined || minimo === undefined) {
       return <span className="text-xs text-red-500">Datos no disponibles</span>;
     }
 
-    const bajo = stock < minimo; // igualito al código base
+    const bajo = stock < minimo;
     const bg = bajo
       ? "bg-yellow-100 text-yellow-700"
       : "bg-green-100 text-green-700";
 
-    const texto = bajo ? "Stock bajo" : "Stock normal";
-
     return (
       <div className="flex flex-col items-start gap-1">
-        <span
-          className={`${bg} text-xs px-2 py-1 rounded inline-flex items-center gap-1`}
-        >
-          <FaBoxOpen className="text-[14px]" />
+        <span className={`${bg} text-xs px-2 py-1 rounded inline-flex gap-1`}>
+          <FaBoxOpen />
           {stock}
         </span>
-        <div className="text-xs text-gray-500">{texto}</div>
+        <div className="text-xs text-gray-500">
+          {bajo ? "Stock bajo" : "Stock normal"}
+        </div>
       </div>
     );
   };
 
-  /* ======================================================
-     RENDER
-  ====================================================== */
+  //  RENDER (PAGINADOR INTACTO)
   return (
     <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
       <div className="overflow-x-auto bg-white">
@@ -262,7 +282,7 @@ export default function MovimientoRegistroTable({
           </thead>
 
           <tbody className="divide-y divide-gray20">
-            {productos.map((prod) => (
+            {productosVisibles.map((prod) => (
               <tr key={prod.uuid} className="hover:bg-gray10 transition-colors">
                 <td className="h-12 px-4 py-3">
                   <input
@@ -294,7 +314,6 @@ export default function MovimientoRegistroTable({
                   {prod.almacenamiento?.nombre_almacen ?? "—"}
                 </td>
 
-                {/*  AQUÍ va el formato de stock con etiqueta */}
                 <td className="h-12 px-4 py-3">
                   {renderEstadoStock(prod.stock, (prod as any).stock_minimo)}
                 </td>
