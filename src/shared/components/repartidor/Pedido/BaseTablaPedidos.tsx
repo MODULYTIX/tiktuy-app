@@ -7,7 +7,7 @@ import type {
   ListPedidosHoyQuery,
   ListByEstadoQuery,
 } from "@/services/repartidor/pedidos/pedidos.types";
-import { Selectx } from "@/shared/common/Selectx";
+import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import { SearchInputx } from "@/shared/common/SearchInputx";
 
@@ -49,6 +49,10 @@ export default function BaseTablaPedidos({
   const [filtroCantidad, setFiltroCantidad] = useState("");
   const [searchProducto, setSearchProducto] = useState("");
 
+  // ✅ NUEVO
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+
   const [data, setData] = useState<Paginated<PedidoListItem> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -58,11 +62,18 @@ export default function BaseTablaPedidos({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
+    setDesde("");
+    setHasta("");
   }, [view]);
 
   const qHoy: ListPedidosHoyQuery = useMemo(
-    () => ({ page, perPage }),
-    [page, perPage]
+    () => ({
+      page,
+      perPage,
+      ...(desde ? { desde } : {}),
+      ...(hasta ? { hasta } : {}),
+    }),
+    [page, perPage, desde, hasta]
   );
 
   const qEstado: ListByEstadoQuery = useMemo(
@@ -119,8 +130,7 @@ export default function BaseTablaPedidos({
       const cant = Number(filtroCantidad);
       const byCount = (x: PedidoListItem) =>
         x.items_total_cantidad ??
-        x.items?.reduce((s, it) => s + it.cantidad, 0) ??
-        0;
+        (x.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
       arr = arr.filter((x) => byCount(x) === cant);
     }
 
@@ -181,95 +191,107 @@ export default function BaseTablaPedidos({
       {/* Encabezado */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4 min-w-0">
         <div className="min-w-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-primary">{title}</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-primary">
+            {title}
+          </h2>
           <p className="text-sm text-gray-600">{subtitle}</p>
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="relative z-20 overflow-visible mb-6">
-        <div
-          className="
-            bg-white p-4 sm:p-5 rounded
-            border-b-4 border-gray90
-            ring-1 ring-gray-200
-            shadow-default
-            shadow-[0_10px_24px_rgba(0,0,0,0.10)]
-          "
-        >
-          <div className="flex flex-wrap gap-3 items-end min-w-0">
-            <div className="w-full sm:w-[220px] flex-1 min-w-[160px]">
-              <Selectx
-                label="Distrito"
-                value={filtroDistrito}
-                onChange={(e) => setFiltroDistrito(e.target.value)}
-                placeholder="Seleccionar distrito"
-                className="w-full"
-              >
-                <option value="">Seleccionar distrito</option>
-                {distritos.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </Selectx>
-            </div>
+      {/* ✅ Filtros RESPONSIVE (misma tarjeta, pero con wrap) */}
+      <div className="bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 mb-5 min-w-0">
+        <div className="flex flex-wrap gap-3 items-end min-w-0">
+          {/* Desde / Hasta (solo hoy) */}
+          {view === "hoy" && (
+            <>
+              <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
+                <SelectxDate
+                  label="Desde"
+                  value={desde}
+                  onChange={(e) => setDesde(e.target.value)}
+                  className="w-full"
+                />
+              </div>
 
-            <div className="w-full sm:w-[180px] flex-1 min-w-[140px]">
-              <Selectx
-                label="Cantidad"
-                value={filtroCantidad}
-                onChange={(e) => setFiltroCantidad(e.target.value)}
-                placeholder="Seleccionar cantidad"
-                className="w-full"
-              >
-                <option value="">Seleccionar cantidad</option>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>
-                    {two(n)}
-                  </option>
-                ))}
-              </Selectx>
-            </div>
+              <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
+                <SelectxDate
+                  label="Hasta"
+                  value={hasta}
+                  onChange={(e) => setHasta(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </>
+          )}
 
-            <div className="w-full sm:min-w-[260px] flex-[2] min-w-[200px]">
-              <SearchInputx
-                value={searchProducto}
-                onChange={(e) => setSearchProducto(e.target.value)}
-                placeholder="Buscar productos por nombre"
-                className="w-full"
-              />
-            </div>
+          {/* Distrito */}
+          <div className="w-full sm:w-[220px] flex-1 min-w-[160px]">
+            <Selectx
+              label="Distrito"
+              value={filtroDistrito}
+              onChange={(e) => setFiltroDistrito(e.target.value)}
+              className="w-full"
+            >
+              <option value="">Seleccionar distrito</option>
+              {distritos.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </Selectx>
+          </div>
 
-            <div className="w-full sm:w-auto shrink-0">
-              <Buttonx
-                label="Limpiar Filtros"
-                icon="mynaui:delete"
-                variant="outlined"
-                onClick={() => {
-                  setFiltroDistrito("");
-                  setFiltroCantidad("");
-                  setSearchProducto("");
-                }}
-                disabled={false}
-              />
-            </div>
+          {/* Cantidad */}
+          <div className="w-full sm:w-[180px] flex-1 min-w-[140px]">
+            <Selectx
+              label="Cantidad"
+              value={filtroCantidad}
+              onChange={(e) => setFiltroCantidad(e.target.value)}
+              className="w-full"
+            >
+              <option value="">Seleccionar cantidad</option>
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {two(n)}
+                </option>
+              ))}
+            </Selectx>
+          </div>
+
+          {/* Buscar producto */}
+          <div className="w-full sm:min-w-[260px] flex-[2] min-w-[200px]">
+            <SearchInputx
+              value={searchProducto}
+              onChange={(e) => setSearchProducto(e.target.value)}
+              placeholder="Buscar productos por nombre"
+              className="w-full"
+            />
+          </div>
+
+          {/* Limpiar */}
+          <div className="w-full sm:w-auto shrink-0">
+            <Buttonx
+              label="Limpiar Filtros"
+              icon="mynaui:delete"
+              variant="outlined"
+              onClick={() => {
+                setFiltroDistrito("");
+                setFiltroCantidad("");
+                setSearchProducto("");
+                setDesde("");
+                setHasta("");
+              }}
+            />
           </div>
         </div>
       </div>
 
       {/* Estados */}
-      {loading && (
-        <div className="py-10 text-center text-gray-500">Cargando...</div>
-      )}
-
-      {!loading && error && (
-        <div className="py-10 text-center text-red-600">{error}</div>
-      )}
+      {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
+      {!loading && error && <div className="py-10 text-center text-red-600">{error}</div>}
 
       {!loading && !error && (
         <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30 min-w-0 relative z-0">
-          {/* Scroll horizontal SOLO en mobile; desktop normal */}
           <div className="relative overflow-x-auto lg:overflow-x-visible bg-white">
             <table className="w-full min-w-[980px] lg:min-w-0 table-auto text-[12px] bg-white border-b border-gray30 rounded-t-md">
               <thead className="bg-[#E5E7EB]">
@@ -277,12 +299,8 @@ export default function BaseTablaPedidos({
                   <th className="px-4 py-3 whitespace-nowrap">Fec. Entrega</th>
                   <th className="px-4 py-3 whitespace-nowrap">Ecommerce</th>
                   <th className="px-4 py-3 whitespace-nowrap">Cliente</th>
-                  <th className="px-4 py-3 whitespace-nowrap">
-                    Dirección de Entrega
-                  </th>
-                  <th className="px-4 py-3 whitespace-nowrap">
-                    Cant. de productos
-                  </th>
+                  <th className="px-4 py-3 whitespace-nowrap">Dirección de Entrega</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Cant. de productos</th>
                   <th className="px-4 py-3 whitespace-nowrap">Monto</th>
                   <th className="px-4 py-3 whitespace-nowrap">Estado</th>
 
@@ -312,39 +330,28 @@ export default function BaseTablaPedidos({
                     0;
 
                   return (
-                    <tr
-                      key={p.id}
-                      className="group hover:bg-gray10 transition-colors"
-                    >
+                    <tr key={p.id} className="group hover:bg-gray10 transition-colors">
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
-                        {fecha
-                          ? new Date(fecha).toLocaleDateString("es-PE")
-                          : "—"}
+                        {fecha ? new Date(fecha).toLocaleDateString("es-PE") : "—"}
                       </td>
-
                       <td className="h-12 px-4 py-3 text-gray70">
                         {p.ecommerce?.nombre_comercial ?? "—"}
                       </td>
-
                       <td className="h-12 px-4 py-3 text-gray70">
                         {p.cliente?.nombre ?? "—"}
                       </td>
-
                       <td
                         className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]"
                         title={p.direccion_envio ?? ""}
                       >
                         {p.direccion_envio ?? "—"}
                       </td>
-
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
                         {two(cant)}
                       </td>
-
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
                         {PEN.format(Number(p.monto_recaudar || 0))}
                       </td>
-
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
                         {p.estado_nombre}
                       </td>
@@ -372,10 +379,7 @@ export default function BaseTablaPedidos({
                               className="text-amber-600 hover:text-amber-800 transition-colors"
                               onClick={() => onCambiarEstado?.(p)}
                             >
-                              <Icon
-                                icon="mdi:swap-horizontal"
-                                className="text-lg"
-                              />
+                              <Icon icon="mdi:swap-horizontal" className="text-lg" />
                             </button>
                           )}
                         </div>
@@ -387,27 +391,14 @@ export default function BaseTablaPedidos({
                 {!itemsFiltrados.length && (
                   <>
                     <tr className="lg:hidden">
-                      <td
-                        colSpan={7}
-                        className="px-4 py-8 text-center text-gray70 italic"
-                      >
+                      <td colSpan={7} className="px-4 py-8 text-center text-gray70 italic">
                         No hay pedidos para esta etapa.
                       </td>
-                      <td
-                        className="
-                          sticky right-0 z-10
-                          bg-white
-                          border-l border-gray30
-                          w-[120px]
-                        "
-                      />
+                      <td className="sticky right-0 z-10 bg-white border-l border-gray30 w-[120px]" />
                     </tr>
 
                     <tr className="hidden lg:table-row">
-                      <td
-                        colSpan={8}
-                        className="px-4 py-8 text-center text-gray70 italic"
-                      >
+                      <td colSpan={8} className="px-4 py-8 text-center text-gray70 italic">
                         No hay pedidos para esta etapa.
                       </td>
                     </tr>

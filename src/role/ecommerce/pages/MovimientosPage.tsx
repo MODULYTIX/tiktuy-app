@@ -1,5 +1,5 @@
 // src/pages/ecommerce/movimientos/RegistroMovimientoPage.tsx
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
 import MovimientoRegistroFilters, {
@@ -23,13 +23,16 @@ import ModalSlideRight from "@/shared/common/ModalSlideRight";
 export default function RegistroMovimientoPage() {
   const { notify } = useNotification();
 
-  // Productos seleccionados para crear movimiento
-  const [selectedProducts, setSelectedProducts] = useState<Producto[]>([]);
-  const [selectedUuids, setSelectedUuids] = useState<string[]>([]);
+  const [selectedProductsMap, setSelectedProductsMap] = useState<
+    Record<string, Producto>
+  >({});
+
   const [modalOpen, setModalOpen] = useState(false);
 
   // Tabs
-  const [modalMode, setModalMode] = useState<"registro" | "validacion">("registro");
+  const [modalMode, setModalMode] = useState<"registro" | "validacion">(
+    "registro"
+  );
 
   // Filtros del REGISTRO
   const [filters, setFilters] = useState<Filters>({
@@ -44,11 +47,12 @@ export default function RegistroMovimientoPage() {
   });
 
   // Filtros para VALIDACIÓN
-  const [filtersValidacion, setFiltersValidacion] = useState<MovimientoEcommerceFilters>({
-    estado: "",
-    fecha: "",
-    q: "",
-  });
+  const [filtersValidacion, setFiltersValidacion] =
+    useState<MovimientoEcommerceFilters>({
+      estado: "",
+      fecha: "",
+      q: "",
+    });
 
   // Modal VER
   const [verOpen, setVerOpen] = useState(false);
@@ -61,6 +65,40 @@ export default function RegistroMovimientoPage() {
     setVerData(null);
   };
 
+  const handleSelectProducts = useCallback(
+  ({
+    pageProducts,
+    selectedIds,
+  }: {
+    pageProducts: Producto[];
+    selectedIds: string[];
+  }) => {
+    setSelectedProductsMap((prev) => {
+      const next = { ...prev };
+      const selectedSet = new Set(selectedIds);
+
+      // Quitar deseleccionados de esta página
+      pageProducts.forEach((p) => {
+        if (!selectedSet.has(p.uuid)) {
+          delete next[p.uuid];
+        }
+      });
+
+      // Agregar / mantener seleccionados
+      pageProducts.forEach((p) => {
+        if (selectedSet.has(p.uuid)) {
+          next[p.uuid] = p;
+        }
+      });
+
+      return next;
+    });
+  },
+  []
+);
+
+  const selectedProducts = Object.values(selectedProductsMap);
+
   const handleOpenModalCrear = () => {
     if (selectedProducts.length === 0) {
       notify("Selecciona al menos un producto para continuar.", "error");
@@ -70,7 +108,9 @@ export default function RegistroMovimientoPage() {
     const almacenes = Array.from(
       new Set(
         selectedProducts
-          .map((p) => (p.almacenamiento_id != null ? String(p.almacenamiento_id) : ""))
+          .map((p) =>
+            p.almacenamiento_id != null ? String(p.almacenamiento_id) : ""
+          )
           .filter(Boolean)
       )
     );
@@ -83,7 +123,6 @@ export default function RegistroMovimientoPage() {
       return;
     }
 
-    setSelectedUuids(selectedProducts.map((p) => p.uuid));
     setModalOpen(true);
   };
 
@@ -140,7 +179,7 @@ export default function RegistroMovimientoPage() {
 
             <MovimientoRegistroTable
               filters={filters}
-              onSelectProducts={setSelectedProducts}
+              onSelectProducts={handleSelectProducts}
               onViewProduct={handleViewProduct}
             />
           </div>
@@ -150,13 +189,17 @@ export default function RegistroMovimientoPage() {
             <CrearMovimientoModal
               open={modalOpen}
               onClose={closeCrear}
-              selectedProducts={selectedUuids}
+              selectedProducts={selectedProducts.map((p) => p.uuid)}
             />
           </ModalSlideRight>
 
           {/* Modal VER */}
           <ModalSlideRight open={verOpen} onClose={closeVer}>
-            <VerMovimientoModal open={verOpen} onClose={closeVer} data={verData} />
+            <VerMovimientoModal
+              open={verOpen}
+              onClose={closeVer}
+              data={verData}
+            />
           </ModalSlideRight>
         </>
       ) : (

@@ -295,45 +295,65 @@ export default function VerMovimientoRealizadoModal(props: Props) {
 
               {/* DERECHA TABLA */}
               <div className="lg:col-span-7">
-                <div className="h-full border rounded-sm overflow-hidden bg-white border-gray-400">
-                  <table className="items-start w-full text-sm">
-                    <thead className="bg-slate-100 text-slate-700">
-                      <tr>
-                        <th className="p-3 text-left font-semibold"></th>
-                        <th className="p-3 text-left font-semibold">Código</th>
-                        <th className="p-3 text-left font-semibold">Producto</th>
-                        <th className="p-3 text-left font-semibold">Descripción</th>
-                        <th className="p-3 text-right font-semibold">Cantidad</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(data.items ?? []).length > 0 ? (
-                        (data.items as MovimientoItem[]).map((it, idx) => (
-                          <tr key={`${it.producto_uuid ?? it.producto_id ?? idx}`} className="border-t">
-                            <td className="p-3">
-                              <img src={it.imagen_url ?? ''} className="w-12 h-12" />
-                            </td>
-                            <td className="p-3">{toText(it.codigo_identificacion ?? '')}</td>
-                            <td className="p-3">{toText(it.nombre_producto ?? '')}</td>
-                            <td className="p-3 text-slate-600">{toText(it.descripcion ?? '')}</td>
-                            <td className="p-3 text-right">
-                              {/* cantidad enviada */}
-                              {Number(it.cantidad_validada ?? 0)}
+                <div className="h-full border rounded-sm bg-white border-gray-400 flex flex-col">
+  {/* HEADER FIJO */}
+  <table className="w-full text-sm">
+    <thead className="bg-slate-100 text-slate-700">
+      <tr>
+        <th className="p-3 text-left font-semibold"></th>
+        <th className="p-3 text-left font-semibold">Código</th>
+        <th className="p-3 text-left font-semibold">Producto</th>
+        <th className="p-3 text-left font-semibold">Descripción</th>
+        <th className="p-3 text-right font-semibold">Cantidad</th>
+      </tr>
+    </thead>
+  </table>
 
-                            </td>
+  {/* BODY CON SCROLL */}
+  <div className="overflow-y-auto max-h-[336px]">
+    <table className="w-full text-sm">
+      <tbody>
+        {(data.items ?? []).length > 0 ? (
+          (data.items as MovimientoItem[]).map((it, idx) => (
+            <tr
+              key={`${it.producto_uuid ?? it.producto_id ?? idx}`}
+              className="border-t"
+            >
+              <td className="p-3">
+                <img
+                  src={it.imagen_url ?? ''}
+                  className="w-12 h-12 object-cover"
+                />
+              </td>
+              <td className="p-3">
+                {toText(it.codigo_identificacion ?? '')}
+              </td>
+              <td className="p-3">
+                {toText(it.nombre_producto ?? '')}
+              </td>
+              <td className="p-3 text-slate-600">
+                {toText(it.descripcion ?? '')}
+              </td>
+              <td className="p-3 text-right">
+                {Number(it.cantidad_validada ?? 0)}
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td
+              className="p-6 text-center text-slate-500 italic"
+              colSpan={5}
+            >
+              Sin ítems en este movimiento.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
 
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td className="p-6 text-center text-slate-500 italic" colSpan={4}>
-                            Sin ítems en este movimiento.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
               </div>
 
             </div>

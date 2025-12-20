@@ -17,7 +17,7 @@ import { InputxTextarea } from "@/shared/common/Inputx";
 interface Props {
   open: boolean;
   onClose: () => void;
-  selectedProducts?: string[];
+  selectedProducts?: string[]; // uuids
 }
 
 export default function CrearMovimientoModal({
@@ -32,27 +32,29 @@ export default function CrearMovimientoModal({
   const [sedesDestino, setSedesDestino] = useState<Almacenamiento[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cantidades, setCantidades] = useState<Record<string, number>>({});
-  const [almacenOrigen, setAlmacenOrigen] = useState<string>("");
-  const [almacenDestino, setAlmacenDestino] = useState<string>("");
-  const [descripcion, setDescripcion] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
+  const [almacenOrigen, setAlmacenOrigen] = useState("");
+  const [almacenDestino, setAlmacenDestino] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  /* ======================================================
+     FETCH INICIAL
+  ====================================================== */
+    useEffect(() => {
     if (!open || !token) return;
 
     fetchSedesConRepresentante(token)
       .then((data) => {
-        const list: Almacenamiento[] = Array.isArray(data) ? data : [];
+        const list = Array.isArray(data) ? data : [];
         setSedesOrigen(list);
         setSedesDestino(list);
       })
       .catch(console.error);
 
-    fetchProductos(token)
+    // ✅ TRAER MUCHOS PRODUCTOS (NO SOLO 10)
+    fetchProductos(token, { page: 1, perPage: 1000 })
       .then((rows: any) => {
-        const list: Producto[] = Array.isArray(rows)
-          ? rows
-          : Array.isArray(rows?.data)
+        const list: Producto[] = Array.isArray(rows?.data)
           ? rows.data
           : [];
         setProductos(list);
@@ -65,18 +67,28 @@ export default function CrearMovimientoModal({
     setAlmacenOrigen("");
   }, [open, token]);
 
-  const productosSeleccionados = useMemo(
-    () => productos.filter((p) => selectedProducts.includes(p.uuid)),
-    [productos, selectedProducts]
-  );
+  /* ======================================================
+     PRODUCTOS SELECCIONADOS (AHORA SÍ TODOS)
+  ====================================================== */
+  const productosSeleccionados = useMemo(() => {
+    if (!selectedProducts.length) return [];
+    const set = new Set(selectedProducts);
+    return productos.filter((p) => set.has(p.uuid));
+  }, [productos, selectedProducts]);
 
+  /* ======================================================
+     ORIGEN INFERIDO
+  ====================================================== */
   const origenInferido = useMemo(() => {
-    const almacenIds = productosSeleccionados
-      .map((p) => (p.almacenamiento_id != null ? String(p.almacenamiento_id) : ""))
+    const ids = productosSeleccionados
+      .map((p) =>
+        p.almacenamiento_id != null ? String(p.almacenamiento_id) : ""
+      )
       .filter(Boolean);
-    if (almacenIds.length === 0) return "";
-    const first = almacenIds[0];
-    return almacenIds.every((id) => id === first) ? first : "";
+
+    if (!ids.length) return "";
+    const first = ids[0];
+    return ids.every((id) => id === first) ? first : "";
   }, [productosSeleccionados]);
 
   useEffect(() => {
@@ -86,58 +98,74 @@ export default function CrearMovimientoModal({
     }
   }, [origenInferido]);
 
+  /* ======================================================
+     DESTINOS
+  ====================================================== */
   const esSedeAsociada = (s: Almacenamiento) =>
     s?.entidad?.tipo === "courier" || !!s?.courier_id;
 
   const destinosBase = useMemo(() => {
-    const base = (sedesDestino?.length ? sedesDestino : sedesOrigen) || [];
+    const base = sedesDestino.length ? sedesDestino : sedesOrigen;
     return base.filter(esSedeAsociada);
   }, [sedesDestino, sedesOrigen]);
 
   const destinosFiltrados = useMemo(() => {
     if (!destinosBase.length) return [];
     if (!almacenOrigen) return destinosBase;
-    return destinosBase.filter((s) => String(s.id) !== String(almacenOrigen));
+    return destinosBase.filter(
+      (s) => String(s.id) !== String(almacenOrigen)
+    );
   }, [destinosBase, almacenOrigen]);
 
+  /* ======================================================
+     CANTIDADES
+  ====================================================== */
   const handleCantidadChange = (uuid: string, value: number, stock: number) => {
-    const n = Number.isFinite(value) ? value : 0;
-    const safe = Math.min(Math.max(0, Math.trunc(n)), stock);
+    const safe = Math.min(Math.max(0, Math.trunc(value || 0)), stock);
     setCantidades((prev) => ({ ...prev, [uuid]: safe }));
   };
 
+  /* ======================================================
+     VALIDACIÓN
+  ====================================================== */
   const validarAntesDeEnviar = () => {
     if (!origenInferido) {
-      notify("Todos los productos deben pertenecer a la misma sede de origen.", "error");
+      notify(
+        "Todos los productos deben pertenecer a la misma sede de origen.",
+        "error"
+      );
       return false;
     }
     if (!almacenOrigen || !almacenDestino || almacenOrigen === almacenDestino) {
-      notify("Selecciona sedes válidas (origen y destino distintos).", "error");
+      notify(
+        "Selecciona sedes válidas (origen y destino distintos).",
+        "error"
+      );
       return false;
     }
-    if (almacenOrigen !== origenInferido) {
-      notify("La sede de origen no coincide con los productos seleccionados.", "error");
-      return false;
-    }
-    const prods = productosSeleccionados
-      .filter((p) => (cantidades[p.uuid] ?? 0) > 0)
-      .map((p) => ({ id: p.id, q: cantidades[p.uuid], stock: p.stock }));
-    if (prods.length === 0) {
+
+    const prods = productosSeleccionados.filter(
+      (p) => (cantidades[p.uuid] ?? 0) > 0
+    );
+    if (!prods.length) {
       notify("Debes ingresar al menos una cantidad válida.", "error");
-      return false;
-    }
-    if (prods.find((x) => x.q < 0 || x.q > x.stock)) {
-      notify("Hay cantidades fuera de rango respecto al stock.", "error");
       return false;
     }
     return true;
   };
 
+  /* ======================================================
+     SUBMIT
+  ====================================================== */
   const handleSubmit = async () => {
     if (!validarAntesDeEnviar()) return;
+
     const productosMov = productosSeleccionados
       .filter((p) => (cantidades[p.uuid] ?? 0) > 0)
-      .map((p) => ({ producto_id: p.id, cantidad: cantidades[p.uuid] }));
+      .map((p) => ({
+        producto_id: p.id,
+        cantidad: cantidades[p.uuid],
+      }));
 
     setLoading(true);
     try {
@@ -150,11 +178,8 @@ export default function CrearMovimientoModal({
         },
         token!
       );
+
       notify("Movimiento registrado correctamente.", "success");
-      setCantidades({});
-      setDescripcion("");
-      setAlmacenDestino("");
-      setAlmacenOrigen("");
       onClose();
     } catch (e) {
       console.error(e);
@@ -191,8 +216,9 @@ export default function CrearMovimientoModal({
         description="Selecciona productos y completa los datos para registrar un movimiento."
       />
 
-      {/* Tabla */}
-      <div className="rounded-md border border-gray-200 overflow-x-auto bg-white">
+      {/* Tabla  */}
+      <div className="rounded-md border border-gray-200 bg-white">
+        {/* Header fijo */}
         <table className="min-w-full table-fixed text-[12px]">
           <colgroup>
             <col className="w-[18%]" />
@@ -201,7 +227,7 @@ export default function CrearMovimientoModal({
             <col className="w-[20%]" />
           </colgroup>
 
-          <thead className="bg-[#E5E7EB]">
+          <thead className="bg-[#E5E7EB] sticky top-0 z-10">
             <tr className="text-gray-700 font-roboto font-medium">
               <th className="px-4 py-3 text-left">Código</th>
               <th className="px-4 py-3 text-left">Producto</th>
@@ -209,70 +235,71 @@ export default function CrearMovimientoModal({
               <th className="px-4 py-3 text-center">Cantidad</th>
             </tr>
           </thead>
-
-          <tbody className="divide-y divide-gray-100">
-            {productosSeleccionados.map((p) => (
-              <tr key={p.uuid} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-4 text-gray-900 whitespace-nowrap">
-                  {p.codigo_identificacion}
-                </td>
-
-                <td className="px-4 py-4 text-gray-900">
-                  <div className="min-w-0">
-                    <span
-                      className="w-full overflow-hidden text-ellipsis line-clamp-1"
-                      title={p.nombre_producto ?? undefined}
-                    >
-                      {p.nombre_producto ?? "—"}
-                    </span>
-                  </div>
-                </td>
-
-                <td className="px-4 py-4 text-gray-700">
-                  <div className="min-w-0">
-                    <span
-                      className="w-full overflow-hidden text-ellipsis line-clamp-1"
-                      title={p.descripcion ?? undefined}
-                    >
-                      {p.descripcion ?? "—"}
-                    </span>
-                  </div>
-                </td>
-
-                <td className="px-4 py-4">
-                  <div className="ml-auto flex w-full justify-center items-center gap-2">
-                    <input
-                      aria-label={`Cantidad para ${p.nombre_producto ?? "producto"}`}
-                      type="number"
-                      inputMode="numeric"
-                      step={1}
-                      min={0}
-                      max={p.stock}
-                      value={Number.isFinite(cantidades[p.uuid]) ? cantidades[p.uuid] : ""}
-                      onChange={(e) =>
-                        handleCantidadChange(p.uuid, Number(e.target.value), p.stock)
-                      }
-                      className="w-[64px] h-9 rounded-lg border border-gray-300 px-2 text-center text-sm shadow-sm
-                                 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                    />
-                    <span className="text-sm text-gray-600 whitespace-nowrap">
-                      / {p.stock}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            ))}
-
-            {productosSeleccionados.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-gray-500 italic">
-                  No hay productos seleccionados.
-                </td>
-              </tr>
-            )}
-          </tbody>
         </table>
+
+        {/*  BODY SCROLLEABLE */}
+        <div className="max-h-[420px] overflow-y-auto">
+          <table className="min-w-full table-fixed text-[12px]">
+            <colgroup>
+              <col className="w-[18%]" />
+              <col className="w-[28%]" />
+              <col className="w-[34%]" />
+              <col className="w-[20%]" />
+            </colgroup>
+
+            <tbody className="divide-y divide-gray-100">
+              {productosSeleccionados.map((p) => (
+                <tr key={p.uuid} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 text-gray-900 whitespace-nowrap">
+                    {p.codigo_identificacion}
+                  </td>
+
+                  <td className="px-4 py-4 text-gray-900">
+                    <span className="line-clamp-1">{p.nombre_producto ?? "—"}</span>
+                  </td>
+
+                  <td className="px-4 py-4 text-gray-700">
+                    <span className="line-clamp-1">{p.descripcion ?? "—"}</span>
+                  </td>
+
+                  <td className="px-4 py-4">
+                    <div className="flex justify-center items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        max={p.stock}
+                        value={
+                          Number.isFinite(cantidades[p.uuid])
+                            ? cantidades[p.uuid]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          handleCantidadChange(
+                            p.uuid,
+                            Number(e.target.value),
+                            p.stock
+                          )
+                        }
+                        className="w-[64px] h-9 rounded-lg border border-gray-300 px-2 text-center text-sm"
+                      />
+                      <span className="text-sm text-gray-600">/ {p.stock}</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {productosSeleccionados.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-gray-500 italic">
+                    No hay productos seleccionados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+
 
       {/* Datos adicionales */}
       <div className="flex-1 flex flex-col gap-5 overflow-y-auto pr-1">

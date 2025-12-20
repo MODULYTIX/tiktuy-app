@@ -29,9 +29,12 @@ function toQueryHoy(q: ListPedidosHoyQuery = {}): string {
   const sp = new URLSearchParams();
   if (q.page !== undefined) sp.set("page", String(q.page));
   if (q.perPage !== undefined) sp.set("perPage", String(q.perPage));
+  if (q.desde !== undefined) sp.set("desde", toIso(q.desde));
+  if (q.hasta !== undefined) sp.set("hasta", toIso(q.hasta));
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
+
 
 function toQueryEstado(q: ListByEstadoQuery = {}): string {
   const sp = new URLSearchParams();

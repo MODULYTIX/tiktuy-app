@@ -14,7 +14,7 @@ export default function Header() {
     () =>
       user?.ecommerce_nombre ||
       user?.courier_nombre ||
-      user?.motorizado_courier_nombre ||
+      user?.nombres + " " + user?.apellidos||
       "Empresa",
     [user]
   );
@@ -108,7 +108,7 @@ export default function Header() {
           <div className="flex flex-col leading-tight min-w-0 flex-1">
             <span
               className="text-[13px] font-semibold text-gray-900 truncate"
-              title={displayName} // tooltip con el nombre completo
+              title={displayName} 
             >
               {displayName}
             </span>

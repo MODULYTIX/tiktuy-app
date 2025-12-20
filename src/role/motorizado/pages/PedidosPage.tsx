@@ -18,12 +18,14 @@ import Buttonx from "@/shared/common/Buttonx";
 type VistaUI = "asignados" | "pendientes" | "terminados";
 const toRepartidorVista = (v: VistaUI): RepartidorVista => (v === "asignados" ? "hoy" : v);
 
+/** IDs reales de tu tabla MetodoPago (según tu BD) */
 const METODO_PAGO_IDS = {
   EFECTIVO: 1,
   BILLETERA: 2,
   DIRECTO_ECOMMERCE: 3,
 } as const;
 
+/** Tipo que el ModalEntregaRepartidor ya está enviando */
 type ConfirmEntregaPayload =
   | { pedidoId: number; resultado: "RECHAZADO"; observacion?: string }
   | {
@@ -137,21 +139,30 @@ export default function PedidosPage() {
   const view = toRepartidorVista(vista);
 
   return (
-    <section className="mt-4 md:mt-8 w-full min-w-0">
-      <header className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <div className="text-center md:text-left">
+    <section
+      className="
+        mt-4 md:mt-8
+        w-full min-w-0
+        overflow-x-hidden
+        px-3 sm:px-4 lg:px-0
+      "
+    >
+      <header className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between min-w-0">
+        <div className="text-center md:text-left min-w-0">
           <Tittlex
             title="Mis Pedidos"
             description="Revisa tus pedidos asignados, gestiona pendientes y finalizados"
           />
         </div>
 
+        {/* Tabs/Botones */}
         <nav className="w-full md:w-auto min-w-0">
           <div
             className="
               flex flex-wrap items-center justify-center gap-2
               md:flex-nowrap md:justify-end
-              w-full md:w-auto
+              w-full md:w-auto min-w-0
+              -mx-3 px-3 sm:-mx-4 sm:px-4 md:mx-0 md:px-0
             "
           >
             <Buttonx
@@ -176,21 +187,34 @@ export default function PedidosPage() {
         </nav>
       </header>
 
-      {/* ✅ OJO: aquí ya NO hay overflow-x-auto */}
+      {/* Tablas */}
       <div className="my-4 md:my-8 w-full min-w-0">
         {view === "hoy" && (
-          <TablePedidosHoy token={token} onVerDetalle={handleVerDetalle} onCambiarEstado={handleCambiarEstado} />
+          <TablePedidosHoy
+            token={token}
+            onVerDetalle={handleVerDetalle}
+            onCambiarEstado={handleCambiarEstado}
+          />
         )}
 
         {view === "pendientes" && (
-          <TablePedidosPendientes token={token} onVerDetalle={handleVerDetalle} onCambiarEstado={handleCambiarEstado} />
+          <TablePedidosPendientes
+            token={token}
+            onVerDetalle={handleVerDetalle}
+            onCambiarEstado={handleCambiarEstado}
+          />
         )}
 
         {view === "terminados" && (
-          <TablePedidosTerminados token={token} onVerDetalle={handleVerDetalle} onCambiarEstado={handleCambiarEstado} />
+          <TablePedidosTerminados
+            token={token}
+            onVerDetalle={handleVerDetalle}
+            onCambiarEstado={handleCambiarEstado}
+          />
         )}
       </div>
 
+      {/* Modales */}
       <ModalRepartidorMotorizado
         isOpen={openModalCambio}
         onClose={() => {

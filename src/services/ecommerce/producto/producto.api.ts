@@ -57,13 +57,7 @@ export async function fetchProductos(
     precio_alto: params.precio_alto,
   };
 
-  //  LOG 1: qué query se está enviando
-  console.log('[fetchProductos] QUERY PARAMS →', query);
-
   const url = buildURL(BASE, query);
-
-  //  LOG 2: URL final
-  console.log('[fetchProductos] URL →', url);
 
   const res = await fetch(url, {
     headers: {
@@ -74,33 +68,12 @@ export async function fetchProductos(
     cache: 'no-store',
   });
 
-  //  LOG 3: status HTTP
-  console.log('[fetchProductos] HTTP STATUS →', res.status);
-
-  if (!res.ok) {
+    if (!res.ok) {
     console.error('[fetchProductos] ERROR RESPONSE →', res.statusText);
     throw new Error('Error al obtener productos');
   }
 
   const data = await res.json();
-
-  //  LOG 4: resumen de respuesta (NO todo el payload)
-  console.log('[fetchProductos] RESPONSE META →', {
-    total: data?.pagination?.total,
-    page: data?.pagination?.page,
-    perPage: data?.pagination?.perPage,
-    dataLength: data?.data?.length,
-  });
-
-  //  LOG 5: nombres de productos (debug rápido)
-  console.log(
-    '[fetchProductos] PRODUCTOS →',
-    data?.data?.map((p: any) => ({
-      id: p.id,
-      nombre: p.nombre_producto,
-      stock: p.stock,
-    }))
-  );
 
   return data;
 }

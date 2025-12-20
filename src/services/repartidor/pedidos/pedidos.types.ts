@@ -8,7 +8,10 @@ export type RepartidorVista = "hoy" | "pendientes" | "terminados";
 export interface ListPedidosHoyQuery {
   page?: number;
   perPage?: number;
+  desde?: string | Date;
+  hasta?: string | Date;
 }
+
 
 export interface ListByEstadoQuery {
   page?: number;

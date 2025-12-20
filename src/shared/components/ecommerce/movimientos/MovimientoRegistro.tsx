@@ -71,9 +71,15 @@ export default function MovimientoRegistro() {
 
       <MovimientoRegistroTable
         filters={filters}
-        onSelectProducts={setProductosSeleccionados}
+        onSelectProducts={({ pageProducts, selectedIds }) => {
+          const seleccionados = pageProducts.filter((p) =>
+            selectedIds.includes(p.uuid)
+          );
+          setProductosSeleccionados(seleccionados);
+        }}
         onViewProduct={handleViewProduct}
       />
+
 
       {/* Pasa solo las props que existen en el modal */}
       <CrearMovimientoModal
