@@ -15,17 +15,41 @@ import type {
 type Estado = "Validado" | "Por Validar";
 
 const formatPEN = (v: number) =>
-  `S/. ${v.toLocaleString("es-PE", {
+  `S/. ${Number(v || 0).toLocaleString("es-PE", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 
-const toYMD = (isoLike: string) => isoLike.slice(0, 10); // 'YYYY-MM-DD'
-const ymdToDMY = (ymd: string) => {
-  const [y, m, d] = ymd.split("-");
-  return `${d}/${m}/${y}`;
-};
-const isoToDMY = (iso: string) => ymdToDMY(toYMD(iso));
+// ✅ FIX FECHAS (Perú): no usar slice(0,10) cuando viene ISO con Z
+const TZ_PE = "America/Lima";
+
+const fmtDMY_PE = new Intl.DateTimeFormat("es-PE", {
+  timeZone: TZ_PE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+// Para obtener YYYY-MM-DD en Perú desde un ISO/Date
+function isoToYMDPE(isoLike: string | Date): string {
+  const d = typeof isoLike === "string" ? new Date(isoLike) : isoLike;
+  if (Number.isNaN(d.getTime())) return "";
+
+  // armamos YYYY-MM-DD usando parts en timezone Lima
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ_PE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d); // en-CA -> "YYYY-MM-DD"
+  return parts;
+}
+
+function isoToDMYPE(isoLike: string | Date): string {
+  const d = typeof isoLike === "string" ? new Date(isoLike) : isoLike;
+  if (Number.isNaN(d.getTime())) return "-";
+  return fmtDMY_PE.format(d);
+}
 
 const EstadoPill: React.FC<{ estado: Estado }> = ({ estado }) => {
   const ok = estado === "Validado";
@@ -89,7 +113,7 @@ const Modal: React.FC<ModalProps> = ({ open, onClose, title, children }) => {
           <h3 className="text-base font-semibold">{title}</h3>
           <button
             onClick={onClose}
-            className="rounded-md border px-2 py-1 text-sm hover:bg-gray-50"
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
           >
             Cerrar
           </button>
@@ -134,27 +158,31 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // Selección (por fecha YYYY-MM-DD)
+  // Selección (por fecha YYYY-MM-DD en Perú)
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+
   const allChecked = useMemo(() => {
-    const keys = items.map((it) => toYMD(it.fecha));
+    const keys = items.map((it) => isoToYMDPE(it.fecha));
     if (!keys.length) return false;
     return keys.every((k) => selected[k]);
   }, [items, selected]);
 
   const toggleAll = () => {
-    const keys = items.map((it) => toYMD(it.fecha));
+    const keys = items.map((it) => isoToYMDPE(it.fecha));
     const nextVal = !allChecked;
     const s: Record<string, boolean> = { ...selected };
-    keys.forEach((k) => (s[k] = nextVal));
+    keys.forEach((k) => {
+      if (k) s[k] = nextVal;
+    });
     setSelected(s);
   };
+
   const toggleOne = (ymd: string) =>
     setSelected((prev) => ({ ...prev, [ymd]: !prev[ymd] }));
 
   // Detalle
   const [detailOpen, setDetailOpen] = useState(false);
-  const [detailDate, setDetailDate] = useState<string | null>(null);
+  const [detailDate, setDetailDate] = useState<string | null>(null); // YYYY-MM-DD
   const [detail, setDetail] = useState<CuadreDetalleResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailErr, setDetailErr] = useState<string | null>(null);
@@ -187,20 +215,24 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
   // Cargar cuando cambian dependencias
   useEffect(() => {
-    loadResumen();
+    void loadResumen();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, page, pageSize, desde, hasta]);
 
   /* --------- Acciones --------- */
 
   const openDetalle = async (iso: string) => {
-    const ymd = toYMD(iso);
+    // ✅ clave de fecha en Perú (no UTC)
+    const ymd = isoToYMDPE(iso);
+
     setDetailOpen(true);
-    setDetailDate(ymd);
+    setDetailDate(ymd || null);
     setDetail(null);
     setDetailErr(null);
     setDetailLoading(true);
+
     try {
+      // ✅ pedimos detalle por YYYY-MM-DD Perú
       const d = await fetchCuadreDetalle(token, ymd);
       setDetail(d);
     } catch (e: any) {
@@ -224,10 +256,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
     const list = Object.entries(selected)
       .filter(([, v]) => v)
       .map(([k]) => k);
+
     if (!list.length) {
       alert("Selecciona al menos un día para validar.");
       return;
     }
+
     try {
       await Promise.all(
         list.map((ymd) => putCuadreValidacion(token, ymd, { validado: true }))
@@ -248,7 +282,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     }
     if (triggerValidate !== prevTrig.current) {
       prevTrig.current = triggerValidate;
-      onValidarSeleccionados();
+      void onValidarSeleccionados();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [triggerValidate]);
@@ -292,7 +326,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
   return (
     <div>
-      {/* Contenedor y tabla con estilos modelo */}
       <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
         <div className="overflow-x-auto bg-white">
           <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
@@ -319,15 +352,20 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
               {!err && items.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray70 italic">
+                  <td
+                    colSpan={5}
+                    className="px-4 py-8 text-center text-gray70 italic"
+                  >
                     No hay datos para el filtro seleccionado.
                   </td>
                 </tr>
               )}
 
               {items.map((row) => {
-                const ymd = toYMD(row.fecha);
+                // ✅ clave de fecha en Perú
+                const ymd = isoToYMDPE(row.fecha);
                 const estado: Estado = row.validado ? "Validado" : "Por Validar";
+
                 return (
                   <tr key={ymd} className="hover:bg-gray10 transition-colors">
                     <td className="h-12 px-4 py-3">
@@ -336,13 +374,20 @@ const CuadreSaldoTable: React.FC<Props> = ({
                         onChange={() => toggleOne(ymd)}
                       />
                     </td>
-                    <td className="h-12 px-4 py-3 text-gray70">{isoToDMY(row.fecha)}</td>
+
+                    {/* ✅ Mostrar fecha en Perú */}
+                    <td className="h-12 px-4 py-3 text-gray70">
+                      {isoToDMYPE(row.fecha)}
+                    </td>
+
                     <td className="h-12 px-4 py-3 text-gray70">
                       {formatPEN(row.totalServicioMotorizado)}
                     </td>
+
                     <td className="h-12 px-4 py-3">
                       <EstadoPill estado={estado} />
                     </td>
+
                     <td className="h-12 px-4 py-3">
                       <div className="flex items-center justify-center gap-3">
                         <button
@@ -372,7 +417,10 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
               {loading && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-gray70">
+                  <td
+                    colSpan={5}
+                    className="px-4 py-6 text-center text-gray70"
+                  >
                     Cargando…
                   </td>
                 </tr>
@@ -381,7 +429,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
           </table>
         </div>
 
-        {/* Paginador — modelo guía */}
+        {/* Paginador */}
         <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
           <button
             onClick={() => goToPage(page - 1)}
@@ -404,7 +452,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 disabled={loading}
                 className={[
                   "w-8 h-8 flex items-center justify-center rounded",
-                  page === p ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
+                  page === p
+                    ? "bg-gray90 text-white"
+                    : "bg-gray10 text-gray70 hover:bg-gray20",
                 ].join(" ")}
               >
                 {p}
@@ -424,85 +474,93 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
       {/* Modal Detalle */}
       <Modal
-  open={detailOpen}
-  onClose={() => setDetailOpen(false)}
-  title={detailDate ? `Detalle del ${ymdToDMY(detailDate)}` : "Detalle del día"}
->
-  {detailLoading && (
-    <div className="p-4 text-sm text-gray-600">Cargando detalle…</div>
-  )}
-  {detailErr && (
-    <div className="p-4 text-sm text-red-600">{detailErr}</div>
-  )}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        title={
+          detailDate ? `Detalle del ${isoToDMYPE(`${detailDate}T00:00:00-05:00`)}` : "Detalle del día"
+        }
+      >
+        {detailLoading && (
+          <div className="p-4 text-sm text-gray-600">Cargando detalle…</div>
+        )}
+        {detailErr && <div className="p-4 text-sm text-red-600">{detailErr}</div>}
 
-  {detail && (
-    <div className="space-y-4">
-      {/* resumen arriba (igual) */}
-      <div className="flex flex-wrap items-center gap-4 text-sm">
-        <div>
-          <span className="text-gray-500">Total Recaudado: </span>
-          <strong>{formatPEN(detail.totalRecaudado)}</strong>
-        </div>
-        <div>
-          <span className="text-gray-500">Total Servicio: </span>
-          <strong>{formatPEN(detail.totalServicioMotorizado)}</strong>
-        </div>
-      </div>
+        {detail && (
+          <div className="space-y-4">
+            {/* resumen arriba */}
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <div>
+                <span className="text-gray-500">Total Recaudado: </span>
+                <strong>{formatPEN(detail.totalRecaudado)}</strong>
+              </div>
+              <div>
+                <span className="text-gray-500">Total Servicio: </span>
+                <strong>{formatPEN(detail.totalServicioMotorizado)}</strong>
+              </div>
+            </div>
 
-      {/* tabla con estilos modelo base */}
-      <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
-        <div className="overflow-x-auto bg-white">
-          <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-            <thead className="bg-[#E5E7EB]">
-              <tr className="text-gray70 font-roboto font-medium">
-                <th className="px-4 py-3 text-left">Hora</th>
-                <th className="px-4 py-3 text-left">Código</th>
-                <th className="px-4 py-3 text-left">Cliente</th>
-                <th className="px-4 py-3 text-left">Método</th>
-                <th className="px-4 py-3 text-left">Distrito</th>
-                <th className="px-4 py-3 text-right">Monto</th>
-                <th className="px-4 py-3 text-right">Servicio</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray20">
-              {detail.pedidos.map((p) => {
-                const hora = p.fechaEntrega
-                  ? new Date(p.fechaEntrega).toLocaleTimeString("es-PE", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "-";
-                return (
-                  <tr key={p.id} className="hover:bg-gray10 transition-colors">
-                    <td className="h-12 px-4 py-3 text-gray70">{hora}</td>
-                    <td className="h-12 px-4 py-3 text-gray70">{p.codigo}</td>
-                    <td className="h-12 px-4 py-3 text-gray70">{p.cliente}</td>
-                    <td className="h-12 px-4 py-3 text-gray70">{p.metodoPago ?? "-"}</td>
-                    <td className="h-12 px-4 py-3 text-gray70">{p.distrito}</td>
-                    <td className="h-12 px-4 py-3 text-right text-gray70">
-                      {formatPEN(p.monto ?? 0)}
-                    </td>
-                    <td className="h-12 px-4 py-3 text-right text-gray70">
-                      {p.servicioCourier != null ? formatPEN(p.servicioCourier) : "-"}
-                    </td>
-                  </tr>
-                );
-              })}
+            {/* tabla detalle */}
+            <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30">
+              <div className="overflow-x-auto bg-white">
+                <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+                  <thead className="bg-[#E5E7EB]">
+                    <tr className="text-gray70 font-roboto font-medium">
+                      <th className="px-4 py-3 text-left">Hora</th>
+                      <th className="px-4 py-3 text-left">Código</th>
+                      <th className="px-4 py-3 text-left">Cliente</th>
+                      <th className="px-4 py-3 text-left">Método</th>
+                      <th className="px-4 py-3 text-left">Distrito</th>
+                      <th className="px-4 py-3 text-right">Monto</th>
+                      <th className="px-4 py-3 text-right">Servicio</th>
+                    </tr>
+                  </thead>
 
-              {detail.pedidos.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray70 italic">
-                    Sin pedidos para este día.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  )}
-</Modal>
+                  <tbody className="divide-y divide-gray20">
+                    {detail.pedidos.map((p) => {
+                      const hora = p.fechaEntrega
+                        ? new Date(p.fechaEntrega).toLocaleTimeString("es-PE", {
+                            timeZone: TZ_PE, // ✅ hora Perú
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "-";
+
+                      return (
+                        <tr key={p.id} className="hover:bg-gray10 transition-colors">
+                          <td className="h-12 px-4 py-3 text-gray70">{hora}</td>
+                          <td className="h-12 px-4 py-3 text-gray70">{p.codigo}</td>
+                          <td className="h-12 px-4 py-3 text-gray70">{p.cliente}</td>
+                          <td className="h-12 px-4 py-3 text-gray70">
+                            {p.metodoPago ?? "-"}
+                          </td>
+                          <td className="h-12 px-4 py-3 text-gray70">{p.distrito}</td>
+                          <td className="h-12 px-4 py-3 text-right text-gray70">
+                            {formatPEN(p.monto ?? 0)}
+                          </td>
+                          <td className="h-12 px-4 py-3 text-right text-gray70">
+                            {p.servicioCourier != null ? formatPEN(p.servicioCourier) : "-"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {detail.pedidos.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-gray70 italic"
+                        >
+                          Sin pedidos para este día.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

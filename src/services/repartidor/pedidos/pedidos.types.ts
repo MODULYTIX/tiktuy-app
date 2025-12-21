@@ -1,6 +1,6 @@
 // src/services/repartidor/pedidos/pedidos.types.ts
 
-export type RepartidorVista = "hoy" | "pendientes" | "terminados";
+export type RepartidorVista = 'hoy' | 'pendientes' | 'terminados';
 
 /* =========================
  * QUERIES
@@ -10,16 +10,17 @@ export interface ListPedidosHoyQuery {
   perPage?: number;
   desde?: string | Date;
   hasta?: string | Date;
+  sortBy?: 'programada' | 'real' | 'creacion' | 'actualizada';
+  order?: 'asc' | 'desc';
 }
-
 
 export interface ListByEstadoQuery {
   page?: number;
   perPage?: number;
   desde?: string | Date;
   hasta?: string | Date;
-  sortBy?: "programada" | "real" | "creacion" | "actualizada";
-  order?: "asc" | "desc";
+  sortBy?: 'programada' | 'real' | 'creacion' | 'actualizada';
+  order?: 'asc' | 'desc';
 }
 
 export interface Paginated<T> {
@@ -40,6 +41,14 @@ export interface PedidoItemResumen {
   cantidad: number;
   precio_unitario?: string;
   subtotal?: string;
+}
+
+export interface ReprogramacionResumen {
+  fecha_anterior: string;
+  fecha_nueva: string;
+  motivo?: string | null;
+  creado_en?: string;
+  creado_por_id?: number;
 }
 
 export interface PedidoListItem {
@@ -87,19 +96,19 @@ export interface PedidoListItem {
   items_total_cantidad?: number;
   items_total_monto?: string;
 
-  reprogramacion_ultima?:
-    | {
-        fecha_anterior: string;
-        fecha_nueva: string;
-        motivo?: string | null;
-        creado_en?: string;
-        creado_por_id?: number;
-      }
-    | null;
+  reprogramacion_ultima?: ReprogramacionResumen | null;
 }
 
 /** Versión extendida para detalle (GET /:id) */
 export type PedidoDetalle = PedidoListItem;
+
+/* =========================
+ * NUEVO ENDPOINT: WHATSAPP GRUPO
+ * GET /repartidor-pedidos/:id/whatsapp-grupo
+ * ========================= */
+export interface WhatsappGrupoLinkResponse {
+  link_whatsapp: string | null;
+}
 
 /* =========================
  * CAMBIO DE ESTADO
@@ -107,10 +116,10 @@ export type PedidoDetalle = PedidoListItem;
 
 // 1) Estado inicial (desde "Pendiente")
 export type EstadoInicialResultado =
-  | "RECEPCION_HOY"
-  | "NO_RESPONDE"
-  | "REPROGRAMADO"
-  | "ANULO";
+  | 'RECEPCION_HOY'
+  | 'NO_RESPONDE'
+  | 'REPROGRAMADO'
+  | 'ANULO';
 
 export interface UpdateEstadoInicialBody {
   resultado: EstadoInicialResultado;
@@ -126,10 +135,10 @@ export interface UpdateEstadoInicialResponse {
 }
 
 // 2) Resultado / Cierre de entrega
-export type ResultadoEntrega = "ENTREGADO" | "RECHAZADO";
+export type ResultadoEntrega = 'ENTREGADO' | 'RECHAZADO';
 
 // Solo UI (backend no lo consume)
-export type MetodoPagoUI = "EFECTIVO" | "BILLETERA" | "DIRECTO_ECOMMERCE";
+export type MetodoPagoUI = 'EFECTIVO' | 'BILLETERA' | 'DIRECTO_ECOMMERCE';
 
 /**
  * ✅ CORREGIDO:
@@ -138,7 +147,7 @@ export type MetodoPagoUI = "EFECTIVO" | "BILLETERA" | "DIRECTO_ECOMMERCE";
  */
 export type UpdateResultadoBody =
   | {
-      resultado: "ENTREGADO";
+      resultado: 'ENTREGADO';
       metodo_pago_id: number; // ✅ requerido (ID real en DB)
 
       monto_recaudado?: number | string;
@@ -149,7 +158,7 @@ export type UpdateResultadoBody =
       metodo?: MetodoPagoUI; // UI-only
     }
   | {
-      resultado: "RECHAZADO";
+      resultado: 'RECHAZADO';
       metodo_pago_id?: never; // ✅ no aplica
 
       monto_recaudado?: number | string;
