@@ -13,6 +13,7 @@ import type {
 
 import Tittlex from "@/shared/common/Tittlex";
 import { InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
+import TableActionx from "@/shared/common/TableActionx";
 
 /* ============== helpers ============== */
 const formatPEN = (v: number) =>
@@ -506,7 +507,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
       loading,
       canAbonar: selectedIds.length > 0 && !loading,
     });
-  }, [onSelectionChange, selectedIds.length, totalServicioSeleccionado, loading]);
+  }, [
+    onSelectionChange,
+    selectedIds.length,
+    totalServicioSeleccionado,
+    loading,
+  ]);
 
   return (
     <div className="mt-5 flex flex-col gap-3">
@@ -623,7 +629,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
                                 ? "bg-emerald-600 text-white"
                                 : "bg-gray-200 text-gray-900",
                             ].join(" ")}
-                            title={r.abonado ? "Quitar abono" : "Marcar abonado"}
+                            title={
+                              r.abonado ? "Quitar abono" : "Marcar abonado"
+                            }
                           >
                             {r.abonado ? "Abonado" : "Sin abonar"}
                           </button>
@@ -632,29 +640,29 @@ const CuadreSaldoTable: React.FC<Props> = ({
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
                             {!r.abonado && (
-                              <button
+                              <TableActionx
+                                variant="edit"
+                                title="Editar servicio (repartidor / courier)"
                                 onClick={() => {
                                   setEditing(r);
                                   setOpenEdit(true);
                                 }}
-                                className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
-                                title="Editar servicio (repartidor / courier)"
-                              >
-                                Editar
-                              </button>
+                                size="sm"
+                              />
                             )}
 
                             {!r.abonado && (
-                              <button
+                              <TableActionx
+                                variant="custom"
+                                title="Abonar este pedido"
+                                icon="mdi:cash-plus"
+                                colorClassName="bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-200 hover:ring-emerald-400 focus-visible:ring-emerald-500"
                                 onClick={() => {
                                   setSelectedIds([r.id]);
                                   setOpenConfirm(true);
                                 }}
-                                className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
-                                title="Abonar este pedido"
-                              >
-                                Abonar
-                              </button>
+                                size="sm"
+                              />
                             )}
                           </div>
                         </td>

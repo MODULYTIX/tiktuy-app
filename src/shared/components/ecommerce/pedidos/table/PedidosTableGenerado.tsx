@@ -1,9 +1,8 @@
-import { useAuth } from '@/auth/context';
-import { fetchPedidos } from '@/services/ecommerce/pedidos/pedidos.api';
-import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
-import { Icon } from '@iconify/react/dist/iconify.js';
-import { useEffect, useMemo, useState } from 'react';
-import { FiEye } from 'react-icons/fi';
+import { useAuth } from "@/auth/context";
+import { fetchPedidos } from "@/services/ecommerce/pedidos/pedidos.api";
+import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
+import TableActionx from "@/shared/common/TableActionx";
+import { useEffect, useMemo, useState } from "react";
 
 type Filtros = {
   courier: string;
@@ -27,7 +26,7 @@ export default function PedidosTableGenerado({
 }: PedidosTableGeneradoProps) {
   const { token } = useAuth();
 
-  const PAGE_SIZE = 5;
+  const PAGE_SIZE = 6;
   const [page, setPage] = useState(1);
 
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -49,7 +48,6 @@ export default function PedidosTableGenerado({
 
     setLoading(true);
 
-    // 👇 Antes: fetchPedidos(token, 'Generado', ...)
     fetchPedidos(token, 'Asignado', page, PAGE_SIZE)
       .then((res) => {
         setPedidos(res.data || []);
@@ -70,42 +68,10 @@ export default function PedidosTableGenerado({
     return isNaN(d.getTime()) ? undefined : d;
   };
 
-  const start = parseDateInput(filtros.fechaInicio);
   const end = parseDateInput(filtros.fechaFin);
   if (end) end.setHours(23, 59, 59, 999);
+const visiblePedidos = pedidos;
 
-  const filteredPedidos = useMemo(() => {
-    return pedidos.filter((p) => {
-      const d = p.fecha_creacion ? new Date(p.fecha_creacion) : undefined;
-
-      if (start && d && d < start) return false;
-      if (end && d && d > end) return false;
-
-      if (filtros.courier) {
-        const courierId = (p as any).courier_id ?? p.courier?.id;
-        const byId = courierId && String(courierId) === filtros.courier;
-        const byName = p.courier?.nombre_comercial
-          ?.toLowerCase()
-          .includes(filtros.courier.toLowerCase());
-        if (!(byId || byName)) return false;
-      }
-
-      if (filtros.producto) {
-        const needle = filtros.producto.toLowerCase();
-        const ok = p.detalles?.some((d) => {
-          const prod = d.producto;
-          const byId = prod?.id && String(prod.id) === filtros.producto;
-          const byName = prod?.nombre_producto?.toLowerCase().includes(needle);
-          return byId || byName;
-        });
-        if (!ok) return false;
-      }
-
-      return true;
-    });
-  }, [pedidos, filtros, start, end]);
-
-  const visiblePedidos = filteredPedidos;
 
   const totalPages = serverPagination.totalPages;
 
@@ -133,11 +99,11 @@ export default function PedidosTableGenerado({
       for (let i = start; i <= end; i++) pages.push(i);
 
       if (start > 1) {
-        pages.unshift('...');
+        pages.unshift("...");
         pages.unshift(1);
       }
       if (end < totalPages) {
-        pages.push('...');
+        pages.push("...");
         pages.push(totalPages);
       }
     }
@@ -198,7 +164,6 @@ export default function PedidosTableGenerado({
                 colSpan={7}
                 className="px-4 py-4 text-center text-gray70 italic"
               >
-                {/* 👇 mensaje actualizado */}
                 No hay pedidos asignados.
               </td>
             </tr>
@@ -207,16 +172,14 @@ export default function PedidosTableGenerado({
               {visiblePedidos.map((p) => {
                 const fecha = p.fecha_entrega_programada
                   ? new Date(p.fecha_entrega_programada).toLocaleDateString()
-                  : '-'; const monto = p.detalles?.reduce(
-                    (acc, d) => acc + d.cantidad * d.precio_unitario,
-                    0
-                  );
+                  : "-";
+                const monto = p.detalles?.reduce(
+                  (acc, d) => acc + d.cantidad * d.precio_unitario,
+                  0
+                );
 
                 return (
-                  <tr
-                    key={p.id}
-                    className="hover:bg-gray10 transition-colors"
-                  >
+                  <tr key={p.id} className="hover:bg-gray10 transition-colors">
                     <td className="px-2 py-3 text-center text-gray70">
                       {fecha}
                     </td>
@@ -230,13 +193,11 @@ export default function PedidosTableGenerado({
                     </td>
 
                     <td className="px-4 py-3 text-gray70">
-                      {p.detalles?.[0]?.producto?.nombre_producto ?? '-'}
+                      {p.detalles?.[0]?.producto?.nombre_producto ?? "-"}
                     </td>
 
                     <td className="px-4 py-3 text-center text-gray70">
-                      {p.detalles?.[0]?.cantidad
-                        ?.toString()
-                        .padStart(2, '0')}
+                      {p.detalles?.[0]?.cantidad?.toString().padStart(2, "0")}
                     </td>
 
                     <td className="px-4 py-3 text-center text-gray70">
@@ -245,23 +206,18 @@ export default function PedidosTableGenerado({
 
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-4">
-                        <button
+                        <TableActionx
+                          variant="view"
+                          title="Ver"
                           onClick={() => onVer(p.id)}
-                          className="text-primaryLight hover:text-primaryDark"
-                        >
-                          <FiEye className="w-4 h-4" />
-                        </button>
-
-                        <button
+                          size="sm"
+                        />
+                        <TableActionx
+                          variant="edit"
+                          title="Editar"
                           onClick={() => onEditar(p.id)}
-                          className="text-[#CA8A04] hover:opacity-80"
-                        >
-                          <Icon
-                            icon="fa-regular:edit"
-                            width="16"
-                            height="16"
-                          />
-                        </button>
+                          size="sm"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -284,7 +240,7 @@ export default function PedidosTableGenerado({
       </table>
 
       {/* PAGINADOR */}
-      <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3">
+      <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3">
         <button
           onClick={() => goToPage(page - 1)}
           disabled={page === 1}
@@ -294,7 +250,7 @@ export default function PedidosTableGenerado({
         </button>
 
         {pagerItems.map((p, i) =>
-          typeof p === 'string' ? (
+          typeof p === "string" ? (
             <span key={i} className="px-2 text-gray70">
               {p}
             </span>
@@ -302,13 +258,13 @@ export default function PedidosTableGenerado({
             <button
               key={p}
               onClick={() => goToPage(p)}
-              aria-current={page === p ? 'page' : undefined}
+              aria-current={page === p ? "page" : undefined}
               className={[
-                'w-8 h-8 flex items-center justify-center rounded',
+                "w-8 h-8 flex items-center justify-center rounded",
                 page === p
-                  ? 'bg-gray90 text-white'
-                  : 'bg-gray10 text-gray70 hover:bg-gray20',
-              ].join(' ')}
+                  ? "bg-gray90 text-white"
+                  : "bg-gray10 text-gray70 hover:bg-gray20",
+              ].join(" ")}
             >
               {p}
             </button>

@@ -1,8 +1,8 @@
 // shared/components/courier/almacen/AlmacenCourierTable.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@iconify/react";
 import type { AlmacenamientoCourier } from "@/services/courier/almacen/almacenCourier.type";
 import Badgex from "@/shared/common/Badgex";
+import TableActionx from "@/shared/common/TableActionx";
 
 type Props = {
   items: AlmacenamientoCourier[];
@@ -219,14 +219,12 @@ export default function AlmacenCourierTable({
                           {/* Acciones */}
                           <td className="h-[64px] px-4 py-3">
                             <div className="flex items-center justify-center">
-                              <button
-                                onClick={() => onEdit(a)}
-                                className="text-amber-600 hover:text-amber-800 transition-colors"
-                                title="Editar"
-                                aria-label={`Editar ${a.nombre_almacen}`}
-                              >
-                                <Icon icon="uil:edit" width="18" height="18" />
-                              </button>
+                              <TableActionx
+  variant="edit"
+  title={`Editar ${a.nombre_almacen}`}
+  onClick={() => onEdit(a)}
+  size="sm"
+/>
                             </div>
                           </td>
                         </tr>

@@ -1,16 +1,19 @@
 import { useState, useMemo, useEffect } from "react";
 import type { ResumenDia } from "@/services/ecommerce/cuadreSaldo/cuadreSaldoC.types";
+import TableActionx from "@/shared/common/TableActionx";
 
 type Props = {
   rows: ResumenDia[];
   loading?: boolean;
-  selected: string[];                                   // YYYY-MM-DD[]
-  onToggle(date: string): void;                         // check/uncheck una fecha
+  selected: string[]; // YYYY-MM-DD[]
+  onToggle(date: string): void; // check/uncheck una fecha
   onView(date: string, estado: ResumenDia["estado"]): void; // click en ojito (con estado)
 };
 
 const money = (n: number) =>
-  new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(n || 0);
+  new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(
+    n || 0
+  );
 
 const PAGE_SIZE = 5;
 
@@ -48,20 +51,26 @@ export default function CuadreSaldoTable({
         end = totalPages;
       }
       for (let i = start; i <= end; i++) pages.push(i);
-      if (start > 1) { pages.unshift('...'); pages.unshift(1); }
-      if (end < totalPages) { pages.push('...'); pages.push(totalPages); }
+      if (start > 1) {
+        pages.unshift("...");
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push("...");
+        pages.push(totalPages);
+      }
     }
     return pages;
   }, [page, totalPages]);
 
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
 
-
-
   return (
     <div className="overflow-hidden rounded-md shadow-default bg-white">
       {/* Mensajes */}
-      {loading && <div className="px-4 py-3 text-sm text-gray-500">Cargando...</div>}
+      {loading && (
+        <div className="px-4 py-3 text-sm text-gray-500">Cargando...</div>
+      )}
       {!loading && rows.length === 0 && (
         <div className="px-4 py-3 text-sm text-gray-500">No hay datos.</div>
       )}
@@ -114,26 +123,27 @@ export default function CuadreSaldoTable({
                       />
                     </td>
                     <td className="p-3">
-                      {new Date(r.fecha + "T00:00:00").toLocaleDateString("es-PE")}
+                      {new Date(r.fecha + "T00:00:00").toLocaleDateString(
+                        "es-PE"
+                      )}
                     </td>
                     <td className="p-3">{money(r.cobrado)}</td>
                     <td className="p-3">{money(r.servicio)}</td>
                     <td className="p-3">{money(r.neto)}</td>
                     <td className="p-3">
-                      <span className={`px-3 py-1 text-xs rounded-full ${pill}`}>{r.estado}</span>
+                      <span
+                        className={`px-3 py-1 text-xs rounded-full ${pill}`}
+                      >
+                        {r.estado}
+                      </span>
                     </td>
                     <td className="p-3 text-right">
-                      <button
-                        onClick={() => onView(r.fecha, r.estado)} // ← enviamos fecha + estado
-                        className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 hover:bg-gray-50"
+                      <TableActionx
+                        variant="view"
                         title="Ver pedidos del día"
-                      >
-                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor">
-                          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" strokeWidth="2" />
-                          <circle cx="12" cy="12" r="3" strokeWidth="2" />
-                        </svg>
-                        Ver
-                      </button>
+                        onClick={() => onView(r.fecha, r.estado)} // ← enviamos fecha + estado
+                        size="sm"
+                      />
                     </td>
                   </tr>
                 );
@@ -144,7 +154,9 @@ export default function CuadreSaldoTable({
                 Array.from({ length: emptyRows }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="hover:bg-transparent">
                     {Array.from({ length: 7 }).map((__, i) => (
-                      <td key={i} className="px-4 py-3">&nbsp;</td>
+                      <td key={i} className="px-4 py-3">
+                        &nbsp;
+                      </td>
                     ))}
                   </tr>
                 ))}
@@ -155,7 +167,7 @@ export default function CuadreSaldoTable({
 
       {/* Paginador */}
       {rows.length > 0 && (
-        <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+        <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3 mt-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
@@ -176,7 +188,9 @@ export default function CuadreSaldoTable({
                 aria-current={page === p ? "page" : undefined}
                 className={[
                   "w-8 h-8 flex items-center justify-center rounded",
-                  page === p ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
+                  page === p
+                    ? "bg-gray90 text-white"
+                    : "bg-gray10 text-gray70 hover:bg-gray20",
                 ].join(" ")}
               >
                 {p}

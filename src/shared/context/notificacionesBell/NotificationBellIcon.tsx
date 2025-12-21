@@ -135,22 +135,36 @@ const NotificationBellIcon = ({
   return (
     <div className={`relative ${className}`}>
       {/* Botón campana */}
-      <button
-        onClick={toggle}
-        className={`relative transition-colors ${
-          open ? activeColor : baseColor
-        } hover:${activeColor}`}
-        aria-label="Notificaciones"
-      >
-        <Icon icon="mdi:bell-outline" width={22} height={22} />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-[3px]
-            inline-flex items-center justify-center text-[10px] font-bold
-            text-white bg-red-600 rounded-full leading-none">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-        )}
-      </button>
+<button
+  onClick={toggle}
+  aria-label="Notificaciones"
+  className={`
+    relative inline-flex h-10 w-10
+    items-center justify-center
+    rounded-full
+    transition-colors
+    ${open ? activeColor : baseColor}
+    hover:bg-gray-100 hover:${activeColor}
+    focus:outline-none
+    focus-visible:ring-2 focus-visible:ring-[#1E3A8A]/30
+  `}
+>
+  <Icon icon="mdi:bell-outline" width={22} height={22} />
+
+  {unreadCount > 0 && (
+    <span
+      className="
+        absolute -top-1 -right-1
+        min-w-[16px] h-[16px]
+        inline-flex items-center justify-center
+        text-[10px] font-bold leading-none
+        text-white bg-red-600 rounded-full
+      "
+    >
+      {unreadCount > 99 ? '99+' : unreadCount}
+    </span>
+  )}
+</button>
 
       {/* Dropdown corto */}
       <AnimatePresence>

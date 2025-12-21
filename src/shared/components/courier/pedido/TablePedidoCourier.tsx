@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaEye } from "react-icons/fa";
-import { Icon } from "@iconify/react";
 
 import type {
   Paginated,
@@ -16,16 +14,17 @@ import {
   fetchPedidosTerminados,
   fetchPedidoDetalle,
   reassignPedido,
-  reprogramarPedido, // ✅ NUEVO
+  reprogramarPedido, 
 } from "@/services/courier/pedidos/pedidos.api";
 
 import DetallePedidoDrawer from "./DetallePedidoDrawer";
-import ReprogramarPedidoModal from "./ReprogramarPedidoModal"; // ✅ NUEVO
+import ReprogramarPedidoModal from "./ReprogramarPedidoModal"; 
 
-import { Selectx } from "@/shared/common/Selectx";
+import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import { SearchInputx } from "@/shared/common/SearchInputx";
 import Tittlex from "@/shared/common/Tittlex";
+import TableActionx from "@/shared/common/TableActionx";
 
 type View = "asignados" | "pendientes" | "terminados";
 
@@ -66,6 +65,21 @@ function formatFechaPE(fecha: string | null | undefined) {
   return fmtPE.format(new Date(fecha));
 }
 
+/* ✅ NUEVO: HOY en Perú como YYYY-MM-DD (para que el backend filtre hoy por defecto) */
+function getTodayPEYYYYMMDD() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const y = parts.find((p) => p.type === "year")?.value ?? "0000";
+  const m = parts.find((p) => p.type === "month")?.value ?? "01";
+  const d = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `${y}-${m}-${d}`;
+}
+
 export default function TablePedidoCourier({
   view,
   token,
@@ -77,8 +91,8 @@ export default function TablePedidoCourier({
   const [perPage] = useState(6);
 
   /* ✅ filtros de FECHA (server-side) */
-  const [desde, setDesde] = useState<string>(""); // YYYY-MM-DD
-  const [hasta, setHasta] = useState<string>(""); // YYYY-MM-DD
+  const [desde, setDesde] = useState<string>(() => getTodayPEYYYYMMDD()); // ✅ HOY por defecto
+  const [hasta, setHasta] = useState<string>(""); // YYYY-MM-DD (vacío hasta que elijas)
 
   /* filtros (client-side, visuales) */
   const [filtroDistrito, setFiltroDistrito] = useState("");
@@ -112,9 +126,11 @@ export default function TablePedidoCourier({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
-    // 👇 si NO quieres que se reseteen fechas al cambiar vista, borra estas 2 líneas
-    // setDesde("");
-    // setHasta("");
+
+    // ✅ IMPORTANTE: al cambiar de vista, volvemos a HOY por defecto
+    // Si NO quieres resetear fechas al cambiar vista, elimina estas 2 líneas.
+    setDesde(getTodayPEYYYYMMDD());
+    setHasta("");
   }, [view]);
 
   // ✅ si cambia rango => volver a la primera página
@@ -355,7 +371,9 @@ export default function TablePedidoCourier({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
-    setDesde("");
+
+    // ✅ IMPORTANTE: “Limpiar” vuelve a HOY por defecto, no a vacío
+    setDesde(getTodayPEYYYYMMDD());
     setHasta("");
   };
 
@@ -369,15 +387,15 @@ export default function TablePedidoCourier({
             view === "asignados"
               ? "Pedidos Asignados"
               : view === "pendientes"
-                ? "Pedidos Pendientes"
-                : "Pedidos Terminados"
+              ? "Pedidos Pendientes"
+              : "Pedidos Terminados"
           }
           description={
             view === "asignados"
               ? "Selecciona y asigna pedidos a un repartidor."
               : view === "pendientes"
-                ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
-                : "Pedidos completados o cerrados."
+              ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
+              : "Pedidos completados o cerrados."
           }
         />
 
@@ -398,33 +416,21 @@ export default function TablePedidoCourier({
       {/* Filtros */}
       <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-4 items-end">
-          {/* ✅ Fecha inicio */}
-          <div className="w-full flex flex-col gap-[10px]">
-            <label className="text-base font-normal text-black text-center block">
-              Inicio
-            </label>
-            <input
-              type="date"
-              value={desde}
-              onChange={(e) => setDesde(e.target.value)}
-              className="h-10 w-full rounded border border-gray-300 px-3 text-sm"
-              disabled={loading}
-            />
-          </div>
+          {/* ✅ Fecha inicio (HOY por defecto) */}
+          <SelectxDate
+            label="Fecha Inicio"
+            value={desde}
+            onChange={(e) => setDesde(e.target.value)}
+            disabled={loading}
+          />
 
-          {/* ✅ Fecha fin */}
-          <div className="w-full flex flex-col gap-[10px]">
-            <label className="text-base font-normal text-black text-center block">
-              Fin
-            </label>
-            <input
-              type="date"
-              value={hasta}
-              onChange={(e) => setHasta(e.target.value)}
-              className="h-10 w-full rounded border border-gray-300 px-3 text-sm"
-              disabled={loading}
-            />
-          </div>
+          {/* ✅ Fecha fin (vacía hasta que elijas) */}
+          <SelectxDate
+            label="Fecha Fin"
+            value={hasta}
+            onChange={(e) => setHasta(e.target.value)}
+            disabled={loading}
+          />
 
           {/* Distrito */}
           <Selectx
@@ -556,7 +562,10 @@ export default function TablePedidoCourier({
                   const montoNumber = Number(p.monto_recaudar || 0);
 
                   return (
-                    <tr key={p.id} className="hover:bg-gray10 transition-colors">
+                    <tr
+                      key={p.id}
+                      className="hover:bg-gray10 transition-colors"
+                    >
                       <td className="h-12 px-4 py-3">
                         <input
                           type="checkbox"
@@ -575,7 +584,6 @@ export default function TablePedidoCourier({
                       </td>
 
                       <td className="h-12 px-4 py-3 text-gray70">
-                        {/* ✅ CAMBIO: mostrar SIEMPRE en Perú */}
                         {formatFechaPE(fecha)}
                       </td>
 
@@ -604,38 +612,33 @@ export default function TablePedidoCourier({
 
                       <td className="h-12 px-4 py-3">
                         <div className="flex items-center justify-center gap-3">
-                          {/* 👁️ Detalle */}
-                          <button
-                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                          <TableActionx
+                            variant="view"
+                            title={`Ver ${p.id}`}
                             onClick={() => handleVerDetalle(p.id)}
-                            title="Ver detalle"
-                            aria-label={`Ver ${p.id}`}
-                          >
-                            <FaEye />
-                          </button>
+                            size="sm"
+                          />
 
-                          {/* ✅ Reprogramar (solo ASIGNADOS) */}
                           {view === "asignados" && (
-                            <button
-                              className="text-amber-600 hover:text-amber-800 transition-colors"
+                            <TableActionx
+                              variant="custom"
+                              title={`Reprogramar ${p.id}`}
+                              icon="mdi:calendar-edit"
+                              colorClassName="bg-amber-100 text-amber-700 ring-1 ring-amber-300 hover:bg-amber-200 hover:ring-amber-400 focus-visible:ring-amber-500"
                               onClick={() => openReprogramar(p)}
-                              title="Reprogramar pedido"
-                              aria-label={`Reprogramar ${p.id}`}
-                            >
-                              <Icon icon="mdi:calendar-edit" width={18} />
-                            </button>
+                              size="sm"
+                            />
                           )}
 
-                          {/* 🔁 Reasignar (solo PENDIENTES) */}
                           {view === "pendientes" && (
-                            <button
-                              className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                            <TableActionx
+                              variant="custom"
+                              title={`Reasignar ${p.id}`}
+                              icon="mdi:swap-horizontal"
+                              colorClassName="bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300 hover:bg-indigo-200 hover:ring-indigo-400 focus-visible:ring-indi go-500"
                               onClick={() => handleReasignar(p)}
-                              title="Reasignar pedido"
-                              aria-label={`Reasignar ${p.id}`}
-                            >
-                              <Icon icon="mdi:swap-horizontal" width={18} />
-                            </button>
+                              size="sm"
+                            />
                           )}
                         </div>
                       </td>
@@ -659,7 +662,7 @@ export default function TablePedidoCourier({
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+            <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3 mt-2">
               <button
                 onClick={() => goToPage(page - 1)}
                 disabled={page === 1 || loading}
