@@ -65,39 +65,65 @@ export default function TableStockProductoCourier({
   const filtered = useMemo(() => {
     let arr = [...data];
 
+    // Búsqueda
     const q = filters.q.trim().toLowerCase();
     if (q) {
       arr = arr.filter((p) => {
         const nombre = p.nombre_producto?.toLowerCase() || "";
         const desc = p.descripcion?.toLowerCase() || "";
         const codigo = p.codigo_identificacion?.toLowerCase() || "";
-        return nombre.includes(q) || desc.includes(q) || codigo.includes(q);
+        return (
+          nombre.includes(q) ||
+          desc.includes(q) ||
+          codigo.includes(q)
+        );
       });
     }
 
-    if (filters.almacenId) {
+    // Ecommerce origen (NUEVO - CORRECTO)
+    if (filters.ecommerceOrigenId) {
       arr = arr.filter(
-        (p) => String(p.almacenamiento?.id || "") === filters.almacenId
+        (p) =>
+          String(p.ecommerce_origen_id) ===
+          filters.ecommerceOrigenId
       );
     }
+
+    // Categoría
     if (filters.categoriaId) {
-      arr = arr.filter((p) => String(p.categoria_id) === filters.categoriaId);
+      arr = arr.filter(
+        (p) => String(p.categoria_id) === filters.categoriaId
+      );
     }
+
+    // Estado
     if (filters.estado) {
-      arr = arr.filter((p) => (p.estado?.nombre || "") === filters.estado);
+      arr = arr.filter(
+        (p) => (p.estado?.nombre || "") === filters.estado
+      );
     }
+
+    // Stock bajo
     if (filters.stockBajo) {
-      arr = arr.filter((p) => (p.stock ?? 0) <= (p.stock_minimo ?? 0));
+      arr = arr.filter(
+        (p) => (p.stock ?? 0) <= (p.stock_minimo ?? 0)
+      );
     }
+
+    // Orden por precio
     if (filters.precioOrden) {
       arr.sort((a, b) => {
         const pa = toNumber(a.precio);
         const pb = toNumber(b.precio);
-        return filters.precioOrden === "asc" ? pa - pb : pb - pa;
+        return filters.precioOrden === "asc"
+          ? pa - pb
+          : pb - pa;
       });
     }
+
     return arr;
   }, [data, filters]);
+
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
@@ -145,7 +171,7 @@ export default function TableStockProductoCourier({
 
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
 
-  // ✅ STOCK con el MISMO formato del código base (badge + texto abajo)
+  // STOCK con el MISMO formato del código base (badge + texto abajo)
   const renderStock = (p: Producto) => {
     const isInvalid = p.stock == null || p.stock_minimo == null;
 
@@ -267,7 +293,7 @@ export default function TableStockProductoCourier({
                             )}
                           </td>
 
-                          {/* ✅ aquí ya queda con el formato del stock del código base */}
+                          {/* aquí ya queda con el formato del stock del código base */}
                           <td className="px-4 py-3">{renderStock(p)}</td>
 
                           <td className="px-4 py-3 text-right text-gray70 font-[400]">

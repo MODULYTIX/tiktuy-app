@@ -9,35 +9,36 @@ import TableStockProductoCourier from "@/shared/components/courier/stockProducto
 import Tittlex from "@/shared/common/Tittlex";
 
 export type StockFilters = {
-  almacenId: string;
-  sedeId: string;
+  ecommerceOrigenId: string;
   categoriaId: string;
-  nombre: string;
   estado: string;
   stockBajo: boolean;
   precioOrden: "" | "asc" | "desc";
   q: string;
 };
 
+
 export default function StockPage() {
   const [raw, setRaw] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const [filters, setFilters] = useState<StockFilters>({
-    almacenId: "",
-    sedeId: "",
+    ecommerceOrigenId: "",
     categoriaId: "",
-    nombre: "",
     estado: "",
     stockBajo: false,
     precioOrden: "",
     q: "",
   });
 
-  // estado del modal
+  // modal
   const [viewOpen, setViewOpen] = useState(false);
   const [selected, setSelected] = useState<Producto | null>(null);
 
+  // ============================
+  // CARGA DE STOCK (POR SEDE)
+  // ============================
   useEffect(() => {
     let active = true;
 
@@ -48,18 +49,15 @@ export default function StockPage() {
 
         const token = localStorage.getItem("token") || "";
         if (!token) {
-          if (!active) return;
-          setError("Sesión no válida. Vuelve a iniciar sesión.");
+          setError("Sesión no válida.");
           setRaw([]);
           return;
         }
 
         const data = await getCourierProductos(token);
-        if (!active) return;
-        setRaw(data);
+        if (active) setRaw(data);
       } catch (e: any) {
-        if (!active) return;
-        setError(e?.message || "No se pudo cargar el stock");
+        if (active) setError(e?.message || "No se pudo cargar el stock");
       } finally {
         if (active) setLoading(false);
       }
@@ -70,37 +68,56 @@ export default function StockPage() {
     };
   }, []);
 
-  const options = useMemo(() => {
-    const almacenes = Array.from(
-      new Map(
-        raw
-          .filter((p) => p.almacenamiento)
-          .map((p) => [
-            String(p.almacenamiento!.id),
-            p.almacenamiento!.nombre_almacen || "Sin nombre",
-          ])
-      ).entries()
-    ).map(([value, label]) => ({ value, label }));
+  // ============================
+  // OPCIONES DE FILTRO
+  // SOLO SEDES DEL COURIER
+  // ============================
 
-    const categorias = Array.from(
-      new Map(
-        raw
-          .filter((p) => p.categoria)
-          .map((p) => [
-            String(p.categoria!.id),
-            p.categoria!.nombre || p.categoria!.descripcion || "Sin nombre",
-          ])
-      ).entries()
-    ).map(([value, label]) => ({ value, label }));
+const options = useMemo(() => {
+  const ecommerceMap = new Map<string, string>();
 
-    const estados = [
-      { value: "Activo", label: "Activo" },
-      { value: "Descontinuado", label: "Descontinuado" },
-    ];
+  raw.forEach((p) => {
+    if (p.ecommerce_origen_id && p.ecommerce_origen_nombre) {
+      ecommerceMap.set(
+        String(p.ecommerce_origen_id),
+        p.ecommerce_origen_nombre
+      );
+    }
+  });
 
-    return { almacenes, categorias, estados };
-  }, [raw]);
+  const almacenes = Array.from(ecommerceMap.entries()).map(
+    ([value, label]) => ({ value, label })
+  );
 
+  const categorias = Array.from(
+    new Map(
+      raw
+        .filter((p) => p.categoria)
+        .map((p) => [
+          String(p.categoria!.id),
+          p.categoria!.nombre ||
+            p.categoria!.descripcion ||
+            "Sin nombre",
+        ])
+    ).entries()
+  ).map(([value, label]) => ({ value, label }));
+
+  const estados = [
+    { value: "Activo", label: "Activo" },
+    { value: "Descontinuado", label: "Descontinuado" },
+  ];
+
+  return {
+    almacenes,
+    categorias,
+    estados,
+  };
+}, [raw]);
+
+
+  // ============================
+  // HANDLERS
+  // ============================
   const handleView = (p: Producto) => {
     setSelected(p);
     setViewOpen(true);
@@ -111,11 +128,14 @@ export default function StockPage() {
     setSelected(null);
   };
 
+  // ============================
+  // RENDER
+  // ============================
   return (
     <section className="mt-8">
       <Tittlex
-        title="Stock de Productos"
-        description="Control de stock y movimiento por sede"
+        title="Stock por sede"
+        description="Control de stock físico por almacén del courier"
       />
 
       <div className="my-8">
@@ -127,15 +147,13 @@ export default function StockPage() {
         />
       </div>
 
-      <div>
-        <TableStockProductoCourier
-          data={raw}
-          filters={filters}
-          error={error}
-          loading={loading}
-          onView={handleView}
-        />
-      </div>
+      <TableStockProductoCourier
+        data={raw}
+        filters={filters}
+        error={error}
+        loading={loading}
+        onView={handleView}
+      />
 
       <ProductoDetalleModal
         isOpen={viewOpen}

@@ -27,7 +27,7 @@ export default function PedidosTableGenerado({
 }: PedidosTableGeneradoProps) {
   const { token } = useAuth();
 
-  const PAGE_SIZE = 5;
+  const PAGE_SIZE = 6;
   const [page, setPage] = useState(1);
 
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -49,7 +49,6 @@ export default function PedidosTableGenerado({
 
     setLoading(true);
 
-    // 👇 Antes: fetchPedidos(token, 'Generado', ...)
     fetchPedidos(token, 'Asignado', page, PAGE_SIZE)
       .then((res) => {
         setPedidos(res.data || []);
@@ -70,42 +69,10 @@ export default function PedidosTableGenerado({
     return isNaN(d.getTime()) ? undefined : d;
   };
 
-  const start = parseDateInput(filtros.fechaInicio);
   const end = parseDateInput(filtros.fechaFin);
   if (end) end.setHours(23, 59, 59, 999);
+const visiblePedidos = pedidos;
 
-  const filteredPedidos = useMemo(() => {
-    return pedidos.filter((p) => {
-      const d = p.fecha_creacion ? new Date(p.fecha_creacion) : undefined;
-
-      if (start && d && d < start) return false;
-      if (end && d && d > end) return false;
-
-      if (filtros.courier) {
-        const courierId = (p as any).courier_id ?? p.courier?.id;
-        const byId = courierId && String(courierId) === filtros.courier;
-        const byName = p.courier?.nombre_comercial
-          ?.toLowerCase()
-          .includes(filtros.courier.toLowerCase());
-        if (!(byId || byName)) return false;
-      }
-
-      if (filtros.producto) {
-        const needle = filtros.producto.toLowerCase();
-        const ok = p.detalles?.some((d) => {
-          const prod = d.producto;
-          const byId = prod?.id && String(prod.id) === filtros.producto;
-          const byName = prod?.nombre_producto?.toLowerCase().includes(needle);
-          return byId || byName;
-        });
-        if (!ok) return false;
-      }
-
-      return true;
-    });
-  }, [pedidos, filtros, start, end]);
-
-  const visiblePedidos = filteredPedidos;
 
   const totalPages = serverPagination.totalPages;
 
@@ -198,7 +165,6 @@ export default function PedidosTableGenerado({
                 colSpan={7}
                 className="px-4 py-4 text-center text-gray70 italic"
               >
-                {/* 👇 mensaje actualizado */}
                 No hay pedidos asignados.
               </td>
             </tr>

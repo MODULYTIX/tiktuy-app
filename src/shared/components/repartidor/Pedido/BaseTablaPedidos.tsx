@@ -49,7 +49,6 @@ export default function BaseTablaPedidos({
   const [filtroCantidad, setFiltroCantidad] = useState("");
   const [searchProducto, setSearchProducto] = useState("");
 
-  // ✅ NUEVO
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
 
@@ -198,15 +197,13 @@ export default function BaseTablaPedidos({
         </div>
       </div>
 
-      {/* ✅ Filtros RESPONSIVE (misma tarjeta, pero con wrap) */}
       <div className="bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 mb-5 min-w-0">
         <div className="flex flex-wrap gap-3 items-end min-w-0">
-          {/* Desde / Hasta (solo hoy) */}
           {view === "hoy" && (
             <>
               <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
                 <SelectxDate
-                  label="Desde"
+                  label="Fech. Inicio"
                   value={desde}
                   onChange={(e) => setDesde(e.target.value)}
                   className="w-full"
@@ -215,7 +212,7 @@ export default function BaseTablaPedidos({
 
               <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
                 <SelectxDate
-                  label="Hasta"
+                  label="Fech. Fin"
                   value={hasta}
                   onChange={(e) => setHasta(e.target.value)}
                   className="w-full"

@@ -45,31 +45,38 @@ export type Categoria = {
 export type Producto = {
   id: number;
   uuid: string;
+
   codigo_identificacion: string;
   nombre_producto: string;
   descripcion: string | null;
+
   categoria_id: number;
   almacenamiento_id: number;
 
-  //Cloudinary
-  imagen_url?: string | null;
+  ecommerce_origen_id: number | null;
 
-  // Prisma Decimal suele llegar como string en JSON
-  precio: string;       // ej. "25.50"
+  // 🔥 NUEVO (nombre ya resuelto en backend)
+  ecommerce_origen_nombre?: string | null;
+
   stock: number;
   stock_minimo: number;
-  peso: string;         // ej. "0.75"
+
+  // Prisma Decimal → string
+  precio: string;
+  peso: string;
+
+  imagen_url?: string | null;
 
   estado_id: number;
   fecha_registro: string;
   created_at: string;
   updated_at: string;
 
-  // Relaciones opcionales (según el include del backend)
   categoria?: Categoria;
   almacenamiento?: Almacenamiento;
   estado?: Estado;
 };
+
 
 /**
  * Payload para crear un Producto desde el panel del courier
