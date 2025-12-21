@@ -342,10 +342,6 @@ type Props = {
     canAbonar: boolean;
   }) => void;
 
-<<<<<<< HEAD
-  // ✅ NUEVO: expone acciones al padre (abrir modal)
-=======
->>>>>>> 9d657885ca8febe6a14cb5c2f3c1e1aab818f082
   exposeActions?: (actions: { openAbonarSeleccionados: () => void }) => void;
 };
 
