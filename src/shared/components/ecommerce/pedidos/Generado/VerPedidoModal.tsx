@@ -56,11 +56,11 @@ export default function VerPedidoGeneradoModal({
     pedido?.monto_recaudar != null ? Number(pedido.monto_recaudar) : 0;
 
   const fechaEntregaStr = pedido?.fecha_entrega_programada
-    ? new Date(pedido.fecha_entrega_programada).toLocaleDateString("es-PE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
+    ? pedido.fecha_entrega_programada
+      .slice(0, 10)
+      .split("-")
+      .reverse()
+      .join("/")
     : "—";
 
   /* ===================== UI ===================== */
