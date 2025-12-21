@@ -58,6 +58,16 @@ export default function ImportPreviewPedidosModal({
   const someSelected = groups.some((_, i) => selected[i]);
   const headerChkRef = useRef<HTMLInputElement>(null);
 
+  const normalizeProducto = (s: string) =>
+    (s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/s\b/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+
   useEffect(() => {
     if (headerChkRef.current) {
       headerChkRef.current.indeterminate = !allSelected && someSelected;
@@ -217,13 +227,14 @@ export default function ImportPreviewPedidosModal({
 
         const found = productos.find(
           (p) =>
-            norm(p.nombre_producto) === nombreNorm ||
-            norm(p.codigo_identificacion ?? '') === nombreNorm
+            normalizeProducto(p.nombre_producto) ===
+            normalizeProducto(it.producto)
         );
 
-        if (!found) {
+        if (!found && it.producto) {
           newErrors[key] = true;
         }
+
       });
     });
 
@@ -289,8 +300,11 @@ export default function ImportPreviewPedidosModal({
         let productoReal: ProductoSede | undefined = undefined;
         if (sede && productosPorSede[sede.sede_id]) {
           productoReal = productosPorSede[sede.sede_id].find(
-            (p) => norm(p.nombre_producto) === norm(val)
+            (p) =>
+              normalizeProducto(p.nombre_producto) ===
+              normalizeProducto(val)
           );
+
         }
 
         return {
@@ -505,8 +519,9 @@ export default function ImportPreviewPedidosModal({
       )}
 
       {/* ===== Tabla ===== */}
-      <div className="rounded-lg border border-gray-200 overflow-auto max-h-[60vh]">
-        <table className="w-full table-auto border-separate border-spacing-0 text-sm">
+      <div className="rounded-lg border border-gray-200 overflow-auto max-h-[80vh] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+        <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
+
           <colgroup>
             <col className="w-9" />
             <col className="w-[14%]" />
@@ -516,11 +531,10 @@ export default function ImportPreviewPedidosModal({
             <col className="w-[14%]" />
             <col className="w-[16%]" />
             <col className="w-[16%]" />
-            <col className="w-[14%]" />
-            <col className="w-[14%]" />
-            <col className="w-[10%]" />
+            <col className="w-[100px]" />
+            <col className="w-[120px]" />
+            <col className="w-[110px]" />
           </colgroup>
-
           <thead>
             <tr className="sticky top-0 z-10 bg-[#F3F6FA] text-xs font-semibold text-gray-600">
               <th className="border-b border-gray-200 px-2 py-3" />
@@ -572,7 +586,7 @@ export default function ImportPreviewPedidosModal({
                     <input
                       value={g.nombre}
                       onChange={(e) => patchGroup(gi, { nombre: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
+                      className="w-full bg-transparent border border-transparent rounded px-0 px-1 py-1 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
                       title={g.nombre}
                     />
                   </td>
@@ -600,7 +614,7 @@ export default function ImportPreviewPedidosModal({
                     <input
                       value={g.telefono}
                       onChange={(e) => patchGroup(gi, { telefono: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
+                      className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
                       title={g.telefono}
                     />
                   </td>
@@ -609,7 +623,7 @@ export default function ImportPreviewPedidosModal({
                     <input
                       value={g.direccion}
                       onChange={(e) => patchGroup(gi, { direccion: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
+                      className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
                       title={g.direccion}
                     />
                   </td>
@@ -618,7 +632,7 @@ export default function ImportPreviewPedidosModal({
                     <input
                       value={g.referencia || ''}
                       onChange={(e) => patchGroup(gi, { referencia: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
+                      className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
                       title={g.referencia || ''}
                     />
                   </td>
@@ -703,10 +717,13 @@ export default function ImportPreviewPedidosModal({
                               onChange={(e) =>
                                 handleCantidad(gi, ii, Number(e.target.value))
                               }
-                              className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right  
-                                focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20
-                                ${cantidadInvalida ? 'bg-red-50' : ''}
-                              `}
+                              className={`w-full bg-transparent border border-transparent rounded
+  px-2 h-10
+  text-right text-base leading-tight
+  focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20
+  ${cantidadInvalida ? 'bg-red-50' : ''}
+`}
+
                               title={String(cantidad)}
                             />
 
@@ -736,14 +753,21 @@ export default function ImportPreviewPedidosModal({
                       onChange={(e) =>
                         patchGroup(gi, { monto_total: Number(e.target.value) })
                       }
-                      className={`w-full bg-transparent border border-transparent rounded px-0 py-0.5 text-right focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20 ${(g.monto_total ?? 0) < 0 ? 'bg-red-50' : ''
-                        }`}
+                      className={`w-full bg-transparent border border-transparent rounded
+  px-2 h-10
+  text-right text-base leading-tight
+  focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20
+  ${(g.monto_total ?? 0) < 0 ? 'bg-red-50' : ''}
+`}
+
+
+
                       title={String(g.monto_total ?? '')}
                     />
                   </td>
 
                   {/* FECHA ENTREGA */}
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                  <td className="border-b border-gray-200 px-3 py-2.5 align-middle">
                     <input
                       type="date"
                       value={g.fecha_entrega ? g.fecha_entrega.slice(0, 10) : ''}
@@ -754,8 +778,9 @@ export default function ImportPreviewPedidosModal({
                             : undefined,
                         })
                       }
-                      className="w-full bg-transparent border border-transparent rounded px-0 py-0.5
-    focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
+                      className="w-full bg-transparent border border-transparent rounded px-1 py-1
+                        text-[0.9rem]
+                        focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
                     />
 
                   </td>
