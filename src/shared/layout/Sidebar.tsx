@@ -24,7 +24,6 @@ export default function Sidebar({ isOpen, toggle }: Props) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // ✅ Modal logout
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const confirmLogout = () => {
