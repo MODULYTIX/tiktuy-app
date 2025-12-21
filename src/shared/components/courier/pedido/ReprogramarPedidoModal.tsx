@@ -1,6 +1,11 @@
 // src/shared/components/courier/pedido/ReprogramarPedidoModal.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Icon } from "@iconify/react";
+
 import Buttonx from "@/shared/common/Buttonx";
+import Tittlex from "@/shared/common/Tittlex";
+import { SelectxDate } from "@/shared/common/Selectx";
+import { InputxTextarea } from "@/shared/common/Inputx";
 
 type Props = {
   open: boolean;
@@ -25,12 +30,11 @@ const fmtPE = new Intl.DateTimeFormat("es-PE", {
 function formatFechaPE(fecha: string | null | undefined) {
   if (!fecha) return "—";
 
-  // Si viene "YYYY-MM-DD", NO usar new Date(fecha) (eso es UTC y puede restar 1 día en Perú)
+  // Si viene "YYYY-MM-DD", NO usar new Date(fecha) (UTC -> -1 día)
   if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-    return fmtPE.format(new Date(`${fecha}T12:00:00-05:00`)); // mediodía Perú (seguro)
+    return fmtPE.format(new Date(`${fecha}T12:00:00-05:00`));
   }
 
-  // ISO con Z u otros => formatear en Lima
   return fmtPE.format(new Date(fecha));
 }
 
@@ -42,11 +46,13 @@ export default function ReprogramarPedidoModal({
   onClose,
   onConfirm,
 }: Props) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
   const [fechaNueva, setFechaNueva] = useState<string>("");
   const [observacion, setObservacion] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  // 🔁 reset al abrir
+  /* 🔁 Reset al abrir */
   useEffect(() => {
     if (open) {
       setFechaNueva("");
@@ -55,8 +61,22 @@ export default function ReprogramarPedidoModal({
     }
   }, [open]);
 
-  // ✅ Mostrar fecha actual bien (Perú)
-  const fechaActualLabel = useMemo(() => formatFechaPE(fechaActual), [fechaActual]);
+  /* cerrar al click fuera */
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    if (open) document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, [open, onClose]);
+
+  const fechaActualLabel = useMemo(
+    () => formatFechaPE(fechaActual),
+    [fechaActual]
+  );
 
   if (!open) return null;
 
@@ -70,7 +90,7 @@ export default function ReprogramarPedidoModal({
 
     try {
       await onConfirm({
-        fecha_entrega_programada: fechaNueva, // YYYY-MM-DD (date input ya lo da así)
+        fecha_entrega_programada: fechaNueva,
         observacion: observacion.trim() || undefined,
       });
       onClose();
@@ -80,82 +100,121 @@ export default function ReprogramarPedidoModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Overlay */}
+      <div className="flex-1 bg-black/40" />
+
+      {/* Drawer */}
+      <div
+        ref={panelRef}
+        className="w-[520px] h-full bg-white shadow-default flex flex-col animate-slide-in-right"
+      >
         {/* Header */}
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Reprogramar pedido
-          </h2>
-          {pedidoCodigo && (
-            <p className="text-sm text-gray-500">
-              Pedido: <strong>{pedidoCodigo}</strong>
-            </p>
-          )}
-        </div>
+        <div className="sticky top-0 z-20 bg-white border-b border-gray20 px-5 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <Tittlex
+              variant="modal"
+              title="REPROGRAMAR PEDIDO"
+              icon="mdi:calendar-edit"
+            />
 
-        {/* Fecha actual */}
-        {fechaActual && (
-          <div className="mb-3 text-sm text-gray-600">
-            Fecha actual:&nbsp;
-            <strong>{fechaActualLabel}</strong>
+            {pedidoCodigo && (
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-[11px] text-gray-500">Pedido</span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-gray10 px-3 py-1 text-[11px] font-semibold text-gray-700 ring-1 ring-gray20">
+                  <Icon
+                    icon="mdi:barcode-scan"
+                    className="text-base text-gray-500"
+                  />
+                  {pedidoCodigo}
+                </span>
+              </div>
+            )}
           </div>
-        )}
-
-        {/* Nueva fecha */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nueva fecha de entrega
-          </label>
-          <input
-            type="date"
-            value={fechaNueva}
-            onChange={(e) => setFechaNueva(e.target.value)}
-            disabled={loading}
-            className="w-full h-10 border border-gray-300 rounded px-3 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
         </div>
 
-        {/* Observación */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Observación (opcional)
-          </label>
-          <textarea
-            rows={3}
-            value={observacion}
-            onChange={(e) => setObservacion(e.target.value)}
-            disabled={loading}
-            placeholder="Motivo de la reprogramación"
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none
-                       focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-6">
+          {/* Fecha actual */}
+          <div className="flex items-start justify-between gap-3 mb-6">
+            <div>
+              <div className="text-xs text-gray-500">Fecha actual</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {fechaActualLabel}
+              </div>
+            </div>
+
+            <div className="w-10 h-10 rounded-full bg-amber-50 ring-1 ring-amber-100 flex items-center justify-center">
+              <Icon
+                icon="mdi:calendar-clock"
+                className="text-xl text-amber-700"
+              />
+            </div>
+          </div>
+
+          {/* === FORM REPROGRAMACIÓN === */}
+          <div className="flex flex-col gap-6">
+            {/* Nueva fecha */}
+            <div className="rounded-md border border-gray20 bg-gray10 p-4">
+              <SelectxDate
+                label="Nueva fecha de entrega"
+                value={fechaNueva}
+                onChange={(e) => setFechaNueva(e.target.value)}
+                disabled={loading}
+                labelVariant="left"
+              />
+            </div>
+
+            {/* Observación */}
+            <div className="flex flex-col gap-1">
+              <InputxTextarea
+                label="Observación (opcional)"
+                value={observacion}
+                onChange={(e) => setObservacion(e.target.value)}
+                placeholder="Motivo de la reprogramación"
+                rows={4}
+                minRows={4}
+                maxRows={6}
+                disabled={loading}
+              />
+
+              <div className="flex items-start gap-1 text-[11px] text-gray-500">
+                <Icon
+                  icon="mdi:information-outline"
+                  className="text-sm mt-[1px]"
+                />
+                <span>
+                  Este comentario ayuda a auditoría y seguimiento.
+                </span>
+              </div>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="rounded-md bg-red-50 ring-1 ring-red-200 px-3 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Error */}
-        {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3">
-          <Buttonx
-            variant="outlined"
-            label="Cancelar"
-            onClick={onClose}
-            disabled={loading}
-          />
-
-          {/* ✅ Botón visible (azul) */}
-          <Buttonx
-            // si tu Buttonx tiene variant="primary", úsalo:
-            // variant="primary"
-            variant="outlined"
-            label={loading ? "Guardando..." : "Reprogramar"}
-            onClick={handleConfirm}
-            disabled={loading}
-            className="bg-blue-600 text-white border-blue-600 font-semibold
-                       hover:bg-blue-700 hover:border-blue-700 shadow-sm"
-          />
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-white border-t border-gray20 px-5 py-4">
+          <div className="flex justify-start gap-3">
+            <Buttonx
+              variant="secondary"
+              label={loading ? "Guardando..." : "Reprogramar"}
+              onClick={handleConfirm}
+              disabled={loading}
+              icon="mdi:calendar-check"
+            />
+            <Buttonx
+              variant="outlined"
+              label="Cancelar"
+              onClick={onClose}
+              disabled={loading}
+            />
+          </div>
         </div>
       </div>
     </div>

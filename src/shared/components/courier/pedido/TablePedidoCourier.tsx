@@ -67,6 +67,21 @@ function formatFechaPE(fecha: string | null | undefined) {
   return fmtPE.format(new Date(fecha));
 }
 
+/* ✅ NUEVO: HOY en Perú como YYYY-MM-DD (para que el backend filtre hoy por defecto) */
+function getTodayPEYYYYMMDD() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const y = parts.find((p) => p.type === "year")?.value ?? "0000";
+  const m = parts.find((p) => p.type === "month")?.value ?? "01";
+  const d = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `${y}-${m}-${d}`;
+}
+
 export default function TablePedidoCourier({
   view,
   token,
@@ -78,8 +93,8 @@ export default function TablePedidoCourier({
   const [perPage] = useState(6);
 
   /* ✅ filtros de FECHA (server-side) */
-  const [desde, setDesde] = useState<string>(""); // YYYY-MM-DD
-  const [hasta, setHasta] = useState<string>(""); // YYYY-MM-DD
+  const [desde, setDesde] = useState<string>(() => getTodayPEYYYYMMDD()); // ✅ HOY por defecto
+  const [hasta, setHasta] = useState<string>(""); // YYYY-MM-DD (vacío hasta que elijas)
 
   /* filtros (client-side, visuales) */
   const [filtroDistrito, setFiltroDistrito] = useState("");
@@ -113,9 +128,11 @@ export default function TablePedidoCourier({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
-    // 👇 si NO quieres que se reseteen fechas al cambiar vista, borra estas 2 líneas
-    // setDesde("");
-    // setHasta("");
+
+    // ✅ IMPORTANTE: al cambiar de vista, volvemos a HOY por defecto
+    // Si NO quieres resetear fechas al cambiar vista, elimina estas 2 líneas.
+    setDesde(getTodayPEYYYYMMDD());
+    setHasta("");
   }, [view]);
 
   // ✅ si cambia rango => volver a la primera página
@@ -356,7 +373,9 @@ export default function TablePedidoCourier({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
-    setDesde("");
+
+    // ✅ IMPORTANTE: “Limpiar” vuelve a HOY por defecto, no a vacío
+    setDesde(getTodayPEYYYYMMDD());
     setHasta("");
   };
 
@@ -370,15 +389,15 @@ export default function TablePedidoCourier({
             view === "asignados"
               ? "Pedidos Asignados"
               : view === "pendientes"
-                ? "Pedidos Pendientes"
-                : "Pedidos Terminados"
+              ? "Pedidos Pendientes"
+              : "Pedidos Terminados"
           }
           description={
             view === "asignados"
               ? "Selecciona y asigna pedidos a un repartidor."
               : view === "pendientes"
-                ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
-                : "Pedidos completados o cerrados."
+              ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
+              : "Pedidos completados o cerrados."
           }
         />
 
@@ -399,17 +418,17 @@ export default function TablePedidoCourier({
       {/* Filtros */}
       <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-4 items-end">
-          {/* ✅ Fecha inicio */}
+          {/* ✅ Fecha inicio (HOY por defecto) */}
           <SelectxDate
-            label="Inicio"
+            label="Fecha Inicio"
             value={desde}
             onChange={(e) => setDesde(e.target.value)}
             disabled={loading}
           />
 
-          {/* ✅ Fecha fin */}
+          {/* ✅ Fecha fin (vacía hasta que elijas) */}
           <SelectxDate
-            label="Fin"
+            label="Fecha Fin"
             value={hasta}
             onChange={(e) => setHasta(e.target.value)}
             disabled={loading}
@@ -567,7 +586,6 @@ export default function TablePedidoCourier({
                       </td>
 
                       <td className="h-12 px-4 py-3 text-gray70">
-                        {/* ✅ CAMBIO: mostrar SIEMPRE en Perú */}
                         {formatFechaPE(fecha)}
                       </td>
 
@@ -596,7 +614,6 @@ export default function TablePedidoCourier({
 
                       <td className="h-12 px-4 py-3">
                         <div className="flex items-center justify-center gap-3">
-                          {/* 👁️ Detalle */}
                           <TableActionx
                             variant="view"
                             title={`Ver ${p.id}`}
@@ -604,7 +621,6 @@ export default function TablePedidoCourier({
                             size="sm"
                           />
 
-                          {/* ✅ Reprogramar (solo ASIGNADOS) */}
                           {view === "asignados" && (
                             <TableActionx
                               variant="custom"
@@ -616,13 +632,12 @@ export default function TablePedidoCourier({
                             />
                           )}
 
-                          {/* 🔁 Reasignar (solo PENDIENTES) */}
                           {view === "pendientes" && (
                             <TableActionx
                               variant="custom"
                               title={`Reasignar ${p.id}`}
                               icon="mdi:swap-horizontal"
-                              colorClassName="bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300 hover:bg-indigo-200 hover:ring-indigo-400 focus-visible:ring-indigo-500"
+                              colorClassName="bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300 hover:bg-indigo-200 hover:ring-indigo-400 focus-visible:ring-indi go-500"
                               onClick={() => handleReasignar(p)}
                               size="sm"
                             />
