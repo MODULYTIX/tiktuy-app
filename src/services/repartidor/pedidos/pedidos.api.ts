@@ -1,3 +1,4 @@
+// src/services/repartidor/pedidos/pedidos.api.ts
 import type {
   Paginated,
   PedidoListItem,
@@ -8,6 +9,7 @@ import type {
   UpdateResultadoBody,
   UpdateResultadoResponse,
   PedidoDetalle,
+  WhatsappGrupoLinkResponse, // ✅ nuevo type
 } from "./pedidos.types";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -34,7 +36,6 @@ function toQueryHoy(q: ListPedidosHoyQuery = {}): string {
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
-
 
 function toQueryEstado(q: ListByEstadoQuery = {}): string {
   const sp = new URLSearchParams();
@@ -256,4 +257,24 @@ export async function fetchPedidoDetalle(
     signal: opts?.signal,
   });
   return handle(res, "Error al obtener detalle del pedido");
+}
+
+/* --------------------------
+   ✅ NUEVO: GET WhatsApp Grupo (link de la asociación Ecommerce–Courier–Sede)
+   GET /repartidor-pedidos/:id/whatsapp-grupo
+---------------------------*/
+export async function fetchWhatsappGrupoLink(
+  token: string,
+  id: number,
+  opts?: { signal?: AbortSignal }
+): Promise<WhatsappGrupoLinkResponse> {
+  const res = await fetch(`${BASE_URL}/${id}/whatsapp-grupo`, {
+    headers: authHeaders(token),
+    signal: opts?.signal,
+  });
+
+  return handle<WhatsappGrupoLinkResponse>(
+    res,
+    "Error al obtener el link del grupo de WhatsApp"
+  );
 }

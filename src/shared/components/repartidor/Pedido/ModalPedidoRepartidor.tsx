@@ -4,6 +4,9 @@ import type { PedidoListItem } from "@/services/repartidor/pedidos/pedidos.types
 import Buttonx from "@/shared/common/Buttonx";
 import { Inputx, InputxTextarea } from "@/shared/common/Inputx";
 
+// ✅ tu api del nuevo endpoint
+import { fetchWhatsappGrupoLink } from "@/services/repartidor/pedidos/pedidos.api";
+
 type ResultadoContacto =
   | "RECEPCION_HOY"
   | "NO_RESPONDE"
@@ -26,6 +29,26 @@ type Props = {
 };
 
 type Paso = "seleccion" | "reprogramar";
+
+function getToken(): string | null {
+  return localStorage.getItem("token");
+}
+
+function normalizeWhatsappGroupLink(raw: string): string | null {
+  const t = (raw ?? "").trim();
+  if (!t) return null;
+
+  try {
+    const u = new URL(t);
+    const hostOk =
+      u.hostname === "chat.whatsapp.com" || u.hostname.endsWith(".whatsapp.com");
+    if (!hostOk) return null;
+    if (!u.pathname || u.pathname === "/") return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
 
 export default function ModalRepartidorMotorizado({
   isOpen,
@@ -141,6 +164,36 @@ export default function ModalRepartidorMotorizado({
     currency: "PEN",
   }).format(resumen.monto || 0);
 
+  async function handleOpenGrupo() {
+    if (!pedido?.id) return;
+
+    const token = getToken();
+    if (!token) {
+      alert("No hay token. Revisa tu auth context.");
+      return;
+    }
+
+    try {
+      const out = await fetchWhatsappGrupoLink(token, pedido.id);
+      const raw =
+        (out as any)?.link_whatsapp ??
+        (out as any)?.link ??
+        (out as any)?.url ??
+        "";
+
+      const link = normalizeWhatsappGroupLink(String(raw || ""));
+      if (!link) {
+        alert("No hay link de grupo registrado para este pedido.");
+        return;
+      }
+
+      // ✅ SOLO nueva pestaña
+      window.open(link, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      alert(e?.message || "No se pudo abrir el grupo de WhatsApp.");
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       {/* overlay */}
@@ -165,18 +218,14 @@ export default function ModalRepartidorMotorizado({
 
         {/* contenido scrollable */}
         <div className="px-6 pb-4 pt-4 space-y-6 overflow-y-auto">
-          {/* CARD INFORMACIÓN DE PEDIDO + PRODUCTOS */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="p-5">
-              {/* encabezado Cliente centrado */}
               <div className="text-xs text-gray-500 text-center">Cliente</div>
               <div className="text-base md:text-lg font-semibold text-gray-900 text-center">
                 {resumen.cliente}
               </div>
 
-              {/* dos columnas: izquierda texto, derecha iconos */}
               <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* IZQUIERDA */}
                 <div className="space-y-1 text-sm">
                   <ResumenRow label="Código" value={resumen.codigo} />
                   <ResumenRow label="Distrito" value={resumen.distrito} />
@@ -184,7 +233,6 @@ export default function ModalRepartidorMotorizado({
                   <ResumenRow label="Referencia" value={resumen.referencia} />
                 </div>
 
-                {/* DERECHA – misma separación que la izquierda */}
                 <div className="space-y-1 text-sm">
                   <InfoIconRow
                     icon="mdi:phone"
@@ -218,9 +266,9 @@ export default function ModalRepartidorMotorizado({
                   href={waHref}
                 />
                 <AccionCircular
-                  icon="mdi:account-voice"
-                  label="Otros"
-                  onClick={() => {}}
+                  icon="mdi:account-group"
+                  label="Grupo"
+                  onClick={handleOpenGrupo}
                 />
               </div>
 
@@ -311,7 +359,6 @@ export default function ModalRepartidorMotorizado({
               </div>
             </div>
           ) : (
-            // === VISTA REPROGRAMAR ===
             <div className="pt-2">
               <h3 className="text-center text-base md:text-lg font-semibold text-[#1D3F8C] uppercase">
                 Reprogramar fecha de entrega
@@ -444,7 +491,7 @@ function InfoIconRow({
         href={href}
         target="_blank"
         rel="noreferrer"
-        className="hover:underline"
+        className="hover:underline cursor-pointer"
       >
         {content}
       </a>
@@ -466,22 +513,27 @@ function AccionCircular({
   onClick?: () => void;
 }) {
   const Circle = (
-    <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md">
+    <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md cursor-pointer hover:opacity-90 transition">
       <Icon icon={icon} className="text-2xl" />
     </div>
   );
+
   return href ? (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="flex flex-col items-center gap-1"
+      className="flex flex-col items-center gap-1 cursor-pointer"
     >
       {Circle}
       <span className="text-[11px] text-gray-600">{label}</span>
     </a>
   ) : (
-    <button onClick={onClick} className="flex flex-col items-center gap-1">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex flex-col items-center gap-1 cursor-pointer"
+    >
       {Circle}
       <span className="text-[11px] text-gray-600">{label}</span>
     </button>
@@ -501,7 +553,6 @@ function OpcionCard({
   title: string;
   onClick: () => void;
 }) {
-  // colores por tipo
   let activeCard = "";
   let borderColor = "";
 
@@ -529,7 +580,7 @@ function OpcionCard({
   }
 
   const baseCard =
-    "w-full rounded-2xl px-5 py-3 flex items-center justify-center gap-3 transition shadow-sm";
+    "w-full rounded-2xl px-5 py-3 flex items-center justify-center gap-3 transition shadow-sm cursor-pointer";
   const inactiveCard =
     "bg-white text-gray-900 border border-gray-200 hover:border-gray-300 hover:shadow-md";
 
@@ -539,17 +590,13 @@ function OpcionCard({
       onClick={onClick}
       className={`${baseCard} ${active ? activeCard : inactiveCard}`}
     >
-      {/* círculo PERFECTAMENTE redondo con el ícono */}
       <div
-        className={`w-10 h-10 aspect-square rounded-full shrink-0 flex items-center justify-center bg-white border-2 ${borderColor}`}
+        className={`w-10 h-10 aspect-square rounded-full shrink-0 flex items-center justify-center bg-white border-2 ${borderColor} cursor-pointer`}
       >
         <Icon icon={icon} className="text-lg" />
       </div>
 
-      {/* texto centrado */}
-      <div className="text-sm font-medium leading-snug text-center">
-        {title}
-      </div>
+      <div className="text-sm font-medium leading-snug text-center">{title}</div>
 
       {active && <Icon icon="mdi:check" className="ml-2 text-xl text-white" />}
     </button>
