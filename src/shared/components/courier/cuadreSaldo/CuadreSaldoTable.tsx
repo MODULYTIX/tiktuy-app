@@ -13,6 +13,7 @@ import type {
 
 import Tittlex from "@/shared/common/Tittlex";
 import { InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
+import TableActionx from "@/shared/common/TableActionx";
 
 /* ============== helpers ============== */
 const formatPEN = (v: number) =>
@@ -181,11 +182,17 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   useEffect(() => {
     if (open && pedido) {
       setMontoRep(
-        String((pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0)
+        String(
+          (pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0
+        )
       );
       setMotivo((pedido as any).motivo ?? "");
       setMontoCour(
-        String((pedido as any).servicioCourier ?? (pedido as any).servicioCourierEfectivo ?? 0)
+        String(
+          (pedido as any).servicioCourier ??
+            (pedido as any).servicioCourierEfectivo ??
+            0
+        )
       );
     }
   }, [open, pedido]);
@@ -203,9 +210,12 @@ const EditServicioModal: React.FC<EditModalProps> = ({
     try {
       const chg: EditModalChange = { id: pedido.id };
 
-      const repPrev = (pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0;
+      const repPrev =
+        (pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0;
       const courPrev =
-        (pedido as any).servicioCourier ?? (pedido as any).servicioCourierEfectivo ?? 0;
+        (pedido as any).servicioCourier ??
+        (pedido as any).servicioCourierEfectivo ??
+        0;
       const motivoPrev = (pedido as any).motivo ?? "";
 
       if (valRep !== repPrev || (motivo || "") !== motivoPrev) {
@@ -325,7 +335,6 @@ type Props = {
   hasta?: string;
   pageSize?: number;
 
-  // ✅ NUEVO: para controlar el botón desde la Page
   onSelectionChange?: (info: {
     selectedCount: number;
     totalServicio: number;
@@ -333,10 +342,11 @@ type Props = {
     canAbonar: boolean;
   }) => void;
 
+<<<<<<< HEAD
   // ✅ NUEVO: expone acciones al padre (abrir modal)
-  exposeActions?: (actions: {
-    openAbonarSeleccionados: () => void;
-  }) => void;
+=======
+>>>>>>> 9d657885ca8febe6a14cb5c2f3c1e1aab818f082
+  exposeActions?: (actions: { openAbonarSeleccionados: () => void }) => void;
 };
 
 const CuadreSaldoTable: React.FC<Props> = ({
@@ -353,14 +363,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // selección múltiple
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
-  // edición
   const [editing, setEditing] = useState<PedidoListItem | undefined>(undefined);
   const [openEdit, setOpenEdit] = useState(false);
-
-  // confirm modal
   const [openConfirm, setOpenConfirm] = useState(false);
 
   const load = useCallback(async () => {
@@ -401,7 +406,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
         if (chg.servicioRepartidor !== undefined) {
           next.servicioRepartidor = chg.servicioRepartidor;
-          next.servicioEfectivo = chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
+          next.servicioEfectivo =
+            chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
         }
         if (chg.motivo !== undefined) {
           next.motivo = chg.motivo ?? null;
@@ -418,7 +424,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
     );
   }, []);
 
-  // ==== selección: sólo filas NO abonadas ====
   const selectableIds = useMemo(
     () => rows.filter((r: any) => !r.abonado).map((r) => r.id),
     [rows]
@@ -440,11 +445,13 @@ const CuadreSaldoTable: React.FC<Props> = ({
     () =>
       rows
         .filter((r) => selectedIds.includes(r.id))
-        .reduce((acc: number, r: any) => acc + Number(r.servicioEfectivo ?? 0), 0),
+        .reduce(
+          (acc: number, r: any) => acc + Number(r.servicioEfectivo ?? 0),
+          0
+        ),
     [rows, selectedIds]
   );
 
-  // ==== abono (por fila)
   const toggleAbono = useCallback(
     async (row: any) => {
       try {
@@ -462,7 +469,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
     [token]
   );
 
-  // ==== abono múltiple -> abre modal (se llamará desde la Page)
   const abrirModalAbono = useCallback(() => {
     if (selectedIds.length === 0) return;
     setOpenConfirm(true);
@@ -490,7 +496,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
     }
   }, [token, selectedIds]);
 
-  // ✅ Exponer acción al padre
   useEffect(() => {
     if (!exposeActions) return;
     exposeActions({
@@ -498,7 +503,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
     });
   }, [exposeActions, abrirModalAbono]);
 
-  // ✅ Notificar al padre cambios de selección
   useEffect(() => {
     if (!onSelectionChange) return;
     onSelectionChange({
@@ -507,11 +511,15 @@ const CuadreSaldoTable: React.FC<Props> = ({
       loading,
       canAbonar: selectedIds.length > 0 && !loading,
     });
-  }, [onSelectionChange, selectedIds.length, totalServicioSeleccionado, loading]);
+  }, [
+    onSelectionChange,
+    selectedIds.length,
+    totalServicioSeleccionado,
+    loading,
+  ]);
 
   return (
     <div className="mt-5 flex flex-col gap-3">
-      {/* Tabla con el mismo formato del Ecommerce */}
       <div className="relative mt-0 overflow-hidden rounded-md border border-gray30 bg-white shadow-default">
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 text-sm">
@@ -525,7 +533,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
               <colgroup>
                 <col className="w-[6%]" />
                 <col className="w-[12%]" />
-                <col className="w-[20%]" />
+                <col className="w-[16%]" />
+                <col className="w-[12%]" /> {/* ✅ Distrito */}
                 <col className="w-[14%]" />
                 <col className="w-[12%]" />
                 <col className="w-[18%]" />
@@ -546,6 +555,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                   </th>
                   <th className="px-4 py-3 text-left">Fec. Entrega</th>
                   <th className="px-4 py-3 text-left">Cliente</th>
+                  <th className="px-4 py-3 text-left">Distrito</th> {/* ✅ */}
                   <th className="px-4 py-3 text-left">Método de pago</th>
                   <th className="px-4 py-3 text-left">Monto</th>
                   <th className="px-4 py-3 text-left">Servicio motorizado</th>
@@ -558,7 +568,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 {rows.length === 0 ? (
                   <tr className="hover:bg-transparent">
                     <td
-                      colSpan={8}
+                      colSpan={9} // ✅ antes 8
                       className="px-4 py-8 text-center italic text-gray70"
                     >
                       Sin resultados para el filtro seleccionado.
@@ -569,7 +579,10 @@ const CuadreSaldoTable: React.FC<Props> = ({
                     const checked = selectedIds.includes(r.id);
                     const disableCheck = r.abonado;
                     return (
-                      <tr key={r.id} className="transition-colors hover:bg-gray10">
+                      <tr
+                        key={r.id}
+                        className="transition-colors hover:bg-gray10"
+                      >
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
@@ -585,6 +598,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           {toDMY(r.fechaEntrega)}
                         </td>
                         <td className="px-4 py-3 text-gray70">{r.cliente}</td>
+
+                        {/* ✅ Distrito */}
+                        <td className="px-4 py-3 text-gray70">
+                          {r.distrito ?? "-"}
+                        </td>
+
                         <td className="px-4 py-3 text-gray70">
                           {r.metodoPago ?? "-"}
                         </td>
@@ -614,7 +633,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
                                 ? "bg-emerald-600 text-white"
                                 : "bg-gray-200 text-gray-900",
                             ].join(" ")}
-                            title={r.abonado ? "Quitar abono" : "Marcar abonado"}
+                            title={
+                              r.abonado ? "Quitar abono" : "Marcar abonado"
+                            }
                           >
                             {r.abonado ? "Abonado" : "Sin abonar"}
                           </button>
@@ -623,29 +644,29 @@ const CuadreSaldoTable: React.FC<Props> = ({
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
                             {!r.abonado && (
-                              <button
+                              <TableActionx
+                                variant="edit"
+                                title="Editar servicio (repartidor / courier)"
                                 onClick={() => {
                                   setEditing(r);
                                   setOpenEdit(true);
                                 }}
-                                className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
-                                title="Editar servicio (repartidor / courier)"
-                              >
-                                Editar
-                              </button>
+                                size="sm"
+                              />
                             )}
 
                             {!r.abonado && (
-                              <button
+                              <TableActionx
+                                variant="custom"
+                                title="Abonar este pedido"
+                                icon="mdi:cash-plus"
+                                colorClassName="bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-200 hover:ring-emerald-400 focus-visible:ring-emerald-500"
                                 onClick={() => {
                                   setSelectedIds([r.id]);
                                   setOpenConfirm(true);
                                 }}
-                                className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
-                                title="Abonar este pedido"
-                              >
-                                Abonar
-                              </button>
+                                size="sm"
+                              />
                             )}
                           </div>
                         </td>
@@ -659,7 +680,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
         </section>
       </div>
 
-      {/* ✅ AHORA este resumen va DEBAJO de la tabla */}
       <div className="flex items-center justify-between">
         {error ? (
           <span className="text-[12px] text-red-600">{error}</span>
@@ -671,7 +691,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
         )}
       </div>
 
-      {/* modal editar */}
       <EditServicioModal
         token={token}
         open={openEdit}
@@ -680,7 +699,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
         onSaved={onSavedServicio}
       />
 
-      {/* modal confirmar abono */}
       <ConfirmAbonoModal
         open={openConfirm}
         totalServicio={totalServicioSeleccionado}

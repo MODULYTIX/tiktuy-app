@@ -46,7 +46,7 @@ const baseBtn =
   "disabled:opacity-50 disabled:cursor-not-allowed";
 
 const sizeCls: Record<NonNullable<Props["size"]>, string> = {
-  sm: "w-8 h-8",   // perfecto para tablas compactas
+  sm: "w-8 h-8", // perfecto para tablas compactas
   md: "w-9 h-9",
 };
 
@@ -55,7 +55,10 @@ const iconCls: Record<NonNullable<Props["size"]>, string> = {
   md: "text-[18px]",
 };
 
-const variantStyle: Record<Exclude<Variant, "custom">, { cls: string; icon: string; fallbackTitle: string }> = {
+const variantStyle: Record<
+  Exclude<Variant, "custom">,
+  { cls: string; icon: string; fallbackTitle: string }
+> = {
   view: {
     icon: "solar:eye-bold", // icono bonito (Iconify)
     fallbackTitle: "Ver",
@@ -68,9 +71,9 @@ const variantStyle: Record<Exclude<Variant, "custom">, { cls: string; icon: stri
     icon: "solar:pen-2-bold",
     fallbackTitle: "Editar",
     cls:
-      "bg-yellow-100 text-yellow-600 ring-1 ring-yellow-300 " +
-      "hover:bg-yellow-200 hover:ring-yellow-400 " +
-      "focus-visible:ring-yellow-500",
+      "bg-orange-200/70 text-orange-800 ring-1 ring-orange-300 " +
+      "hover:bg-orange-200 hover:ring-orange-400 " +
+      "focus-visible:ring-orange-500",
   },
 };
 
@@ -91,8 +94,8 @@ export default function TableActionx({
     title ?? (isCustom ? "Acción" : variantStyle[variant].fallbackTitle);
 
   const resolvedColors = isCustom
-    ? (colorClassName ??
-        "bg-violet-50 text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100 hover:ring-violet-300 focus-visible:ring-violet-400")
+    ? colorClassName ??
+      "bg-violet-50 text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100 hover:ring-violet-300 focus-visible:ring-violet-400"
     : variantStyle[variant].cls;
 
   return (

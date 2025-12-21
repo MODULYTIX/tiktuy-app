@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Icon } from "@iconify/react";
 import type { PedidoDetalle } from "@/services/courier/pedidos/pedidos.types";
 import Tittlex from "@/shared/common/Tittlex";
 
@@ -7,6 +8,27 @@ interface Props {
   onClose: () => void;
   detalle: PedidoDetalle | null;
   loading?: boolean;
+}
+
+/* ✅ FIX FECHAS: mostrar siempre en Perú sin “-1 día” */
+const fmtPE = new Intl.DateTimeFormat("es-PE", {
+  timeZone: "America/Lima",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function formatFechaPE(fecha: string | null | undefined) {
+  if (!fecha) return "—";
+
+  // Si viene "YYYY-MM-DD", NO uses new Date(fecha) (eso es UTC y resta 1 día en Perú)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    // mediodía Perú, “seguro” contra corrimientos
+    return fmtPE.format(new Date(`${fecha}T12:00:00-05:00`));
+  }
+
+  // Si viene ISO con Z, lo mostramos en Lima
+  return fmtPE.format(new Date(fecha));
 }
 
 export default function DetallePedidoDrawer({
@@ -29,33 +51,46 @@ export default function DetallePedidoDrawer({
 
   if (!open) return null;
 
+  const codigo = detalle?.codigo_pedido ?? "—";
+  const cliente = detalle?.cliente ?? "—";
+  const direccion = detalle?.direccion_entrega ?? "—";
+  const fechaEntrega = detalle ? formatFechaPE(detalle.fecha_entrega_programada) : "—";
+  const productos = detalle?.cantidad_productos ?? 0;
+  const total = detalle?.monto_total ?? 0;
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="flex-1 bg-black/40" />
+
       {/* panel lateral */}
-      <div ref={panelRef} className="w-[520px] h-full bg-white shadow-default flex flex-col gap-5 animate-slide-in-right p-5">
+      <div
+        ref={panelRef}
+        className="w-[520px] h-full bg-white shadow-default flex flex-col gap-5 animate-slide-in-right p-5"
+      >
         {/* header */}
-        <div className="flex gap-1 justify-between items-center">
+        <div className="flex items-start justify-between gap-3">
           <Tittlex
             variant="modal"
             title="DETALLE DEL PEDIDO"
             icon="lsicon:shopping-cart-filled"
           />
-          <div className="flex gap-1">
-            <label className="block text-xs font-semibold text-gray-600">Cód. Pedido:</label>
-            <div className="text-xs text-gray-600">{detalle?.codigo_pedido}</div>
+
+          {/* Badge código */}
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-[11px] text-gray-500">Cód. Pedido</span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-gray10 px-3 py-1 text-[11px] font-semibold text-gray-700 ring-1 ring-gray20">
+              <Icon icon="mdi:barcode-scan" className="text-base text-gray-500" />
+              {codigo}
+            </span>
           </div>
         </div>
 
         {/* body */}
-        <div className="flex flex-col gap-5 text-sm h-full">
+        <div className="flex flex-col gap-5 text-sm h-full overflow-y-auto p-1">
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-4 bg-gray-200 animate-pulse rounded"
-                />
+                <div key={i} className="h-4 bg-gray-200 animate-pulse rounded" />
               ))}
             </div>
           ) : !detalle ? (
@@ -64,66 +99,100 @@ export default function DetallePedidoDrawer({
             </p>
           ) : (
             <>
-              {/* info básica */}
-              <div className="flex flex-col gap-2">
-                <div className="w-full items-center flex flex-col">
-                  <label className="block text-xs font-light text-gray-500">
-                    Cliente
-                  </label>
-                  <div className="text-gray-800 font-semibold text-base">{detalle.cliente}</div>
-                </div>
+              {/* ✅ BLOQUE INFO REDISEÑADO */}
+              <div className="bg-white rounded-md shadow-default ring-1 ring-gray20 p-4">
+                {/* Cliente (perfil) */}
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center">
+                    <Icon icon="mdi:account" className="text-xl text-blue-700" />
+                  </div>
 
-                <div className="flex gap-1">
-                  <label className="block text-sm font-light text-gray-500">
-                    Dirección:
-                  </label>
-                  <div className="text-gray-800 text-sm">
-                    {detalle.direccion_entrega}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] text-gray-500">Cliente</div>
+                    <div className="text-base font-semibold text-gray-900 leading-tight truncate">
+                      {cliente}
+                    </div>
+
+                    {/* Dirección */}
+                    <div className="mt-2 flex items-start gap-2 text-sm">
+                      <Icon
+                        icon="mdi:map-marker-outline"
+                        className="text-lg text-gray-400 mt-[1px]"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-gray-500">Dirección</div>
+                        <div className="text-sm font-medium text-gray-800 break-words">
+                          {direccion}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex gap-1">
-                  <label className="block text-sm font-light text-gray-500">
-                    F. Entrega:
-                  </label>
-                  <div className="text-gray-800 text-sm">
-                    {detalle.fecha_entrega_programada
-                      ? new Date(
-                        detalle.fecha_entrega_programada
-                      ).toLocaleDateString("es-PE")
-                      : "—"}
-                  </div>
-                </div>
+                {/* Divider */}
+                <div className="my-4 h-px bg-gray20" />
 
-                <div className="flex gap-1">
-                  <label className="block text-sm font-light text-gray-500">
-                    Cant. de Productos:
-                  </label>
-                  <div className="text-gray-800 text-sm">
-                    {detalle.cantidad_productos}
+                {/* Resumen en cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Total */}
+                  <div className="rounded-md bg-gray10 ring-1 ring-gray20 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-gray-500">Total</span>
+                      <Icon icon="mdi:cash-multiple" className="text-lg text-gray-400" />
+                    </div>
+                    <div className="mt-1 text-lg font-semibold text-gray-900">
+                      S/. {total.toFixed(2)}
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex gap-1">
-                  <label className="block text-sm font-light text-gray-500">Monto:</label>
-                  <div className="text-gray-800 text-sm">
-                    S/. {detalle.monto_total.toFixed(2)}
+                  {/* Entrega */}
+                  <div className="rounded-md bg-gray10 ring-1 ring-gray20 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-gray-500">Entrega</span>
+                      <Icon
+                        icon="mdi:calendar-check-outline"
+                        className="text-lg text-gray-400"
+                      />
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-gray-900">
+                      {fechaEntrega}
+                    </div>
+                    <div className="text-[11px] text-gray-500">Fecha programada</div>
+                  </div>
+
+                  {/* Productos */}
+                  <div className="rounded-md bg-gray10 ring-1 ring-gray20 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-gray-500">Productos</span>
+                      <Icon icon="mdi:cart-outline" className="text-lg text-gray-400" />
+                    </div>
+                    <div className="mt-1 text-lg font-semibold text-gray-900">
+                      {String(productos).padStart(2, "0")}
+                    </div>
+                    <div className="text-[11px] text-gray-500">Cantidad total</div>
                   </div>
                 </div>
               </div>
 
-              {/* productos */}
-              <div className="shadow-default rounded h-full">
+              {/* productos (NO TOCADO como pediste) */}
+              <div className="bg-white rounded-md shadow-default mb-2">
                 <table className="w-full text-sm">
                   <thead className="bg-gray20">
                     <tr>
-                      <th className="px-3 w-full py-2 font-normal text-left">Producto</th>
-                      <th className="px-3 w-12 py-2 font-normal text-right">Cant.</th>
+                      <th className="px-3 w-full py-2 font-normal text-left">
+                        Producto
+                      </th>
+                      <th className="px-3 w-12 py-2 font-normal text-right">
+                        Cant.
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {detalle.items.map((it) => (
-                      <tr key={it.producto_id} className="border-y border-gray20">
+                      <tr
+                        key={it.producto_id}
+                        className="border-y border-gray20"
+                      >
                         <td className="px-3 py-2 w-full align-top">
                           <div className="font-normal">{it.nombre}</div>
                           {it.descripcion && (
@@ -131,13 +200,15 @@ export default function DetallePedidoDrawer({
                               {it.descripcion}
                             </div>
                           )}
-                          {it.marca && (
+                          {"marca" in it && (it as any).marca && (
                             <div className="text-gray-400 text-xs">
-                              Marca: {it.marca}
+                              Marca: {(it as any).marca}
                             </div>
                           )}
                         </td>
-                        <td className="px-3 py-2 w-12 text-gray60 text-center">{it.cantidad}</td>
+                        <td className="px-3 py-2 w-12 text-gray60 text-center">
+                          {it.cantidad}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

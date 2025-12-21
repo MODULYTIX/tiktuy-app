@@ -1,9 +1,10 @@
-import { useAuth } from '@/auth/context';
-import { fetchPedidos } from '@/services/ecommerce/pedidos/pedidos.api';
-import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
-import { Icon } from '@iconify/react/dist/iconify.js';
-import { useEffect, useMemo, useState } from 'react';
-import { FiEye } from 'react-icons/fi';
+import { useAuth } from "@/auth/context";
+import { fetchPedidos } from "@/services/ecommerce/pedidos/pedidos.api";
+import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
+import TableActionx from "@/shared/common/TableActionx";
+import { Icon } from "@iconify/react/dist/iconify.js";
+import { useEffect, useMemo, useState } from "react";
+import { FiEye } from "react-icons/fi";
 
 type Filtros = {
   courier: string;
@@ -40,7 +41,7 @@ export default function PedidosTableAsignado({
     setLoading(true);
 
     // Antes: fetchPedidosAsignados(token)
-    fetchPedidos(token, 'Pendiente', 1, 10)
+    fetchPedidos(token, "Pendiente", 1, 10)
       .then((res) => {
         setPedidos(res.data || []);
       })
@@ -73,28 +74,28 @@ export default function PedidosTableAsignado({
   };
 
   const formatearFechaCorta = (iso?: string | null) => {
-    if (!iso) return '-';
+    if (!iso) return "-";
     const d = new Date(iso);
-    if (isNaN(d.getTime())) return '-';
-    return `${String(d.getDate()).padStart(2, '0')}/${String(
+    if (isNaN(d.getTime())) return "-";
+    return `${String(d.getDate()).padStart(2, "0")}/${String(
       d.getMonth() + 1
-    ).padStart(2, '0')}/${d.getFullYear()}`;
+    ).padStart(2, "0")}/${d.getFullYear()}`;
   };
 
   const getEstadoPill = (estado: string) => {
     const base =
-      'inline-flex items-center px-2 py-[2px] rounded text-[11px] font-medium border';
+      "inline-flex items-center px-2 py-[2px] rounded text-[11px] font-medium border";
 
-    const lower = (estado || '').toLowerCase();
+    const lower = (estado || "").toLowerCase();
 
     const classes =
-      lower === 'pendiente'
-        ? 'bg-amber-50 text-amber-700 border-amber-200'
-        : lower === 'entregado'
-        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-        : 'bg-gray-50 text-gray-600 border-gray-200';
+      lower === "pendiente"
+        ? "bg-amber-50 text-amber-700 border-amber-200"
+        : lower === "entregado"
+        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+        : "bg-gray-50 text-gray-600 border-gray-200";
 
-    const label = lower === 'pendiente' ? 'Pendiente' : estado;
+    const label = lower === "pendiente" ? "Pendiente" : estado;
 
     return <span className={`${base} ${classes}`}>{label}</span>;
   };
@@ -170,8 +171,8 @@ export default function PedidosTableAsignado({
         end = totalPages;
       }
       for (let i = start; i <= end; i++) pages.push(i);
-      if (start > 1) pages.unshift('...', 1);
-      if (end < totalPages) pages.push('...', totalPages);
+      if (start > 1) pages.unshift("...", 1);
+      if (end < totalPages) pages.push("...", totalPages);
     }
 
     return pages;
@@ -240,10 +241,7 @@ export default function PedidosTableAsignado({
                 const monto = Number(p.monto_recaudar ?? 0);
 
                 return (
-                  <tr
-                    key={p.id}
-                    className="hover:bg-gray10 transition-colors"
-                  >
+                  <tr key={p.id} className="hover:bg-gray10 transition-colors">
                     <td className="px-2 py-3 text-center text-gray70">
                       {fecha}
                     </td>
@@ -254,12 +252,10 @@ export default function PedidosTableAsignado({
                       {p.nombre_cliente}
                     </td>
                     <td className="px-4 py-3 text-gray70">
-                      {p.detalles?.[0]?.producto?.nombre_producto ?? '-'}
+                      {p.detalles?.[0]?.producto?.nombre_producto ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-center text-gray70">
-                      {p.detalles?.[0]?.cantidad
-                        ?.toString()
-                        .padStart(2, '0')}
+                      {p.detalles?.[0]?.cantidad?.toString().padStart(2, "0")}
                     </td>
                     <td className="px-4 py-3 text-center text-gray70">
                       S/. {monto.toFixed(2)}
@@ -270,22 +266,19 @@ export default function PedidosTableAsignado({
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-4">
-                        <button
+                        <TableActionx
+                          variant="view"
+                          title="Ver"
                           onClick={() => onVer(p.id)}
-                          className="text-primaryLight hover:text-primaryDark"
-                        >
-                          <FiEye className="w-4 h-4" />
-                        </button>
-                        <button
+                          size="sm"
+                        />
+
+                        <TableActionx
+                          variant="edit"
+                          title="Editar"
                           onClick={() => onEditar(p.id)}
-                          className="text-[#CA8A04] hover:opacity-80"
-                        >
-                          <Icon
-                            icon="fa-regular:edit"
-                            width="16"
-                            height="16"
-                          />
-                        </button>
+                          size="sm"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -308,7 +301,7 @@ export default function PedidosTableAsignado({
       </table>
 
       {/* Paginador */}
-      <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3">
+      <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3">
         <button
           onClick={() => goToPage(page - 1)}
           disabled={page === 1}
@@ -318,7 +311,7 @@ export default function PedidosTableAsignado({
         </button>
 
         {pagerItems.map((p, i) =>
-          typeof p === 'string' ? (
+          typeof p === "string" ? (
             <span key={`dots-${i}`} className="px-2 text-gray70">
               {p}
             </span>
@@ -326,13 +319,13 @@ export default function PedidosTableAsignado({
             <button
               key={p}
               onClick={() => goToPage(p)}
-              aria-current={page === p ? 'page' : undefined}
+              aria-current={page === p ? "page" : undefined}
               className={[
-                'w-8 h-8 flex items-center justify-center rounded',
+                "w-8 h-8 flex items-center justify-center rounded",
                 page === p
-                  ? 'bg-gray90 text-white'
-                  : 'bg-gray10 text-gray70 hover:bg-gray20',
-              ].join(' ')}
+                  ? "bg-gray90 text-white"
+                  : "bg-gray10 text-gray70 hover:bg-gray20",
+              ].join(" ")}
             >
               {p}
             </button>

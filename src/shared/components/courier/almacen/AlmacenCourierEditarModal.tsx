@@ -199,7 +199,7 @@ export default function AlmacenCourierEditarModal({ isOpen, onClose, almacen, on
         <form
           ref={formRef}
           onSubmit={handleSubmit}
-          className="h-full flex flex-col gap-5"
+          className="h-full flex flex-col gap-5 overflow-y-auto"
         >
           <Inputx
             label="Nombre de la Sede"

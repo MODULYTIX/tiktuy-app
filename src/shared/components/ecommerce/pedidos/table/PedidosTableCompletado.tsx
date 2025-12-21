@@ -1,9 +1,10 @@
 // src/shared/components/ecommerce/pedidos/table/PedidosTableCompletado.tsx
-import { useAuth } from '@/auth/context';
-import { fetchPedidosCompletados } from '@/services/ecommerce/pedidos/pedidos.api';
-import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
-import { useEffect, useMemo, useState } from 'react';
-import { FiEye } from 'react-icons/fi';
+import { useAuth } from "@/auth/context";
+import { fetchPedidosCompletados } from "@/services/ecommerce/pedidos/pedidos.api";
+import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
+import TableActionx from "@/shared/common/TableActionx";
+import { useEffect, useMemo, useState } from "react";
+import { FiEye } from "react-icons/fi";
 
 type Filtros = {
   courier: string;
@@ -74,12 +75,12 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
   };
 
   const formatearFechaCorta = (iso?: string | null) => {
-    if (!iso) return '-';
+    if (!iso) return "-";
     const d = new Date(iso);
-    if (isNaN(d.getTime())) return '-';
-    return `${String(d.getDate()).padStart(2, '0')}/${String(
+    if (isNaN(d.getTime())) return "-";
+    return `${String(d.getDate()).padStart(2, "0")}/${String(
       d.getMonth() + 1
-    ).padStart(2, '0')}/${d.getFullYear()}`;
+    ).padStart(2, "0")}/${d.getFullYear()}`;
   };
 
   const formatearMoneda = (n: number) => `S/. ${n.toFixed(2)}`;
@@ -93,23 +94,25 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
     );
 
   const EstadoPill = ({ estado }: { estado: string }) => {
-    const e = (estado || '').toLowerCase();
+    const e = (estado || "").toLowerCase();
 
     const base =
-      'inline-flex items-center px-2 py-[2px] rounded text-[11px] font-medium border';
-    let classes = 'bg-gray-50 text-gray-600 border-gray-200';
+      "inline-flex items-center px-2 py-[2px] rounded text-[11px] font-medium border";
+    let classes = "bg-gray-50 text-gray-600 border-gray-200";
 
-    if (e === 'entregado') classes = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    else if (e === 'reprogramado') classes = 'bg-amber-50 text-amber-700 border-amber-200';
+    if (e === "entregado")
+      classes = "bg-emerald-50 text-emerald-700 border-emerald-200";
+    else if (e === "reprogramado")
+      classes = "bg-amber-50 text-amber-700 border-amber-200";
     else if (
-      e.includes('no responde') ||
-      e.includes('apagado') ||
-      e.includes('no pidió') ||
-      e.includes('anulo') ||
-      e.includes('anuló') ||
-      e.includes('rechazado')
+      e.includes("no responde") ||
+      e.includes("apagado") ||
+      e.includes("no pidió") ||
+      e.includes("anulo") ||
+      e.includes("anuló") ||
+      e.includes("rechazado")
     )
-      classes = 'bg-red-50 text-red-700 border-red-200';
+      classes = "bg-red-50 text-red-700 border-red-200";
 
     return <span className={`${base} ${classes}`}>{estado}</span>;
   };
@@ -136,7 +139,7 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
       if (filtros.courier) {
         const courierId = (p as any).courier_id ?? p.courier?.id;
         const byId = courierId != null && String(courierId) === filtros.courier;
-        const byName = (p.courier?.nombre_comercial || '')
+        const byName = (p.courier?.nombre_comercial || "")
           .toLowerCase()
           .includes(filtros.courier.toLowerCase());
         if (!(byId || byName)) return false;
@@ -149,9 +152,12 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
           const byId = prod?.id != null && String(prod.id) === filtros.producto;
           const byCodigo =
             (prod as any)?.codigo &&
-            String((prod as any).codigo).toLowerCase().includes(needle);
-          const byNombre =
-            (prod?.nombre_producto || '').toLowerCase().includes(needle);
+            String((prod as any).codigo)
+              .toLowerCase()
+              .includes(needle);
+          const byNombre = (prod?.nombre_producto || "")
+            .toLowerCase()
+            .includes(needle);
           return byId || byCodigo || byNombre;
         });
         if (!ok) return false;
@@ -168,10 +174,7 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
     setPage(1);
   }, [filtros]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredPedidos.length / PAGE_SIZE)
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredPedidos.length / PAGE_SIZE));
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -220,13 +223,18 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
             Array.from({ length: PAGE_SIZE }).map((_, idx) => (
               <tr key={idx} className="[&>td]:px-4 [&>td]:py-3 animate-pulse">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <td key={i}><div className="h-4 bg-gray20 rounded w-3/4"></div></td>
+                  <td key={i}>
+                    <div className="h-4 bg-gray20 rounded w-3/4"></div>
+                  </td>
                 ))}
               </tr>
             ))
           ) : filteredPedidos.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-4 py-4 text-center text-gray70 italic">
+              <td
+                colSpan={8}
+                className="px-4 py-4 text-center text-gray70 italic"
+              >
                 No hay pedidos completados.
               </td>
             </tr>
@@ -235,24 +243,27 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
               {visiblePedidos.map((pedido) => {
                 const fechaEntrega = formatearFechaCorta(
                   (pedido as any).fecha_entrega_real ||
-                  pedido.fecha_entrega_programada ||
-                  pedido.fecha_creacion
+                    pedido.fecha_entrega_programada ||
+                    pedido.fecha_creacion
                 );
 
                 const productoPrincipal =
-                  pedido.detalles?.[0]?.producto?.nombre_producto ?? '-';
+                  pedido.detalles?.[0]?.producto?.nombre_producto ?? "-";
 
                 const cantidadPrincipal =
                   pedido.detalles?.[0]?.cantidad != null
-                    ? String(pedido.detalles[0].cantidad).padStart(2, '0')
-                    : '00';
+                    ? String(pedido.detalles[0].cantidad).padStart(2, "0")
+                    : "00";
 
                 const monto = formatearMoneda(calcularMonto(pedido));
 
-                const estado = pedido.estado_pedido ?? '—';
+                const estado = pedido.estado_pedido ?? "—";
 
                 return (
-                  <tr key={pedido.id} className="hover:bg-gray10 transition-colors">
+                  <tr
+                    key={pedido.id}
+                    className="hover:bg-gray10 transition-colors"
+                  >
                     <td className="px-2 py-3 text-gray70 text-center">
                       {fechaEntrega}
                     </td>
@@ -283,13 +294,12 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
 
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center">
-                        <button
-                          onClick={() => onVer(pedido.id)}
-                          className="text-primaryLight hover:text-primaryDark"
+                        <TableActionx
+                          variant="view"
                           title="Ver Pedido"
-                        >
-                          <FiEye className="inline-block w-4 h-4" />
-                        </button>
+                          onClick={() => onVer(pedido.id)}
+                          size="sm"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -301,7 +311,9 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
                 Array.from({ length: emptyRowsCount }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="hover:bg-transparent">
                     {Array.from({ length: 8 }).map((_, i) => (
-                      <td key={i} className="px-4 py-3">&nbsp;</td>
+                      <td key={i} className="px-4 py-3">
+                        &nbsp;
+                      </td>
                     ))}
                   </tr>
                 ))}
@@ -311,8 +323,7 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
       </table>
 
       {/* PAGINADOR */}
-      <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3">
-
+      <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3">
         <button
           onClick={() => setPage(page - 1)}
           disabled={page === 1}
@@ -328,8 +339,8 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
             onClick={() => setPage(idx + 1)}
             className={`w-8 h-8 rounded ${
               page === idx + 1
-                ? 'bg-gray90 text-white'
-                : 'bg-gray10 text-gray70 hover:bg-gray20'
+                ? "bg-gray90 text-white"
+                : "bg-gray10 text-gray70 hover:bg-gray20"
             }`}
           >
             {idx + 1}
@@ -344,7 +355,6 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
         >
           &gt;
         </button>
-
       </div>
     </div>
   );

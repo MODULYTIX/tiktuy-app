@@ -21,6 +21,7 @@ import EcommerceDetalleModal from "./EcommerceDetalleModal";
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import Badgex from "@/shared/common/Badgex";
+import TableActionx from "@/shared/common/TableActionx";
 
 const formatPEN = (v: number) =>
   `S/. ${Number(v || 0).toLocaleString("es-PE", {
@@ -505,23 +506,12 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end">
-                            <button
-                              onClick={() => openDia(r.fecha)}
-                              className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
-                              title="Ver pedidos del día"
-                            >
-                              <svg
-                                className="h-4 w-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                              >
-                                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" />
-                                <circle cx="12" cy="12" r="3" />
-                              </svg>
-                              Ver
-                            </button>
+                            <TableActionx
+  variant="view"
+  title="Ver pedidos del día"
+  onClick={() => openDia(r.fecha)}
+  size="sm"
+/>
                           </div>
                         </td>
                       </tr>

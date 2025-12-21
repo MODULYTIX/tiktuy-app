@@ -11,6 +11,7 @@ import type { EcommerceSede } from "@/services/courier/panel_control/panel_contr
 import PanelControlInviteEcommer from "@/shared/components/courier/panelControl/PanelControlInviteEcommer";
 import { Inputx, InputxNumber } from "@/shared/common/Inputx";
 import Badgex from "@/shared/common/Badgex";
+import TableActionx from "@/shared/common/TableActionx";
 
 type EstadoTexto = "activo" | "pendiente";
 
@@ -460,16 +461,16 @@ export default function PanelControlTable() {
                         key={`${entry.ecommerce_id}`}
                         className="hover:bg-gray10 transition-colors"
                       >
-                        <td className="px-4 py-3 text-gray70 font-[400]">
+                        <td className="px-4 py-3 text-gray70 font-normal">
                           {entry.nombre_comercial}
                         </td>
-                        <td className="px-4 py-3 text-gray70 font-[400]">
+                        <td className="px-4 py-3 text-gray70 font-normal">
                           {entry.ruc}
                         </td>
-                        <td className="px-4 py-3 text-gray70 font-[400]">
+                        <td className="px-4 py-3 text-gray70 font-normal">
                           {entry.ciudad}
                         </td>
-                        <td className="px-4 py-3 text-gray70 font-[400]">
+                        <td className="px-4 py-3 text-gray70 font-normal">
                           <div className="flex items-center gap-2">
                             <span>{entry.telefono}</span>
                             {entry.telefono && entry.telefono !== "-" && (
@@ -502,7 +503,7 @@ export default function PanelControlTable() {
                           </Badgex>
                         </td>
 
-                        <td className="px-4 py-3 text-gray70 font-[400]">
+                        <td className="px-4 py-3 text-gray70 font-normal">
                           {entry.fecha_asociacion}
                         </td>
 
@@ -510,18 +511,30 @@ export default function PanelControlTable() {
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-3">
                             {/* Ver detalle */}
-                            <FaEye
+                            <TableActionx
+                              variant="view"
+                              title="Ver detalle"
                               onClick={() => {
                                 setDetailData(entry._raw);
                                 setDetailOpen(true);
                               }}
-                              className="text-blue-700 hover:text-blue-800 cursor-pointer"
-                              title="Ver detalle"
+                              size="sm"
                             />
 
                             {/* WhatsApp */}
-                            <button
-                              type="button"
+                            <TableActionx
+                              variant="custom"
+                              icon="mdi:whatsapp"
+                              title={
+                                entry.hasWhatsapp
+                                  ? "Grupo de WhatsApp configurado (clic para actualizar)"
+                                  : "Sin grupo de WhatsApp (clic para registrar)"
+                              }
+                              colorClassName={
+                                entry.hasWhatsapp
+                                  ? "bg-[#25D366]/15 text-[#128C7E] ring-1 ring-[#25D366]/35 hover:bg-[#25D366]/25 hover:ring-[#25D366]/50 focus-visible:ring-[#25D366]"
+                                  : "bg-gray-50 text-gray-500 ring-1 ring-gray-200 hover:bg-gray-100 hover:ring-gray-300 focus-visible:ring-gray-400"
+                              }
                               onClick={() => {
                                 setInviteOtherId(entry.ecommerce_id);
                                 setInviteSedeId(
@@ -529,24 +542,8 @@ export default function PanelControlTable() {
                                 );
                                 setInviteOpen(true);
                               }}
-                              className="p-1 rounded hover:bg-gray10"
-                              title={
-                                entry.hasWhatsapp
-                                  ? "Grupo de WhatsApp configurado (clic para actualizar)"
-                                  : "Sin grupo de WhatsApp (clic para registrar)"
-                              }
-                            >
-                              <Icon
-                                icon="mdi:whatsapp"
-                                width={20}
-                                height={20}
-                                className={
-                                  entry.hasWhatsapp
-                                    ? "text-green-500"
-                                    : "text-gray-400"
-                                }
-                              />
-                            </button>
+                              size="sm"
+                            />
                           </div>
                         </td>
                       </tr>
@@ -567,7 +564,7 @@ export default function PanelControlTable() {
           </div>
 
           {/* Paginador */}
-          <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+          <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3 mt-2">
             <button
               onClick={() => goToPage(page - 1)}
               disabled={page === 1}

@@ -3,6 +3,10 @@ import { Icon } from "@iconify/react";
 
 type LabelVariant = "center" | "left";
 
+/* ============================
+   SELECT NORMAL
+   ============================ */
+
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
   placeholder?: string;
@@ -21,8 +25,6 @@ export function Selectx({
     left: "block text-base font-normal text-gray90 text-left",
   };
 
-  // Si value está vacío ("" | null | undefined) => mostramos color de placeholder
-  // Para selects controlados funciona perfecto (value={...}).
   const isPlaceholder =
     props.value == null ||
     (typeof props.value === "string" && props.value === "") ||
@@ -61,21 +63,29 @@ export function Selectx({
 }
 
 /* ============================
-   Variante de FECHA (SelectxDate)
+   SELECT DE FECHA (SelectxDate)
    ============================ */
 
-interface SelectDateProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface SelectDateProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   placeholder?: string;
+  labelVariant?: LabelVariant; // ✅ AÑADIDO
 }
 
 export function SelectxDate({
   label,
   placeholder = "dd/mm/aaaa",
   className,
+  labelVariant = "center", // ✅ default
   ...props
 }: SelectDateProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const labelClasses: Record<LabelVariant, string> = {
+    center: "block text-base font-normal text-black text-center",
+    left: "block text-base font-normal text-gray90 text-left",
+  };
 
   const openPicker = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -88,14 +98,14 @@ export function SelectxDate({
     }
 
     el.focus();
-    try { el.click(); } catch {}
+    try {
+      el.click();
+    } catch {}
   }, []);
 
   return (
     <div className="w-full flex flex-col gap-1.5">
-      <label className="block text-base font-normal text-black text-center">
-        {label}
-      </label>
+      <label className={labelClasses[labelVariant]}>{label}</label>
 
       <div className="relative">
         <input
@@ -117,7 +127,12 @@ export function SelectxDate({
           aria-label="Abrir calendario"
           className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100 outline-none focus:outline-none focus:ring-0"
         >
-          <Icon icon="mdi:calendar-outline" width="18" height="18" className="text-gray-500" />
+          <Icon
+            icon="mdi:calendar-outline"
+            width="18"
+            height="18"
+            className="text-gray-500"
+          />
         </button>
       </div>
     </div>
