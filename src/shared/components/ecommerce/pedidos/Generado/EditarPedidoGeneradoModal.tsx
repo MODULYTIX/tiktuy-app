@@ -177,7 +177,7 @@ export default function EditarPedidoGeneradoModal({
                 className="px-4 py-3 grid grid-cols-[1fr_120px_120px] gap-3 items-center border-t"
               >
                 <Selectx
-                  label="Producto"
+                  label=""
                   labelVariant="left"
                   value={String(d.producto_id)}
                   onChange={(e) =>
@@ -196,7 +196,7 @@ export default function EditarPedidoGeneradoModal({
                 </Selectx>
 
                 <InputxNumber
-                  label="Cantidad"
+                  label=""
                   value={String(d.cantidad)}
                   min={1}
                   onChange={(e) =>
