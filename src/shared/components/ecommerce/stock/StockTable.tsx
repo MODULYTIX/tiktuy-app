@@ -298,12 +298,12 @@ export default function StockTable({
 
         {pagerItems.map((p, i) =>
           typeof p === "string" ? (
-            <span key={i} className="px-2 text-gray70">
+            <span key={`dots-${i}`} className="px-2 text-gray70">
               {p}
             </span>
           ) : (
             <button
-              key={p}
+              key={`page-${p}-${i}`}
               onClick={() => goToPage(p)}
               className={[
                 "w-8 h-8 flex items-center justify-center rounded",
@@ -316,6 +316,7 @@ export default function StockTable({
             </button>
           )
         )}
+
 
         <button
           onClick={() => goToPage(currentPage + 1)}
