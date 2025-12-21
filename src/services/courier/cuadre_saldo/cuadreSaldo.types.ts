@@ -16,6 +16,7 @@ export type PedidoListItem = {
   cliente: string;
   metodoPago: string | null;
   monto: number;
+ distrito: string;
 
   // Servicio para REPARTIDOR
   servicioRepartidor: number | null;  // editable
