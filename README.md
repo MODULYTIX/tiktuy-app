@@ -2,7 +2,7 @@
 
 Plataforma integral de logística y comercio electrónico diseñada para optimizar la gestión de pedidos, entregas y control de stock. La aplicación conecta ecommerces, couriers y motorizados en un ecosistema unificado.
 
-## 🚀 Tecnologías
+## Tecnologías
 
 El proyecto está construido con un stack moderno enfocado en rendimiento y experiencia de desarrollador:
 
@@ -14,7 +14,7 @@ El proyecto está construido con un stack moderno enfocado en rendimiento y expe
 *   **Comunicación en Tiempo Real**: [Socket.io Client](https://socket.io/)
 *   **Gráficos**: [Recharts](https://recharts.org/)
 
-## 📂 Estructura del Proyecto
+## Estructura del Proyecto
 
 La arquitectura del proyecto está organizada por dominios y roles para facilitar la escalabilidad:
 
@@ -31,7 +31,7 @@ La arquitectura del proyecto está organizada por dominios y roles para facilita
     *   `layout`: Estructuras de página (Sidebar, Navbar).
 *   **`src/router`**: Definición de rutas y navegación.
 
-## 🛠️ Instalación y Uso
+## Instalación y Uso
 
 Sigue estos pasos para desplegar el proyecto localmente:
 
@@ -60,7 +60,7 @@ Sigue estos pasos para desplegar el proyecto localmente:
     npm run lint
     ```
 
-## 👥 Funcionalidades Principales
+## Funcionalidades Principales
 
 ### Ecommerce
 *   Dashboard con métricas de ventas.
@@ -79,7 +79,7 @@ Sigue estos pasos para desplegar el proyecto localmente:
 *   Gestión de estados de entrega (Entregado, No entregado, Reprogramado).
 *   Historial de movimientos y pagos.
 
-## 📄 Scripts
+## Scripts
 
 *   `dev`: Inicia el entorno de desarrollo con HMR.
 *   `build`: Compila TypeScript y construye la aplicación para producción.
