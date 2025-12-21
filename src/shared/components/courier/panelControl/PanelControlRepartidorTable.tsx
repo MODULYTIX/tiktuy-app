@@ -11,6 +11,7 @@ import type { Motorizado } from "@/services/courier/panel_control/panel_control.
 // 🧩 Tus componentes
 import Tittlex from "@/shared/common/Tittlex";
 import { Inputx, InputxNumber } from "@/shared/common/Inputx";
+import TableActionx from "@/shared/common/TableActionx";
 
 type EstadoTexto = "activo" | "pendiente";
 
@@ -331,10 +332,11 @@ export default function PanelControlRepartidorTable() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center">
-                            <FaEye
-                              onClick={() => openDetails(entry)}
-                              className="text-blue-700 hover:text-blue-800 cursor-pointer"
+                            <TableActionx
+                              variant="view"
                               title="Ver detalle"
+                              onClick={() => openDetails(entry)}
+                              size="sm"
                             />
                           </div>
                         </td>
@@ -369,7 +371,7 @@ export default function PanelControlRepartidorTable() {
           </div>
 
           {/* Paginador */}
-          <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+          <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3 mt-2">
             <button
               onClick={() => goToPage(page - 1)}
               disabled={page === 1}

@@ -22,10 +22,11 @@ import {
 import DetallePedidoDrawer from "./DetallePedidoDrawer";
 import ReprogramarPedidoModal from "./ReprogramarPedidoModal"; // ✅ NUEVO
 
-import { Selectx } from "@/shared/common/Selectx";
+import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import { SearchInputx } from "@/shared/common/SearchInputx";
 import Tittlex from "@/shared/common/Tittlex";
+import TableActionx from "@/shared/common/TableActionx";
 
 type View = "asignados" | "pendientes" | "terminados";
 
@@ -399,32 +400,20 @@ export default function TablePedidoCourier({
       <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-4 items-end">
           {/* ✅ Fecha inicio */}
-          <div className="w-full flex flex-col gap-[10px]">
-            <label className="text-base font-normal text-black text-center block">
-              Inicio
-            </label>
-            <input
-              type="date"
-              value={desde}
-              onChange={(e) => setDesde(e.target.value)}
-              className="h-10 w-full rounded border border-gray-300 px-3 text-sm"
-              disabled={loading}
-            />
-          </div>
+          <SelectxDate
+            label="Inicio"
+            value={desde}
+            onChange={(e) => setDesde(e.target.value)}
+            disabled={loading}
+          />
 
           {/* ✅ Fecha fin */}
-          <div className="w-full flex flex-col gap-[10px]">
-            <label className="text-base font-normal text-black text-center block">
-              Fin
-            </label>
-            <input
-              type="date"
-              value={hasta}
-              onChange={(e) => setHasta(e.target.value)}
-              className="h-10 w-full rounded border border-gray-300 px-3 text-sm"
-              disabled={loading}
-            />
-          </div>
+          <SelectxDate
+            label="Fin"
+            value={hasta}
+            onChange={(e) => setHasta(e.target.value)}
+            disabled={loading}
+          />
 
           {/* Distrito */}
           <Selectx
@@ -556,7 +545,10 @@ export default function TablePedidoCourier({
                   const montoNumber = Number(p.monto_recaudar || 0);
 
                   return (
-                    <tr key={p.id} className="hover:bg-gray10 transition-colors">
+                    <tr
+                      key={p.id}
+                      className="hover:bg-gray10 transition-colors"
+                    >
                       <td className="h-12 px-4 py-3">
                         <input
                           type="checkbox"
@@ -605,37 +597,35 @@ export default function TablePedidoCourier({
                       <td className="h-12 px-4 py-3">
                         <div className="flex items-center justify-center gap-3">
                           {/* 👁️ Detalle */}
-                          <button
-                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                          <TableActionx
+                            variant="view"
+                            title={`Ver ${p.id}`}
                             onClick={() => handleVerDetalle(p.id)}
-                            title="Ver detalle"
-                            aria-label={`Ver ${p.id}`}
-                          >
-                            <FaEye />
-                          </button>
+                            size="sm"
+                          />
 
                           {/* ✅ Reprogramar (solo ASIGNADOS) */}
                           {view === "asignados" && (
-                            <button
-                              className="text-amber-600 hover:text-amber-800 transition-colors"
+                            <TableActionx
+                              variant="custom"
+                              title={`Reprogramar ${p.id}`}
+                              icon="mdi:calendar-edit"
+                              colorClassName="bg-amber-100 text-amber-700 ring-1 ring-amber-300 hover:bg-amber-200 hover:ring-amber-400 focus-visible:ring-amber-500"
                               onClick={() => openReprogramar(p)}
-                              title="Reprogramar pedido"
-                              aria-label={`Reprogramar ${p.id}`}
-                            >
-                              <Icon icon="mdi:calendar-edit" width={18} />
-                            </button>
+                              size="sm"
+                            />
                           )}
 
                           {/* 🔁 Reasignar (solo PENDIENTES) */}
                           {view === "pendientes" && (
-                            <button
-                              className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                            <TableActionx
+                              variant="custom"
+                              title={`Reasignar ${p.id}`}
+                              icon="mdi:swap-horizontal"
+                              colorClassName="bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300 hover:bg-indigo-200 hover:ring-indigo-400 focus-visible:ring-indigo-500"
                               onClick={() => handleReasignar(p)}
-                              title="Reasignar pedido"
-                              aria-label={`Reasignar ${p.id}`}
-                            >
-                              <Icon icon="mdi:swap-horizontal" width={18} />
-                            </button>
+                              size="sm"
+                            />
                           )}
                         </div>
                       </td>
@@ -659,7 +649,7 @@ export default function TablePedidoCourier({
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+            <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3 mt-2">
               <button
                 onClick={() => goToPage(page - 1)}
                 disabled={page === 1 || loading}

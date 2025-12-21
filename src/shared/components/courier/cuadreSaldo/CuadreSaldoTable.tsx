@@ -13,6 +13,7 @@ import type {
 
 import Tittlex from "@/shared/common/Tittlex";
 import { InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
+import TableActionx from "@/shared/common/TableActionx";
 
 /* ============== helpers ============== */
 const formatPEN = (v: number) =>
@@ -181,11 +182,17 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   useEffect(() => {
     if (open && pedido) {
       setMontoRep(
-        String((pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0)
+        String(
+          (pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0
+        )
       );
       setMotivo((pedido as any).motivo ?? "");
       setMontoCour(
-        String((pedido as any).servicioCourier ?? (pedido as any).servicioCourierEfectivo ?? 0)
+        String(
+          (pedido as any).servicioCourier ??
+            (pedido as any).servicioCourierEfectivo ??
+            0
+        )
       );
     }
   }, [open, pedido]);
@@ -203,9 +210,12 @@ const EditServicioModal: React.FC<EditModalProps> = ({
     try {
       const chg: EditModalChange = { id: pedido.id };
 
-      const repPrev = (pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0;
+      const repPrev =
+        (pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0;
       const courPrev =
-        (pedido as any).servicioCourier ?? (pedido as any).servicioCourierEfectivo ?? 0;
+        (pedido as any).servicioCourier ??
+        (pedido as any).servicioCourierEfectivo ??
+        0;
       const motivoPrev = (pedido as any).motivo ?? "";
 
       if (valRep !== repPrev || (motivo || "") !== motivoPrev) {
@@ -334,9 +344,7 @@ type Props = {
   }) => void;
 
   // ✅ NUEVO: expone acciones al padre (abrir modal)
-  exposeActions?: (actions: {
-    openAbonarSeleccionados: () => void;
-  }) => void;
+  exposeActions?: (actions: { openAbonarSeleccionados: () => void }) => void;
 };
 
 const CuadreSaldoTable: React.FC<Props> = ({
@@ -401,7 +409,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
         if (chg.servicioRepartidor !== undefined) {
           next.servicioRepartidor = chg.servicioRepartidor;
-          next.servicioEfectivo = chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
+          next.servicioEfectivo =
+            chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
         }
         if (chg.motivo !== undefined) {
           next.motivo = chg.motivo ?? null;
@@ -440,7 +449,10 @@ const CuadreSaldoTable: React.FC<Props> = ({
     () =>
       rows
         .filter((r) => selectedIds.includes(r.id))
-        .reduce((acc: number, r: any) => acc + Number(r.servicioEfectivo ?? 0), 0),
+        .reduce(
+          (acc: number, r: any) => acc + Number(r.servicioEfectivo ?? 0),
+          0
+        ),
     [rows, selectedIds]
   );
 
@@ -507,7 +519,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
       loading,
       canAbonar: selectedIds.length > 0 && !loading,
     });
-  }, [onSelectionChange, selectedIds.length, totalServicioSeleccionado, loading]);
+  }, [
+    onSelectionChange,
+    selectedIds.length,
+    totalServicioSeleccionado,
+    loading,
+  ]);
 
   return (
     <div className="mt-5 flex flex-col gap-3">
@@ -569,7 +586,10 @@ const CuadreSaldoTable: React.FC<Props> = ({
                     const checked = selectedIds.includes(r.id);
                     const disableCheck = r.abonado;
                     return (
-                      <tr key={r.id} className="transition-colors hover:bg-gray10">
+                      <tr
+                        key={r.id}
+                        className="transition-colors hover:bg-gray10"
+                      >
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
@@ -614,7 +634,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
                                 ? "bg-emerald-600 text-white"
                                 : "bg-gray-200 text-gray-900",
                             ].join(" ")}
-                            title={r.abonado ? "Quitar abono" : "Marcar abonado"}
+                            title={
+                              r.abonado ? "Quitar abono" : "Marcar abonado"
+                            }
                           >
                             {r.abonado ? "Abonado" : "Sin abonar"}
                           </button>
@@ -623,29 +645,29 @@ const CuadreSaldoTable: React.FC<Props> = ({
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
                             {!r.abonado && (
-                              <button
+                              <TableActionx
+                                variant="edit"
+                                title="Editar servicio (repartidor / courier)"
                                 onClick={() => {
                                   setEditing(r);
                                   setOpenEdit(true);
                                 }}
-                                className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
-                                title="Editar servicio (repartidor / courier)"
-                              >
-                                Editar
-                              </button>
+                                size="sm"
+                              />
                             )}
 
                             {!r.abonado && (
-                              <button
+                              <TableActionx
+                                variant="custom"
+                                title="Abonar este pedido"
+                                icon="mdi:cash-plus"
+                                colorClassName="bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-200 hover:ring-emerald-400 focus-visible:ring-emerald-500"
                                 onClick={() => {
                                   setSelectedIds([r.id]);
                                   setOpenConfirm(true);
                                 }}
-                                className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[12px] hover:bg-gray10"
-                                title="Abonar este pedido"
-                              >
-                                Abonar
-                              </button>
+                                size="sm"
+                              />
                             )}
                           </div>
                         </td>

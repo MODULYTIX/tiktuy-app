@@ -1,9 +1,10 @@
-import { useAuth } from '@/auth/context';
-import { fetchPedidos } from '@/services/ecommerce/pedidos/pedidos.api';
-import type { Pedido } from '@/services/ecommerce/pedidos/pedidos.types';
-import { Icon } from '@iconify/react/dist/iconify.js';
-import { useEffect, useMemo, useState } from 'react';
-import { FiEye } from 'react-icons/fi';
+import { useAuth } from "@/auth/context";
+import { fetchPedidos } from "@/services/ecommerce/pedidos/pedidos.api";
+import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
+import TableActionx from "@/shared/common/TableActionx";
+import { Icon } from "@iconify/react/dist/iconify.js";
+import { useEffect, useMemo, useState } from "react";
+import { FiEye } from "react-icons/fi";
 
 type Filtros = {
   courier: string;
@@ -50,7 +51,7 @@ export default function PedidosTableGenerado({
     setLoading(true);
 
     // 👇 Antes: fetchPedidos(token, 'Generado', ...)
-    fetchPedidos(token, 'Asignado', page, PAGE_SIZE)
+    fetchPedidos(token, "Asignado", page, PAGE_SIZE)
       .then((res) => {
         setPedidos(res.data || []);
         setServerPagination(res.pagination || serverPagination);
@@ -133,11 +134,11 @@ export default function PedidosTableGenerado({
       for (let i = start; i <= end; i++) pages.push(i);
 
       if (start > 1) {
-        pages.unshift('...');
+        pages.unshift("...");
         pages.unshift(1);
       }
       if (end < totalPages) {
-        pages.push('...');
+        pages.push("...");
         pages.push(totalPages);
       }
     }
@@ -207,16 +208,14 @@ export default function PedidosTableGenerado({
               {visiblePedidos.map((p) => {
                 const fecha = p.fecha_entrega_programada
                   ? new Date(p.fecha_entrega_programada).toLocaleDateString()
-                  : '-'; const monto = p.detalles?.reduce(
-                    (acc, d) => acc + d.cantidad * d.precio_unitario,
-                    0
-                  );
+                  : "-";
+                const monto = p.detalles?.reduce(
+                  (acc, d) => acc + d.cantidad * d.precio_unitario,
+                  0
+                );
 
                 return (
-                  <tr
-                    key={p.id}
-                    className="hover:bg-gray10 transition-colors"
-                  >
+                  <tr key={p.id} className="hover:bg-gray10 transition-colors">
                     <td className="px-2 py-3 text-center text-gray70">
                       {fecha}
                     </td>
@@ -230,13 +229,11 @@ export default function PedidosTableGenerado({
                     </td>
 
                     <td className="px-4 py-3 text-gray70">
-                      {p.detalles?.[0]?.producto?.nombre_producto ?? '-'}
+                      {p.detalles?.[0]?.producto?.nombre_producto ?? "-"}
                     </td>
 
                     <td className="px-4 py-3 text-center text-gray70">
-                      {p.detalles?.[0]?.cantidad
-                        ?.toString()
-                        .padStart(2, '0')}
+                      {p.detalles?.[0]?.cantidad?.toString().padStart(2, "0")}
                     </td>
 
                     <td className="px-4 py-3 text-center text-gray70">
@@ -245,23 +242,18 @@ export default function PedidosTableGenerado({
 
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-4">
-                        <button
+                        <TableActionx
+                          variant="view"
+                          title="Ver"
                           onClick={() => onVer(p.id)}
-                          className="text-primaryLight hover:text-primaryDark"
-                        >
-                          <FiEye className="w-4 h-4" />
-                        </button>
-
-                        <button
+                          size="sm"
+                        />
+                        <TableActionx
+                          variant="edit"
+                          title="Editar"
                           onClick={() => onEditar(p.id)}
-                          className="text-[#CA8A04] hover:opacity-80"
-                        >
-                          <Icon
-                            icon="fa-regular:edit"
-                            width="16"
-                            height="16"
-                          />
-                        </button>
+                          size="sm"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -284,7 +276,7 @@ export default function PedidosTableGenerado({
       </table>
 
       {/* PAGINADOR */}
-      <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3">
+      <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3">
         <button
           onClick={() => goToPage(page - 1)}
           disabled={page === 1}
@@ -294,7 +286,7 @@ export default function PedidosTableGenerado({
         </button>
 
         {pagerItems.map((p, i) =>
-          typeof p === 'string' ? (
+          typeof p === "string" ? (
             <span key={i} className="px-2 text-gray70">
               {p}
             </span>
@@ -302,13 +294,13 @@ export default function PedidosTableGenerado({
             <button
               key={p}
               onClick={() => goToPage(p)}
-              aria-current={page === p ? 'page' : undefined}
+              aria-current={page === p ? "page" : undefined}
               className={[
-                'w-8 h-8 flex items-center justify-center rounded',
+                "w-8 h-8 flex items-center justify-center rounded",
                 page === p
-                  ? 'bg-gray90 text-white'
-                  : 'bg-gray10 text-gray70 hover:bg-gray20',
-              ].join(' ')}
+                  ? "bg-gray90 text-white"
+                  : "bg-gray10 text-gray70 hover:bg-gray20",
+              ].join(" ")}
             >
               {p}
             </button>

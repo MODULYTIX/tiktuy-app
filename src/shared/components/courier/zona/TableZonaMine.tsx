@@ -1,12 +1,12 @@
 // src/shared/components/courier/zona-tarifaria/TableZonaMine.tsx
 import { useEffect, useMemo, useState } from "react";
-import { FaRegEdit } from "react-icons/fa";
 import Paginator from "../../Paginator";
 
 import { fetchMisZonas } from "@/services/courier/zonaTarifaria/zonaTarifaria.api";
 import type { ZonaTarifaria } from "@/services/courier/zonaTarifaria/zonaTarifaria.types";
 import { getAuthToken } from "@/services/courier/panel_control/panel_control.api";
 import Badgex from "@/shared/common/Badgex";
+import TableActionx from "@/shared/common/TableActionx";
 
 type Filters = {
   ciudad: string; // UI: ciudad, en BD es campo distrito
@@ -46,7 +46,8 @@ export default function TableZonaMine({
 
       try {
         const token = getAuthToken();
-        if (!token) throw new Error("No se encontró el token de autenticación.");
+        if (!token)
+          throw new Error("No se encontró el token de autenticación.");
 
         const res = await fetchMisZonas(token);
         if (!mounted) return;
@@ -175,9 +176,7 @@ export default function TableZonaMine({
 
             <thead className="bg-[#E5E7EB]">
               <tr className="font-roboto font-medium text-gray70">
-                <th className="px-4 py-3 text-left">
-                  Distrito
-                </th>
+                <th className="px-4 py-3 text-left">Distrito</th>
                 <th className="px-4 py-3 text-left">Zona</th>
                 <th className="px-4 py-3 text-left">Tarifa Cliente</th>
                 <th className="px-4 py-3 text-left">Pago a Motorizado</th>
@@ -197,10 +196,7 @@ export default function TableZonaMine({
                   : "bg-slate-50 text-slate-600 border border-slate-200";
 
                 return (
-                  <tr
-                    key={z.id}
-                    className="transition-colors hover:bg-gray10"
-                  >
+                  <tr key={z.id} className="transition-colors hover:bg-gray10">
                     <td className="px-4 py-3 text-gray80">{z.distrito}</td>
                     <td className="px-4 py-3 text-gray80">
                       {z.zona_tarifario}
@@ -215,14 +211,12 @@ export default function TableZonaMine({
                       <Badgex className={badgeClasses}>{estadoNombre}</Badgex>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        className="inline-flex items-center gap-1 text-orange-500 hover:text-orange-700"
-                        onClick={() => onEdit?.(z)}
+                      <TableActionx
+                        variant="edit"
                         title="Editar zona"
-                      >
-                        <FaRegEdit />
-                        <span className="sr-only">Editar</span>
-                      </button>
+                        onClick={() => onEdit?.(z)}
+                        size="sm"
+                      />
                     </td>
                   </tr>
                 );

@@ -4,6 +4,7 @@ import { FaEye, FaBoxOpen } from "react-icons/fa";
 import type { Producto } from "@/services/courier/producto/productoCourier.type";
 import type { StockFilters } from "@/role/courier/pages/StockProducto";
 import Badgex from "@/shared/common/Badgex";
+import TableActionx from "@/shared/common/TableActionx";
 
 // ---- utilidades
 function toNumber(n: unknown) {
@@ -241,11 +242,11 @@ export default function TableStockProductoCourier({
                             <Thumb url={p.imagen_url} alt={p.nombre_producto} />
                           </td>
 
-                          <td className="px-4 py-3 text-gray70 font-[400]">
+                          <td className="px-4 py-3 text-gray70 font-normal">
                             {p.codigo_identificacion}
                           </td>
 
-                          <td className="px-4 py-3 text-gray70 font-[400]">
+                          <td className="px-4 py-3 text-gray70 font-normal">
                             <div className="font-semibold">
                               {p.nombre_producto}
                             </div>
@@ -261,7 +262,7 @@ export default function TableStockProductoCourier({
                             )}
                           </td>
 
-                          <td className="px-4 py-3 text-gray70 font-[400]">
+                          <td className="px-4 py-3 text-gray70 font-normal">
                             {p.almacenamiento?.nombre_almacen || (
                               <span className="italic text-gray-400">-</span>
                             )}
@@ -270,7 +271,7 @@ export default function TableStockProductoCourier({
                           {/* ✅ aquí ya queda con el formato del stock del código base */}
                           <td className="px-4 py-3">{renderStock(p)}</td>
 
-                          <td className="px-4 py-3 text-right text-gray70 font-[400]">
+                          <td className="px-4 py-3 text-right text-gray70 font-normal">
                             S/. {formatPEN(precioNum)}
                           </td>
 
@@ -288,18 +289,17 @@ export default function TableStockProductoCourier({
 
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-center">
-                              <button
-                                className="text-blue-600 hover:text-blue-800"
-                                onClick={() =>
+                              <TableActionx
+                                variant="view"
+                                title={`Ver ${p.nombre_producto}`}
+                                onClick={
                                   typeof onView === "function"
-                                    ? onView(p)
-                                    : console.log("ver", (p as any).uuid)
+                                    ? () => onView(p)
+                                    : undefined
                                 }
-                                aria-label={`Ver ${p.nombre_producto}`}
-                                type="button"
-                              >
-                                <FaEye size={16} />
-                              </button>
+                                disabled={typeof onView !== "function"}
+                                size="sm"
+                              />
                             </div>
                           </td>
                         </tr>
@@ -308,7 +308,10 @@ export default function TableStockProductoCourier({
 
                     {emptyRows > 0 &&
                       Array.from({ length: emptyRows }).map((_, idx) => (
-                        <tr key={`empty-${idx}`} className="hover:bg-transparent">
+                        <tr
+                          key={`empty-${idx}`}
+                          className="hover:bg-transparent"
+                        >
                           {Array.from({ length: 8 }).map((__, i) => (
                             <td key={i} className="px-4 py-3">
                               &nbsp;

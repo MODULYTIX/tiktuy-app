@@ -3,9 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FaEye, FaCheck } from "react-icons/fa";
 import { useAuth } from "@/auth/context/useAuth";
 
-import {
-  fetchCourierMovimientos,
-} from "@/services/courier/movimiento/movimientoCourier.api";
+import { fetchCourierMovimientos } from "@/services/courier/movimiento/movimientoCourier.api";
 
 import type {
   CourierMovimientoItem,
@@ -18,6 +16,7 @@ import type { MovimientoCourierFilters } from "../../movimiento/MovimientoFilter
 import ValidarMovimientoCourierModal from "./ValidarMovimientoCourierModal";
 import DetallesMovimientoCourierModal from "./MovimientoCourierModal";
 import Badgex from "@/shared/common/Badgex";
+import TableActionx from "@/shared/common/TableActionx";
 
 interface Props {
   filters: MovimientoCourierFilters;
@@ -96,37 +95,21 @@ export default function TableMovimientoCourier({ filters }: Props) {
 
   // badge estado
   const renderEstado = (estado?: string) => {
-  const name = (estado || "").toLowerCase();
+    const name = (estado || "").toLowerCase();
 
-  if (name === "validado")
+    if (name === "validado")
+      return <Badgex className="bg-green-100 text-green-700">Validado</Badgex>;
+
+    if (name === "proceso" || name === "en proceso")
+      return <Badgex className="bg-yellow-100 text-yellow-700">Proceso</Badgex>;
+
+    if (name === "observado")
+      return <Badgex className="bg-red-100 text-red-700">Observado</Badgex>;
+
     return (
-      <Badgex className="bg-green-100 text-green-700">
-        Validado
-      </Badgex>
+      <Badgex className="bg-blue-100 text-blue-700">{estado || "-"}</Badgex>
     );
-
-  if (name === "proceso" || name === "en proceso")
-    return (
-      <Badgex className="bg-yellow-100 text-yellow-700">
-        Proceso
-      </Badgex>
-    );
-
-  if (name === "observado")
-    return (
-      <Badgex className="bg-red-100 text-red-700">
-        Observado
-      </Badgex>
-    );
-
-  return (
-    <Badgex className="bg-blue-100 text-blue-700">
-      {estado || "-"}
-    </Badgex>
-  );
-};
-
-
+  };
 
   const fmtFecha = (iso: string) =>
     new Intl.DateTimeFormat("es-PE", {
@@ -230,19 +213,19 @@ export default function TableMovimientoCourier({ filters }: Props) {
                       key={mov.id}
                       className="hover:bg-gray10 transition-colors"
                     >
-                      <td className="px-4 py-3 text-gray70 font-[400]">
+                      <td className="px-4 py-3 text-gray70 font-normal">
                         {codigoFromUuid(mov.uuid)}
                       </td>
-                      <td className="px-4 py-3 text-gray70 font-[400]">
+                      <td className="px-4 py-3 text-gray70 font-normal">
                         {mov.almacen_origen?.nombre_almacen || "-"}
                       </td>
-                      <td className="px-4 py-3 text-gray70 font-[400]">
+                      <td className="px-4 py-3 text-gray70 font-normal">
                         {mov.almacen_destino?.nombre_almacen || "-"}
                       </td>
-                      <td className="px-4 py-3 text-gray70 font-[400]">
+                      <td className="px-4 py-3 text-gray70 font-normal">
                         {mov.descripcion || "-"}
                       </td>
-                      <td className="px-4 py-3 text-gray70 font-[400]">
+                      <td className="px-4 py-3 text-gray70 font-normal">
                         {fmtFecha(mov.fecha_movimiento)}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -252,25 +235,21 @@ export default function TableMovimientoCourier({ filters }: Props) {
                         <div className="flex items-center justify-center gap-3">
                           {(mov.estado?.nombre || "").toLowerCase() ===
                             "proceso" && (
-                            <button
-                              className="text-green-600 hover:text-green-700"
-                              title="Validar"
+                            <TableActionx
+                              variant="custom"
+                              title={`Validar ${codigoFromUuid(mov.uuid)}`}
+                              icon="ci:check-big"
+                              colorClassName="bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-200 hover:ring-emerald-400 focus-visible:ring-emerald-500"
                               onClick={() => openValidate(mov.uuid)}
-                              aria-label={`Validar ${codigoFromUuid(
-                                mov.uuid
-                              )}`}
-                            >
-                              <FaCheck />
-                            </button>
+                              size="sm"
+                            />
                           )}
-                          <button
-                            className="text-blue-600 hover:text-blue-800"
-                            title="Ver detalle"
+                          <TableActionx
+                            variant="view"
+                            title={`Ver ${codigoFromUuid(mov.uuid)}`}
                             onClick={() => openView(mov.uuid)}
-                            aria-label={`Ver ${codigoFromUuid(mov.uuid)}`}
-                          >
-                            <FaEye />
-                          </button>
+                            size="sm"
+                          />
                         </div>
                       </td>
                     </tr>
@@ -302,11 +281,9 @@ export default function TableMovimientoCourier({ filters }: Props) {
             </div>
 
             {filtered.length > 0 && (
-              <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+              <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3 mt-2">
                 <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.max(1, p - 1))
-                  }
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
                 >
@@ -322,9 +299,7 @@ export default function TableMovimientoCourier({ filters }: Props) {
                     <button
                       key={p}
                       onClick={() => setCurrentPage(p)}
-                      aria-current={
-                        currentPage === p ? "page" : undefined
-                      }
+                      aria-current={currentPage === p ? "page" : undefined}
                       className={[
                         "w-8 h-8 flex items-center justify-center rounded",
                         currentPage === p
@@ -339,9 +314,7 @@ export default function TableMovimientoCourier({ filters }: Props) {
 
                 <button
                   onClick={() =>
-                    setCurrentPage((p) =>
-                      Math.min(totalPages, p + 1)
-                    )
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
                   className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
