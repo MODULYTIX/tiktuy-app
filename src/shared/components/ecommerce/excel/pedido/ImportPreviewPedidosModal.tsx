@@ -223,7 +223,6 @@ export default function ImportPreviewPedidosModal({
       g.items.forEach((it, ii) => {
         if (!it.producto) return;
         const key = productoKey(gi, ii);
-        const nombreNorm = norm(it.producto);
 
         const found = productos.find(
           (p) =>
