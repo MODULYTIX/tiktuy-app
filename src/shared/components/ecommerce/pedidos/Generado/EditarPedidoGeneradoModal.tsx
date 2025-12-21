@@ -66,7 +66,10 @@ export default function EditarPedidoGeneradoModal({
   }, [open, pedidoId, token]);
 
   /* ===================== HELPERS ===================== */
-  const montoTotal = detalles.reduce((s, d) => s + d.cantidad * d.precio_unitario, 0);
+  const montoTotal = detalles.reduce(
+    (s, d) => s + d.cantidad * d.precio_unitario,
+    0
+  );
 
   const handleDetalleChange = (
     index: number,
@@ -112,91 +115,120 @@ export default function EditarPedidoGeneradoModal({
     <div className="fixed inset-0 z-50 bg-black/30 flex justify-end">
       <div
         ref={modalRef}
-        className={[
-          "h-full bg-white shadow-xl flex flex-col gap-5 p-5",
-          "w-[460px] max-w-[92vw]", // ✅ ancho fijo
-          "overflow-y-auto",
-        ].join(" ")}
+        className="h-full w-[480px] max-w-[95vw] bg-white shadow-2xl flex flex-col"
       >
-        <Tittlex
-          variant="modal"
-          icon="lsicon:shopping-cart-filled"
-          title="DETALLE DEL PEDIDO"
-          description={`Cód. Pedido: ${pedido.codigo_pedido}`}
-        />
-
-        {/* INFO */}
-        <div className="text-sm text-gray-700 space-y-1">
-          <p>
-            <b>Cliente:</b> {pedido.nombre_cliente}
-          </p>
-          <p>
-            <b>Dirección:</b> {pedido.direccion_envio}
-          </p>
-          <p>
-            <b>F. Entrega:</b> {pedido.fecha_entrega_programada?.slice(0, 10)}
-          </p>
-          <p>
-            <b>Cant. Productos:</b> {detalles.length}
-          </p>
-          <p className="font-semibold">
-            <b>Monto:</b> S/. {montoTotal.toFixed(2)}
-          </p>
+        {/* ===================== HEADER ===================== */}
+        <div className="border-b px-5 py-4">
+          <Tittlex
+            variant="modal"
+            icon="lsicon:shopping-cart-filled"
+            title="Editar Pedido"
+            description={`Código: ${pedido.codigo_pedido}`}
+          />
         </div>
 
-        {/* TABLA */}
-        <div className="border rounded-lg overflow-hidden mt-1">
-          <div className="grid grid-cols-3 bg-gray-100 px-3 py-2 text-sm font-medium">
-            <span>Producto</span>
-            <span>Cantidad</span>
-            <span>Subtotal</span>
+        {/* ===================== CONTENT ===================== */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5 text-sm">
+          {/* ===================== RESUMEN ===================== */}
+          <div className="bg-gray-50 border rounded-lg p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-gray-500">Cliente</p>
+                <p className="font-medium">{pedido.nombre_cliente}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Fecha de entrega</p>
+                <p className="font-medium">
+                  {pedido.fecha_entrega_programada?.slice(0, 10)}
+                </p>
+              </div>
+
+              <div className="col-span-2">
+                <p className="text-gray-500">Dirección</p>
+                <p className="truncate">{pedido.direccion_envio}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Productos</p>
+                <p className="font-medium">{detalles.length}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Monto total</p>
+                <p className="font-semibold">
+                  S/. {montoTotal.toFixed(2)}
+                </p>
+              </div>
+            </div>
           </div>
 
-          {detalles.map((d, i) => (
-            <div
-              key={d.id}
-              className="grid grid-cols-3 gap-2 px-3 py-2 border-t items-center"
-            >
-              <Selectx
-                label="Producto"
-                labelVariant="left"
-                value={String(d.producto_id)}
-                onChange={(e) =>
-                  handleDetalleChange(i, "producto_id", Number(e.target.value))
-                }
-              >
-                {productos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre_producto}
-                  </option>
-                ))}
-              </Selectx>
-
-              <InputxNumber
-                label="Cantidad"
-                value={String(d.cantidad)}
-                onChange={(e) =>
-                  handleDetalleChange(i, "cantidad", Number(e.target.value))
-                }
-                min={1}
-              />
-
-              <span className="text-sm font-medium">
-                S/. {(d.cantidad * d.precio_unitario).toFixed(2)}
-              </span>
+          {/* ===================== PRODUCTOS ===================== */}
+          <div className="border rounded-lg overflow-hidden">
+            <div className="bg-gray-100 px-4 py-2 text-xs font-medium grid grid-cols-[1fr_120px_120px]">
+              <span>Producto</span>
+              <span className="text-center">Cantidad</span>
+              <span className="text-right">Subtotal</span>
             </div>
-          ))}
+
+            {detalles.map((d, i) => (
+              <div
+                key={d.id}
+                className="px-4 py-3 grid grid-cols-[1fr_120px_120px] gap-3 items-center border-t"
+              >
+                <Selectx
+                  label="Producto"
+                  labelVariant="left"
+                  value={String(d.producto_id)}
+                  onChange={(e) =>
+                    handleDetalleChange(
+                      i,
+                      "producto_id",
+                      Number(e.target.value)
+                    )
+                  }
+                >
+                  {productos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre_producto}
+                    </option>
+                  ))}
+                </Selectx>
+
+                <InputxNumber
+                  label="Cantidad"
+                  value={String(d.cantidad)}
+                  min={1}
+                  onChange={(e) =>
+                    handleDetalleChange(
+                      i,
+                      "cantidad",
+                      Number(e.target.value)
+                    )
+                  }
+                />
+
+                <div className="text-right font-medium">
+                  S/. {(d.cantidad * d.precio_unitario).toFixed(2)}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* FOOTER */}
-        <div className="flex gap-3 mt-auto">
+        {/* ===================== FOOTER ===================== */}
+        <div className="border-t px-5 py-4 flex gap-3">
           <Buttonx
             variant="tertiary"
             onClick={handleGuardar}
             disabled={saving}
             label={saving ? "Guardando..." : "Guardar cambios"}
-            icon={saving ? "line-md:loading-twotone-loop" : "mdi:content-save-outline"}
-            className={`px-4 text-sm ${saving ? "[&_svg]:animate-spin" : ""}`}
+            icon={
+              saving
+                ? "line-md:loading-twotone-loop"
+                : "mdi:content-save-outline"
+            }
+            className={`text-sm ${saving ? "[&_svg]:animate-spin" : ""}`}
           />
 
           <Buttonx
@@ -204,7 +236,7 @@ export default function EditarPedidoGeneradoModal({
             onClick={onClose}
             disabled={saving}
             label="Cancelar"
-            className="px-4 text-sm border"
+            className="text-sm"
           />
         </div>
       </div>
