@@ -1,13 +1,11 @@
 // src/shared/components/ecommerce/movimientos/MovimientoValidacionTable.tsx
 import { useEffect, useMemo, useState } from "react";
-import { FaEye } from "react-icons/fa";
 import { useAuth } from "@/auth/context";
 import { fetchMovimientos } from "@/services/ecommerce/almacenamiento/almacenamiento.api";
 import type { MovimientoAlmacen } from "@/services/ecommerce/almacenamiento/almacenamiento.types";
 import VerMovimientoRealizadoModal from "./VerMovimientoRealizadoModal";
 import { useNotification } from "@/shared/context/notificacionesDeskop/useNotification";
 import ValidarMovimientoModal from "./modal/MovimientoValidacionModal";
-import { Icon } from "@iconify/react/dist/iconify.js";
 import Badgex from "@/shared/common/Badgex";
 import type { MovimientoEcommerceFilters } from "./MoviminentoValidadoFilter";
 import ModalSlideRight from "@/shared/common/ModalSlideRight";

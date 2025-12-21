@@ -108,7 +108,7 @@ export default function MotorizadoHomePage() {
 
   const [activo, setActivo] = useState<boolean | null>(null);
   const [switchBusy, setSwitchBusy] = useState(false);
-  const [toggleErr, setToggleErr] = useState("");
+  const [, setToggleErr] = useState("");
 
   const [kpis, setKpis] = useState<KPIs>({
     asignadosHoy: 0,

@@ -370,15 +370,15 @@ export default function TablePedidoCourier({
             view === "asignados"
               ? "Pedidos Asignados"
               : view === "pendientes"
-              ? "Pedidos Pendientes"
-              : "Pedidos Terminados"
+                ? "Pedidos Pendientes"
+                : "Pedidos Terminados"
           }
           description={
             view === "asignados"
               ? "Selecciona y asigna pedidos a un repartidor."
               : view === "pendientes"
-              ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
-              : "Pedidos completados o cerrados."
+                ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
+                : "Pedidos completados o cerrados."
           }
         />
 

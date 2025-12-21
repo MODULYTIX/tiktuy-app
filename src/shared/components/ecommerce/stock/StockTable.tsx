@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { FaEye, FaEdit, FaBoxOpen } from "react-icons/fa";
+import { FaBoxOpen } from "react-icons/fa";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
 import Badgex from "@/shared/common/Badgex";
 import TableActionx from "@/shared/common/TableActionx";
