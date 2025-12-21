@@ -149,7 +149,7 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
             <div className="text-right">{formatPEN(cobradoTotal)}</div>
 
             <div className="text-gray-600">
-              Servicio total (courier + motorizado)
+              Servicio total
             </div>
             <div className="text-right">{formatPEN(servicioTotal)}</div>
 
