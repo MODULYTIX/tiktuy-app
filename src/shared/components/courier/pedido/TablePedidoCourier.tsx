@@ -14,11 +14,11 @@ import {
   fetchPedidosTerminados,
   fetchPedidoDetalle,
   reassignPedido,
-  reprogramarPedido, 
+  reprogramarPedido,
 } from "@/services/courier/pedidos/pedidos.api";
 
 import DetallePedidoDrawer from "./DetallePedidoDrawer";
-import ReprogramarPedidoModal from "./ReprogramarPedidoModal"; 
+import ReprogramarPedidoModal from "./ReprogramarPedidoModal";
 
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
@@ -387,30 +387,33 @@ export default function TablePedidoCourier({
             view === "asignados"
               ? "Pedidos Asignados"
               : view === "pendientes"
-              ? "Pedidos Pendientes"
-              : "Pedidos Terminados"
+                ? "Pedidos Pendientes"
+                : "Pedidos Terminados"
           }
           description={
             view === "asignados"
               ? "Selecciona y asigna pedidos a un repartidor."
               : view === "pendientes"
-              ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
-              : "Pedidos completados o cerrados."
+                ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
+                : "Pedidos completados o cerrados."
           }
         />
 
-        <button
-          onClick={() => onAsignar?.(selectedIds)}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-          disabled={!selectedIds.length || loading || view !== "asignados"}
-          title={
-            view !== "asignados"
-              ? "Solo disponible en Asignados"
-              : "Asignar Repartidor"
-          }
-        >
-          Asignar Repartidor
-        </button>
+        {view === "asignados" && (
+          <button
+            onClick={() => onAsignar?.(selectedIds)}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            disabled={!selectedIds.length || loading}
+            title={
+              !selectedIds.length
+                ? "Selecciona al menos un pedido"
+                : "Asignar Repartidor"
+            }
+          >
+            Asignar Repartidor
+          </button>
+        )}
+
       </div>
 
       {/* Filtros */}

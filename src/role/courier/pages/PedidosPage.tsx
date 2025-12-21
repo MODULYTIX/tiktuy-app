@@ -101,7 +101,6 @@ export default function PedidosPage() {
           view={vista}
           token={token ?? ""}
           onAsignar={handleAbrirAsignar}
-          // 👇 IMPORTANTÍSIMO: pásale este callback para abrir el modal y NO usar window.prompt
           onReasignar={handleAbrirReasignar}
         />
       </div>
