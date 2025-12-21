@@ -70,7 +70,7 @@ export default function PedidosTableGenerado({
 
   const end = parseDateInput(filtros.fechaFin);
   if (end) end.setHours(23, 59, 59, 999);
-const visiblePedidos = pedidos;
+  const visiblePedidos = pedidos;
 
 
   const totalPages = serverPagination.totalPages;
@@ -171,12 +171,15 @@ const visiblePedidos = pedidos;
             <>
               {visiblePedidos.map((p) => {
                 const fecha = p.fecha_entrega_programada
-                  ? new Date(p.fecha_entrega_programada).toLocaleDateString()
+                  ? p.fecha_entrega_programada.slice(0, 10).split("-").reverse().join("/")
                   : "-";
-                const monto = p.detalles?.reduce(
-                  (acc, d) => acc + d.cantidad * d.precio_unitario,
-                  0
-                );
+
+                const monto =
+                  p.detalles?.reduce(
+                    (acc, d) =>
+                      acc + Number(d.cantidad || 0) * Number(d.precio_unitario || 0),
+                    0
+                  ) ?? 0;
 
                 return (
                   <tr key={p.id} className="hover:bg-gray10 transition-colors">
