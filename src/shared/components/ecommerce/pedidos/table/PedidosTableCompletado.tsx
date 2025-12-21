@@ -4,7 +4,6 @@ import { fetchPedidosCompletados } from "@/services/ecommerce/pedidos/pedidos.ap
 import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
 import TableActionx from "@/shared/common/TableActionx";
 import { useEffect, useMemo, useState } from "react";
-import { FiEye } from "react-icons/fi";
 
 type Filtros = {
   courier: string;

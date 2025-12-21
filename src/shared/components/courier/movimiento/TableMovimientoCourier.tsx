@@ -1,6 +1,5 @@
 // src/shared/components/courier/movimiento/TableMovimientoCourier.tsx
 import { useEffect, useMemo, useState } from "react";
-import { FaEye, FaCheck } from "react-icons/fa";
 import { useAuth } from "@/auth/context/useAuth";
 
 import { fetchCourierMovimientos } from "@/services/courier/movimiento/movimientoCourier.api";

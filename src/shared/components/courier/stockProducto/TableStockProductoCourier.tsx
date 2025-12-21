@@ -1,6 +1,6 @@
 // src/role/courier/components/TableStockProductoCourier.tsx
 import { useEffect, useMemo, useState } from "react";
-import { FaEye, FaBoxOpen } from "react-icons/fa";
+import { FaBoxOpen } from "react-icons/fa";
 import type { Producto } from "@/services/courier/producto/productoCourier.type";
 import type { StockFilters } from "@/role/courier/pages/StockProducto";
 import Badgex from "@/shared/common/Badgex";

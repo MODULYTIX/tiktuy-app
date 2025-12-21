@@ -1,6 +1,5 @@
 // src/shared/components/courier/panelControl/PanelControlRepartidorTable.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaEye } from "react-icons/fa";
 import { Icon } from "@iconify/react";
 import {
   listarMotorizadosAsociados,
@@ -8,7 +7,6 @@ import {
 } from "@/services/courier/panel_control/panel_control.api";
 import type { Motorizado } from "@/services/courier/panel_control/panel_control.types";
 
-// 🧩 Tus componentes
 import Tittlex from "@/shared/common/Tittlex";
 import { Inputx, InputxNumber } from "@/shared/common/Inputx";
 import TableActionx from "@/shared/common/TableActionx";

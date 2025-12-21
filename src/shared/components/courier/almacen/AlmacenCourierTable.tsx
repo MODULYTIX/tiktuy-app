@@ -1,6 +1,5 @@
 // shared/components/courier/almacen/AlmacenCourierTable.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Icon } from "@iconify/react";
 import type { AlmacenamientoCourier } from "@/services/courier/almacen/almacenCourier.type";
 import Badgex from "@/shared/common/Badgex";
 import TableActionx from "@/shared/common/TableActionx";

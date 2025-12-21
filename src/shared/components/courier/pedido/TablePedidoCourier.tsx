@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaEye } from "react-icons/fa";
-import { Icon } from "@iconify/react";
 
 import type {
   Paginated,
@@ -16,11 +14,11 @@ import {
   fetchPedidosTerminados,
   fetchPedidoDetalle,
   reassignPedido,
-  reprogramarPedido, // ✅ NUEVO
+  reprogramarPedido, 
 } from "@/services/courier/pedidos/pedidos.api";
 
 import DetallePedidoDrawer from "./DetallePedidoDrawer";
-import ReprogramarPedidoModal from "./ReprogramarPedidoModal"; // ✅ NUEVO
+import ReprogramarPedidoModal from "./ReprogramarPedidoModal"; 
 
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
