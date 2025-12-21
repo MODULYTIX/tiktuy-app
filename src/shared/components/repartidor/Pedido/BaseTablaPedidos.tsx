@@ -76,9 +76,17 @@ export default function BaseTablaPedidos({
   );
 
   const qEstado: ListByEstadoQuery = useMemo(
-    () => ({ page, perPage, sortBy: "programada", order: "asc" }),
-    [page, perPage]
+    () => ({
+      page,
+      perPage,
+      sortBy: "programada",
+      order: "asc",
+      ...(desde ? { desde } : {}),
+      ...(hasta ? { hasta } : {}),
+    }),
+    [page, perPage, desde, hasta]
   );
+
 
   useEffect(() => {
     const ac = new AbortController();
@@ -185,6 +193,13 @@ export default function BaseTablaPedidos({
     setPage(p);
   };
 
+  function formatDateOnly(iso?: string | null) {
+    if (!iso) return "—";
+    // iso: "2025-12-20T00:00:00.000Z"
+    return iso.slice(0, 10).split("-").reverse().join("/");
+  }
+
+
   return (
     <div className="w-full min-w-0 overflow-visible">
       {/* Encabezado */}
@@ -199,11 +214,11 @@ export default function BaseTablaPedidos({
 
       <div className="bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 mb-5 min-w-0">
         <div className="flex flex-wrap gap-3 items-end min-w-0">
-          {view === "hoy" && (
+          {(view === "hoy" || view === "pendientes" || view === "terminados") && (
             <>
               <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
                 <SelectxDate
-                  label="Fech. Inicio"
+                  label="Fecha Inicio"
                   value={desde}
                   onChange={(e) => setDesde(e.target.value)}
                   className="w-full"
@@ -212,7 +227,7 @@ export default function BaseTablaPedidos({
 
               <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
                 <SelectxDate
-                  label="Fech. Fin"
+                  label="Fecha Fin"
                   value={hasta}
                   onChange={(e) => setHasta(e.target.value)}
                   className="w-full"
@@ -220,6 +235,7 @@ export default function BaseTablaPedidos({
               </div>
             </>
           )}
+
 
           {/* Distrito */}
           <div className="w-full sm:w-[220px] flex-1 min-w-[160px]">
@@ -329,7 +345,7 @@ export default function BaseTablaPedidos({
                   return (
                     <tr key={p.id} className="group hover:bg-gray10 transition-colors">
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
-                        {fecha ? new Date(fecha).toLocaleDateString("es-PE") : "—"}
+                        {formatDateOnly(fecha)}
                       </td>
                       <td className="h-12 px-4 py-3 text-gray70">
                         {p.ecommerce?.nombre_comercial ?? "—"}
