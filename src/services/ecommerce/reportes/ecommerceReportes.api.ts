@@ -98,6 +98,7 @@ export async function getIngresosReporte(
 
     kpis: {
       ingresosTotales: Number(raw.kpis?.ingresosTotales ?? 0),
+      totalPedidos: Number(raw.kpis?.totalPedidos ?? 0),
     },
 
     tabla: Array.isArray(raw.tabla)

@@ -373,12 +373,8 @@ export default function BaseTablaPedidos({
                   return (
                     <tr key={p.id} className="group hover:bg-gray10 transition-colors">
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
-<<<<<<< HEAD
                         {/* ✅ FIX TZ SOLO AQUÍ */}
                         {formatDateOnlyFromIso(fecha)}
-=======
-                        {formatDateOnly(fecha)}
->>>>>>> 671873a59cdf1a3555764cc4f1d98cb90ef301d7
                       </td>
                       <td className="h-12 px-4 py-3 text-gray70">
                         {p.ecommerce?.nombre_comercial ?? "—"}

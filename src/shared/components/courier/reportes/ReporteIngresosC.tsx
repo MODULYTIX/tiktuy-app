@@ -7,6 +7,8 @@ import Cardx from "@/shared/common/Cards";
 
 import { getCourierIngresosReporte } from "@/services/courier/reporte/reporteCourier.api";
 import type { VistaReporte } from "@/services/ecommerce/reportes/ecommerceReportes.types";
+import type { CourierIngresosReporteResp } from "@/services/courier/reporte/reporteCourier.types";
+
 import { Icon } from "@iconify/react";
 
 import {
@@ -32,9 +34,12 @@ export default function ReporteIngresosC() {
   const [hasta, setHasta] = useState(hoyISO());
 
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<CourierIngresosReporteResp | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  /* =========================
+     Fetch
+  ========================= */
   const fetchData = async () => {
     if (!token) return;
 
@@ -58,11 +63,11 @@ export default function ReporteIngresosC() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vista]);
 
   /* =========================
-     KPIs derivados
+     KPIs
   ========================= */
   const kpis = useMemo(() => {
     if (!data) {
@@ -73,8 +78,8 @@ export default function ReporteIngresosC() {
       };
     }
 
-    const ingresos = Number(data.kpis?.ingresosTotales ?? 0);
-    const pedidos = Number(data.kpis?.totalPedidos ?? 0);
+    const ingresos = data.kpis.ingresosTotales;
+    const pedidos = data.kpis.totalPedidos;
 
     return {
       ingresos,
@@ -84,14 +89,14 @@ export default function ReporteIngresosC() {
   }, [data]);
 
   /* =========================
-     Datos para gráfico
+     Chart data
   ========================= */
   const chartData = useMemo(() => {
-    if (!data?.grafico?.labels || !data?.grafico?.series) return [];
+    if (!data) return [];
 
-    return data.grafico.labels.map((label: string, i: number) => ({
+    return data.grafico.labels.map((label, i) => ({
       label,
-      ingresos: Number(data.grafico.series[i] ?? 0),
+      ingresos: data.grafico.series[i] ?? 0,
     }));
   }, [data]);
 
