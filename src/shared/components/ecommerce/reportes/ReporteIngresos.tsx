@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/context";
 import Buttonx from "@/shared/common/Buttonx";
-import { Inputx } from "@/shared/common/Inputx";
 import Cardx from "@/shared/common/Cards";
 
 import { getIngresosReporte } from "@/services/ecommerce/reportes/ecommerceReportes.api";
