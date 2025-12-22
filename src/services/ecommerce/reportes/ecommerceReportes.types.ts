@@ -29,6 +29,7 @@ export type IngresoTablaItem = {
 /** KPIs de ingresos */
 export type IngresosKpis = {
   ingresosTotales: number;
+  totalPedidos: number; 
 };
 
 /** Datos para gráfico de ingresos */
@@ -45,7 +46,11 @@ export type IngresosReporteResp = {
     hasta?: string;
   };
 
-  kpis: IngresosKpis;
+  kpis: {
+    ingresosTotales: number;
+    totalPedidos: number;
+  }
+
 
   tabla: IngresoTablaItem[];
 

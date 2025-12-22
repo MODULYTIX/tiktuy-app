@@ -50,6 +50,19 @@ function normalizeWhatsappGroupLink(raw: string): string | null {
   }
 }
 
+/** ✅ SOLO PARA REPROGRAMADO:
+ * Garantiza que siempre mandas "YYYY-MM-DD" (sin hora / sin TZ)
+ */
+function normalizeDateOnly(fecha: string): string {
+  const s = String(fecha || "").trim();
+  if (!s) return "";
+  // input type="date" normalmente ya viene "YYYY-MM-DD"
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // por si llega ISO con hora, cortamos
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+  return s;
+}
+
 export default function ModalRepartidorMotorizado({
   isOpen,
   onClose,
@@ -109,13 +122,15 @@ export default function ModalRepartidorMotorizado({
     if (!seleccion || !pedido) return;
 
     if (seleccion === "REPROGRAMADO" && paso === "reprogramar") {
-      if (!fechaNueva) return;
+      const fecha = normalizeDateOnly(fechaNueva); // ✅ SOLO AQUÍ
+      if (!fecha) return;
+
       try {
         setSubmitting(true);
         await onConfirm?.({
           pedidoId: pedido.id,
           resultado: "REPROGRAMADO",
-          fecha_nueva: fechaNueva,
+          fecha_nueva: fecha, // ✅ "YYYY-MM-DD"
           observacion: observacion?.trim() || undefined,
         });
         onClose();
@@ -374,7 +389,10 @@ export default function ModalRepartidorMotorizado({
                     type="date"
                     placeholder="00/00/0000"
                     value={fechaNueva}
-                    onChange={(e) => setFechaNueva(e.target.value)}
+                    onChange={(e) => {
+                      // ✅ SOLO ESTE CAMBIO: mantener date-only
+                      setFechaNueva(normalizeDateOnly(e.target.value));
+                    }}
                   />
                 </div>
 

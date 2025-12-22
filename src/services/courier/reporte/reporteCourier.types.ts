@@ -38,6 +38,7 @@ export type CourierIngresosReporteResp = {
     };
     kpis: {
         ingresosTotales: number;
+        totalPedidos: number;
     };
     tabla: {
         fecha: string;

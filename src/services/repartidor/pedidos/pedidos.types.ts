@@ -8,8 +8,8 @@ export type RepartidorVista = 'hoy' | 'pendientes' | 'terminados';
 export interface ListPedidosHoyQuery {
   page?: number;
   perPage?: number;
-  desde?: string | Date;
-  hasta?: string | Date;
+  desde?: string;   // ✅ antes: string | Date
+  hasta?: string;   // ✅ antes: string | Date
   sortBy?: 'programada' | 'real' | 'creacion' | 'actualizada';
   order?: 'asc' | 'desc';
 }
@@ -17,11 +17,12 @@ export interface ListPedidosHoyQuery {
 export interface ListByEstadoQuery {
   page?: number;
   perPage?: number;
-  desde?: string | Date;
-  hasta?: string | Date;
+  desde?: string;   // ✅ antes: string | Date
+  hasta?: string;   // ✅ antes: string | Date
   sortBy?: 'programada' | 'real' | 'creacion' | 'actualizada';
   order?: 'asc' | 'desc';
 }
+
 
 export interface Paginated<T> {
   items: T[];
@@ -123,7 +124,7 @@ export type EstadoInicialResultado =
 
 export interface UpdateEstadoInicialBody {
   resultado: EstadoInicialResultado;
-  fecha_nueva?: string | Date;
+  fecha_nueva?: string;
   observacion?: string;
 }
 
@@ -153,7 +154,7 @@ export type UpdateResultadoBody =
       monto_recaudado?: number | string;
       observacion?: string;
       evidenciaFile?: File | Blob; // se envía en FormData como "evidencia"
-      fecha_entrega_real?: string | Date;
+      fecha_entrega_real?: string;
 
       metodo?: MetodoPagoUI; // UI-only
     }
@@ -166,7 +167,7 @@ export type UpdateResultadoBody =
 
       // No se usa normalmente, pero lo dejo por compat si tu UI lo manda:
       evidenciaFile?: File | Blob;
-      fecha_entrega_real?: string | Date;
+      fecha_entrega_real?: string;
 
       metodo?: MetodoPagoUI; // UI-only
     };
