@@ -45,11 +45,9 @@ function formatDateOnlyFromIso(isoOrYmd?: string | null): string {
   const raw = String(isoOrYmd).trim();
   if (!raw) return "—";
 
-  // "YYYY-MM-DDTHH:mm:ss..." -> "YYYY-MM-DD"
-  const ymd = raw.slice(0, 10);
+  const ymd = raw.slice(0, 10); // "YYYY-MM-DD"
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
-    // fallback defensivo si no es ISO/ymd
     try {
       return new Date(raw).toLocaleDateString("es-PE");
     } catch {
@@ -59,6 +57,34 @@ function formatDateOnlyFromIso(isoOrYmd?: string | null): string {
 
   const [y, m, d] = ymd.split("-");
   return `${d}/${m}/${y}`;
+}
+
+/**
+ * ✅ Normaliza value de input date a YYYY-MM-DD (sin TZ).
+ * Acepta:
+ * - "YYYY-MM-DD" (ideal)
+ * - ISO "YYYY-MM-DDTHH:mm..."
+ * - "DD/MM/YYYY" (por si tu SelectxDate lo devuelve así)
+ */
+function normalizeToYMD(v: string): string {
+  const s = String(v ?? "").trim();
+  if (!s) return "";
+
+  // ya es YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // ISO -> toma yyyy-mm-dd
+  const isoYmd = s.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoYmd)) return isoYmd;
+
+  // dd/mm/yyyy -> yyyy-mm-dd
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [dd, mm, yyyy] = s.split("/");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  // fallback: no inventamos
+  return s;
 }
 
 export default function BaseTablaPedidos({
@@ -93,6 +119,11 @@ export default function BaseTablaPedidos({
     setHasta("");
   }, [view]);
 
+  // ✅ si cambias filtros, vuelve a page 1
+  useEffect(() => {
+    setPage(1);
+  }, [filtroDistrito, filtroCantidad, searchProducto, desde, hasta]);
+
   const qHoy: ListPedidosHoyQuery = useMemo(
     () => ({
       page,
@@ -104,17 +135,9 @@ export default function BaseTablaPedidos({
   );
 
   const qEstado: ListByEstadoQuery = useMemo(
-    () => ({
-      page,
-      perPage,
-      sortBy: "programada",
-      order: "asc",
-      ...(desde ? { desde } : {}),
-      ...(hasta ? { hasta } : {}),
-    }),
-    [page, perPage, desde, hasta]
+    () => ({ page, perPage, sortBy: "programada", order: "asc" }),
+    [page, perPage]
   );
-
 
   useEffect(() => {
     const ac = new AbortController();
@@ -221,13 +244,6 @@ export default function BaseTablaPedidos({
     setPage(p);
   };
 
-  function formatDateOnly(iso?: string | null) {
-    if (!iso) return "—";
-    // iso: "2025-12-20T00:00:00.000Z"
-    return iso.slice(0, 10).split("-").reverse().join("/");
-  }
-
-
   return (
     <div className="w-full min-w-0 overflow-visible">
       {/* Encabezado */}
@@ -242,28 +258,27 @@ export default function BaseTablaPedidos({
 
       <div className="bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 mb-5 min-w-0">
         <div className="flex flex-wrap gap-3 items-end min-w-0">
-          {(view === "hoy" || view === "pendientes" || view === "terminados") && (
+          {view === "hoy" && (
             <>
               <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
                 <SelectxDate
-                  label="Fecha Inicio"
+                  label="Fech. Inicio"
                   value={desde}
-                  onChange={(e) => setDesde(e.target.value)}
+                  onChange={(e) => setDesde(normalizeToYMD(e.target.value))}
                   className="w-full"
                 />
               </div>
 
               <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
                 <SelectxDate
-                  label="Fecha Fin"
+                  label="Fech. Fin"
                   value={hasta}
-                  onChange={(e) => setHasta(e.target.value)}
+                  onChange={(e) => setHasta(normalizeToYMD(e.target.value))}
                   className="w-full"
                 />
               </div>
             </>
           )}
-
 
           {/* Distrito */}
           <div className="w-full sm:w-[220px] flex-1 min-w-[160px]">
@@ -321,6 +336,7 @@ export default function BaseTablaPedidos({
                 setSearchProducto("");
                 setDesde("");
                 setHasta("");
+                setPage(1);
               }}
             />
           </div>
@@ -328,8 +344,12 @@ export default function BaseTablaPedidos({
       </div>
 
       {/* Estados */}
-      {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
-      {!loading && error && <div className="py-10 text-center text-red-600">{error}</div>}
+      {loading && (
+        <div className="py-10 text-center text-gray-500">Cargando...</div>
+      )}
+      {!loading && error && (
+        <div className="py-10 text-center text-red-600">{error}</div>
+      )}
 
       {!loading && !error && (
         <div className="bg-white rounded-md overflow-hidden shadow-default border border-gray30 min-w-0 relative z-0">
@@ -340,8 +360,12 @@ export default function BaseTablaPedidos({
                   <th className="px-4 py-3 whitespace-nowrap">Fec. Entrega</th>
                   <th className="px-4 py-3 whitespace-nowrap">Ecommerce</th>
                   <th className="px-4 py-3 whitespace-nowrap">Cliente</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Dirección de Entrega</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Cant. de productos</th>
+                  <th className="px-4 py-3 whitespace-nowrap">
+                    Dirección de Entrega
+                  </th>
+                  <th className="px-4 py-3 whitespace-nowrap">
+                    Cant. de productos
+                  </th>
                   <th className="px-4 py-3 whitespace-nowrap">Monto</th>
                   <th className="px-4 py-3 whitespace-nowrap">Estado</th>
 
@@ -371,14 +395,13 @@ export default function BaseTablaPedidos({
                     0;
 
                   return (
-                    <tr key={p.id} className="group hover:bg-gray10 transition-colors">
+                    <tr
+                      key={p.id}
+                      className="group hover:bg-gray10 transition-colors"
+                    >
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
-<<<<<<< HEAD
                         {/* ✅ FIX TZ SOLO AQUÍ */}
                         {formatDateOnlyFromIso(fecha)}
-=======
-                        {formatDateOnly(fecha)}
->>>>>>> 671873a59cdf1a3555764cc4f1d98cb90ef301d7
                       </td>
                       <td className="h-12 px-4 py-3 text-gray70">
                         {p.ecommerce?.nombre_comercial ?? "—"}
@@ -425,7 +448,10 @@ export default function BaseTablaPedidos({
                               className="text-amber-600 hover:text-amber-800 transition-colors"
                               onClick={() => onCambiarEstado?.(p)}
                             >
-                              <Icon icon="mdi:swap-horizontal" className="text-lg" />
+                              <Icon
+                                icon="mdi:swap-horizontal"
+                                className="text-lg"
+                              />
                             </button>
                           )}
                         </div>
@@ -437,14 +463,20 @@ export default function BaseTablaPedidos({
                 {!itemsFiltrados.length && (
                   <>
                     <tr className="lg:hidden">
-                      <td colSpan={7} className="px-4 py-8 text-center text-gray70 italic">
+                      <td
+                        colSpan={7}
+                        className="px-4 py-8 text-center text-gray70 italic"
+                      >
                         No hay pedidos para esta etapa.
                       </td>
                       <td className="sticky right-0 z-10 bg-white border-l border-gray30 w-[120px]" />
                     </tr>
 
                     <tr className="hidden lg:table-row">
-                      <td colSpan={8} className="px-4 py-8 text-center text-gray70 italic">
+                      <td
+                        colSpan={8}
+                        className="px-4 py-8 text-center text-gray70 italic"
+                      >
                         No hay pedidos para esta etapa.
                       </td>
                     </tr>
