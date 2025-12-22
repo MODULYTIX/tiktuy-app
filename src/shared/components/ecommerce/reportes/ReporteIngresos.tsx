@@ -175,8 +175,6 @@ export default function ReporteIngresos() {
           {/* ===== TABLA ===== */}
           <Cardx>
             <p className="text-sm text-gray60 mb-3">Detalle por fecha</p>
-
-            {/* Contenedor con scroll */}
             <div className="max-h-[320px] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-white z-10">
@@ -186,7 +184,6 @@ export default function ReporteIngresos() {
                     <th className="py-2 text-right">Pedidos</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {data.tabla.map((row) => (
                     <tr key={row.fecha} className="border-b border-gray20">
