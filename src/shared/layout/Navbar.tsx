@@ -40,33 +40,174 @@ export default function Navbar({ isOpen, open, setOpen }: Props) {
   // ====== Links por rol (igual a tu Sidebar) ======
   const linksByRole: Record<string, LinkItem[]> = {
     admin: [
-      { to: '/', label: 'Panel de Control', icon: <Icon icon="mdi:view-dashboard" width="20" height="20" /> },
-      { to: '/ventas', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="20" height="20" /> },
-      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="20" height="20" /> },
-      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="20" height="20" /> },
-      // Notificaciones NO es ruta real; la interceptamos abajo
-      { to: '/__notificaciones__', label: 'Notificaciones', icon: <Icon icon="mdi:bell-outline" width="20" height="20" /> },
+      {
+        to: "/",
+        label: "Panel de Control",
+        icon: <Icon icon="mdi:view-dashboard" width="20" height="20" />,
+      },
+      {
+        to: "/usuarios",
+        label: "Ventas",
+        icon: <Icon icon="mdi:cash-register" width="20" height="20" />,
+      },
+      {
+        to: "/reportes",
+        label: "Stock / Sede",
+        icon: <Icon icon="mdi:package-variant" width="20" height="20" />,
+      },
+      {
+        to: "/saldos",
+        label: "Cuadre de Saldos",
+        icon: <Icon icon="prime:wallet" width="20" height="20" />,
+      },
+      {
+        to: "/perfiles",
+        label: "Perfiles",
+        icon: <Icon icon="mdi:account-group" width="20" height="20" />,
+      },
+      {
+        to: "/reportes",
+        label: "Reportes",
+        icon: <Icon icon="carbon:report-data" width="20" height="20" />,
+      },
+      {
+        to: "/configuracion",
+        label: "Configuración",
+        icon: <Icon icon="mdi:cog-outline" width="20" height="20" />,
+      },
+
+      // Notificaciones NO es ruta real; solo UI
+      // { to: "/__notificaciones__", label: "Notificaciones", icon: <Icon icon="mdi:bell-outline" width="20" height="20" /> },
     ],
+
+    /* =========================
+       ECOMMERCE
+    ========================= */
     ecommerce: [
-      { to: '/', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="20" height="20" /> },
-      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="20" height="20" />, modulo: 'pedidos' },
-      { to: '/saldos', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="20" height="20" /> },
-      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="20" height="20" /> },
-      { to: '/__notificaciones__', label: 'Notificaciones', icon: <Icon icon="mdi:bell-outline" width="20" height="20" /> },
+      {
+        to: "/",
+        label: "Panel de Control",
+        icon: <Icon icon="lucide:layout-panel-top" width="20" height="20" />,
+      },
+      {
+        to: "/almacen",
+        label: "Sede",
+        icon: <Icon icon="hugeicons:warehouse" width="20" height="20" />,
+        modulo: "stock",
+      },
+      {
+        to: "/stock",
+        label: "Stock de Productos",
+        icon: <Icon icon="vaadin:stock" width="20" height="20" />,
+        modulo: "stock",
+      },
+      {
+        to: "/movimientos",
+        label: "Movimientos",
+        icon: (
+          <Icon
+            icon="icon-park-outline:cycle-movement"
+            width="20"
+            height="20"
+          />
+        ),
+        modulo: "movimiento",
+      },
+      {
+        to: "/pedidos",
+        label: "Gestión de Pedidos",
+        icon: (
+          <Icon icon="lsicon:shopping-cart-filled" width="20" height="20" />
+        ),
+        modulo: "pedidos",
+      },
+      {
+        to: "/saldos",
+        label: "Cuadre de Saldos",
+        icon: <Icon icon="prime:wallet" width="20" height="20" />,
+      },
+      {
+        to: "/perfiles",
+        label: "Perfiles",
+        icon: <Icon icon="hugeicons:access" width="20" height="20" />,
+      },
+      {
+        to: "/reportes",
+        label: "Reportes",
+        icon: <Icon icon="carbon:report-data" width="20" height="20" />,
+      },
+
+      // { to: "/__notificaciones__", label: "Notificaciones", icon: <Icon icon="mdi:bell-outline" width="20" height="20" /> },
     ],
+
+    /* =========================
+       COURIER
+    ========================= */
     courier: [
-      { to: '/', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="20" height="20" /> },
-      { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="20" height="20" /> },
-      { to: '/cuadresaldo', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="20" height="20" /> },
-      { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="20" height="20" /> },
-      { to: '/__notificaciones__', label: 'Notificaciones', icon: <Icon icon="mdi:bell-outline" width="20" height="20" /> },
+      {
+        to: "/",
+        label: "Panel de Control",
+        icon: <Icon icon="lucide:layout-panel-top" width="20" height="20" />,
+      },
+      {
+        to: "/almacen",
+        label: "Sede",
+        icon: <Icon icon="hugeicons:warehouse" width="20" height="20" />,
+      },
+      {
+        to: "/stock",
+        label: "Stock de Productos",
+        icon: <Icon icon="vaadin:stock" width="20" height="20" />,
+      },
+      {
+        to: "/movimientos",
+        label: "Movimientos",
+        icon: (
+          <Icon
+            icon="icon-park-outline:cycle-movement"
+            width="20"
+            height="20"
+          />
+        ),
+      },
+      {
+        to: "/pedidos",
+        label: "Gestión de Pedidos",
+        icon: (
+          <Icon icon="lsicon:shopping-cart-filled" width="20" height="20" />
+        ),
+      },
+      {
+        to: "/zonas",
+        label: "Zonas / Tarifas",
+        icon: (
+          <Icon icon="solar:point-on-map-broken" width="20" height="20" />
+        ),
+      },
+      {
+        to: "/cuadresaldo",
+        label: "Cuadre de Saldos",
+        icon: <Icon icon="prime:wallet" width="20" height="20" />,
+      },
+      {
+        to: "/perfiles",
+        label: "Perfiles",
+        icon: <Icon icon="hugeicons:access" width="20" height="20" />,
+      },
+      {
+        to: "/reportes",
+        label: "Reportes",
+        icon: <Icon icon="carbon:report-data" width="20" height="20" />,
+      },
+
+      // { to: "/__notificaciones__", label: "Notificaciones", icon: <Icon icon="mdi:bell-outline" width="20" height="20" /> },
     ],
     motorizado: [
-      { to: '/panel', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="20" height="20" /> },
+      { to: '/', label: 'Panel de Control', icon: <Icon icon="lucide:layout-panel-top" width="20" height="20" /> },
       { to: '/pedidos', label: 'Gestión de Pedidos', icon: <Icon icon="lsicon:shopping-cart-filled" width="20" height="20" /> },
       { to: '/cuadreSaldo', label: 'Cuadre de Saldos', icon: <Icon icon="prime:wallet" width="20" height="20" /> },
       { to: '/reportes', label: 'Reportes', icon: <Icon icon="carbon:report-data" width="20" height="20" /> },
-      { to: '/__notificaciones__', label: 'Notificaciones', icon: <Icon icon="mdi:bell-outline" width="20" height="20" /> },
+      // { to: '/__notificaciones__', label: 'Notificaciones', icon: <Icon icon="mdi:bell-outline" width="20" height="20" /> },
     ],
   };
 
