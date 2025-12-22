@@ -9,7 +9,7 @@ import type {
   UpdateResultadoBody,
   UpdateResultadoResponse,
   PedidoDetalle,
-  WhatsappGrupoLinkResponse, // ✅ nuevo type
+  WhatsappGrupoLinkResponse,
 } from "./pedidos.types";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -23,16 +23,82 @@ const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
 
-function toIso(val: string | Date): string {
-  return typeof val === "string" ? val : val.toISOString();
+const TZ_PE = "America/Lima";
+
+function isYMD(s: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+/**
+ * ✅ Normaliza fechas para QUERY / fecha_nueva (REPROGRAMADO)
+ * - Acepta string ISO o "YYYY-MM-DD" o Date
+ * - Devuelve SIEMPRE "YYYY-MM-DD" en TZ Perú (evita corrimientos)
+ */
+function toDateOnly(val?: string | Date): string | undefined {
+  if (val == null) return undefined;
+
+  if (val instanceof Date) {
+    if (Number.isNaN(val.getTime())) return undefined;
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: TZ_PE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(val); // YYYY-MM-DD
+  }
+
+  const s = String(val).trim();
+  if (!s) return undefined;
+
+  // si ya es YYYY-MM-DD
+  if (isYMD(s)) return s;
+
+  // si es ISO u otro formato que empiece con fecha
+  const ymd = s.slice(0, 10);
+  if (isYMD(ymd)) return ymd;
+
+  // fallback: parse y formatear en TZ Perú
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return undefined;
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ_PE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/**
+ * ✅ Para body: fecha_entrega_real (ENTREGADO) puede ser ISO (datetime).
+ * Aquí mantenemos ISO si es Date o string.
+ */
+function toIsoDateTime(val?: string | Date): string | undefined {
+  if (val == null) return undefined;
+
+  if (val instanceof Date) {
+    if (Number.isNaN(val.getTime())) return undefined;
+    return val.toISOString();
+  }
+
+  const s = String(val).trim();
+  return s || undefined;
 }
 
 function toQueryHoy(q: ListPedidosHoyQuery = {}): string {
   const sp = new URLSearchParams();
   if (q.page !== undefined) sp.set("page", String(q.page));
   if (q.perPage !== undefined) sp.set("perPage", String(q.perPage));
-  if (q.desde !== undefined) sp.set("desde", toIso(q.desde));
-  if (q.hasta !== undefined) sp.set("hasta", toIso(q.hasta));
+
+  // ✅ manda YYYY-MM-DD (TZ Perú)
+  const desde = toDateOnly(q.desde);
+  const hasta = toDateOnly(q.hasta);
+  if (desde) sp.set("desde", desde);
+  if (hasta) sp.set("hasta", hasta);
+
+  if (q.sortBy !== undefined) sp.set("sortBy", q.sortBy);
+  if (q.order !== undefined) sp.set("order", q.order);
+
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
@@ -41,10 +107,16 @@ function toQueryEstado(q: ListByEstadoQuery = {}): string {
   const sp = new URLSearchParams();
   if (q.page !== undefined) sp.set("page", String(q.page));
   if (q.perPage !== undefined) sp.set("perPage", String(q.perPage));
-  if (q.desde !== undefined) sp.set("desde", toIso(q.desde));
-  if (q.hasta !== undefined) sp.set("hasta", toIso(q.hasta));
+
+  // ✅ manda YYYY-MM-DD (TZ Perú)
+  const desde = toDateOnly(q.desde);
+  const hasta = toDateOnly(q.hasta);
+  if (desde) sp.set("desde", desde);
+  if (hasta) sp.set("hasta", hasta);
+
   if (q.sortBy !== undefined) sp.set("sortBy", q.sortBy);
   if (q.order !== undefined) sp.set("order", q.order);
+
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
@@ -70,7 +142,6 @@ async function handle<T>(res: Response, fallbackMsg: string): Promise<T> {
     try {
       const body: any = await res.json();
 
-      // ✅ imprime details completos (Joi)
       if (hasDetails(body)) {
         // eslint-disable-next-line no-console
         console.error("API error details:", body.details);
@@ -78,7 +149,7 @@ async function handle<T>(res: Response, fallbackMsg: string): Promise<T> {
 
       if (hasMessage(body)) message = body.message;
     } catch {
-      /* ignore parse error */
+      /* ignore */
     }
 
     throw new Error(message);
@@ -134,6 +205,7 @@ export async function fetchPedidosTerminados(
 
 /* --------------------------
    PATCH: Estado inicial
+   ✅ clave: fecha_nueva debe enviarse como YYYY-MM-DD
 ---------------------------*/
 export async function patchEstadoInicial(
   token: string,
@@ -141,10 +213,14 @@ export async function patchEstadoInicial(
   body: UpdateEstadoInicialBody,
   opts?: { signal?: AbortSignal }
 ): Promise<UpdateEstadoInicialResponse> {
-  const payload = {
+  const payload: any = {
     ...body,
-    ...(body.fecha_nueva ? { fecha_nueva: toIso(body.fecha_nueva) } : {}),
+    ...(body.fecha_nueva ? { fecha_nueva: toDateOnly(body.fecha_nueva) } : {}),
   };
+
+  if (body.resultado === "REPROGRAMADO" && !payload.fecha_nueva) {
+    throw new Error("fecha_nueva inválida (usa YYYY-MM-DD).");
+  }
 
   const res = await fetch(`${BASE_URL}/${id}/estado`, {
     method: "PATCH",
@@ -164,10 +240,6 @@ export async function patchEstadoInicial(
 
 /* --------------------------
    PATCH: Resultado final
-   - ENTREGADO:
-       - si hay evidenciaFile => multipart/form-data (campo: evidencia)
-       - si NO hay evidenciaFile => JSON
-   - RECHAZADO: JSON
 ---------------------------*/
 export async function patchResultado(
   token: string,
@@ -175,13 +247,12 @@ export async function patchResultado(
   body: UpdateResultadoBody,
   opts?: { signal?: AbortSignal }
 ): Promise<UpdateResultadoResponse> {
-  // ✅ Validación defensiva (evita mandar undefined)
   if (body.resultado === "ENTREGADO") {
     if (!Number.isFinite(body.metodo_pago_id)) {
       throw new Error("metodo_pago_id inválido (undefined/NaN). Revisa metodoPagoIds.");
     }
 
-    // 1) ENTREGADO con evidencia => multipart
+    // ENTREGADO con evidencia => multipart
     if (body.evidenciaFile) {
       const fd = new FormData();
       fd.set("resultado", "ENTREGADO");
@@ -191,7 +262,9 @@ export async function patchResultado(
         fd.set("monto_recaudado", String(body.monto_recaudado));
       }
       if (body.observacion) fd.set("observacion", body.observacion);
-      if (body.fecha_entrega_real) fd.set("fecha_entrega_real", toIso(body.fecha_entrega_real));
+
+      const fer = toIsoDateTime(body.fecha_entrega_real);
+      if (fer) fd.set("fecha_entrega_real", fer);
 
       // ✅ IMPORTANTE: backend usa upload.single('evidencia')
       fd.set("evidencia", body.evidenciaFile);
@@ -206,7 +279,7 @@ export async function patchResultado(
       return handle<UpdateResultadoResponse>(res, "Error al actualizar el resultado del pedido");
     }
 
-    // 2) ENTREGADO sin evidencia (ej: EFECTIVO) => JSON
+    // ENTREGADO sin evidencia => JSON
     const res = await fetch(`${BASE_URL}/${id}/resultado`, {
       method: "PATCH",
       headers: {
@@ -217,7 +290,7 @@ export async function patchResultado(
         resultado: "ENTREGADO",
         metodo_pago_id: body.metodo_pago_id,
         observacion: body.observacion,
-        fecha_entrega_real: body.fecha_entrega_real ? toIso(body.fecha_entrega_real) : undefined,
+        fecha_entrega_real: toIsoDateTime(body.fecha_entrega_real),
         monto_recaudado: body.monto_recaudado,
       }),
       signal: opts?.signal,
@@ -236,7 +309,7 @@ export async function patchResultado(
     body: JSON.stringify({
       resultado: "RECHAZADO",
       observacion: body.observacion,
-      fecha_entrega_real: body.fecha_entrega_real ? toIso(body.fecha_entrega_real) : undefined,
+      fecha_entrega_real: toIsoDateTime(body.fecha_entrega_real),
     }),
     signal: opts?.signal,
   });
@@ -260,8 +333,7 @@ export async function fetchPedidoDetalle(
 }
 
 /* --------------------------
-   ✅ NUEVO: GET WhatsApp Grupo (link de la asociación Ecommerce–Courier–Sede)
-   GET /repartidor-pedidos/:id/whatsapp-grupo
+   GET WhatsApp Grupo
 ---------------------------*/
 export async function fetchWhatsappGrupoLink(
   token: string,

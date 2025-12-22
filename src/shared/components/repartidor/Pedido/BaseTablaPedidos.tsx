@@ -33,6 +33,34 @@ const PEN = new Intl.NumberFormat("es-PE", {
 });
 const two = (n: number) => String(n).padStart(2, "0");
 
+/**
+ * ✅ FIX TZ (solo render):
+ * Si viene ISO tipo "2025-12-12T00:00:00.000Z", NO usar new Date()
+ * porque en Perú lo corre al día anterior.
+ * Mostramos siempre el YYYY-MM-DD como dd/mm/yyyy.
+ */
+function formatDateOnlyFromIso(isoOrYmd?: string | null): string {
+  if (!isoOrYmd) return "—";
+
+  const raw = String(isoOrYmd).trim();
+  if (!raw) return "—";
+
+  // "YYYY-MM-DDTHH:mm:ss..." -> "YYYY-MM-DD"
+  const ymd = raw.slice(0, 10);
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    // fallback defensivo si no es ISO/ymd
+    try {
+      return new Date(raw).toLocaleDateString("es-PE");
+    } catch {
+      return "—";
+    }
+  }
+
+  const [y, m, d] = ymd.split("-");
+  return `${d}/${m}/${y}`;
+}
+
 export default function BaseTablaPedidos({
   view,
   token,
@@ -329,7 +357,8 @@ export default function BaseTablaPedidos({
                   return (
                     <tr key={p.id} className="group hover:bg-gray10 transition-colors">
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
-                        {fecha ? new Date(fecha).toLocaleDateString("es-PE") : "—"}
+                        {/* ✅ FIX TZ SOLO AQUÍ */}
+                        {formatDateOnlyFromIso(fecha)}
                       </td>
                       <td className="h-12 px-4 py-3 text-gray70">
                         {p.ecommerce?.nombre_comercial ?? "—"}
