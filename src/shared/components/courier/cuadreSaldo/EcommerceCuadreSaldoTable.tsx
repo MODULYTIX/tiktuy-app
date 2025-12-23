@@ -53,9 +53,9 @@ const servicioDe = (i: any) => {
   );
   const sr = Number(
     i?.servicioRepartidor ??
-      i?.servicio_repartidor ??
-      i?.servicioRepartidorEfectivo ??
-      0
+    i?.servicio_repartidor ??
+    i?.servicioRepartidorEfectivo ??
+    0
   );
   if (sc || sr) return sc + sr;
   if (i?.servicioTotal != null) return Number(i.servicioTotal);
@@ -65,6 +65,8 @@ const servicioDe = (i: any) => {
 
 type Props = { token: string };
 type ResumenRow = ResumenDia & { estado?: AbonoEstado };
+
+const ITEMS_PER_PAGE = 8;
 
 const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   // ==== sedes ====
@@ -96,6 +98,56 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   const [confirmCobrado, setConfirmCobrado] = useState(0);
   const [confirmServicio, setConfirmServicio] = useState(0);
   const [confirmCount, setConfirmCount] = useState(0);
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(rows.length / ITEMS_PER_PAGE)
+  );
+
+  const pagedRows = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return rows.slice(start, start + ITEMS_PER_PAGE);
+  }, [rows, currentPage]);
+
+  // reset página cuando cambia data
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [rows]);
+
+  const pagerItems = useMemo(() => {
+    const maxButtons = 5;
+    const pages: (number | string)[] = [];
+
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      let start = Math.max(1, currentPage - 2);
+      let end = Math.min(totalPages, currentPage + 2);
+
+      if (currentPage <= 3) {
+        start = 1;
+        end = maxButtons;
+      } else if (currentPage >= totalPages - 2) {
+        start = totalPages - (maxButtons - 1);
+        end = totalPages;
+      }
+
+      for (let i = start; i <= end; i++) pages.push(i);
+
+      if (start > 1) {
+        pages.unshift("...");
+        pages.unshift(1);
+      }
+      if (end < totalPages) {
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  }, [currentPage, totalPages]);
 
   const ecommerce = useMemo(
     () =>
@@ -343,8 +395,8 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
             loadingSedes
               ? "Cargando sedes..."
               : canFilterBySede
-              ? "Todas las sedes"
-              : "Sede actual"
+                ? "Todas las sedes"
+                : "Sede actual"
           }
           className="w-full"
           disabled={loadingSedes || (!canFilterBySede && sedes.length <= 1)}
@@ -454,7 +506,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
               </thead>
 
               <tbody className="divide-y divide-gray20">
-                {rows.length === 0 ? (
+                {pagedRows.length === 0 ? (
                   <tr className="hover:bg-transparent">
                     <td
                       colSpan={7}
@@ -464,7 +516,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                     </td>
                   </tr>
                 ) : (
-                  rows.map((r) => {
+                  pagedRows.map((r) => {
                     const checked = selectedFechas.includes(r.fecha);
                     const estado = r.estado ?? "Por Validar";
 
@@ -472,8 +524,8 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                       estado === "Validado"
                         ? "bg-gray90 text-white"
                         : estado === "Sin Validar"
-                        ? "bg-gray30 text-gray80"
-                        : "bg-blue-100 text-blue-900";
+                          ? "bg-gray30 text-gray80"
+                          : "bg-blue-100 text-blue-900";
 
                     return (
                       <tr
@@ -507,11 +559,11 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end">
                             <TableActionx
-  variant="view"
-  title="Ver pedidos del día"
-  onClick={() => openDia(r.fecha)}
-  size="sm"
-/>
+                              variant="view"
+                              title="Ver pedidos del día"
+                              onClick={() => openDia(r.fecha)}
+                              size="sm"
+                            />
                           </div>
                         </td>
                       </tr>
@@ -522,6 +574,49 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
             </table>
           </div>
         </section>
+        {/* PAGINADOR */}
+        <div className="flex items-center justify-end gap-1 border-t border-gray90 py-3 px-3">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="w-8 h-8 flex items-center justify-center rounded bg-gray10 text-gray70 hover:bg-gray20 disabled:opacity-40"
+          >
+            &lt;
+          </button>
+
+          {pagerItems.map((p, i) =>
+            typeof p === "string" ? (
+              <span
+                key={`dots-${i}`}
+                className="px-2 text-gray60 select-none"
+              >
+                {p}
+              </span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                className={[
+                  "w-8 h-8 flex items-center justify-center rounded",
+                  p === currentPage
+                    ? "bg-gray90 text-white"
+                    : "bg-gray10 text-gray70 hover:bg-gray20",
+                ].join(" ")}
+              >
+                {p}
+              </button>
+            )
+          )}
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="w-8 h-8 flex items-center justify-center rounded bg-gray10 text-gray70 hover:bg-gray20 disabled:opacity-40"
+          >
+            &gt;
+          </button>
+        </div>
+
       </div>
 
       {/* modales */}
@@ -547,7 +642,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         onCancel={() => setOpenConfirm(false)}
         onConfirm={confirmarAbono}
       />
-    </div>
+    </div >
   );
 };
 
