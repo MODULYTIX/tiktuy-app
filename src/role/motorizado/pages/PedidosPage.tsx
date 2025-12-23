@@ -166,7 +166,7 @@ export default function PedidosPage() {
             "
           >
             <Buttonx
-              label="Asignados (Hoy)"
+              label="Asignados"
               icon="solar:bill-list-broken"
               variant={vista === "asignados" ? "secondary" : "tertiary"}
               onClick={() => setVista("asignados")}
