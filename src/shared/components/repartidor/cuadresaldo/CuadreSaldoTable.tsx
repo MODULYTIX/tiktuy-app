@@ -22,7 +22,9 @@ const formatPEN = (v: number) =>
 // TZ Perú
 const TZ_PE = "America/Lima";
 
-// ✅ Convierte (ISO | Date | YYYY-MM-DD) -> YYYY-MM-DD (Perú)
+// ✅ Convierte (ISO | Date | YYYY-MM-DD) -> YYYY-MM-DD (sin corrimiento)
+// FIX: si viene ISO tipo "2025-12-23T00:00:00.000Z", NO convertir a TZ (porque baja a 22 en Lima)
+// => tomar siempre el "YYYY-MM-DD" del string cuando aplique.
 function normalizeToYMD(val: string | Date): string {
   if (val instanceof Date) {
     if (Number.isNaN(val.getTime())) return "";
@@ -36,11 +38,18 @@ function normalizeToYMD(val: string | Date): string {
 
   if (typeof val !== "string") return "";
 
-  // Ya es YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  const s = String(val).trim();
+  if (!s) return "";
 
-  // ISO u otro formato parseable
-  const d = new Date(val);
+  // Ya es YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // ✅ Si es ISO o empieza con YYYY-MM-DD, NO lo pases por Date() (evita -1 día)
+  const head = s.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(head)) return head;
+
+  // fallback: parseable raro
+  const d = new Date(s);
   if (Number.isNaN(d.getTime())) return "";
 
   return new Intl.DateTimeFormat("en-CA", {
@@ -396,7 +405,10 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 const estado: Estado = row.validado ? "Validado" : "Por Validar";
 
                 return (
-                  <tr key={ymd || String(row.fecha)} className="hover:bg-gray10 transition-colors">
+                  <tr
+                    key={ymd || String(row.fecha)}
+                    className="hover:bg-gray10 transition-colors"
+                  >
                     <td className="h-12 px-4 py-3">
                       <Checkbox
                         checked={!!selected[ymd]}
@@ -434,7 +446,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
                             disabled={loading || !ymd}
                             className={[
                               "rounded-md px-3 py-1.5 text-sm bg-gray90 text-white hover:opacity-90",
-                              loading || !ymd ? "opacity-60 cursor-not-allowed" : "",
+                              loading || !ymd
+                                ? "opacity-60 cursor-not-allowed"
+                                : "",
                             ].join(" ")}
                           >
                             Validar
@@ -448,7 +462,10 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
               {loading && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-gray70">
+                  <td
+                    colSpan={5}
+                    className="px-4 py-6 text-center text-gray70"
+                  >
                     Cargando…
                   </td>
                 </tr>
@@ -504,14 +521,14 @@ const CuadreSaldoTable: React.FC<Props> = ({
       <Modal
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
-        title={detailDate ? `Detalle del ${ymdToDMY(detailDate)}` : "Detalle del día"}
+        title={
+          detailDate ? `Detalle del ${ymdToDMY(detailDate)}` : "Detalle del día"
+        }
       >
         {detailLoading && (
           <div className="p-4 text-sm text-gray-600">Cargando detalle…</div>
         )}
-        {detailErr && (
-          <div className="p-4 text-sm text-red-600">{detailErr}</div>
-        )}
+        {detailErr && <div className="p-4 text-sm text-red-600">{detailErr}</div>}
 
         {detail && (
           <div className="space-y-4">
@@ -557,14 +574,19 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           {formatPEN(p.monto ?? 0)}
                         </td>
                         <td className="h-12 px-4 py-3 text-right text-gray70">
-                          {p.servicioCourier != null ? formatPEN(p.servicioCourier) : "-"}
+                          {p.servicioCourier != null
+                            ? formatPEN(p.servicioCourier)
+                            : "-"}
                         </td>
                       </tr>
                     ))}
 
                     {detail.pedidos.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-gray70 italic">
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-gray70 italic"
+                        >
                           Sin pedidos para este día.
                         </td>
                       </tr>
