@@ -135,9 +135,17 @@ export default function BaseTablaPedidos({
   );
 
   const qEstado: ListByEstadoQuery = useMemo(
-    () => ({ page, perPage, sortBy: "programada", order: "asc" }),
-    [page, perPage]
+    () => ({
+      page,
+      perPage,
+      ...(desde ? { desde } : {}),
+      ...(hasta ? { hasta } : {}),
+      sortBy: "programada",
+      order: "asc",
+    }),
+    [page, perPage, desde, hasta]
   );
+
 
   useEffect(() => {
     const ac = new AbortController();
