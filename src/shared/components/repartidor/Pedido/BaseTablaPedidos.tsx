@@ -258,7 +258,7 @@ export default function BaseTablaPedidos({
 
       <div className="bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 mb-5 min-w-0">
         <div className="flex flex-wrap gap-3 items-end min-w-0">
-          {view === "hoy" || view === "pendientes" || view === "terminados" && (
+          {(view === "hoy" || view === "pendientes" || view === "terminados") && (
             <>
               <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
                 <SelectxDate
@@ -279,6 +279,7 @@ export default function BaseTablaPedidos({
               </div>
             </>
           )}
+
 
           {/* Distrito */}
           <div className="w-full sm:w-[220px] flex-1 min-w-[160px]">
