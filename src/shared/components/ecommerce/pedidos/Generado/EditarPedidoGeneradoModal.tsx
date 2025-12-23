@@ -115,7 +115,7 @@ export default function EditarPedidoGeneradoModal({
     <div className="fixed inset-0 z-50 bg-black/30 flex justify-end">
       <div
         ref={modalRef}
-        className="h-full w-[480px] max-w-[95vw] bg-white shadow-2xl flex flex-col"
+        className="h-full w-[520px] max-w-[95vw] bg-white shadow-2xl flex flex-col"
       >
         {/* ===================== HEADER ===================== */}
         <div className="border-b px-5 py-4">
@@ -165,29 +165,42 @@ export default function EditarPedidoGeneradoModal({
 
           {/* ===================== PRODUCTOS ===================== */}
           <div className="border rounded-lg overflow-hidden">
-            <div className="bg-gray-100 px-4 py-2 text-xs font-medium grid grid-cols-[1fr_120px_120px]">
+            <div className="bg-gray-100 px-4 py-2 text-xs font-medium grid grid-cols-[2fr_80px_100px_110px]">
               <span>Producto</span>
-              <span className="text-center">Cantidad</span>
+              <span className="text-center">Cant.</span>
+              <span className="text-center">Precio</span>
               <span className="text-right">Subtotal</span>
             </div>
+
 
             {detalles.map((d, i) => (
               <div
                 key={d.id}
-                className="px-4 py-3 grid grid-cols-[1fr_120px_120px] gap-3 items-center border-t"
+                className="px-4 py-3 grid grid-cols-[2fr_80px_100px_110px]
+  gap-3 items-center border-t"
               >
                 <Selectx
                   label=""
                   labelVariant="left"
                   value={String(d.producto_id)}
-                  onChange={(e) =>
-                    handleDetalleChange(
-                      i,
-                      "producto_id",
-                      Number(e.target.value)
-                    )
-                  }
+                  onChange={(e) => {
+                    const productoId = Number(e.target.value);
+                    const producto = productos.find(p => p.id === productoId);
+
+                    setDetalles(prev =>
+                      prev.map((det, idx) =>
+                        idx === i
+                          ? {
+                            ...det,
+                            producto_id: productoId,
+                            precio_unitario: producto?.precio ?? det.precio_unitario,
+                          }
+                          : det
+                      )
+                    );
+                  }}
                 >
+
                   {productos.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.nombre_producto}
@@ -207,6 +220,23 @@ export default function EditarPedidoGeneradoModal({
                     )
                   }
                 />
+                <div className="w-full">
+                  <InputxNumber
+                    label=""
+                    value={String(d.precio_unitario)}
+                    min={0}
+                    step="0.01"
+                    className="w-full text-right"
+                    onChange={(e) =>
+                      handleDetalleChange(
+                        i,
+                        "precio_unitario",
+                        Number(e.target.value)
+                      )
+                    }
+                  />
+                </div>
+
 
                 <div className="text-right font-medium">
                   S/. {(d.cantidad * d.precio_unitario).toFixed(2)}
