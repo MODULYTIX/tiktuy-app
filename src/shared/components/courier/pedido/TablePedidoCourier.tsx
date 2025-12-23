@@ -420,15 +420,15 @@ export default function TablePedidoCourier({
             view === "asignados"
               ? "Pedidos Asignados"
               : view === "pendientes"
-                ? "Pedidos Pendientes"
-                : "Pedidos Terminados"
+              ? "Pedidos Pendientes"
+              : "Pedidos Terminados"
           }
           description={
             view === "asignados"
               ? "Selecciona y asigna pedidos a un repartidor."
               : view === "pendientes"
-                ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
-                : "Pedidos completados o cerrados."
+              ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
+              : "Pedidos completados o cerrados."
           }
         />
 
@@ -542,12 +542,8 @@ export default function TablePedidoCourier({
       </div>
 
       {/* Estados */}
-      {loading && (
-        <div className="py-10 text-center text-gray-500">Cargando...</div>
-      )}
-      {!loading && error && (
-        <div className="py-10 text-center text-red-600">{error}</div>
-      )}
+      {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
+      {!loading && error && <div className="py-10 text-center text-red-600">{error}</div>}
 
       {/* Tabla */}
       {!loading && !error && (
@@ -557,10 +553,11 @@ export default function TablePedidoCourier({
               <colgroup>
                 <col className="w-[5%]" />
                 <col className="w-[12%]" />
+                <col className="w-[12%]" /> {/* ✅ NUEVO: Distrito */}
                 <col className="w-[15%]" />
                 <col className="w-[15%]" />
                 <col className="w-[28%]" />
-                <col className="w-[10%]" />
+                <col className="w-[8%]" />
                 <col className="w-[10%]" />
                 <col className="w-[5%]" />
               </colgroup>
@@ -588,7 +585,12 @@ export default function TablePedidoCourier({
                       disabled={view !== "asignados"}
                     />
                   </th>
+
                   <th className="px-4 py-3 text-left">Fec. Entrega</th>
+
+                  {/* ✅ NUEVO */}
+                  <th className="px-4 py-3 text-left">Distrito</th>
+
                   <th className="px-4 py-3 text-left">Ecommerce</th>
                   <th className="px-4 py-3 text-left">Cliente</th>
                   <th className="px-4 py-3 text-left">Dirección de Entrega</th>
@@ -614,10 +616,7 @@ export default function TablePedidoCourier({
                   const montoNumber = Number(p.monto_recaudar || 0);
 
                   return (
-                    <tr
-                      key={p.id}
-                      className="hover:bg-gray10 transition-colors"
-                    >
+                    <tr key={p.id} className="hover:bg-gray10 transition-colors">
                       <td className="h-12 px-4 py-3">
                         <input
                           type="checkbox"
@@ -637,6 +636,11 @@ export default function TablePedidoCourier({
 
                       <td className="h-12 px-4 py-3 text-gray70">
                         {formatFechaPE(fecha)}
+                      </td>
+
+                      {/* ✅ NUEVO */}
+                      <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
+                        {p.cliente?.distrito ?? "—"}
                       </td>
 
                       <td className="h-12 px-4 py-3 text-gray70">
@@ -701,11 +705,10 @@ export default function TablePedidoCourier({
                 {!itemsFiltrados.length && (
                   <tr className="hover:bg-transparent">
                     <td
-                      colSpan={8}
+                      colSpan={9} // ✅ antes 8
                       className="px-4 py-8 text-center text-gray70 italic"
                     >
-                      No hay pedidos para esta etapa con los filtros
-                      seleccionados.
+                      No hay pedidos para esta etapa con los filtros seleccionados.
                     </td>
                   </tr>
                 )}
