@@ -432,7 +432,14 @@ export default function BaseTablaPedidos({
                       </td>
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
                         {p.estado_nombre}
+
+                        {p.reprogramacion_ultima && (
+                          <span className="ml-2 inline-block text-xs font-semibold text-orange-600">
+                            (Reprogramado)
+                          </span>
+                        )}
                       </td>
+
 
                       <td
                         className="
