@@ -91,13 +91,16 @@ export default function TablePedidoCourier({
   const [perPage] = useState(6);
 
   /*  filtros de FECHA (server-side) */
-  const [desde, setDesde] = useState<string>(() => getTodayPEYYYYMMDD()); 
+  const [desde, setDesde] = useState<string>(() => getTodayPEYYYYMMDD());
   const [hasta, setHasta] = useState<string>(""); // YYYY-MM-DD (vacío hasta que elijas)
 
   /* filtros (client-side, visuales) */
   const [filtroDistrito, setFiltroDistrito] = useState("");
   const [filtroCantidad, setFiltroCantidad] = useState("");
   const [searchProducto, setSearchProducto] = useState("");
+
+  // ✅ PARA PENDIENTES + TERMINADOS: filtro por motorizado
+  const [filtroMotorizado, setFiltroMotorizado] = useState("");
 
   /* data */
   const [data, setData] = useState<Paginated<PedidoListItem> | null>(null);
@@ -126,6 +129,7 @@ export default function TablePedidoCourier({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
+    setFiltroMotorizado(""); // ✅
 
     // IMPORTANTE: al cambiar de vista, volvemos a HOY por defecto
     // Si NO quieres resetear fechas al cambiar vista, elimina estas 2 líneas.
@@ -213,6 +217,21 @@ export default function TablePedidoCourier({
     [itemsBase]
   );
 
+  // ✅ PARA PENDIENTES + TERMINADOS: motorizados únicos para el filtro
+  const motorizados = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const p of itemsBase) {
+      const m = (p as any)?.motorizado;
+      if (!m?.id) continue;
+      const label =
+        `${m.nombres ?? ""} ${m.apellidos ?? ""}`.trim() || `Motorizado #${m.id}`;
+      if (!map.has(m.id)) map.set(m.id, label);
+    }
+    return Array.from(map.entries())
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [itemsBase]);
+
   // filtros visuales (client-side)
   const itemsFiltrados = useMemo(() => {
     let arr = [...itemsBase];
@@ -222,14 +241,21 @@ export default function TablePedidoCourier({
       arr = arr.filter((x) => x.cliente?.distrito === filtroDistrito);
     }
 
-    // 2) Cantidad exacta de productos
-    if (filtroCantidad) {
-      const cant = Number(filtroCantidad);
-      const cantidadDeItems = (x: PedidoListItem) =>
-        x.items_total_cantidad ??
-        x.items?.reduce((s, it) => s + it.cantidad, 0) ??
-        0;
-      arr = arr.filter((x) => cantidadDeItems(x) === cant);
+    // 2) ✅ Pendientes + Terminados: filtrar por motorizado | Asignados: filtrar por cantidad
+    if (view === "pendientes" || view === "terminados") {
+      if (filtroMotorizado) {
+        const id = Number(filtroMotorizado);
+        arr = arr.filter((x) => ((x as any)?.motorizado?.id ?? -1) === id);
+      }
+    } else {
+      if (filtroCantidad) {
+        const cant = Number(filtroCantidad);
+        const cantidadDeItems = (x: PedidoListItem) =>
+          x.items_total_cantidad ??
+          x.items?.reduce((s, it) => s + it.cantidad, 0) ??
+          0;
+        arr = arr.filter((x) => cantidadDeItems(x) === cant);
+      }
     }
 
     // 3) búsqueda por nombre de producto
@@ -241,7 +267,14 @@ export default function TablePedidoCourier({
     }
 
     return arr;
-  }, [itemsBase, filtroDistrito, filtroCantidad, searchProducto]);
+  }, [
+    itemsBase,
+    filtroDistrito,
+    filtroCantidad,
+    filtroMotorizado,
+    searchProducto,
+    view,
+  ]);
 
   // selección de items visibles
   const pageIds = itemsFiltrados.map((p) => p.id);
@@ -370,6 +403,7 @@ export default function TablePedidoCourier({
   const handleClearFilters = () => {
     setFiltroDistrito("");
     setFiltroCantidad("");
+    setFiltroMotorizado(""); // ✅
     setSearchProducto("");
 
     setDesde(getTodayPEYYYYMMDD());
@@ -412,7 +446,6 @@ export default function TablePedidoCourier({
             Asignar Repartidor
           </button>
         )}
-
       </div>
 
       {/* Filtros */}
@@ -450,21 +483,38 @@ export default function TablePedidoCourier({
             ))}
           </Selectx>
 
-          {/* Cantidad */}
-          <Selectx
-            label="Cantidad de productos"
-            name="filtro_cantidad"
-            value={filtroCantidad}
-            onChange={(e) => setFiltroCantidad(e.target.value)}
-            placeholder="Seleccionar cantidad"
-            disabled={loading}
-          >
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
-                {two(n)}
-              </option>
-            ))}
-          </Selectx>
+          {/* ✅ CAMBIO SOLO AQUÍ: Pendientes/Terminados => Motorizado | Asignados => Cantidad */}
+          {view === "pendientes" || view === "terminados" ? (
+            <Selectx
+              label="Motorizado"
+              name="filtro_motorizado"
+              value={filtroMotorizado}
+              onChange={(e) => setFiltroMotorizado(e.target.value)}
+              placeholder="Todos los motorizados"
+              disabled={loading}
+            >
+              {motorizados.map((m) => (
+                <option key={m.id} value={String(m.id)}>
+                  {m.label}
+                </option>
+              ))}
+            </Selectx>
+          ) : (
+            <Selectx
+              label="Cantidad de productos"
+              name="filtro_cantidad"
+              value={filtroCantidad}
+              onChange={(e) => setFiltroCantidad(e.target.value)}
+              placeholder="Seleccionar cantidad"
+              disabled={loading}
+            >
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {two(n)}
+                </option>
+              ))}
+            </Selectx>
+          )}
 
           {/* Limpiar */}
           <div className="flex items-end">

@@ -11,7 +11,7 @@ import type {
   PedidoDetalle,
   ReprogramarPedidoPayload,
   ReprogramarPedidoResponse,
-} from './pedidos.types';
+} from "./pedidos.types";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const BASE_URL = `${API_URL}/courier-pedidos`;
@@ -23,35 +23,105 @@ const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
 
-function toIso(val: string | Date): string {
-  return typeof val === 'string' ? val : val.toISOString();
+/**
+ * ✅ Normaliza a YYYY-MM-DD (en zona Perú) para evitar corrimientos.
+ * Acepta Date | string (YYYY-MM-DD o ISO).
+ */
+const TZ_PE = "America/Lima";
+
+function toDateOnly(val: string | Date): string {
+  if (val instanceof Date) {
+    if (Number.isNaN(val.getTime())) throw new Error("Fecha inválida");
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: TZ_PE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(val); // YYYY-MM-DD
+  }
+
+  const s = String(val ?? "").trim();
+  if (!s) throw new Error("Fecha inválida");
+
+  // ya es YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // si es ISO, tomar los 10 primeros
+  const ymd = s.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
+
+  // fallback: parse + formateo en Perú
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) throw new Error("Fecha inválida");
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ_PE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/**
+ * ✅ Suma días a un YYYY-MM-DD sin depender del timezone del navegador.
+ * Usamos UTC para no tener “-1 día” por offsets.
+ */
+function addDaysYMD(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
 function toQueryHoy(q: ListPedidosHoyQuery = {}): string {
   const sp = new URLSearchParams();
-  if (q.page !== undefined) sp.set('page', String(q.page));
-  if (q.perPage !== undefined) sp.set('perPage', String(q.perPage));
-  // ✅ NUEVO: rango opcional para /hoy
-  if (q.desde !== undefined) sp.set('desde', toIso(q.desde));
-  if (q.hasta !== undefined) sp.set('hasta', toIso(q.hasta));
+  if (q.page !== undefined) sp.set("page", String(q.page));
+  if (q.perPage !== undefined) sp.set("perPage", String(q.perPage));
+
+  // ✅ Rango opcional para /hoy (lo dejamos tal cual porque a ti te funciona bien)
+  if (q.desde !== undefined) sp.set("desde", toDateOnly(q.desde));
+  if (q.hasta !== undefined) sp.set("hasta", toDateOnly(q.hasta));
+
   const s = sp.toString();
-  return s ? `?${s}` : '';
+  return s ? `?${s}` : "";
 }
 
+/**
+ * ✅ FIX: para pendientes/terminados/etc
+ * Tu backend está interpretando `hasta` como límite no inclusivo / inicio de día.
+ * Entonces enviamos `hasta = (hasta + 1 día)` para que sea inclusivo.
+ *
+ * Ej:
+ * UI: desde=20, hasta=20  -> API manda hasta=21  -> aparecen los del 20 ✅
+ */
 function toQueryEstado(q: ListByEstadoQuery = {}): string {
   const sp = new URLSearchParams();
-  if (q.page !== undefined) sp.set('page', String(q.page));
-  if (q.perPage !== undefined) sp.set('perPage', String(q.perPage));
-  if (q.desde !== undefined) sp.set('desde', toIso(q.desde));
-  if (q.hasta !== undefined) sp.set('hasta', toIso(q.hasta));
-  if (q.sortBy !== undefined) sp.set('sortBy', q.sortBy);
-  if (q.order !== undefined) sp.set('order', q.order);
+  if (q.page !== undefined) sp.set("page", String(q.page));
+  if (q.perPage !== undefined) sp.set("perPage", String(q.perPage));
+
+  if (q.desde !== undefined) {
+    const desde = toDateOnly(q.desde);
+    sp.set("desde", desde);
+  }
+
+  if (q.hasta !== undefined) {
+    const hasta = toDateOnly(q.hasta);
+    const hastaMasUno = addDaysYMD(hasta, 1); // ✅ clave
+    sp.set("hasta", hastaMasUno);
+  }
+
+  if (q.sortBy !== undefined) sp.set("sortBy", q.sortBy);
+  if (q.order !== undefined) sp.set("order", q.order);
+
   const s = sp.toString();
-  return s ? `?${s}` : '';
+  return s ? `?${s}` : "";
 }
 
 function hasMessage(v: unknown): v is { message: string } {
-  return typeof v === 'object' && v !== null && typeof (v as { message?: unknown }).message === 'string';
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    typeof (v as { message?: unknown }).message === "string"
+  );
 }
 
 async function handle<T>(res: Response, fallbackMsg: string): Promise<T> {
@@ -116,7 +186,7 @@ export async function fetchPedidosAsignadosHoy(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  const data = await handle<unknown>(res, 'Error al obtener pedidos asignados de hoy');
+  const data = await handle<unknown>(res, "Error al obtener pedidos asignados de hoy");
   return normalizePaginated<PedidoListItem>(data);
 }
 
@@ -133,7 +203,7 @@ export async function fetchPedidosPendientes(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  const data = await handle<unknown>(res, 'Error al obtener pedidos pendientes');
+  const data = await handle<unknown>(res, "Error al obtener pedidos pendientes");
   return normalizePaginated<PedidoListItem>(data);
 }
 
@@ -150,7 +220,7 @@ export async function fetchPedidosReprogramados(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  const data = await handle<unknown>(res, 'Error al obtener pedidos reprogramados');
+  const data = await handle<unknown>(res, "Error al obtener pedidos reprogramados");
   return normalizePaginated<PedidoListItem>(data);
 }
 
@@ -167,7 +237,7 @@ export async function fetchPedidosRechazados(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  const data = await handle<unknown>(res, 'Error al obtener pedidos rechazados');
+  const data = await handle<unknown>(res, "Error al obtener pedidos rechazados");
   return normalizePaginated<PedidoListItem>(data);
 }
 
@@ -184,7 +254,7 @@ export async function fetchPedidosEntregados(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  const data = await handle<unknown>(res, 'Error al obtener pedidos entregados');
+  const data = await handle<unknown>(res, "Error al obtener pedidos entregados");
   return normalizePaginated<PedidoListItem>(data);
 }
 
@@ -201,7 +271,7 @@ export async function fetchPedidosTerminados(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  const data = await handle<unknown>(res, 'Error al obtener pedidos terminados');
+  const data = await handle<unknown>(res, "Error al obtener pedidos terminados");
   return normalizePaginated<PedidoListItem>(data);
 }
 
@@ -215,21 +285,21 @@ export async function assignPedidos(
   opts?: { signal?: AbortSignal }
 ): Promise<AssignPedidosResponse> {
   const res = await fetch(`${BASE_URL}/asignar`, {
-    method: 'POST',
+    method: "POST",
     headers: {
       ...authHeaders(token),
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
     signal: opts?.signal,
   });
 
   if (!res.ok) {
-    const errBody = await res.json().catch(() => ({ message: 'Sin cuerpo de error' }));
-    console.error('❌ Error al asignar pedidos - backend:', errBody);
+    const errBody = await res.json().catch(() => ({ message: "Sin cuerpo de error" }));
+    console.error("❌ Error al asignar pedidos - backend:", errBody);
   }
 
-  return handle<AssignPedidosResponse>(res, 'Error al asignar pedidos');
+  return handle<AssignPedidosResponse>(res, "Error al asignar pedidos");
 }
 
 /* --------------------------
@@ -245,27 +315,27 @@ export async function reassignPedido(
 
   try {
     res = await fetch(`${BASE_URL}/reasignar`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         ...authHeaders(token),
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
-      signal: opts?.signal, // ✅ ahora sí soporta abort
+      signal: opts?.signal,
     });
   } catch (err: unknown) {
-    if (err && typeof err === 'object' && (err as { name?: unknown }).name === 'AbortError') {
-      throw new Error('La operación fue cancelada. Vuelve a intentarlo.');
+    if (err && typeof err === "object" && (err as { name?: unknown }).name === "AbortError") {
+      throw new Error("La operación fue cancelada. Vuelve a intentarlo.");
     }
     throw err;
   }
 
   if (!res.ok) {
-    const errBody = await res.json().catch(() => ({ message: 'Sin cuerpo de error' }));
-    console.error('❌ Error al reasignar pedido - backend:', errBody);
+    const errBody = await res.json().catch(() => ({ message: "Sin cuerpo de error" }));
+    console.error("❌ Error al reasignar pedido - backend:", errBody);
   }
 
-  return handle<ReassignPedidoApiResponse>(res, 'Error al reasignar pedido');
+  return handle<ReassignPedidoApiResponse>(res, "Error al reasignar pedido");
 }
 
 /* --------------------------
@@ -277,7 +347,6 @@ export async function reprogramarPedido(
   payload: ReprogramarPedidoPayload,
   opts?: { signal?: AbortSignal }
 ): Promise<ReprogramarPedidoResponse> {
-  // ✅ guard para evitar el toISOString(undefined)
   if (!payload?.pedido_id) throw new Error("pedido_id es requerido");
   if (payload.fecha_entrega_programada === undefined || payload.fecha_entrega_programada === null) {
     throw new Error("fecha_entrega_programada es requerida");
@@ -291,8 +360,8 @@ export async function reprogramarPedido(
     },
     body: JSON.stringify({
       pedido_id: payload.pedido_id,
-      fecha_entrega_programada: payload.fecha_entrega_programada, // ✅
-      observacion: payload.observacion ?? "", // ✅
+      fecha_entrega_programada: payload.fecha_entrega_programada,
+      observacion: payload.observacion ?? "",
     }),
     signal: opts?.signal,
   });
@@ -306,7 +375,7 @@ export async function reprogramarPedido(
 }
 
 /* --------------------------
-   GET: DETALLE DE PEDIDO (ojito 👁️)
+   GET: DETALLE DE PEDIDO
    GET /courier-pedidos/:id/detalle
 ---------------------------*/
 export async function fetchPedidoDetalle(
@@ -318,5 +387,5 @@ export async function fetchPedidoDetalle(
     headers: authHeaders(token),
     signal: opts?.signal,
   });
-  return handle<PedidoDetalle>(res, 'Error al obtener detalle del pedido');
+  return handle<PedidoDetalle>(res, "Error al obtener detalle del pedido");
 }
