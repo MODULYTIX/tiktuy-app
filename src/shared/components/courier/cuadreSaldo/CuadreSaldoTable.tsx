@@ -190,8 +190,8 @@ const EditServicioModal: React.FC<EditModalProps> = ({
       setMontoCour(
         String(
           (pedido as any).servicioCourier ??
-            (pedido as any).servicioCourierEfectivo ??
-            0
+          (pedido as any).servicioCourierEfectivo ??
+          0
         )
       );
     }
@@ -355,9 +355,11 @@ const CuadreSaldoTable: React.FC<Props> = ({
   exposeActions,
 }) => {
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [rows, setRows] = useState<PedidoListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editing, setEditing] = useState<PedidoListItem | undefined>(undefined);
@@ -375,9 +377,13 @@ const CuadreSaldoTable: React.FC<Props> = ({
         page,
         pageSize,
       };
+
       const resp = await listPedidos(token, params);
+
       setRows(resp.items);
-      setSelectedIds([]);
+      setTotal(resp.total ?? resp.items.length);
+      // ⛔ NO limpiar selectedIds aquí (para no perder selección al paginar)
+
     } catch (e) {
       console.error(e);
       setError("Error al obtener pedidos finalizados");
@@ -385,15 +391,15 @@ const CuadreSaldoTable: React.FC<Props> = ({
       setLoading(false);
     }
   }, [token, motorizadoId, desde, hasta, page, pageSize]);
-
   useEffect(() => {
     setPage(1);
+    setSelectedIds([]);
   }, [motorizadoId, desde, hasta, pageSize]);
 
   useEffect(() => {
     void load();
   }, [load]);
-
+  
   const onSavedServicio = useCallback((chg: EditModalChange) => {
     setRows((prev) =>
       prev.map((r) => {
@@ -675,6 +681,46 @@ const CuadreSaldoTable: React.FC<Props> = ({
           </div>
         </section>
       </div>
+      {/* PAGINADOR */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end gap-1 border-t border-gray30 bg-white px-3 py-3 rounded-b-md">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="flex h-8 w-8 items-center justify-center rounded bg-gray10 text-gray70 hover:bg-gray20 disabled:opacity-40"
+          >
+            &lt;
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .slice(
+              Math.max(0, page - 3),
+              Math.min(totalPages, page + 2)
+            )
+            .map((p) => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={[
+                  "flex h-8 w-8 items-center justify-center rounded",
+                  p === page
+                    ? "bg-gray90 text-white"
+                    : "bg-gray10 text-gray70 hover:bg-gray20",
+                ].join(" ")}
+              >
+                {p}
+              </button>
+            ))}
+
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="flex h-8 w-8 items-center justify-center rounded bg-gray10 text-gray70 hover:bg-gray20 disabled:opacity-40"
+          >
+            &gt;
+          </button>
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         {error ? (

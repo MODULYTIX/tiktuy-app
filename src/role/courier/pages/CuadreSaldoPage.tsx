@@ -35,12 +35,12 @@ const CuadreSaldoPage: React.FC = () => {
   const [repDesde, setRepDesde] = useState<string>(todayLocal());
   const [repHasta, setRepHasta] = useState<string>(todayLocal());
 
-  // ✅ estado para controlar botón "Abonar seleccionados" (desde el table)
+  // estado para controlar botón "Abonar seleccionados" (desde el table)
   const [repSelCount, setRepSelCount] = useState(0);
   const [repSelLoading, setRepSelLoading] = useState(false);
   const [repCanAbonar, setRepCanAbonar] = useState(false);
 
-  // ✅ referencia a acciones expuestas por CuadreSaldoTable
+  // referencia a acciones expuestas por CuadreSaldoTable
   const repActionsRef = useRef<{ openAbonarSeleccionados: () => void } | null>(
     null
   );
@@ -99,7 +99,7 @@ const CuadreSaldoPage: React.FC = () => {
         <EcommerceCuadreSaldoTable token={token} />
       ) : (
         <>
-          {/* ✅ Título + botón alineado a la derecha */}
+          {/* Título + botón alineado a la derecha */}
           <div className="mb-5 flex items-center justify-between">
             <div className="text-lg font-semibold">Repartidor</div>
 
@@ -167,13 +167,13 @@ const CuadreSaldoPage: React.FC = () => {
               motorizadoId={motorizadoId === "" ? undefined : Number(motorizadoId)}
               desde={repDesde}
               hasta={repHasta}
-              // ✅ recibe updates de selección y loading
+              // recibe updates de selección y loading
               onSelectionChange={(info) => {
                 setRepSelCount(info.selectedCount);
                 setRepSelLoading(info.loading);
                 setRepCanAbonar(info.canAbonar);
               }}
-              // ✅ toma acciones expuestas por el componente
+              // toma acciones expuestas por el componente
               exposeActions={(actions) => {
                 repActionsRef.current = actions;
               }}
