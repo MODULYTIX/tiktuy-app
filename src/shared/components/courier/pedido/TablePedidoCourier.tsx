@@ -90,8 +90,8 @@ export default function TablePedidoCourier({
   const [page, setPage] = useState(1);
   const [perPage] = useState(6);
 
-  /* ✅ filtros de FECHA (server-side) */
-  const [desde, setDesde] = useState<string>(() => getTodayPEYYYYMMDD()); // ✅ HOY por defecto
+  /*  filtros de FECHA (server-side) */
+  const [desde, setDesde] = useState<string>(() => getTodayPEYYYYMMDD()); 
   const [hasta, setHasta] = useState<string>(""); // YYYY-MM-DD (vacío hasta que elijas)
 
   /* filtros (client-side, visuales) */
@@ -114,7 +114,7 @@ export default function TablePedidoCourier({
   /* trigger para refetch luego de reasignar / reprogramar */
   const [reloadTick, setReloadTick] = useState(0);
 
-  /* ✅ Reprogramar (modal) */
+  /* Reprogramar (modal) */
   const [reprogOpen, setReprogOpen] = useState(false);
   const [pedidoReprog, setPedidoReprog] = useState<PedidoListItem | null>(null);
   const [reprogLoading, setReprogLoading] = useState(false);
@@ -127,13 +127,13 @@ export default function TablePedidoCourier({
     setFiltroCantidad("");
     setSearchProducto("");
 
-    // ✅ IMPORTANTE: al cambiar de vista, volvemos a HOY por defecto
+    // IMPORTANTE: al cambiar de vista, volvemos a HOY por defecto
     // Si NO quieres resetear fechas al cambiar vista, elimina estas 2 líneas.
     setDesde(getTodayPEYYYYMMDD());
     setHasta("");
   }, [view]);
 
-  // ✅ si cambia rango => volver a la primera página
+  // si cambia rango => volver a la primera página
   useEffect(() => {
     setPage(1);
   }, [desde, hasta]);
@@ -308,7 +308,7 @@ export default function TablePedidoCourier({
     }
   };
 
-  // 🔁 Reasignar
+  // Reasignar
   const handleReasignar = async (p: PedidoListItem) => {
     if (onReasignar) return onReasignar(p);
 
@@ -334,13 +334,13 @@ export default function TablePedidoCourier({
     }
   };
 
-  // ✅ Reprogramar (abrir modal)
+  // Reprogramar (abrir modal)
   const openReprogramar = (p: PedidoListItem) => {
     setPedidoReprog(p);
     setReprogOpen(true);
   };
 
-  // ✅ Confirmar reprogramación (ALINEADO)
+  // Confirmar reprogramación (ALINEADO)
   const handleConfirmReprogramar = async (payload: {
     fecha_entrega_programada: string; // YYYY-MM-DD
     observacion?: string;
@@ -372,7 +372,6 @@ export default function TablePedidoCourier({
     setFiltroCantidad("");
     setSearchProducto("");
 
-    // ✅ IMPORTANTE: “Limpiar” vuelve a HOY por defecto, no a vacío
     setDesde(getTodayPEYYYYMMDD());
     setHasta("");
   };
@@ -419,7 +418,7 @@ export default function TablePedidoCourier({
       {/* Filtros */}
       <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-4 items-end">
-          {/* ✅ Fecha inicio (HOY por defecto) */}
+          {/* Fecha inicio (HOY por defecto) */}
           <SelectxDate
             label="Fecha Inicio"
             value={desde}
@@ -427,7 +426,7 @@ export default function TablePedidoCourier({
             disabled={loading}
           />
 
-          {/* ✅ Fecha fin (vacía hasta que elijas) */}
+          {/* Fecha fin (vacía hasta que elijas) */}
           <SelectxDate
             label="Fecha Fin"
             value={hasta}

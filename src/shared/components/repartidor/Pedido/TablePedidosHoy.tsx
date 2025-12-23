@@ -42,7 +42,7 @@ export default function TablePedidosHoy(props: Props) {
       query: ListPedidosHoyQuery,
       opts?: { signal?: AbortSignal }
     ): Promise<Paginated<PedidoListItem>> => {
-      // ✅ fuerza query limpio (string)
+      //  fuerza query limpio (string)
       const q = normalizeHoyQuery(query);
       return fetchPedidosHoy(token, q, opts);
     },
