@@ -59,6 +59,11 @@ function formatDateOnlyFromIso(isoOrYmd?: string | null): string {
   return `${d}/${m}/${y}`;
 }
 
+
+function isoToYMD(iso?: string | null): string {
+  if (!iso) return "";
+  return String(iso).slice(0, 10);
+}
 /**
  * ✅ Normaliza value de input date a YYYY-MM-DD (sin TZ).
  * Acepta:
@@ -97,14 +102,18 @@ export default function BaseTablaPedidos({
   subtitle,
 }: PropsBase) {
   const [page, setPage] = useState(1);
-  const [perPage] = useState(5);
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const perPage = view === "terminados" && (desde || hasta)
+    ? 100
+    : 5;
+
+
 
   const [filtroDistrito, setFiltroDistrito] = useState("");
   const [filtroCantidad, setFiltroCantidad] = useState("");
   const [searchProducto, setSearchProducto] = useState("");
 
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
 
   const [data, setData] = useState<Paginated<PedidoListItem> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,9 +129,13 @@ export default function BaseTablaPedidos({
   }, [view]);
 
   //  si cambias filtros, vuelve a page 1
+  // ✅ REEMPLAZO CORRECTO
   useEffect(() => {
-    setPage(1);
+    if (page !== 1) {
+      setPage(1);
+    }
   }, [filtroDistrito, filtroCantidad, searchProducto, desde, hasta]);
+
 
   const qHoy: ListPedidosHoyQuery = useMemo(
     () => ({
@@ -138,13 +151,15 @@ export default function BaseTablaPedidos({
     () => ({
       page,
       perPage,
-      ...(desde ? { desde } : {}),
-      ...(hasta ? { hasta } : {}),
+      // ⛔ NO mandar fechas al backend en TERMINADOS
+      ...(view !== "terminados" && desde ? { desde } : {}),
+      ...(view !== "terminados" && hasta ? { hasta } : {}),
       sortBy: "programada",
       order: "asc",
     }),
-    [page, perPage, desde, hasta]
+    [page, perPage, desde, hasta, view]
   );
+
 
 
   useEffect(() => {
@@ -162,6 +177,7 @@ export default function BaseTablaPedidos({
       try {
         const query = view === "hoy" ? qHoy : qEstado;
         const resp = await fetcher(token, query, { signal: ac.signal });
+
         setData(resp);
       } catch (e) {
         if ((e as Error).name !== "AbortError") {
@@ -176,7 +192,6 @@ export default function BaseTablaPedidos({
   }, [token, view, qHoy, qEstado, fetcher]);
 
   const itemsBase = data?.items ?? [];
-
   const distritos = useMemo(
     () =>
       Array.from(
@@ -188,10 +203,31 @@ export default function BaseTablaPedidos({
   const itemsFiltrados = useMemo(() => {
     let arr = [...itemsBase];
 
+    // FILTRO DE FECHA FRONTEND (ANTI-TZ, EXACTO)
+    if (desde || hasta) {
+      arr = arr.filter((p) => {
+        const fechaIso =
+          view === "terminados"
+            ? p.fecha_entrega_real ?? p.fecha_entrega_programada
+            : p.fecha_entrega_programada;
+
+        if (!fechaIso) return false;
+
+        const ymd = isoToYMD(fechaIso);
+
+        if (desde && ymd < desde) return false;
+        if (hasta && ymd > hasta) return false;
+
+        return true;
+      });
+    }
+
+    // --- Distrito ---
     if (filtroDistrito) {
       arr = arr.filter((x) => x.cliente.distrito === filtroDistrito);
     }
 
+    // --- Cantidad ---
     if (filtroCantidad) {
       const cant = Number(filtroCantidad);
       const byCount = (x: PedidoListItem) =>
@@ -200,6 +236,7 @@ export default function BaseTablaPedidos({
       arr = arr.filter((x) => byCount(x) === cant);
     }
 
+    // --- Buscar producto ---
     if (searchProducto.trim()) {
       const q = searchProducto.trim().toLowerCase();
       arr = arr.filter((x) =>
@@ -208,7 +245,16 @@ export default function BaseTablaPedidos({
     }
 
     return arr;
-  }, [itemsBase, filtroDistrito, filtroCantidad, searchProducto]);
+  }, [
+    itemsBase,
+    view,
+    desde,
+    hasta,
+    filtroDistrito,
+    filtroCantidad,
+    searchProducto,
+  ]);
+
 
   const totalItems = data?.totalItems ?? itemsBase.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
@@ -272,7 +318,12 @@ export default function BaseTablaPedidos({
                 <SelectxDate
                   label="Fech. Inicio"
                   value={desde}
-                  onChange={(e) => setDesde(normalizeToYMD(e.target.value))}
+                  onChange={(value) => {
+                    const ymd = normalizeToYMD(
+                      typeof value === "string" ? value : value?.target?.value
+                    );
+                    setDesde(ymd);
+                  }}
                   className="w-full"
                 />
               </div>
@@ -281,7 +332,12 @@ export default function BaseTablaPedidos({
                 <SelectxDate
                   label="Fech. Fin"
                   value={hasta}
-                  onChange={(e) => setHasta(normalizeToYMD(e.target.value))}
+                  onChange={(value) => {
+                    const ymd = normalizeToYMD(
+                      typeof value === "string" ? value : value?.target?.value
+                    );
+                    setHasta(ymd);
+                  }}
                   className="w-full"
                 />
               </div>
