@@ -80,9 +80,9 @@ export default function StockPedidoFilterCourier({
               SEDE (Courier)
           ======================= */}
           <Selectx
-            label="Ecommerce origen"
+            label="Ecommerce"
             name="ecommerceOrigenId"
-            
+
             value={view.ecommerceOrigenId}
             onChange={(e) => {
               set({ ecommerceOrigenId: e.target.value });
