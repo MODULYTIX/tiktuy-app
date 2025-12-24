@@ -4,11 +4,10 @@ import { useAuth } from "@/auth/context";
 import {
   fetchPedidoById,
   actualizarPedidoGenerado,
+  fetchProductosPorSede,
 } from "@/services/ecommerce/pedidos/pedidos.api";
-import { fetchProductos } from "@/services/ecommerce/producto/producto.api";
 
-import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
-import type { Producto } from "@/services/ecommerce/producto/producto.types";
+import type { Pedido, ProductoSede } from "@/services/ecommerce/pedidos/pedidos.types";
 
 import Tittlex from "@/shared/common/Tittlex";
 import { InputxNumber } from "@/shared/common/Inputx";
@@ -40,7 +39,7 @@ export default function EditarPedidoGeneradoModal({
   const modalRef = useRef<HTMLDivElement>(null);
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
-  const [productos, setProductos] = useState<Producto[]>([]);
+  const [productos, setProductos] = useState<ProductoSede[]>([]);
   const [detalles, setDetalles] = useState<DetalleForm[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -48,22 +47,37 @@ export default function EditarPedidoGeneradoModal({
   useEffect(() => {
     if (!open || !token || !pedidoId) return;
 
-    fetchProductos(token).then((r: any) =>
-      setProductos(Array.isArray(r) ? r : r?.data ?? [])
-    );
+    let mounted = true;
 
     fetchPedidoById(pedidoId, token).then((p) => {
+      if (!mounted || !p) return;
+
       setPedido(p);
+
       setDetalles(
-        (p?.detalles ?? []).map((d: any) => ({
+        (p.detalles ?? []).map((d: any) => ({
           id: d.id,
           producto_id: d.producto_id,
           cantidad: d.cantidad,
-          precio_unitario: d.precio_unitario,
+          precio_unitario: Number(d.precio_unitario),
         }))
       );
+
+      // 🔑 CLAVE: traer productos SOLO de la sede del pedido
+      if (p.sede_id) {
+        fetchProductosPorSede(p.sede_id, token)
+          .then((prods) => {
+            if (mounted) setProductos(prods);
+          })
+          .catch(console.error);
+      }
     });
+
+    return () => {
+      mounted = false;
+    };
   }, [open, pedidoId, token]);
+
 
   /* ===================== HELPERS ===================== */
   const montoTotal = detalles.reduce(

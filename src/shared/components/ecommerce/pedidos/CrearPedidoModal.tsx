@@ -177,11 +177,16 @@ export default function CrearPedidoModal({
 
     const cantidad = Math.trunc(Number(form.cantidad));
     if (!Number.isFinite(cantidad) || cantidad <= 0) return;
-    if (cantidad > prod.stock) return;
 
-    // si ya existe, acumula (sin pasarse del stock)
+    const yaAgregado =
+      detalles.find((d) => d.producto_id === prod.id)?.cantidad ?? 0;
+
+    const stockDisponible = prod.stock - yaAgregado;
+    if (cantidad > stockDisponible) return;
+
     setDetalles((prev) => {
       const idx = prev.findIndex((d) => d.producto_id === prod.id);
+
       if (idx === -1) {
         return [
           ...prev,
@@ -189,14 +194,17 @@ export default function CrearPedidoModal({
             producto_id: prod.id,
             nombre: prod.nombre_producto,
             cantidad,
-            precio_unitario: prod.precio,
+            precio_unitario: Number(form.precio_unitario) || prod.precio,
           },
         ];
       }
+
       const next = [...prev];
-      const curr = next[idx];
-      const nuevaCantidad = Math.min(prod.stock, curr.cantidad + cantidad);
-      next[idx] = { ...curr, cantidad: nuevaCantidad };
+      next[idx] = {
+        ...next[idx],
+        cantidad: next[idx].cantidad + cantidad,
+      };
+
       return next;
     });
 
@@ -258,7 +266,7 @@ export default function CrearPedidoModal({
       onClick={handleClose}
     >
       <div
-        className="h-full bg-white shadow-2xl flex flex-col w-[460px] max-w-[92vw]"
+        className="h-full bg-white shadow-2xl flex flex-col w-[520px] max-w-[92vw]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -362,15 +370,25 @@ export default function CrearPedidoModal({
               ))}
             </Selectx>
 
-            <div className="w-60">
+            <div className="w-54">
               <InputxNumber
-                label={`Cantidad (Stock ${form.stock_max || 0})`}
+                label={`Cant. (Stock ${form.stock_max || 0})`}
                 name="cantidad"
                 value={form.cantidad}
                 onChange={handleChange}
-                min={0}
+                min={1}
                 step={1}
-                inputMode="numeric"
+              />
+            </div>
+
+            <div className="w-38">
+              <InputxNumber
+                label="Precio"
+                name="precio_unitario"
+                value={form.precio_unitario}
+                onChange={handleChange}
+                min={0}
+                step={0.01}
               />
             </div>
           </div>
