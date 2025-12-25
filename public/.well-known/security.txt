@@ -1,2 +1,4 @@
 Contact: mailto:info@hycon.lat
 Expires: 2026-12-31
+Canonical: https://tiktuy.lat/.well-known/security.txt
+Preferred-Languages: es, en
