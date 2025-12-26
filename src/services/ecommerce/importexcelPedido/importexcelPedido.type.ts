@@ -5,7 +5,7 @@ export type ImportEstado = 'ok' | 'parcial' | 'error';
 export interface PreviewItemDTO {
   producto: string;
   cantidad: number | null;
-  producto_id?: number; 
+  producto_id?: number;
   precio_unitario?: number;
   stock?: number;
 }
@@ -21,15 +21,16 @@ export interface PreviewGroupDTO {
   referencia?: string | null;
   monto_total: number;     // total a recaudar
   fecha_entrega: string;   // ISO string (ej. "2025-08-14T15:00:00.000Z")
+  monto_editado?: boolean;
   valido: boolean;
   items: PreviewItemDTO[];
 }
 
 /** Respuesta del endpoint /import/excel/v1/ventas/preview */
 export interface PreviewResponseDTO {
-  estado: ImportEstado; 
-  total: number;        
-  ok: number;           
+  estado: ImportEstado;
+  total: number;
+  ok: number;
   preview: PreviewGroupDTO[];
 }
 

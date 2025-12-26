@@ -237,7 +237,7 @@ export default function CrearPedidoModal({
       referencia_direccion: form.referencia_direccion?.trim() || "",
       distrito: distritoSeleccionado,
       monto_recaudar: montoTotal,
-      fecha_entrega_programada: `${form.fecha_entrega_programada}T12:00:00.000Z`,
+      fecha_entrega_programada: form.fecha_entrega_programada,
       detalles: detalles.map((d) => ({
         producto_id: d.producto_id,
         cantidad: d.cantidad,
