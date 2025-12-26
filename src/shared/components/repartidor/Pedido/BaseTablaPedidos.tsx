@@ -10,6 +10,7 @@ import type {
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import { SearchInputx } from "@/shared/common/SearchInputx";
+import Tittlex from "@/shared/common/Tittlex";
 
 type ViewKind = "hoy" | "pendientes" | "terminados";
 type PropsBase = {
@@ -59,7 +60,6 @@ function formatDateOnlyFromIso(isoOrYmd?: string | null): string {
   return `${d}/${m}/${y}`;
 }
 
-
 function isoToYMD(iso?: string | null): string {
   if (!iso) return "";
   return String(iso).slice(0, 10);
@@ -104,16 +104,11 @@ export default function BaseTablaPedidos({
   const [page, setPage] = useState(1);
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const perPage = view === "terminados" && (desde || hasta)
-    ? 100
-    : 5;
-
-
+  const perPage = view === "terminados" && (desde || hasta) ? 100 : 5;
 
   const [filtroDistrito, setFiltroDistrito] = useState("");
   const [filtroCantidad, setFiltroCantidad] = useState("");
   const [searchProducto, setSearchProducto] = useState("");
-
 
   const [data, setData] = useState<Paginated<PedidoListItem> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,7 +130,6 @@ export default function BaseTablaPedidos({
       setPage(1);
     }
   }, [filtroDistrito, filtroCantidad, searchProducto, desde, hasta]);
-
 
   const qHoy: ListPedidosHoyQuery = useMemo(
     () => ({
@@ -159,8 +153,6 @@ export default function BaseTablaPedidos({
     }),
     [page, perPage, desde, hasta, view]
   );
-
-
 
   useEffect(() => {
     const ac = new AbortController();
@@ -232,7 +224,8 @@ export default function BaseTablaPedidos({
       const cant = Number(filtroCantidad);
       const byCount = (x: PedidoListItem) =>
         x.items_total_cantidad ??
-        (x.items?.reduce((s, it) => s + it.cantidad, 0) ?? 0);
+        x.items?.reduce((s, it) => s + it.cantidad, 0) ??
+        0;
       arr = arr.filter((x) => byCount(x) === cant);
     }
 
@@ -254,7 +247,6 @@ export default function BaseTablaPedidos({
     filtroCantidad,
     searchProducto,
   ]);
-
 
   const totalItems = data?.totalItems ?? itemsBase.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
@@ -301,96 +293,90 @@ export default function BaseTablaPedidos({
   return (
     <div className="w-full min-w-0 overflow-visible">
       {/* Encabezado */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4 min-w-0">
-        <div className="min-w-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-primary">
-            {title}
-          </h2>
-          <p className="text-sm text-gray-600">{subtitle}</p>
-        </div>
-      </div>
+      <Tittlex variant="section" title={title} description={subtitle} />
 
-      <div className="bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 mb-5 min-w-0">
-        <div className="flex flex-wrap gap-3 items-end min-w-0">
-          {(view === "hoy" || view === "pendientes" || view === "terminados") && (
-            <>
-              <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
-                <SelectxDate
-                  label="Fech. Inicio"
-                  value={desde}
-                  onChange={(value) => {
-                    const ymd = normalizeToYMD(
-                      typeof value === "string" ? value : value?.target?.value
-                    );
-                    setDesde(ymd);
-                  }}
-                  className="w-full"
-                />
-              </div>
+      <div className="bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 my-5 min-w-0">
+        <div className="grid gap-4 min-w-0">
+          {/* ===== Fila 1 ===== */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end min-w-0">
+            {(view === "hoy" ||
+              view === "pendientes" ||
+              view === "terminados") && (
+              <>
+                <div className="min-w-0">
+                  <SelectxDate
+                    label="Fech. Inicio"
+                    value={desde}
+                    onChange={(value) => {
+                      const ymd = normalizeToYMD(
+                        typeof value === "string" ? value : value?.target?.value
+                      );
+                      setDesde(ymd);
+                    }}
+                    className="w-full"
+                  />
+                </div>
 
-              <div className="w-full sm:w-[180px] flex-1 min-w-[150px]">
-                <SelectxDate
-                  label="Fech. Fin"
-                  value={hasta}
-                  onChange={(value) => {
-                    const ymd = normalizeToYMD(
-                      typeof value === "string" ? value : value?.target?.value
-                    );
-                    setHasta(ymd);
-                  }}
-                  className="w-full"
-                />
-              </div>
-            </>
-          )}
+                <div className="min-w-0">
+                  <SelectxDate
+                    label="Fech. Fin"
+                    value={hasta}
+                    onChange={(value) => {
+                      const ymd = normalizeToYMD(
+                        typeof value === "string" ? value : value?.target?.value
+                      );
+                      setHasta(ymd);
+                    }}
+                    className="w-full"
+                  />
+                </div>
+              </>
+            )}
 
+            {/* Distrito */}
+            <div className="min-w-0">
+              <Selectx
+                label="Distrito"
+                value={filtroDistrito}
+                onChange={(e) => setFiltroDistrito(e.target.value)}
+                className="w-full"
+              >
+                <option value="">Seleccionar distrito</option>
+                {distritos.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </Selectx>
+            </div>
 
-          {/* Distrito */}
-          <div className="w-full sm:w-[220px] flex-1 min-w-[160px]">
-            <Selectx
-              label="Distrito"
-              value={filtroDistrito}
-              onChange={(e) => setFiltroDistrito(e.target.value)}
-              className="w-full"
-            >
-              <option value="">Seleccionar distrito</option>
-              {distritos.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </Selectx>
+            {/* Cantidad */}
+            <div className="min-w-0">
+              <Selectx
+                label="Cantidad"
+                value={filtroCantidad}
+                onChange={(e) => setFiltroCantidad(e.target.value)}
+                className="w-full"
+              >
+                <option value="">Seleccionar cantidad</option>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {two(n)}
+                  </option>
+                ))}
+              </Selectx>
+            </div>
           </div>
 
-          {/* Cantidad */}
-          <div className="w-full sm:w-[180px] flex-1 min-w-[140px]">
-            <Selectx
-              label="Cantidad"
-              value={filtroCantidad}
-              onChange={(e) => setFiltroCantidad(e.target.value)}
-              className="w-full"
-            >
-              <option value="">Seleccionar cantidad</option>
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {two(n)}
-                </option>
-              ))}
-            </Selectx>
-          </div>
-
-          {/* Buscar producto */}
-          <div className="w-full sm:min-w-[260px] flex-[2] min-w-[200px]">
+          {/* ===== Fila 2 ===== */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end min-w-0">
             <SearchInputx
               value={searchProducto}
               onChange={(e) => setSearchProducto(e.target.value)}
               placeholder="Buscar productos por nombre"
               className="w-full"
             />
-          </div>
 
-          {/* Limpiar */}
-          <div className="w-full sm:w-auto shrink-0">
             <Buttonx
               label="Limpiar Filtros"
               icon="mynaui:delete"
@@ -489,7 +475,6 @@ export default function BaseTablaPedidos({
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
                         {p.estado_nombre}
                       </td>
-
 
                       <td
                         className="
