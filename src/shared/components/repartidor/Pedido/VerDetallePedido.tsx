@@ -223,7 +223,6 @@ export default function ModalPedidoDetalle({
 
   const monto =
     pickMoney(
-      p.monto_total_num,
       p.monto_total,
       p.monto_recaudar,
       p.items_total_monto,
