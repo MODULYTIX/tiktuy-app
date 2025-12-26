@@ -44,7 +44,6 @@ export default function ModalPedidoDetalle({
 }: Props) {
   if (!isOpen) return null;
 
-  // ✅ skeleton SOLO si está cargando y todavía no hay pedido
   const showSkeleton = Boolean(loading) && !pedido;
 
   // si está abierto pero aún no llegó pedido
@@ -191,7 +190,6 @@ export default function ModalPedidoDetalle({
       p.distrito
     ) ?? "—";
 
-  // ✅ FIX Dirección: trim + más campos comunes (sin exagerar)
   const direccion =
     pickText(
       p.direccion_envio,
@@ -223,8 +221,14 @@ export default function ModalPedidoDetalle({
       typeof p.estado === "string" ? p.estado : p.estado?.nombre
     ) ?? "—";
 
-  // ✅ FIX Monto: soporta "S/ 98.00"
-  const monto = pickMoney(p.monto_recaudar, p.monto, p.total) ?? 0;
+  const monto =
+    pickMoney(
+      p.monto_total_num,
+      p.monto_total,
+      p.monto_recaudar,
+      p.items_total_monto,
+      p.total
+    ) ?? 0;
 
   const telHref =
     telefono !== "—" ? `tel:${String(telefono).replace(/\s/g, "")}` : undefined;
@@ -234,7 +238,7 @@ export default function ModalPedidoDetalle({
       ? `https://wa.me/${String(telefono).replace(/\D/g, "")}`
       : undefined;
 
-  const montoFormateado = new Intl.NumberFormat("es-PE", {
+  const monto_total = new Intl.NumberFormat("es-PE", {
     style: "currency",
     currency: "PEN",
   }).format(monto || 0);
@@ -302,9 +306,8 @@ export default function ModalPedidoDetalle({
               <div className="mt-4 flex items-center gap-2">
                 <a
                   href={telHref}
-                  className={`flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 flex items-center justify-center gap-2 text-sm shadow-sm hover:bg-gray-50 ${
-                    !telHref ? "opacity-50 pointer-events-none" : ""
-                  }`}
+                  className={`flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 flex items-center justify-center gap-2 text-sm shadow-sm hover:bg-gray-50 ${!telHref ? "opacity-50 pointer-events-none" : ""
+                    }`}
                 >
                   <Icon
                     icon="mdi:phone"
@@ -317,9 +320,8 @@ export default function ModalPedidoDetalle({
                   href={waHref}
                   target="_blank"
                   rel="noreferrer"
-                  className={`flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 flex items-center justify-center gap-2 text-sm shadow-sm hover:bg-gray-50 ${
-                    !waHref ? "opacity-50 pointer-events-none" : ""
-                  }`}
+                  className={`flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 flex items-center justify-center gap-2 text-sm shadow-sm hover:bg-gray-50 ${!waHref ? "opacity-50 pointer-events-none" : ""
+                    }`}
                 >
                   <Icon
                     icon="mdi:whatsapp"
@@ -367,7 +369,7 @@ export default function ModalPedidoDetalle({
                 <InfoRow
                   icon="mdi:cash"
                   label="Monto"
-                  value={montoFormateado}
+                  value={monto_total}
                   valueClassName="text-emerald-700 font-semibold"
                 />
               </div>
@@ -464,9 +466,8 @@ function InfoRow({
       <div className="min-w-0">
         <div className="text-[11px] text-gray-500">{label}</div>
         <div
-          className={`text-sm text-gray-900 ${
-            multiline ? "" : "truncate"
-          } ${valueClassName ?? ""}`}
+          className={`text-sm text-gray-900 ${multiline ? "" : "truncate"
+            } ${valueClassName ?? ""}`}
           title={!multiline ? value : undefined}
         >
           {value || "—"}

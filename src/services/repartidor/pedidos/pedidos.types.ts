@@ -64,11 +64,11 @@ export interface PedidoListItem {
   direccion_envio: string | null;
 
   ecommerce:
-    | {
-        id: number | null;
-        nombre_comercial: string | null;
-      }
-    | null;
+  | {
+    id: number | null;
+    nombre_comercial: string | null;
+  }
+  | null;
 
   motorizado?: { id: number; nombres?: string; apellidos?: string } | null;
 
@@ -83,15 +83,16 @@ export interface PedidoListItem {
   monto_recaudar: string;
 
   metodo_pago?:
-    | {
-        id: number;
-        nombre: string;
-        requiere_evidencia: boolean;
-      }
-    | null;
+  | {
+    id: number;
+    nombre: string;
+    requiere_evidencia: boolean;
+  }
+  | null;
 
   pago_evidencia_url?: string | null;
   observacion_estado?: string | null;
+  monto_total?: string;
 
   items?: PedidoItemResumen[];
   items_total_cantidad?: number;
@@ -148,29 +149,29 @@ export type MetodoPagoUI = 'EFECTIVO' | 'BILLETERA' | 'DIRECTO_ECOMMERCE';
  */
 export type UpdateResultadoBody =
   | {
-      resultado: 'ENTREGADO';
-      metodo_pago_id: number; // ✅ requerido (ID real en DB)
+    resultado: 'ENTREGADO';
+    metodo_pago_id: number; // ✅ requerido (ID real en DB)
 
-      monto_recaudado?: number | string;
-      observacion?: string;
-      evidenciaFile?: File | Blob; // se envía en FormData como "evidencia"
-      fecha_entrega_real?: string;
+    monto_recaudado?: number | string;
+    observacion?: string;
+    evidenciaFile?: File | Blob; // se envía en FormData como "evidencia"
+    fecha_entrega_real?: string;
 
-      metodo?: MetodoPagoUI; // UI-only
-    }
+    metodo?: MetodoPagoUI; // UI-only
+  }
   | {
-      resultado: 'RECHAZADO';
-      metodo_pago_id?: never; // ✅ no aplica
+    resultado: 'RECHAZADO';
+    metodo_pago_id?: never; // ✅ no aplica
 
-      monto_recaudado?: number | string;
-      observacion?: string;
+    monto_recaudado?: number | string;
+    observacion?: string;
 
-      // No se usa normalmente, pero lo dejo por compat si tu UI lo manda:
-      evidenciaFile?: File | Blob;
-      fecha_entrega_real?: string;
+    // No se usa normalmente, pero lo dejo por compat si tu UI lo manda:
+    evidenciaFile?: File | Blob;
+    fecha_entrega_real?: string;
 
-      metodo?: MetodoPagoUI; // UI-only
-    };
+    metodo?: MetodoPagoUI; // UI-only
+  };
 
 export interface UpdateResultadoResponse {
   pedido_id: number;
