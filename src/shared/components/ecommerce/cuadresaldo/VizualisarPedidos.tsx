@@ -1,5 +1,5 @@
 // src/shared/components/ecommerce/cuadreSaldo/VizualisarPedidos.tsx
-import  { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { PedidoDiaItem } from "@/services/ecommerce/cuadreSaldo/cuadreSaldoC.types";
 
 type Row = PedidoDiaItem & {
@@ -36,6 +36,19 @@ const formatDMY = (ymd?: string) => {
     ? ymd
     : dt.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
+
+/* ✅ NUEVO: regla DIRECTO_ECOMMERCE (solo visual) */
+function metodoPagoDe(p: any): string | null {
+  return (p?.metodoPago ?? p?.metodo_pago ?? null) as any;
+}
+function isDirectEcommerce(p: any): boolean {
+  const mp = String(metodoPagoDe(p) ?? "").trim().toUpperCase();
+  return mp === "DIRECTO_ECOMMERCE";
+}
+function montoVisual(p: any): number {
+  // si es DIRECTO_ECOMMERCE => 0 (solo para mostrar)
+  return isDirectEcommerce(p) ? 0 : Number(p?.monto ?? 0);
+}
 
 export default function VizualisarPedidos({ open, onClose, fecha, rows, loading }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -94,13 +107,17 @@ export default function VizualisarPedidos({ open, onClose, fecha, rows, loading 
 
               {!loading &&
                 rows.map((p) => {
-                  const metodoPago = (p as any).metodoPago ?? (p as any).metodo_pago ?? null;
+                  const metodoPago = metodoPagoDe(p);
                   return (
                     <tr key={p.id} className="border-t">
                       <td className="p-3">{p.cliente}</td>
                       <td className="p-3">{metodoPago ?? "-"}</td>
-                      <td className="p-3">{money(p.monto)}</td>
-                      <td className="p-3">{money(p.servicioTotal)}</td>
+
+                      {/* ✅ CAMBIO: si DIRECTO_ECOMMERCE => mostrar 0 */}
+                      <td className="p-3">{money(montoVisual(p))}</td>
+
+                      {/* servicios NO se tocan */}
+                      <td className="p-3">{money(Number((p as any).servicioTotal ?? 0))}</td>
                     </tr>
                   );
                 })}
@@ -185,11 +202,7 @@ export default function VizualisarPedidos({ open, onClose, fecha, rows, loading 
                   className="block max-h-[75vh] w-full object-contain bg-gray-50"
                 />
               ) : (
-                <iframe
-                  src={previewUrl}
-                  className="block h-[75vh] w-full bg-gray-50"
-                  title="Evidencia"
-                />
+                <iframe src={previewUrl} className="block h-[75vh] w-full bg-gray-50" title="Evidencia" />
               )}
             </div>
 

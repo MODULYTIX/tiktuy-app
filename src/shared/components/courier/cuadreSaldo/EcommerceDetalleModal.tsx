@@ -29,6 +29,13 @@ const toDMY = (ymd: string) => {
   });
 };
 
+// ✅ NUEVO: si es DIRECTO_ECOMMERCE, el monto se VISUALIZA como 0 (solo UI)
+function montoVisual(it: PedidoDiaItem): number {
+  const mp = String((it as any)?.metodoPago ?? "").trim().toUpperCase();
+  if (mp === "DIRECTO_ECOMMERCE") return 0;
+  return Number((it as any)?.monto ?? 0);
+}
+
 const EcommerceDetalleModal: React.FC<Props> = ({
   open,
   fecha,
@@ -140,9 +147,13 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                           <td className="px-4 py-3 text-gray70">
                             {it.metodoPago ?? "-"}
                           </td>
+
+                          {/* ✅ CAMBIO: si DIRECTO_ECOMMERCE => mostrar 0 */}
                           <td className="px-4 py-3 text-gray70">
-                            {formatPEN(it.monto)}
+                            {formatPEN(montoVisual(it))}
                           </td>
+
+                          {/* ✅ NO TOCAR SERVICIOS */}
                           <td className="px-4 py-3 text-gray70">
                             {formatPEN(
                               it.servicioCourier + it.servicioRepartidor
