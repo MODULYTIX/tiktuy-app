@@ -375,10 +375,11 @@ export default function DetallesMovimientoCourierModal({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch h-full min-h-0">
+              // ✅ NO forzar h-full en mobile (solo en lg)
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch lg:h-full min-h-0">
                 {/* LEFT */}
-                <div className="lg:col-span-6 h-full min-h-0">
-                  <div className="h-full rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
+                <div className="lg:col-span-6 lg:h-full min-h-0">
+                  <div className="lg:h-full rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden">
                     <div className="px-5 py-4 border-b border-gray-100">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
@@ -416,20 +417,20 @@ export default function DetallesMovimientoCourierModal({
                       </div>
                     </div>
 
-                    {/* ✅ Ajuste de tamaños para simetría y margen inferior */}
-                    <div className="flex-1 min-h-0 p-6 flex flex-col gap-6 lg:justify-between">
+                    {/* ✅ FIX: scroll interno para que SIEMPRE se vean los 3 bloques en laptops */}
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 pr-2 flex flex-col gap-4 lg:gap-5">
                       {/* DESDE */}
-                      <div className="rounded-2xl h-full items-center bg-slate-50 border border-slate-200 p-4">
+                      <div className="shrink-0 rounded-2xl bg-slate-50 border border-slate-200 p-4">
                         <div className="text-xs font-semibold text-slate-500">
                           Desde
                         </div>
 
-                        <div className="mt-3 flex items-center gap-4">
-                          <div className="w-[100px] h-[100px] rounded-2xl bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
+                        <div className="mt-3 flex flex-col sm:flex-row sm:items-center items-start gap-4 min-w-0">
+                          <div className="w-[84px] h-[84px] sm:w-[100px] sm:h-[100px] rounded-2xl bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
                             <img
                               src={AlmacenDesde}
                               alt="Almacén desde"
-                              className="object-contain w-[90px] h-[90px]"
+                              className="object-contain w-[76px] h-[76px] sm:w-[90px] sm:h-[90px]"
                             />
                           </div>
 
@@ -458,8 +459,8 @@ export default function DetallesMovimientoCourierModal({
                       </div>
 
                       {/* CONECTOR / TIEMPO */}
-                      <div className="flex items-center justify-center">
-                        <div className="w-full rounded-2xl bg-white border border-gray-200 shadow-sm px-5 py-5 flex items-center justify-center gap-5">
+                      <div className="shrink-0 flex items-center justify-center">
+                        <div className="shrink-0 w-full rounded-2xl bg-white border border-gray-200 shadow-sm px-4 py-4 sm:px-5 sm:py-5 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
                           <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden">
                             <video
                               src={truckLoop}
@@ -484,27 +485,28 @@ export default function DetallesMovimientoCourierModal({
                             </div>
                           </div>
 
+                          {/* ✅ evitar overflow en pantallas chicas */}
                           <Icon
                             icon="mdi:arrow-down"
                             width="26"
                             height="26"
-                            className="text-slate-400"
+                            className="text-slate-400 hidden sm:block"
                           />
                         </div>
                       </div>
 
                       {/* HACIA */}
-                      <div className="rounded-2xl h-full items-center bg-slate-50 border border-slate-200 p-4">
+                      <div className="shrink-0 rounded-2xl bg-slate-50 border border-slate-200 p-4">
                         <div className="text-xs font-semibold text-slate-500">
                           Hacia
                         </div>
 
-                        <div className="mt-3 flex items-center gap-4">
-                          <div className="w-[100px] h-[100px] rounded-2xl bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
+                        <div className="mt-3 flex flex-col sm:flex-row sm:items-center items-start gap-4 min-w-0">
+                          <div className="w-[84px] h-[84px] sm:w-[100px] sm:h-[100px] rounded-2xl bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
                             <img
                               src={AlmacenHacia}
                               alt="Almacén hacia"
-                              className="object-contain w-[90px] h-[90px]"
+                              className="object-contain w-[76px] h-[76px] sm:w-[90px] sm:h-[90px]"
                             />
                           </div>
 
@@ -532,13 +534,15 @@ export default function DetallesMovimientoCourierModal({
                         </div>
                       </div>
                     </div>
+                    {/* /scroll left */}
                   </div>
                 </div>
 
                 {/* RIGHT */}
-                <div className="lg:col-span-6 h-full min-h-0 grid grid-rows-[minmax(0,1fr)_auto] gap-4">
+                {/* ✅ 50/50 real: flex-col + ambos cards flex-1 */}
+                <div className="lg:col-span-6 lg:h-full min-h-0 flex flex-col gap-4">
                   {/* TABLA */}
-                  <div className="min-h-0 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
+                  <div className="flex-1 min-h-0 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
                     <div className="px-5 py-4 border-b border-gray-100">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
@@ -654,8 +658,8 @@ export default function DetallesMovimientoCourierModal({
                     </div>
                   </div>
 
-                  {/* ADJUNTOS / OBSERVACIONES */}
-                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                  {/* ADJUNTOS / OBSERVACIONES / VALIDACIÓN */}
+                  <div className="flex-1 min-h-0 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
                     <div className="px-5 py-4 border-b border-gray-100">
                       <div className="flex items-center gap-2">
                         <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center">
@@ -685,7 +689,8 @@ export default function DetallesMovimientoCourierModal({
                       </div>
                     </div>
 
-                    <div className="p-5">
+                    {/* ✅ body con scroll interno para respetar 50/50 */}
+                    <div className="flex-1 min-h-0 p-5 overflow-y-auto">
                       {canValidate ? (
                         <div className="space-y-4">
                           <InputxTextarea
@@ -754,7 +759,7 @@ export default function DetallesMovimientoCourierModal({
                           </div>
                         </div>
                       ) : (
-                        <div className="rounded-xl bg-slate-50 border border-slate-200 p-6 text-center">
+                        <div className="h-full rounded-xl bg-slate-50 border border-slate-200 p-6 text-center flex flex-col items-center justify-center">
                           <div className="mx-auto w-12 h-12 rounded-2xl bg-white border border-gray-200 shadow-sm flex items-center justify-center">
                             <Icon
                               icon="mdi:inbox-outline"

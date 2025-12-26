@@ -4,11 +4,13 @@ import { useAuth } from "@/auth/context";
 import {
   fetchPedidoById,
   actualizarPedidoGenerado,
+  fetchProductosPorSede,
 } from "@/services/ecommerce/pedidos/pedidos.api";
-import { fetchProductos } from "@/services/ecommerce/producto/producto.api";
 
-import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
-import type { Producto } from "@/services/ecommerce/producto/producto.types";
+import type {
+  Pedido,
+  ProductoSede,
+} from "@/services/ecommerce/pedidos/pedidos.types";
 
 import Tittlex from "@/shared/common/Tittlex";
 import { InputxNumber } from "@/shared/common/Inputx";
@@ -40,7 +42,7 @@ export default function EditarPedidoGeneradoModal({
   const modalRef = useRef<HTMLDivElement>(null);
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
-  const [productos, setProductos] = useState<Producto[]>([]);
+  const [productos, setProductos] = useState<ProductoSede[]>([]);
   const [detalles, setDetalles] = useState<DetalleForm[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -48,21 +50,35 @@ export default function EditarPedidoGeneradoModal({
   useEffect(() => {
     if (!open || !token || !pedidoId) return;
 
-    fetchProductos(token).then((r: any) =>
-      setProductos(Array.isArray(r) ? r : r?.data ?? [])
-    );
+    let mounted = true;
 
     fetchPedidoById(pedidoId, token).then((p) => {
+      if (!mounted || !p) return;
+
       setPedido(p);
+
       setDetalles(
-        (p?.detalles ?? []).map((d: any) => ({
+        (p.detalles ?? []).map((d: any) => ({
           id: d.id,
           producto_id: d.producto_id,
           cantidad: d.cantidad,
-          precio_unitario: d.precio_unitario,
+          precio_unitario: Number(d.precio_unitario),
         }))
       );
+
+      // 🔑 CLAVE: traer productos SOLO de la sede del pedido
+      if (p.sede_id) {
+        fetchProductosPorSede(p.sede_id, token)
+          .then((prods) => {
+            if (mounted) setProductos(prods);
+          })
+          .catch(console.error);
+      }
     });
+
+    return () => {
+      mounted = false;
+    };
   }, [open, pedidoId, token]);
 
   /* ===================== HELPERS ===================== */
@@ -110,83 +126,160 @@ export default function EditarPedidoGeneradoModal({
 
   if (!open || !pedido) return null;
 
+  const fechaEntregaStr = pedido.fecha_entrega_programada?.slice(0, 10) ?? "—";
+  const totalItems = detalles.length;
+
   /* ===================== UI ===================== */
   return (
     <div className="fixed inset-0 z-50 bg-black/30 flex justify-end">
       <div
         ref={modalRef}
-        className="h-full w-[480px] max-w-[95vw] bg-white shadow-2xl flex flex-col"
+        className="h-full w-[520px] max-w-[95vw] bg-white shadow-2xl flex flex-col"
       >
-        {/* ===================== HEADER ===================== */}
-        <div className="border-b px-5 py-4">
-          <Tittlex
-            variant="modal"
-            icon="lsicon:shopping-cart-filled"
-            title="Editar Pedido"
-            description={`Código: ${pedido.codigo_pedido}`}
-          />
+        {/* ===================== HEADER (sin líneas, estilo pro) ===================== */}
+        <div className="px-5 py-4 bg-slate-50">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <Tittlex
+                variant="modal"
+                icon="lsicon:shopping-cart-filled"
+                title="Editar Pedido"
+                description={`Código: ${pedido.codigo_pedido}`}
+              />
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-xs text-slate-700">
+                  <span className="font-semibold text-slate-500">Entrega:</span>
+                  <span className="font-bold tabular-nums">{fechaEntregaStr}</span>
+                </span>
+
+                <span className="inline-flex items-center gap-2 rounded-lg bg-slate-100 border border-slate-200 px-3 py-1.5 text-xs text-slate-700">
+                  <span className="font-semibold">Ítems:</span>
+                  <span className="font-bold tabular-nums">
+                    {String(totalItems).padStart(2, "0")}
+                  </span>
+                </span>
+
+                <span className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-xs text-emerald-900">
+                  <span className="font-semibold">Total:</span>
+                  <span className="font-extrabold tabular-nums">
+                    S/. {montoTotal.toFixed(2)}
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar"
+              className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-50 shrink-0"
+              title="Cerrar"
+            >
+              <span className="text-slate-700 text-xl leading-none">×</span>
+            </button>
+          </div>
         </div>
 
         {/* ===================== CONTENT ===================== */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5 text-sm">
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 text-sm bg-[#F7F8FA]">
           {/* ===================== RESUMEN ===================== */}
-          <div className="bg-gray-50 border rounded-lg p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-gray-500">Cliente</p>
-                <p className="font-medium">{pedido.nombre_cliente}</p>
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <div className="text-sm font-bold text-slate-900">
+                Resumen del pedido
               </div>
+              <div className="text-xs text-slate-500">Datos principales</div>
+            </div>
 
-              <div>
-                <p className="text-gray-500">Fecha de entrega</p>
-                <p className="font-medium">
-                  {pedido.fecha_entrega_programada?.slice(0, 10)}
-                </p>
-              </div>
+            <div className="p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-xs font-semibold text-slate-500">Cliente</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900 break-words">
+                    {pedido.nombre_cliente}
+                  </p>
+                </div>
 
-              <div className="col-span-2">
-                <p className="text-gray-500">Dirección</p>
-                <p className="truncate">{pedido.direccion_envio}</p>
-              </div>
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    Fecha de entrega
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-slate-900 tabular-nums">
+                    {fechaEntregaStr}
+                  </p>
+                </div>
 
-              <div>
-                <p className="text-gray-500">Productos</p>
-                <p className="font-medium">{detalles.length}</p>
-              </div>
+                <div className="sm:col-span-2 rounded-xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    Dirección
+                  </p>
+                  <p className="mt-1 text-sm text-slate-700 break-words">
+                    {pedido.direccion_envio}
+                  </p>
+                </div>
 
-              <div>
-                <p className="text-gray-500">Monto total</p>
-                <p className="font-semibold">
-                  S/. {montoTotal.toFixed(2)}
-                </p>
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                  <p className="text-xs font-semibold text-slate-500">Productos</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900 tabular-nums">
+                    {String(totalItems).padStart(2, "0")}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
+                  <p className="text-xs font-semibold text-emerald-900">
+                    Monto total
+                  </p>
+                  <p className="mt-1 text-sm font-extrabold text-emerald-900 tabular-nums">
+                    S/. {montoTotal.toFixed(2)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* ===================== PRODUCTOS ===================== */}
-          <div className="border rounded-lg overflow-hidden">
-            <div className="bg-gray-100 px-4 py-2 text-xs font-medium grid grid-cols-[1fr_120px_120px]">
+          {/* ===================== PRODUCTOS (tu lógica intacta) ===================== */}
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <div className="text-sm font-bold text-slate-900">Productos</div>
+              <div className="text-xs text-slate-500">
+                Ajusta cantidad y precio
+              </div>
+            </div>
+
+            <div className="bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-700 grid grid-cols-[2fr_80px_100px_110px]">
               <span>Producto</span>
-              <span className="text-center">Cantidad</span>
+              <span className="text-center">Cant.</span>
+              <span className="text-center">Precio</span>
               <span className="text-right">Subtotal</span>
             </div>
 
             {detalles.map((d, i) => (
               <div
                 key={d.id}
-                className="px-4 py-3 grid grid-cols-[1fr_120px_120px] gap-3 items-center border-t"
+                className="px-4 py-3 grid grid-cols-[2fr_80px_100px_110px] gap-3 items-center border-t border-gray-100"
               >
                 <Selectx
                   label=""
                   labelVariant="left"
                   value={String(d.producto_id)}
-                  onChange={(e) =>
-                    handleDetalleChange(
-                      i,
-                      "producto_id",
-                      Number(e.target.value)
-                    )
-                  }
+                  onChange={(e) => {
+                    const productoId = Number(e.target.value);
+                    const producto = productos.find((p) => p.id === productoId);
+
+                    setDetalles((prev) =>
+                      prev.map((det, idx) =>
+                        idx === i
+                          ? {
+                              ...det,
+                              producto_id: productoId,
+                              precio_unitario:
+                                producto?.precio ?? det.precio_unitario,
+                            }
+                          : det
+                      )
+                    );
+                  }}
                 >
                   {productos.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -200,15 +293,28 @@ export default function EditarPedidoGeneradoModal({
                   value={String(d.cantidad)}
                   min={1}
                   onChange={(e) =>
-                    handleDetalleChange(
-                      i,
-                      "cantidad",
-                      Number(e.target.value)
-                    )
+                    handleDetalleChange(i, "cantidad", Number(e.target.value))
                   }
                 />
 
-                <div className="text-right font-medium">
+                <div className="w-full">
+                  <InputxNumber
+                    label=""
+                    value={String(d.precio_unitario)}
+                    min={0}
+                    step="0.01"
+                    className="w-full text-right"
+                    onChange={(e) =>
+                      handleDetalleChange(
+                        i,
+                        "precio_unitario",
+                        Number(e.target.value)
+                      )
+                    }
+                  />
+                </div>
+
+                <div className="text-right font-semibold text-slate-900 tabular-nums">
                   S/. {(d.cantidad * d.precio_unitario).toFixed(2)}
                 </div>
               </div>
@@ -216,10 +322,10 @@ export default function EditarPedidoGeneradoModal({
           </div>
         </div>
 
-        {/* ===================== FOOTER ===================== */}
-        <div className="border-t px-5 py-4 flex gap-3">
+        {/* ===================== FOOTER (sin líneas) ===================== */}
+        <div className="px-5 py-4 bg-white flex gap-3 shadow-md">
           <Buttonx
-            variant="tertiary"
+            variant="secondary"
             onClick={handleGuardar}
             disabled={saving}
             label={saving ? "Guardando..." : "Guardar cambios"}
@@ -228,7 +334,7 @@ export default function EditarPedidoGeneradoModal({
                 ? "line-md:loading-twotone-loop"
                 : "mdi:content-save-outline"
             }
-            className={`text-sm ${saving ? "[&_svg]:animate-spin" : ""}`}
+            className={`text-sm flex-1 ${saving ? "[&_svg]:animate-spin" : ""}`}
           />
 
           <Buttonx
@@ -236,7 +342,7 @@ export default function EditarPedidoGeneradoModal({
             onClick={onClose}
             disabled={saving}
             label="Cancelar"
-            className="text-sm"
+            className="text-sm flex-1"
           />
         </div>
       </div>

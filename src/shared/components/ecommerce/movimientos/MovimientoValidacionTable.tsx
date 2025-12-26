@@ -253,19 +253,19 @@ export default function MovimientoValidacionTable({ filters }: Props) {
                     key={m.uuid}
                     className="hover:bg-gray10 transition-colors"
                   >
-                    <td className="px-4 py-3 text-gray70 font-[400]">
+                    <td className="px-4 py-3 text-gray70 font-normal">
                       {m.uuid.slice(0, 8).toUpperCase()}
                     </td>
-                    <td className="px-4 py-3 text-gray70 font-[400]">
+                    <td className="px-4 py-3 text-gray70 font-normal">
                       {m.almacen_origen?.nombre_almacen || "-"}
                     </td>
-                    <td className="px-4 py-3 text-gray70 font-[400]">
+                    <td className="px-4 py-3 text-gray70 font-normal">
                       {m.almacen_destino?.nombre_almacen || "-"}
                     </td>
-                    <td className="px-4 py-3 text-gray70 font-[400]">
+                    <td className="px-4 py-3 text-gray70 font-normal">
                       {m.descripcion || "-"}
                     </td>
-                    <td className="px-4 py-3 text-gray70 font-[400]">
+                    <td className="px-4 py-3 text-gray70 font-normal">
                       {fmtFecha(m.fecha_movimiento)}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -326,7 +326,7 @@ export default function MovimientoValidacionTable({ filters }: Props) {
 
         {/* Paginador */}
         {sorted.length > 0 && (
-          <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
+          <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3 mt-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}

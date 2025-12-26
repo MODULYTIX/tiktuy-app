@@ -102,7 +102,6 @@ export default function VerMovimientoRealizadoModal(props: Props) {
 
     if (uuid) {
       if (!token) {
-        // ✅ evita quedarse “colgado” si abres sin token
         setLoading(false);
         setDetail(null);
         return;
@@ -119,7 +118,6 @@ export default function VerMovimientoRealizadoModal(props: Props) {
         })
         .finally(() => setLoading(false));
     } else {
-      // modo data directa
       setDetail(null);
       setLoading(false);
     }
@@ -192,14 +190,12 @@ export default function VerMovimientoRealizadoModal(props: Props) {
     (data as any)?.meta?.fecha_validacion ?? (data as any)?.fecha
   );
 
-  // ✅ Descripción robusta (si viene vacío)
   const descripcionRaw = toText((data as any)?.descripcion ?? "");
   const descripcion =
     descripcionRaw.trim().length > 0
       ? descripcionRaw
       : "Movimiento hecho para reabastecer el stock en el almacén destino.";
 
-  // días transcurridos si hay ambas fechas
   let diasTranscurridos: string | null = null;
   try {
     const g = (data as any)?.meta?.fecha_generacion
@@ -219,7 +215,6 @@ export default function VerMovimientoRealizadoModal(props: Props) {
     diasTranscurridos = null;
   }
 
-  // ✅ items defensivo (SIN hooks nuevos)
   const items: MovimientoItem[] = Array.isArray((data as any)?.items)
     ? ((data as any).items as MovimientoItem[]).filter(Boolean)
     : [];
@@ -243,20 +238,17 @@ export default function VerMovimientoRealizadoModal(props: Props) {
     try {
       await navigator.clipboard?.writeText(codigo);
     } catch (e) {
-      // sin notify para no meter dependencias nuevas
       console.warn("No se pudo copiar el código:", e);
     }
   };
 
   return createPortal(
     <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
         onClick={onClose}
       />
 
-      {/* Modal */}
       <div className="relative z-10 flex max-h-full items-center justify-center p-4">
         <div className="w-full max-w-[1360px] h-[92vh] overflow-hidden rounded-2xl border border-gray-200 shadow-2xl bg-white flex flex-col">
           {/* HEADER */}
@@ -339,14 +331,15 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                     Estado
                   </span>
 
-                  {/* ✅ pill con punto como el modelo */}
                   <span
                     className={[
                       "inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12px] font-bold leading-none",
                       estadoCls,
                     ].join(" ")}
                   >
-                    <span className={["w-2 h-2 rounded-full", estadoDot].join(" ")} />
+                    <span
+                      className={["w-2 h-2 rounded-full", estadoDot].join(" ")}
+                    />
                     {estadoLabel}
                   </span>
                 </div>
@@ -361,7 +354,6 @@ export default function VerMovimientoRealizadoModal(props: Props) {
               </div>
             </div>
 
-            {/* DESCRIPCIÓN */}
             <div className="mt-4 rounded-xl bg-white border border-gray-200 px-4 py-3">
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
@@ -386,10 +378,10 @@ export default function VerMovimientoRealizadoModal(props: Props) {
 
           {/* BODY */}
           <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden bg-[#F7F8FA] px-6 py-5">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch h-full min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch lg:h-full min-h-0">
               {/* IZQUIERDA */}
-              <div className="lg:col-span-6 h-full min-h-0">
-                <div className="h-full rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col">
+              <div className="lg:col-span-6 lg:h-full min-h-0">
+                <div className="lg:h-full rounded-2xl border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
@@ -427,18 +419,19 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                     </div>
                   </div>
 
-                  <div className="flex-1 min-h-0 p-6 flex flex-col gap-6 lg:justify-between">
+                  {/* ✅ FIX: scroll interno en izquierda cuando el alto no alcanza */}
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 pr-2 flex flex-col gap-4 lg:gap-5">
                     {/* DESDE */}
-                    <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                    <div className="shrink-0 rounded-2xl bg-slate-50 border border-slate-200 p-4">
                       <div className="text-xs font-semibold text-slate-500">
                         Desde
                       </div>
 
-                      <div className="mt-3 flex items-center gap-4">
-                        <div className="w-[100px] h-[100px] rounded-2xl bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
+                      <div className="mt-3 flex flex-col sm:flex-row sm:items-center items-start gap-4 min-w-0">
+                        <div className="w-[84px] h-[84px] sm:w-[100px] sm:h-[100px] rounded-2xl bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
                           <img
                             src={AlmacenDesde}
-                            className="object-contain w-[90px] h-[90px]"
+                            className="object-contain w-[76px] h-[76px] sm:w-[90px] sm:h-[90px]"
                             alt="Almacén desde"
                           />
                         </div>
@@ -467,8 +460,8 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                     </div>
 
                     {/* CONECTOR */}
-                    <div className="flex items-center justify-center">
-                      <div className="w-full rounded-2xl bg-white border border-gray-200 shadow-sm px-5 py-5 flex items-center justify-center gap-5">
+                    <div className="shrink-0 flex items-center justify-center">
+                      <div className="shrink-0 w-full rounded-2xl bg-white border border-gray-200 shadow-sm px-4 py-4 sm:px-5 sm:py-5 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
                         <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden">
                           <video
                             src={truckLoop}
@@ -497,22 +490,22 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                           icon="mdi:arrow-down"
                           width="26"
                           height="26"
-                          className="text-slate-400"
+                          className="text-slate-400 hidden sm:block"
                         />
                       </div>
                     </div>
 
                     {/* HACIA */}
-                    <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                    <div className="shrink-0 rounded-2xl bg-slate-50 border border-slate-200 p-4">
                       <div className="text-xs font-semibold text-slate-500">
                         Hacia
                       </div>
 
-                      <div className="mt-3 flex items-center gap-4">
-                        <div className="w-[100px] h-[100px] rounded-2xl bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
+                      <div className="mt-3 flex flex-col sm:flex-row sm:items-center items-start gap-4 min-w-0">
+                        <div className="w-[84px] h-[84px] sm:w-[100px] sm:h-[100px] rounded-2xl bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
                           <img
                             src={AlmacenHacia}
-                            className="object-contain w-[90px] h-[90px]"
+                            className="object-contain w-[76px] h-[76px] sm:w-[90px] sm:h-[90px]"
                             alt="Almacén hacia"
                           />
                         </div>
@@ -540,13 +533,14 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                       </div>
                     </div>
                   </div>
+                  {/* /scroll container */}
                 </div>
               </div>
 
-              {/* DERECHA */}
-              <div className="lg:col-span-6 h-full min-h-0 grid grid-rows-[minmax(0,1fr)_auto] gap-4">
+              {/* DERECHA (igual que ya lo tenías funcionando) */}
+              <div className="lg:col-span-6 lg:h-full min-h-0 flex flex-col gap-4">
                 {/* TABLA */}
-                <div className="min-h-0 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
+                <div className="flex-1 min-h-0 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
                   <div className="px-5 py-4 border-b border-gray-100">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
@@ -592,9 +586,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                           <th className="p-3 text-left font-semibold w-[72px]">
                             Img
                           </th>
-                          <th className="p-3 text-left font-semibold">
-                            Código
-                          </th>
+                          <th className="p-3 text-left font-semibold">Código</th>
                           <th className="p-3 text-left font-semibold">
                             Producto
                           </th>
@@ -622,8 +614,9 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                                       alt={toText(it.nombre_producto ?? "Imagen")}
                                       className="w-full h-full object-cover"
                                       onError={(e) => {
-                                        (e.currentTarget as HTMLImageElement).style.display =
-                                          "none";
+                                        (
+                                          e.currentTarget as HTMLImageElement
+                                        ).style.display = "none";
                                       }}
                                     />
                                   ) : (
@@ -653,14 +646,20 @@ export default function VerMovimientoRealizadoModal(props: Props) {
 
                               <td className="p-3 text-right">
                                 <span className="inline-flex items-center justify-center min-w-[44px] rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-800 tabular-nums">
-                                  {String(Number(it.cantidad_validada ?? 0)).padStart(2, "0")}
+                                  {String(Number(it.cantidad_validada ?? 0)).padStart(
+                                    2,
+                                    "0"
+                                  )}
                                 </span>
                               </td>
                             </tr>
                           ))
                         ) : (
                           <tr>
-                            <td className="p-8 text-center text-slate-500" colSpan={5}>
+                            <td
+                              className="p-8 text-center text-slate-500"
+                              colSpan={5}
+                            >
                               <div className="inline-flex flex-col items-center gap-2">
                                 <Icon
                                   icon="mdi:tray-remove"
@@ -683,8 +682,8 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                   </div>
                 </div>
 
-                {/* ✅ ADJUNTOS / OBSERVACIONES (como modelo, pero manteniendo evidencia) */}
-                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                {/* ADJUNTOS */}
+                <div className="flex-1 min-h-0 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
                   <div className="px-5 py-4 border-b border-gray-100">
                     <div className="flex items-center gap-2">
                       <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center">
@@ -708,7 +707,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                     </div>
                   </div>
 
-                  <div className="p-5">
+                  <div className="flex-1 min-h-0 p-5 overflow-y-auto">
                     {evidenciaUrl ? (
                       <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
@@ -742,7 +741,7 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                         </a>
                       </div>
                     ) : (
-                      <div className="rounded-xl bg-slate-50 border border-slate-200 p-6 text-center">
+                      <div className="h-full rounded-xl bg-slate-50 border border-slate-200 p-6 text-center flex flex-col items-center justify-center">
                         <div className="mx-auto w-12 h-12 rounded-2xl bg-white border border-gray-200 shadow-sm flex items-center justify-center">
                           <Icon
                             icon="mdi:inbox-outline"

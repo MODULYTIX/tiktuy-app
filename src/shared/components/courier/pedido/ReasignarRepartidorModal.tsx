@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchPedidoDetalle, reassignPedido } from "@/services/courier/pedidos/pedidos.api";
-import type { PedidoListItem, PedidoDetalle } from "@/services/courier/pedidos/pedidos.types";
+import {
+  fetchPedidoDetalle,
+  reassignPedido,
+} from "@/services/courier/pedidos/pedidos.api";
+import type {
+  PedidoListItem,
+  PedidoDetalle,
+} from "@/services/courier/pedidos/pedidos.types";
 import Tittlex from "@/shared/common/Tittlex";
 import { Selectx } from "@/shared/common/Selectx";
 import { InputxTextarea } from "@/shared/common/Inputx";
 import Buttonx from "@/shared/common/Buttonx";
+import { Icon } from "@iconify/react";
 
 type MotorizadoBasic = { id: number; nombre: string };
 
@@ -58,6 +65,7 @@ export default function ReasignarRepartidorModal({
   token,
   pedido,
   motorizados: motorizadosProp,
+  title,
   onClose,
   onSuccess,
 }: Props) {
@@ -73,7 +81,9 @@ export default function ReasignarRepartidorModal({
   const [error, setError] = useState<string | null>(null);
 
   // lista local (se usa si no llega por props)
-  const [motorizadosLocal, setMotorizadosLocal] = useState<MotorizadoBasic[]>([]);
+  const [motorizadosLocal, setMotorizadosLocal] = useState<MotorizadoBasic[]>(
+    []
+  );
 
   // 🔎 Excluir al repartidor actual del select
   const motorizadoActualId = pedido.motorizado?.id ?? null;
@@ -129,7 +139,8 @@ export default function ReasignarRepartidorModal({
         const soloDisponibles = data.filter(
           (m) =>
             m.estado_id === ESTADO_ID_DISPONIBLE ||
-            (m.estado?.nombre && m.estado.nombre.toLowerCase() === "disponible")
+            (m.estado?.nombre &&
+              m.estado.nombre.toLowerCase() === "disponible")
         );
 
         const mapped: MotorizadoBasic[] = soloDisponibles.map((m) => ({
@@ -141,7 +152,8 @@ export default function ReasignarRepartidorModal({
 
         setMotorizadosLocal(mapped);
       } catch (e: any) {
-        if (e?.name !== "AbortError") setError(e?.message ?? "No se pudo cargar repartidores");
+        if (e?.name !== "AbortError")
+          setError(e?.message ?? "No se pudo cargar repartidores");
       } finally {
         setMotosLoading(false);
       }
@@ -170,7 +182,9 @@ export default function ReasignarRepartidorModal({
       setDetalle(null);
       setLoading(true);
       try {
-        const d = await fetchPedidoDetalle(token, pedido.id, { signal: ac.signal });
+        const d = await fetchPedidoDetalle(token, pedido.id, {
+          signal: ac.signal,
+        });
         setDetalle(d);
       } catch (e: any) {
         if (e?.name === "AbortError") return;
@@ -213,149 +227,276 @@ export default function ReasignarRepartidorModal({
     }
   }
 
-  // ✅ IMPORTANTE: este return va DESPUÉS de todos los hooks
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="flex-1 bg-black/40" />
-
-      <div
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/40"
+      onClick={onClose}
+    >
+      {/* PANEL */}
+      <aside
         ref={panelRef}
-        className="w-[520px] h-full max-w-[92vw] flex flex-col gap-5 bg-white rounded-xl shadow-default animate-slide-in-right p-5"
+        onClick={(e) => e.stopPropagation()}
+        className="w-[520px] max-w-[92vw] h-full bg-white shadow-2xl border-l border-gray30 flex flex-col"
       >
-        {/* Header */}
-        <div className="flex gap-1 justify-between items-center">
-          <Tittlex variant="modal" title="REASIGNAR PEDIDO" icon="mdi:package-variant-closed" />
-          <div className="flex gap-1">
-            <label className="block text-xs font-semibold text-gray-600">Cód. Pedido:</label>
-            <div className="text-xs text-gray-600">{pedido.codigo_pedido}</div>
+        {/* HEADER (sticky) */}
+        <div className="sticky top-0 z-10 bg-white border-b border-gray20 px-5 pt-5 pb-4">
+          <div className="flex items-start justify-between gap-3">
+            <Tittlex
+              variant="modal"
+              title={(title ?? "REASIGNAR PEDIDO").toUpperCase()}
+              icon="mdi:package-variant-closed"
+              description="Cambia el repartidor asignado. La observación es obligatoria."
+            />
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-[12px]">
+              <span className="text-gray60 font-medium">Cód. Pedido:</span>
+              <span className="px-2 py-1 rounded-md bg-gray10 text-gray80 border border-gray20">
+                {pedido.codigo_pedido}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 text-[12px]">
+              <span className="text-gray60 font-medium">Actual:</span>
+              <span className="px-2 py-1 rounded-md bg-gray10 text-gray80 border border-gray20 truncate max-w-[220px]">
+                {pedido.motorizado?.nombres ?? "-"}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Body */}
-        <div className="h-full flex flex-col gap-5">
-          <div className="flex flex-col gap-5 border border-gray-200 rounded-md p-3">
-            <div className="flex flex-col gap-2">
-              <div className="w-full items-center flex flex-col">
-                <label className="block text-xs font-light text-gray-400">Cliente</label>
-                <div className="text-gray-800 font-semibold text-base">{pedido.cliente.nombre}</div>
-              </div>
+        {/* BODY (scroll) */}
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          {/* RESUMEN */}
+          <div className="bg-white rounded-md shadow-default border border-gray30 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray20 bg-gray10">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[12px] text-gray60">Cliente</div>
+                  <div className="text-[14px] font-semibold text-gray90 truncate">
+                    {pedido.cliente.nombre}
+                  </div>
+                </div>
 
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-400">Dirección:</label>
-                <div className="text-gray-800 text-sm">
-                  {pedido.cliente?.direccion ?? (pedido as any).direccion_envio ?? "-"}
+                <div className="text-right">
+                  <div className="text-[12px] text-gray60">Monto</div>
+                  <div className="text-[14px] font-semibold text-gray90">
+                    {PEN.format(Number(pedido.monto_recaudar || 0))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-[12px]">
+              <div className="flex items-start gap-2">
+                <Icon
+                  icon="mdi:map-marker-outline"
+                  width={18}
+                  height={18}
+                  className="text-gray60 mt-0.5"
+                />
+                <div className="min-w-0">
+                  <div className="text-gray60">Dirección</div>
+                  <div className="text-gray80 break-words">
+                    {pedido.cliente?.direccion ??
+                      (pedido as any).direccion_envio ??
+                      "-"}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-400">F. Entrega:</label>
-                <div className="text-gray-800 text-sm">{formatFechaPE(pedido.fecha_entrega_programada)}</div>
+              <div className="flex items-start gap-2">
+                <Icon
+                  icon="mdi:calendar-month-outline"
+                  width={18}
+                  height={18}
+                  className="text-gray60 mt-0.5"
+                />
+                <div>
+                  <div className="text-gray60">F. Entrega</div>
+                  <div className="text-gray80">
+                    {formatFechaPE(pedido.fecha_entrega_programada)}
+                  </div>
+                </div>
               </div>
 
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-400">Cant. de Productos:</label>
-                <div className="text-gray-800 text-sm">{two(cantidad || 0)}</div>
+              <div className="flex items-start gap-2">
+                <Icon
+                  icon="mdi:package-variant-closed"
+                  width={18}
+                  height={18}
+                  className="text-gray60 mt-0.5"
+                />
+                <div>
+                  <div className="text-gray60">Cant. Productos</div>
+                  <div className="text-gray80">{two(cantidad || 0)}</div>
+                </div>
               </div>
 
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-400">Monto:</label>
-                <div className="text-gray-800 text-sm">{PEN.format(Number(pedido.monto_recaudar || 0))}</div>
-              </div>
-
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-400">Actual repartador:</label>
-                <div className="text-gray-800 text-sm">{pedido.motorizado?.nombres}</div>
+              <div className="flex items-start gap-2">
+                <Icon
+                  icon="mdi:account-outline"
+                  width={18}
+                  height={18}
+                  className="text-gray60 mt-0.5"
+                />
+                <div className="min-w-0">
+                  <div className="text-gray60">Repartidor actual</div>
+                  <div className="text-gray80 truncate">
+                    {pedido.motorizado?.nombres ?? "-"}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="shadow-default rounded h-[200px]">
-              <table className="w-full text-sm">
-                <thead className="bg-gray20">
-                  <tr>
-                    <th className="px-3 w-full py-2 font-normal text-left">Producto</th>
-                    <th className="px-3 w-12 py-2 font-normal text-right">Cant.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading && (
-                    <tr>
-                      <td colSpan={2} className="px-3 py-2 text-xs text-gray-500">
-                        Cargando productos…
-                      </td>
-                    </tr>
-                  )}
+            {/* TABLA (scroll interno) */}
+            <div className="border-t border-gray20">
+              <div className="px-4 py-3 flex items-center justify-between bg-white">
+                <div className="font-medium text-gray80 text-[12px] flex items-center gap-2">
+                  <Icon icon="mdi:cart-outline" width={16} height={16} />
+                  Productos
+                </div>
+                {loading ? (
+                  <span className="text-[12px] text-gray60">
+                    Cargando…
+                  </span>
+                ) : (
+                  <span className="text-[12px] text-gray60">
+                    {(detalle?.items?.length ?? 0) || 0} ítems
+                  </span>
+                )}
+              </div>
 
-                  {!loading && (detalle?.items?.length ?? 0) === 0 && (
-                    <tr>
-                      <td colSpan={2} className="px-3 py-2 text-xs text-gray-400">
-                        Sin productos
-                      </td>
-                    </tr>
-                  )}
+              <div className="max-h-[220px] overflow-auto bg-white">
+                <table className="min-w-full table-fixed text-[12px] bg-white">
+                  <colgroup>
+                    <col className="w-[80%]" />
+                    <col className="w-[20%]" />
+                  </colgroup>
 
-                  {!loading &&
-                    (detalle?.items ?? []).map((it, idx) => (
-                      <tr key={idx} className="border-y border-gray20">
-                        <td className="px-3 py-2 w-full align-top">
-                          <div className="font-normal truncate">{it.nombre}</div>
-                        </td>
-                        <td className="px-3 py-2 w-12 text-gray60 text-center">
-                          {two(it.cantidad)}
+                  <thead className="bg-[#E5E7EB] sticky top-0 z-[1]">
+                    <tr className="text-gray70 font-roboto font-medium">
+                      <th className="px-4 py-3 text-left">Producto</th>
+                      <th className="px-4 py-3 text-center">Cant.</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-gray20">
+                    {loading ? (
+                      Array.from({ length: 5 }).map((_, idx) => (
+                        <tr
+                          key={`sk-${idx}`}
+                          className="[&>td]:px-4 [&>td]:py-3 animate-pulse"
+                        >
+                          <td>
+                            <div className="h-4 bg-gray20 rounded w-3/4" />
+                          </td>
+                          <td>
+                            <div className="h-4 bg-gray20 rounded w-10 ml-auto mr-auto" />
+                          </td>
+                        </tr>
+                      ))
+                    ) : (detalle?.items?.length ?? 0) === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={2}
+                          className="px-4 py-4 text-center text-gray70 italic"
+                        >
+                          Sin productos
                         </td>
                       </tr>
-                    ))}
-                </tbody>
-              </table>
+                    ) : (
+                      (detalle?.items ?? []).map((it, idx) => (
+                        <tr
+                          key={idx}
+                          className="hover:bg-gray10 transition-colors"
+                        >
+                          <td className="px-4 py-3 text-gray70">
+                            <div className="truncate">{it.nombre}</div>
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray70">
+                            {two(it.cantidad)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
-          <div>
-            <Selectx
-              label="Repartidor"
-              placeholder="Seleccione repartidor"
-              value={motorizadoId}
-              onChange={(e) => setMotorizadoId(e.target.value ? Number(e.target.value) : "")}
-              disabled={motosLoading || submitting}
-              labelVariant="left"
-            >
-              {motorizadosFiltrados.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.nombre}
-                </option>
-              ))}
-            </Selectx>
+          {/* FORM */}
+          <div className="mt-5 flex flex-col gap-5">
+            <div>
+              <Selectx
+                label="Repartidor"
+                placeholder="Seleccione repartidor"
+                value={motorizadoId}
+                onChange={(e) =>
+                  setMotorizadoId(e.target.value ? Number(e.target.value) : "")
+                }
+                disabled={motosLoading || submitting}
+                labelVariant="left"
+              >
+                <option value="">Seleccionar opción</option>
+                {motorizadosFiltrados.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nombre}
+                  </option>
+                ))}
+              </Selectx>
 
-            {!motosLoading && motorizadosFiltrados.length === 0 && (
-              <div className="text-xs text-gray-500 mt-1">No hay repartidores disponibles.</div>
+              {!motosLoading && motorizadosFiltrados.length === 0 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  No hay repartidores disponibles.
+                </div>
+              )}
+            </div>
+
+            <InputxTextarea
+              label="Observación"
+              placeholder="Motivo de la reasignación (p. ej., cambio de zona, capacidad, etc.)"
+              value={observacion}
+              onChange={(e) => setObservacion(e.target.value)}
+              maxLength={250}
+              disabled={submitting}
+              minRows={3}
+              maxRows={6}
+            />
+
+            {error && (
+              <div className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                {error}
+              </div>
             )}
           </div>
-
-          <InputxTextarea
-            label="Observación"
-            placeholder="Motivo de la reasignación (p. ej., cambio de zona, capacidad, etc.)"
-            value={observacion}
-            onChange={(e) => setObservacion(e.target.value)}
-            maxLength={250}
-            disabled={submitting}
-            minRows={3}
-            maxRows={6}
-          />
-
-          {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
 
-        <div className="md:col-span-2 flex justify-start gap-3">
-          <Buttonx
-            variant="secondary"
-            label={submitting ? "Procesando…" : "Reasignar"}
-            onClick={handleSubmit}
-            disabled={!motorizadoId || !observacion.trim() || submitting}
-          />
-          <Buttonx variant="outlined" label="Cancelar" onClick={onClose} disabled={submitting} />
+        {/* FOOTER (sticky) */}
+        <div className="sticky bottom-0 bg-white border-t border-gray20 px-5 py-4">
+          <div className="flex justify-start gap-3">
+            <Buttonx
+              variant="secondary"
+              label={submitting ? "Procesando…" : "Reasignar"}
+              icon={submitting ? "line-md:loading-twotone-loop" : "mdi:swap-horizontal"}
+              onClick={handleSubmit}
+              disabled={!motorizadoId || !observacion.trim() || submitting}
+              className={submitting ? "[&_svg]:animate-spin" : ""}
+            />
+            <Buttonx
+              variant="outlined"
+              label="Cancelar"
+              icon="mdi:close"
+              onClick={onClose}
+              disabled={submitting}
+            />
+          </div>
         </div>
-      </div>
+      </aside>
     </div>
   );
 }
