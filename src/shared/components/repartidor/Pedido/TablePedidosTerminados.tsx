@@ -25,7 +25,7 @@ export default function TablePedidosTerminados(props: Props) {
       onCambiarEstado={props.onCambiarEstado}
       fetcher={fetcher}
       title="Pedidos Terminados"
-      subtitle="Pedidos completados o finalizados (entregado / rechazado / no responde / anuló)."
+      subtitle="Pedidos completados o finalizados."
     />
   );
 }
