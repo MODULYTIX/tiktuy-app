@@ -256,11 +256,11 @@ const ConfirmValidateModal: React.FC<ConfirmValidateModalProps> = ({
 
 type Props = {
   token: string;
-  desde?: string; // YYYY-MM-DD
-  hasta?: string; // YYYY-MM-DD
+  desde?: string;
+  hasta?: string;
   triggerValidate?: number;
 
-  // ✅ NUEVO: para que el header sepa si hay algo seleccionado
+  // ✅ para que el header deshabilite/habilite
   onSelectionCountChange?: (count: number) => void;
 };
 
@@ -287,32 +287,33 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
-  // ✅ conteo de seleccionados
+  // ✅ SOLO seleccionables: NO validados
+  const selectableKeys = useMemo(() => {
+    return items
+      .filter((it: any) => !it?.validado)
+      .map((it: any) => normalizeToYMD(it.fecha))
+      .filter(Boolean);
+  }, [items]);
+
   const selectedCount = useMemo(
     () => Object.values(selected).filter(Boolean).length,
     [selected]
   );
 
-  // ✅ reportar al padre para deshabilitar el botón + mostrar recuento
   useEffect(() => {
     onSelectionCountChange?.(selectedCount);
   }, [selectedCount, onSelectionCountChange]);
 
   const allChecked = useMemo(() => {
-    const keys = items
-      .map((it: any) => normalizeToYMD(it.fecha))
-      .filter(Boolean);
-    if (!keys.length) return false;
-    return keys.every((k) => selected[k]);
-  }, [items, selected]);
+    if (!selectableKeys.length) return false;
+    return selectableKeys.every((k) => selected[k]);
+  }, [selectableKeys, selected]);
 
   const toggleAll = () => {
-    const keys = items
-      .map((it: any) => normalizeToYMD(it.fecha))
-      .filter(Boolean);
+    if (!selectableKeys.length) return;
     const nextVal = !allChecked;
     const s: Record<string, boolean> = {};
-    keys.forEach((k) => {
+    selectableKeys.forEach((k) => {
       s[k] = nextVal;
     });
     setSelected(s);
@@ -367,7 +368,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
       });
       setItems(data.items);
       setTotal(data.total);
-      setSelected({}); // ✅ al cambiar data/página, limpias selección
+      setSelected({}); // ✅ limpia siempre la selección al cargar
     } catch (e: any) {
       setErr(e?.message ?? "Error al cargar el resumen");
     } finally {
@@ -414,6 +415,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
       })
     );
 
+    // limpia selección de ese día
     setSelected((prev) => {
       const next = { ...prev };
       delete next[ymd];
@@ -441,7 +443,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
       .map(([k]) => k);
 
     if (!list.length) {
-      alert("Selecciona al menos un día para validar.");
+      alert("Selecciona al menos un registro para validar.");
       return;
     }
 
@@ -518,7 +520,16 @@ const CuadreSaldoTable: React.FC<Props> = ({
             <thead className="bg-[#E5E7EB]">
               <tr className="text-gray70 font-roboto font-medium">
                 <th className="px-4 py-3 w-[44px] text-left">
-                  <Checkbox checked={allChecked} onChange={toggleAll} />
+                  <Checkbox
+                    checked={allChecked}
+                    onChange={toggleAll}
+                    disabled={!selectableKeys.length || loading}
+                    title={
+                      !selectableKeys.length
+                        ? "No hay registros por validar"
+                        : "Seleccionar todo"
+                    }
+                  />
                 </th>
 
                 <th className="px-4 py-3 text-left whitespace-nowrap">
@@ -564,7 +575,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
               {items.map((row: any) => {
                 const ymd = normalizeToYMD(row.fecha);
-                const estado: Estado = row.validado ? "Validado" : "Por Validar";
+                const isValidated = !!row.validado;
+                const estado: Estado = isValidated ? "Validado" : "Por Validar";
 
                 return (
                   <tr
@@ -574,8 +586,15 @@ const CuadreSaldoTable: React.FC<Props> = ({
                     <td className="h-12 px-4 py-3">
                       <Checkbox
                         checked={!!selected[ymd]}
-                        onChange={() => toggleOne(ymd)}
-                        disabled={!ymd}
+                        onChange={() => {
+                          if (!isValidated && ymd) toggleOne(ymd);
+                        }}
+                        disabled={!ymd || isValidated || loading}
+                        title={
+                          isValidated
+                            ? "Ya está validado"
+                            : "Seleccionar registro"
+                        }
                       />
                     </td>
 
@@ -609,7 +628,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           size="sm"
                         />
 
-                        {!row.validado && (
+                        {!isValidated && (
                           <TableActionx
                             variant="custom"
                             title="Validar"

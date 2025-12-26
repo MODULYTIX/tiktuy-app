@@ -55,8 +55,6 @@ const ConfirmValidateAllModal: React.FC<ConfirmValidateAllModalProps> = ({
 }) => {
   if (!open) return null;
 
-  const labelDia = selectedCount === 1 ? "día" : "días";
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
       <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl border border-gray30">
@@ -72,9 +70,7 @@ const ConfirmValidateAllModal: React.FC<ConfirmValidateAllModalProps> = ({
             </h3>
             <p className="text-sm text-gray-600">
               Vas a validar{" "}
-              <span className="font-semibold">
-                {selectedCount} {labelDia}
-              </span>{" "}
+              <span className="font-semibold">{selectedCount}</span>{" "}
               seleccionados en la tabla.
             </p>
           </div>
@@ -116,7 +112,7 @@ const ConfirmValidateAllModal: React.FC<ConfirmValidateAllModalProps> = ({
             <div className="rounded-xl border border-gray30 bg-white p-3">
               <div className="text-[11px] text-gray-500">Seleccionados</div>
               <div className="text-[14px] font-semibold text-gray90">
-                {selectedCount} {labelDia}
+                {selectedCount}
               </div>
             </div>
 
@@ -137,10 +133,7 @@ const ConfirmValidateAllModal: React.FC<ConfirmValidateAllModalProps> = ({
             />
             <div className="text-[12px] text-gray80">
               Confirmo que deseo validar{" "}
-              <b>
-                {selectedCount} {labelDia}
-              </b>{" "}
-              seleccionados.
+              <b>{selectedCount}</b> seleccionados.
             </div>
           </label>
         </div>
@@ -173,9 +166,11 @@ const CuadreSaldoPage: React.FC = () => {
   const token = getToken();
   const defaults = useMemo(defaultMonthRange, []);
 
+  // filtros del formulario (inputs controlados)
   const [formDesde, setFormDesde] = useState(defaults.desde);
   const [formHasta, setFormHasta] = useState(defaults.hasta);
 
+  // filtros aplicados (los que usa la tabla)
   const [appliedDesde, setAppliedDesde] = useState<string | undefined>(
     defaults.desde
   );
@@ -183,7 +178,7 @@ const CuadreSaldoPage: React.FC = () => {
     defaults.hasta
   );
 
-  // 🔥 señal para que la tabla valide seleccionados
+  // señal para validar lote desde el header (la tabla escucha cambios)
   const [validateSignal, setValidateSignal] = useState(0);
 
   // ✅ conteo de seleccionados (viene desde la tabla)
@@ -197,7 +192,7 @@ const CuadreSaldoPage: React.FC = () => {
   const canValidate = selectedCount > 0 && !validateAllBusy;
 
   const openValidateAll = () => {
-    if (!canValidate) return; // por si acaso
+    if (!canValidate) return;
     setValidateAllChecked(false);
     setValidateAllOpen(true);
   };
@@ -257,8 +252,8 @@ const CuadreSaldoPage: React.FC = () => {
               disabled={!canValidate}
               title={
                 selectedCount <= 0
-                  ? "Selecciona al menos un día"
-                  : "Validar seleccionados"
+                  ? "Selecciona al menos un registro"
+                  : `Validar ${selectedCount}`
               }
             />
           </div>
@@ -274,18 +269,11 @@ const CuadreSaldoPage: React.FC = () => {
             disabled={!canValidate}
             title={
               selectedCount <= 0
-                ? "Selecciona al menos un día"
-                : "Validar seleccionados"
+                ? "Selecciona al menos un registro"
+                : `Validar ${selectedCount}`
             }
             className="w-full max-w-[260px] justify-center whitespace-nowrap"
           />
-        </div>
-
-        {/* hint pequeño opcional (solo mobile) */}
-        <div className="sm:hidden mt-2 text-center text-[12px] text-gray60">
-          {selectedCount > 0
-            ? `${selectedCount} seleccionado(s)`
-            : "Selecciona días para validar"}
         </div>
       </div>
 
@@ -337,14 +325,14 @@ const CuadreSaldoPage: React.FC = () => {
           desde={appliedDesde}
           hasta={appliedHasta}
           triggerValidate={validateSignal}
-          onSelectionCountChange={setSelectedCount} // ✅ NUEVO
+          onSelectionCountChange={setSelectedCount} // ✅ conteo desde tabla
         />
       </div>
 
       {/* ===== Modal confirmación masiva ===== */}
       <ConfirmValidateAllModal
         open={validateAllOpen}
-        selectedCount={selectedCount} // ✅ NUEVO
+        selectedCount={selectedCount}
         checked={validateAllChecked}
         busy={validateAllBusy}
         onToggleChecked={setValidateAllChecked}
