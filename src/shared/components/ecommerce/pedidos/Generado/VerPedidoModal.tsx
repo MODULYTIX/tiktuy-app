@@ -282,7 +282,6 @@ export default function VerPedidoGeneradoModal({
             variant="outlinedw"
             onClick={onClose}
             label="Cerrar"
-            icon="mdi:close"
             className="text-sm flex-1"
           />
         </div>

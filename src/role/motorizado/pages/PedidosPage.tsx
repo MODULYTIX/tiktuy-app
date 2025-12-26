@@ -143,7 +143,6 @@ export default function PedidosPage() {
       className="
         mt-4 md:mt-8
         w-full min-w-0
-        overflow-x-hidden
         px-3 sm:px-4 lg:px-0
       "
     >

@@ -112,7 +112,7 @@ export function SelectxDate({
           ref={inputRef}
           type="date"
           placeholder={placeholder}
-          className={`w-full h-10 px-4 pr-9 rounded-md border border-gray-300 bg-white text-gray-500 placeholder:text-gray-300 font-roboto text-sm appearance-none
+          className={`w-full h-10 px-4 pr-8 rounded-md border border-gray-300 bg-white text-gray-500 placeholder:text-gray-300 font-roboto text-sm appearance-none
           [&::-webkit-calendar-picker-indicator]:opacity-0
           [&::-webkit-calendar-picker-indicator]:cursor-pointer
           outline-none focus:outline-none focus:ring-0 focus:shadow-none focus:border-gray-300
