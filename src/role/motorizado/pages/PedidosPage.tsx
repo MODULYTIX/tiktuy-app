@@ -146,7 +146,7 @@ export default function PedidosPage() {
         px-3 sm:px-4 lg:px-0
       "
     >
-      <header className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between min-w-0">
+      <header className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between min-w-0 pb-5 border-b border-gray30">
         <div className="text-center md:text-left min-w-0">
           <Tittlex
             title="Mis Pedidos"

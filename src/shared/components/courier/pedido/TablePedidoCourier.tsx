@@ -224,7 +224,8 @@ export default function TablePedidoCourier({
       const m = (p as any)?.motorizado;
       if (!m?.id) continue;
       const label =
-        `${m.nombres ?? ""} ${m.apellidos ?? ""}`.trim() || `Motorizado #${m.id}`;
+        `${m.nombres ?? ""} ${m.apellidos ?? ""}`.trim() ||
+        `Motorizado #${m.id}`;
       if (!map.has(m.id)) map.set(m.id, label);
     }
     return Array.from(map.entries())
@@ -433,91 +434,101 @@ export default function TablePedidoCourier({
         />
 
         {view === "asignados" && (
-          <button
+          <Buttonx
+            label="Asignar Repartidor"
+            variant="secondary"
+            icon="mdi:account-arrow-right-outline"
             onClick={() => onAsignar?.(selectedIds)}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
             disabled={!selectedIds.length || loading}
             title={
               !selectedIds.length
                 ? "Selecciona al menos un pedido"
                 : "Asignar Repartidor"
             }
-          >
-            Asignar Repartidor
-          </button>
+          />
         )}
       </div>
 
       {/* Filtros */}
       <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-4 items-end">
-          {/* Fecha inicio (HOY por defecto) */}
-          <SelectxDate
-            label="Fecha Inicio"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-            disabled={loading}
-          />
+        <div className="grid gap-4">
+          {/* ===== Fila 1 ===== */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            {/* Fecha inicio (HOY por defecto) */}
+            <SelectxDate
+              label="Fecha Inicio"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+              disabled={loading}
+            />
 
-          {/* Fecha fin (vacía hasta que elijas) */}
-          <SelectxDate
-            label="Fecha Fin"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-            disabled={loading}
-          />
+            {/* Fecha fin (vacía hasta que elijas) */}
+            <SelectxDate
+              label="Fecha Fin"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+              disabled={loading}
+            />
 
-          {/* Distrito */}
-          <Selectx
-            label="Distrito"
-            name="filtro_distrito"
-            value={filtroDistrito}
-            onChange={(e) => setFiltroDistrito(e.target.value)}
-            placeholder="Todos los distritos"
-            disabled={loading}
-          >
-            {distritos.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </Selectx>
-
-          {/* ✅ CAMBIO SOLO AQUÍ: Pendientes/Terminados => Motorizado | Asignados => Cantidad */}
-          {view === "pendientes" || view === "terminados" ? (
+            {/* Distrito */}
             <Selectx
-              label="Motorizado"
-              name="filtro_motorizado"
-              value={filtroMotorizado}
-              onChange={(e) => setFiltroMotorizado(e.target.value)}
-              placeholder="Todos los motorizados"
+              label="Distrito"
+              name="filtro_distrito"
+              value={filtroDistrito}
+              onChange={(e) => setFiltroDistrito(e.target.value)}
+              placeholder="Todos los distritos"
               disabled={loading}
             >
-              {motorizados.map((m) => (
-                <option key={m.id} value={String(m.id)}>
-                  {m.label}
+              {distritos.map((d) => (
+                <option key={d} value={d}>
+                  {d}
                 </option>
               ))}
             </Selectx>
-          ) : (
-            <Selectx
-              label="Cantidad de productos"
-              name="filtro_cantidad"
-              value={filtroCantidad}
-              onChange={(e) => setFiltroCantidad(e.target.value)}
-              placeholder="Seleccionar cantidad"
-              disabled={loading}
-            >
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {two(n)}
-                </option>
-              ))}
-            </Selectx>
-          )}
 
-          {/* Limpiar */}
-          <div className="flex items-end">
+            {/* Pendientes/Terminados => Motorizado | Asignados => Cantidad */}
+            {view === "pendientes" || view === "terminados" ? (
+              <Selectx
+                label="Motorizado"
+                name="filtro_motorizado"
+                value={filtroMotorizado}
+                onChange={(e) => setFiltroMotorizado(e.target.value)}
+                placeholder="Todos los motorizados"
+                disabled={loading}
+              >
+                {motorizados.map((m) => (
+                  <option key={m.id} value={String(m.id)}>
+                    {m.label}
+                  </option>
+                ))}
+              </Selectx>
+            ) : (
+              <Selectx
+                label="Cantidad de productos"
+                name="filtro_cantidad"
+                value={filtroCantidad}
+                onChange={(e) => setFiltroCantidad(e.target.value)}
+                placeholder="Seleccionar cantidad"
+                disabled={loading}
+              >
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {two(n)}
+                  </option>
+                ))}
+              </Selectx>
+            )}
+          </div>
+
+          {/* ===== Fila 2 ===== */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+            <SearchInputx
+              placeholder="Buscar productos por nombre..."
+              value={searchProducto}
+              onChange={(e) => setSearchProducto(e.target.value)}
+              className="w-full"
+            />
+
             <Buttonx
               variant="outlined"
               onClick={handleClearFilters}
@@ -526,24 +537,16 @@ export default function TablePedidoCourier({
               disabled={loading}
             />
           </div>
-
-          {/* Búsqueda */}
-          <div className="col-span-full w-full flex flex-col gap-[10px] mt-1">
-            <label className="text-base font-normal text-black text-center block">
-              Buscar productos por nombre
-            </label>
-            <SearchInputx
-              placeholder="Buscar productos por nombre..."
-              value={searchProducto}
-              onChange={(e) => setSearchProducto(e.target.value)}
-            />
-          </div>
         </div>
       </div>
 
       {/* Estados */}
-      {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
-      {!loading && error && <div className="py-10 text-center text-red-600">{error}</div>}
+      {loading && (
+        <div className="py-10 text-center text-gray-500">Cargando...</div>
+      )}
+      {!loading && error && (
+        <div className="py-10 text-center text-red-600">{error}</div>
+      )}
 
       {/* Tabla */}
       {!loading && !error && (
@@ -616,7 +619,10 @@ export default function TablePedidoCourier({
                   const montoNumber = Number(p.monto_recaudar || 0);
 
                   return (
-                    <tr key={p.id} className="hover:bg-gray10 transition-colors">
+                    <tr
+                      key={p.id}
+                      className="hover:bg-gray10 transition-colors"
+                    >
                       <td className="h-12 px-4 py-3">
                         <input
                           type="checkbox"
@@ -708,7 +714,8 @@ export default function TablePedidoCourier({
                       colSpan={9} // ✅ antes 8
                       className="px-4 py-8 text-center text-gray70 italic"
                     >
-                      No hay pedidos para esta etapa con los filtros seleccionados.
+                      No hay pedidos para esta etapa con los filtros
+                      seleccionados.
                     </td>
                   </tr>
                 )}
