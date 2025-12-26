@@ -10,12 +10,13 @@ import {
   getPedidosDia,
   validarFechas,
 } from "@/services/ecommerce/cuadreSaldo/cuadreSaldoC.api";
+
 import type {
   ResumenDia,
   PedidoDiaItem,
 } from "@/services/ecommerce/cuadreSaldo/cuadreSaldoC.types";
-import Tittlex from "@/shared/common/Tittlex";
 
+import Tittlex from "@/shared/common/Tittlex";
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 
@@ -27,21 +28,34 @@ const todayLocal = () => {
 };
 const getToken = () => localStorage.getItem("token") ?? "";
 
+// Detecta DIRECTO_ECOMMERCE (compat por si viene en distintas claves)
+const isDirectoEcommerce = (p: any) => {
+  const mp = String(
+    p?.metodoPago ?? p?.metodo_pago ?? p?.metodoPagoNombre ?? p?.metodo_pago_nombre ?? ""
+  ).toUpperCase();
+  return mp === "DIRECTO_ECOMMERCE";
+};
+
+const montoPedido = (p: any) =>
+  Number(p?.monto ?? p?.monto_recaudar ?? p?.montoRecaudar ?? 0);
+
+type ResumenRowUI = ResumenDia & {
+  // 👇 SOLO FRONTEND para visualizar cobrado/neto excluyendo DIRECTO_ECOMMERCE
+  directoEcommerceMonto?: number;
+};
+
 /* ================= Page ================= */
 const CuadreSaldoPage: React.FC = () => {
   const token = getToken();
 
-  const [couriers, setCouriers] = useState<{ id: number; nombre: string }[]>(
-    []
-  );
+  const [couriers, setCouriers] = useState<{ id: number; nombre: string }[]>([]);
   const [courierId, setCourierId] = useState<number | "">("");
 
-  // Fechas en HOY por defecto
   const [desde, setDesde] = useState<string>(todayLocal());
   const [hasta, setHasta] = useState<string>(todayLocal());
 
   const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<ResumenDia[]>([]);
+  const [rows, setRows] = useState<ResumenRowUI[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
 
   // modal ver pedidos
@@ -61,19 +75,60 @@ const CuadreSaldoPage: React.FC = () => {
       .catch((e) => console.error(e));
   }, [token]);
 
-  /* ====== buscar resumen ====== */
+  /* ====== buscar resumen + calcular DIRECTO_ECOMMERCE por fecha ====== */
   const buscar = async () => {
     if (!token || courierId === "") return;
+
     setLoading(true);
     try {
-      // 🔑 ahora lista tanto "Por Validar" como "Validado"
       const data = await getResumen(token, {
         courierId: Number(courierId),
         desde,
         hasta,
         soloPorValidar: true,
       });
-      setRows(data);
+
+      // 1) Traemos el resumen base
+      const baseRows: ResumenRowUI[] = (data ?? []).map((r: any) => ({
+        ...r,
+        directoEcommerceMonto: 0,
+      }));
+
+      // 2) Calculamos DIRECTO_ECOMMERCE por cada fecha (solo UI)
+      //    OJO: esto hace N requests (una por día mostrado en resumen).
+      //    Si luego quieres optimizar, lo ideal es que backend lo envíe en el resumen.
+      const fechas = baseRows.map((r) => r.fecha);
+
+      const pares = await Promise.all(
+        fechas.map(async (f) => {
+          try {
+            const pedidos = await getPedidosDia(
+              token,
+              Number(courierId),
+              f,
+              true
+            );
+
+            const directo = (pedidos ?? []).reduce((acc: number, p: any) => {
+              return acc + (isDirectoEcommerce(p) ? montoPedido(p) : 0);
+            }, 0);
+
+            return [f, directo] as const;
+          } catch {
+            return [f, 0] as const;
+          }
+        })
+      );
+
+      const directoByFecha: Record<string, number> = Object.fromEntries(pares);
+
+      // 3) Adjuntamos el campo a cada row (frontend)
+      const enriched: ResumenRowUI[] = baseRows.map((r) => ({
+        ...r,
+        directoEcommerceMonto: Number(directoByFecha[r.fecha] ?? 0),
+      }));
+
+      setRows(enriched);
       setSelected([]);
     } catch (e) {
       console.error(e);
@@ -82,7 +137,7 @@ const CuadreSaldoPage: React.FC = () => {
     }
   };
 
-  // Auto-búsqueda: cada vez que cambie courier/fechas (si hay courier seleccionado)
+  // Auto-búsqueda
   useEffect(() => {
     if (!token) return;
     if (!courierId) return;
@@ -100,11 +155,12 @@ const CuadreSaldoPage: React.FC = () => {
 
   const verPedidos = async (date: string) => {
     if (!token || courierId === "") return;
+
     setVerFecha(date);
     setOpenVer(true);
     setVerLoading(true);
+
     try {
-      // 🔑 igual aquí: lista los pedidos "Por Validar" y "Validado"
       const data = await getPedidosDia(token, Number(courierId), date, true);
       setVerRows(data);
     } catch (e) {
@@ -114,34 +170,44 @@ const CuadreSaldoPage: React.FC = () => {
     }
   };
 
+  // ✅ Totales para el modal VALIDAR (COBRADO VISIBLE = cobrado - directoEcommerceMonto)
+  //    Servicios NO se tocan.
   const totals = useMemo(() => {
     const set = new Set(selected);
-    let cob = 0,
-      serv = 0;
+    let cobVisible = 0;
+    let serv = 0;
+
     rows.forEach((r) => {
-      if (set.has(r.fecha)) {
-        cob += r.cobrado || 0;
-        serv += r.servicio || 0;
-      }
+      if (!set.has(r.fecha)) return;
+
+      const directo = Number((r as any).directoEcommerceMonto ?? 0);
+      const cobradoReal = Number(r.cobrado ?? 0);
+
+      cobVisible += Math.max(0, cobradoReal - directo);
+      serv += Number(r.servicio ?? 0);
     });
-    return { cobrado: cob, servicio: serv };
+
+    return { cobrado: cobVisible, servicio: serv };
   }, [selected, rows]);
 
   const confirmarValidacion = async () => {
     if (!token || courierId === "" || selected.length === 0) return;
-    // Optimistic UI: marcamos como validado en el front
+
+    // Optimistic UI
     setRows((prev) =>
       prev.map((r) =>
         selected.includes(r.fecha) ? { ...r, estado: "Validado" } : r
       )
     );
+
     try {
       await validarFechas(token, {
         courierId: Number(courierId),
         fechas: selected,
       });
+
       setSelected([]);
-      await buscar(); // refrescar con datos reales
+      await buscar();
     } catch (e) {
       console.error(e);
     }
@@ -166,15 +232,15 @@ const CuadreSaldoPage: React.FC = () => {
         />
 
         <Buttonx
-              label={`Validar (${selected.length})`}
-              icon="iconoir:new-tab"
-              variant="secondary"
-              onClick={() => setOpenValidar(true)}
-              disabled={selected.length === 0}
-            />
+          label={`Validar (${selected.length})`}
+          icon="iconoir:new-tab"
+          variant="secondary"
+          onClick={() => setOpenValidar(true)}
+          disabled={selected.length === 0}
+        />
       </div>
 
-      {/* Filtros (estilo modelo + Selectx) */}
+      {/* Filtros */}
       <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
         <Selectx
           id="f-courier"
@@ -221,8 +287,9 @@ const CuadreSaldoPage: React.FC = () => {
         />
       </div>
 
+      {/* Tabla (rows ahora incluyen directoEcommerceMonto) */}
       <CuadreSaldoTable
-        rows={rows}
+        rows={rows as any}
         loading={loading}
         selected={selected}
         onToggle={toggleFecha}
@@ -234,7 +301,7 @@ const CuadreSaldoPage: React.FC = () => {
         open={openVer}
         onClose={() => setOpenVer(false)}
         fecha={verFecha}
-        rows={verRows}
+        rows={verRows as any}
         loading={verLoading}
       />
 
@@ -243,8 +310,8 @@ const CuadreSaldoPage: React.FC = () => {
         open={openValidar}
         onClose={() => setOpenValidar(false)}
         fechas={selected}
-        totalCobrado={totals.cobrado}
-        totalServicio={totals.servicio}
+        totalCobrado={totals.cobrado}   // ✅ YA EXCLUYE DIRECTO_ECOMMERCE (visual)
+        totalServicio={totals.servicio} // ✅ NO se toca
         courierNombre={
           couriers.find((c) => c.id === Number(courierId))?.nombre ?? undefined
         }

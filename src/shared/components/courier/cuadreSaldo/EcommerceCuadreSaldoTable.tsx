@@ -53,15 +53,54 @@ const servicioDe = (i: any) => {
   );
   const sr = Number(
     i?.servicioRepartidor ??
-    i?.servicio_repartidor ??
-    i?.servicioRepartidorEfectivo ??
-    0
+      i?.servicio_repartidor ??
+      i?.servicioRepartidorEfectivo ??
+      0
   );
   if (sc || sr) return sc + sr;
   if (i?.servicioTotal != null) return Number(i.servicioTotal);
   if (i?.servicio_total != null) return Number(i.servicio_total);
   return 0;
 };
+
+/* ===========================
+   ✅ NUEVO: regla DIRECTO_ECOMMERCE
+   - solo afecta "Cobrado" (monto)
+   - NO toca servicios
+=========================== */
+function isDirectEcommerce(i: any): boolean {
+  const raw =
+    i?.metodoPago ??
+    i?.metodo_pago ??
+    i?.metodo_pago_nombre ??
+    i?.metodoPagoNombre ??
+    "";
+  const mp = String(raw).trim().toUpperCase();
+  return mp === "DIRECTO_ECOMMERCE";
+}
+
+// ✅ Cobrado visual: si DIRECTO_ECOMMERCE => 0
+const cobradoDe = (i: any) => (isDirectEcommerce(i) ? 0 : montoDe(i));
+
+// ✅ Pequeño limitador de concurrencia para no reventar el backend
+async function mapLimit<T, R>(
+  list: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const out: R[] = new Array(list.length) as any;
+  let idx = 0;
+
+  const workers = Array.from({ length: Math.min(limit, list.length) }, async () => {
+    while (idx < list.length) {
+      const my = idx++;
+      out[my] = await fn(list[my]);
+    }
+  });
+
+  await Promise.all(workers);
+  return out;
+}
 
 type Props = { token: string };
 type ResumenRow = ResumenDia & { estado?: AbonoEstado };
@@ -101,10 +140,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
   const [currentPage, setCurrentPage] = useState(1);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(rows.length / ITEMS_PER_PAGE)
-  );
+  const totalPages = Math.max(1, Math.ceil(rows.length / ITEMS_PER_PAGE));
 
   const pagedRows = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -203,6 +239,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     }
     setLoading(true);
     setError(null);
+
     try {
       const data = await getEcommerceResumen(token, {
         ecommerceId: ecoId,
@@ -210,9 +247,34 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         desde,
         hasta,
       });
+
       const baseRows: ResumenRow[] = (data ?? []) as ResumenRow[];
 
-      setRows(baseRows);
+      // ✅ Recalcular COBRADO/NETO usando el detalle (para aplicar DIRECTO_ECOMMERCE => 0)
+      const fixedRows = await mapLimit(baseRows, 5, async (r) => {
+        try {
+          const arr = await getEcommercePedidosDia(
+            token,
+            ecoId,
+            r.fecha,
+            sedeIdNumber
+          );
+          const list = Array.isArray(arr) ? arr : (arr as any)?.items ?? [];
+
+          const cobrado = list.reduce((acc: number, it: any) => acc + cobradoDe(it), 0);
+          const servicio = list.reduce((acc: number, it: any) => acc + servicioDe(it), 0);
+
+          // ✅ Neto visual: cobrado visual - servicio (servicio intacto)
+          const neto = cobrado - servicio;
+
+          return { ...r, cobrado, servicio, neto };
+        } catch {
+          // si falla detalle, dejamos lo que venga del backend
+          return r;
+        }
+      });
+
+      setRows(fixedRows);
       setSelectedFechas([]);
     } catch (e: any) {
       setError(e?.message ?? "Error al cargar el resumen");
@@ -244,12 +306,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     setOpenDetalle(true);
     setDetalleLoading(true);
     try {
-      const arr = await getEcommercePedidosDia(
-        token,
-        ecoId,
-        fecha,
-        sedeIdNumber
-      );
+      const arr = await getEcommercePedidosDia(token, ecoId, fecha, sedeIdNumber);
       const list = Array.isArray(arr) ? arr : (arr as any)?.items ?? [];
       setDetalleItems(list as any[]);
     } catch (e: any) {
@@ -261,8 +318,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   };
 
   const prepararAbonoMultiFecha = async () => {
-    if (!ecoId || typeof ecoId !== "number" || selectedFechas.length === 0)
-      return;
+    if (!ecoId || typeof ecoId !== "number" || selectedFechas.length === 0) return;
     try {
       setLoading(true);
       const porFecha = await Promise.all(
@@ -274,7 +330,11 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       const todos = porFecha.flat();
 
       setConfirmFechas(selectedFechas.slice().sort());
-      setConfirmCobrado(todos.reduce((acc, i) => acc + montoDe(i), 0));
+
+      // ✅ CAMBIO: cobrado visual (DIRECTO_ECOMMERCE => 0)
+      setConfirmCobrado(todos.reduce((acc, i) => acc + cobradoDe(i), 0));
+
+      // servicios intactos
       setConfirmServicio(todos.reduce((acc, i) => acc + servicioDe(i), 0));
       setConfirmCount(todos.length);
       setOpenConfirm(true);
@@ -293,7 +353,11 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   const abrirConfirmDetalle = () => {
     const todos = detalleItems;
     setConfirmFechas([detalleFecha]);
-    setConfirmCobrado(todos.reduce((acc, i) => acc + montoDe(i), 0));
+
+    // ✅ CAMBIO: cobrado visual (DIRECTO_ECOMMERCE => 0)
+    setConfirmCobrado(todos.reduce((acc, i) => acc + cobradoDe(i), 0));
+
+    // servicios intactos
     setConfirmServicio(todos.reduce((acc, i) => acc + servicioDe(i), 0));
     setConfirmCount(todos.length);
     setOpenConfirm(true);
@@ -318,18 +382,14 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
       const formData = new FormData();
       formData.append("ecommerceId", String(ecoId));
-      if (sedeIdNumber != null) {
-        formData.append("sedeId", String(sedeIdNumber));
-      }
+      if (sedeIdNumber != null) formData.append("sedeId", String(sedeIdNumber));
       confirmFechas.forEach((f) => formData.append("fechas[]", f));
       formData.append("estado", "Por Validar");
       formData.append("voucher", voucherFile, voucherFile.name);
 
       const resp = await abonarEcommerceFechas(token, formData, true);
 
-      const fechasMarcadas = (resp?.fechas ?? confirmFechas).map((f) =>
-        f.slice(0, 10)
-      );
+      const fechasMarcadas = (resp?.fechas ?? confirmFechas).map((f) => f.slice(0, 10));
 
       setRows((prev) =>
         prev.map((r) =>
@@ -362,9 +422,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     setHasta(hoy);
     setRows([]);
     setSelectedFechas([]);
-    setSedeId((prev) =>
-      !canFilterBySede && typeof prev === "number" ? prev : ""
-    );
+    setSedeId((prev) => (!canFilterBySede && typeof prev === "number" ? prev : ""));
   };
 
   return (
@@ -388,15 +446,13 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
           id="f-sede"
           label="Sede"
           value={sedeId === "" ? "" : String(sedeId)}
-          onChange={(e) =>
-            setSedeId(e.target.value === "" ? "" : Number(e.target.value))
-          }
+          onChange={(e) => setSedeId(e.target.value === "" ? "" : Number(e.target.value))}
           placeholder={
             loadingSedes
               ? "Cargando sedes..."
               : canFilterBySede
-                ? "Todas las sedes"
-                : "Sede actual"
+              ? "Todas las sedes"
+              : "Sede actual"
           }
           className="w-full"
           disabled={loadingSedes || (!canFilterBySede && sedes.length <= 1)}
@@ -405,8 +461,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
           {sedes.map((s) => (
             <option key={s.id} value={s.id}>
               {s.nombre_almacen}
-              {s.ciudad ? ` (${s.ciudad})` : ""}{" "}
-              {s.es_principal ? "· Principal" : ""}
+              {s.ciudad ? ` (${s.ciudad})` : ""} {s.es_principal ? "· Principal" : ""}
             </option>
           ))}
         </Selectx>
@@ -416,9 +471,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
           id="f-ecommerce"
           label="Ecommerce"
           value={ecoId === "" ? "" : String(ecoId)}
-          onChange={(e) =>
-            setEcoId(e.target.value === "" ? "" : Number(e.target.value))
-          }
+          onChange={(e) => setEcoId(e.target.value === "" ? "" : Number(e.target.value))}
           placeholder="Seleccionar ecommerce"
           className="w-full"
         >
@@ -457,12 +510,10 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         />
       </div>
 
-      {sedesError && (
-        <div className="px-4 text-xs text-red-600">{sedesError}</div>
-      )}
+      {sedesError && <div className="px-4 text-xs text-red-600">{sedesError}</div>}
       {error && <div className="px-4 pb-2 text-sm text-red-600">{error}</div>}
 
-      {/* Tabla resumen con estilos del modelo base */}
+      {/* Tabla resumen */}
       <div className="mt-0 bg-white rounded-md overflow-hidden shadow-default border border-gray30 relative">
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 text-sm">
@@ -488,9 +539,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                   <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={
-                        rows.length > 0 && selectedFechas.length === rows.length
-                      }
+                      checked={rows.length > 0 && selectedFechas.length === rows.length}
                       onChange={toggleAllFechas}
                       aria-label="Seleccionar todo"
                       className="h-4 w-4 accent-blue-600"
@@ -508,10 +557,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
               <tbody className="divide-y divide-gray20">
                 {pagedRows.length === 0 ? (
                   <tr className="hover:bg-transparent">
-                    <td
-                      colSpan={7}
-                      className="px-4 py-8 text-center text-gray70 italic"
-                    >
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray70 italic">
                       Sin resultados para el filtro seleccionado.
                     </td>
                   </tr>
@@ -524,14 +570,11 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                       estado === "Validado"
                         ? "bg-gray90 text-white"
                         : estado === "Sin Validar"
-                          ? "bg-gray30 text-gray80"
-                          : "bg-blue-100 text-blue-900";
+                        ? "bg-gray30 text-gray80"
+                        : "bg-blue-100 text-blue-900";
 
                     return (
-                      <tr
-                        key={r.fecha}
-                        className="hover:bg-gray10 transition-colors"
-                      >
+                      <tr key={r.fecha} className="hover:bg-gray10 transition-colors">
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
@@ -541,21 +584,20 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                             className="h-4 w-4 accent-blue-600"
                           />
                         </td>
-                        <td className="px-4 py-3 text-gray70">
-                          {toDMY(r.fecha)}
-                        </td>
-                        <td className="px-4 py-3 text-gray70">
-                          {formatPEN(r.cobrado)}
-                        </td>
-                        <td className="px-4 py-3 text-gray70">
-                          {formatPEN(r.servicio)}
-                        </td>
-                        <td className="px-4 py-3 text-gray70">
-                          {formatPEN(r.neto)}
-                        </td>
+
+                        <td className="px-4 py-3 text-gray70">{toDMY(r.fecha)}</td>
+
+                        {/* ✅ Ya viene recalculado (DIRECTO_ECOMMERCE => 0) */}
+                        <td className="px-4 py-3 text-gray70">{formatPEN(r.cobrado)}</td>
+
+                        <td className="px-4 py-3 text-gray70">{formatPEN(r.servicio)}</td>
+
+                        <td className="px-4 py-3 text-gray70">{formatPEN(r.neto)}</td>
+
                         <td className="px-4 py-3">
                           <Badgex className={pillCls}>{estado}</Badgex>
                         </td>
+
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end">
                             <TableActionx
@@ -574,6 +616,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
             </table>
           </div>
         </section>
+
         {/* PAGINADOR */}
         <div className="flex items-center justify-end gap-1 border-t border-gray90 py-3 px-3">
           <button
@@ -586,10 +629,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
           {pagerItems.map((p, i) =>
             typeof p === "string" ? (
-              <span
-                key={`dots-${i}`}
-                className="px-2 text-gray60 select-none"
-              >
+              <span key={`dots-${i}`} className="px-2 text-gray60 select-none">
                 {p}
               </span>
             ) : (
@@ -598,9 +638,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                 onClick={() => setCurrentPage(p)}
                 className={[
                   "w-8 h-8 flex items-center justify-center rounded",
-                  p === currentPage
-                    ? "bg-gray90 text-white"
-                    : "bg-gray10 text-gray70 hover:bg-gray20",
+                  p === currentPage ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
                 ].join(" ")}
               >
                 {p}
@@ -616,7 +654,6 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
             &gt;
           </button>
         </div>
-
       </div>
 
       {/* modales */}
@@ -642,7 +679,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         onCancel={() => setOpenConfirm(false)}
         onConfirm={confirmarAbono}
       />
-    </div >
+    </div>
   );
 };
 
