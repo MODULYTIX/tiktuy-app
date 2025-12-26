@@ -50,6 +50,8 @@ export default function VerPedidoGeneradoModal({
 
   /* ===================== DERIVADOS (SIN CAMBIOS) ===================== */
   const detalles = pedido?.detalles ?? [];
+  const totalItems = detalles.length;
+
   const cantProductos = detalles.reduce(
     (s, d) => s + (Number(d.cantidad) || 0),
     0
@@ -71,78 +73,158 @@ export default function VerPedidoGeneradoModal({
     <div className="fixed inset-0 z-50 bg-black/30 flex justify-end">
       <div
         ref={modalRef}
-        className="h-full w-[480px] max-w-[95vw] bg-white shadow-2xl flex flex-col"
+        className="h-full w-[520px] max-w-[95vw] bg-white shadow-2xl flex flex-col"
       >
-        {/* ===================== HEADER ===================== */}
-        <div className="border-b px-5 py-4">
-          <Tittlex
-            variant="modal"
-            icon="lsicon:shopping-cart-filled"
-            title="Detalle del Pedido"
-            description={`Código: ${pedido?.codigo_pedido ?? "—"}`}
-          />
+        {/* ===================== HEADER (mismo formato) ===================== */}
+        <div className="px-5 py-4 bg-slate-50">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <Tittlex
+                variant="modal"
+                icon="lsicon:shopping-cart-filled"
+                title="Detalle del Pedido"
+                description={`Código: ${pedido?.codigo_pedido ?? "—"}`}
+              />
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-xs text-slate-700">
+                  <span className="font-semibold text-slate-500">Entrega:</span>
+                  <span className="font-bold tabular-nums">{fechaEntregaStr}</span>
+                </span>
+
+                <span className="inline-flex items-center gap-2 rounded-lg bg-slate-100 border border-slate-200 px-3 py-1.5 text-xs text-slate-700">
+                  <span className="font-semibold">Ítems:</span>
+                  <span className="font-bold tabular-nums">
+                    {String(totalItems).padStart(2, "0")}
+                  </span>
+                </span>
+
+                <span className="inline-flex items-center gap-2 rounded-lg bg-slate-100 border border-slate-200 px-3 py-1.5 text-xs text-slate-700">
+                  <span className="font-semibold">Cant.:</span>
+                  <span className="font-bold tabular-nums">
+                    {String(cantProductos).padStart(2, "0")}
+                  </span>
+                </span>
+
+                <span className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-xs text-emerald-900">
+                  <span className="font-semibold">Total:</span>
+                  <span className="font-extrabold tabular-nums">
+                    S/.{" "}
+                    {montoTotal.toLocaleString("es-PE", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar"
+              className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-50 shrink-0"
+              title="Cerrar"
+            >
+              <span className="text-slate-700 text-xl leading-none">×</span>
+            </button>
+          </div>
         </div>
 
         {/* ===================== CONTENT ===================== */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5 text-sm">
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 text-sm bg-[#F7F8FA]">
           {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-4 bg-gray-200 animate-pulse rounded"
-                />
-              ))}
+            <div className="rounded-2xl border border-gray-200 bg-white p-6">
+              <div className="text-slate-600 font-medium">Cargando pedido…</div>
+              <div className="mt-4 space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-4 bg-gray-200 animate-pulse rounded"
+                  />
+                ))}
+              </div>
             </div>
           ) : !pedido ? (
-            <p className="text-gray-600 text-center">
-              No se encontró el pedido.
-            </p>
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center text-slate-600">
+              <div className="font-semibold">No se encontró el pedido.</div>
+              <div className="text-xs text-slate-400 mt-1">
+                Verifica el código o vuelve a intentar.
+              </div>
+            </div>
           ) : (
             <>
-              {/* ===================== RESUMEN ===================== */}
-              <div className="bg-gray-50 border rounded-lg p-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-gray-500">Cliente</p>
-                    <p className="font-medium">
-                      {pedido.nombre_cliente}
-                    </p>
+              {/* ===================== RESUMEN (mismo formato) ===================== */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100">
+                  <div className="text-sm font-bold text-slate-900">
+                    Resumen del pedido
                   </div>
+                  <div className="text-xs text-slate-500">Datos principales</div>
+                </div>
 
-                  <div>
-                    <p className="text-gray-500">Fecha de entrega</p>
-                    <p className="font-medium">{fechaEntregaStr}</p>
-                  </div>
+                <div className="p-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                      <p className="text-xs font-semibold text-slate-500">
+                        Cliente
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-slate-900 break-words">
+                        {pedido.nombre_cliente}
+                      </p>
+                    </div>
 
-                  <div className="col-span-2">
-                    <p className="text-gray-500">Dirección</p>
-                    <p className="truncate">
-                      {pedido.direccion_envio}
-                    </p>
-                  </div>
+                    <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                      <p className="text-xs font-semibold text-slate-500">
+                        Fecha de entrega
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-slate-900 tabular-nums">
+                        {fechaEntregaStr}
+                      </p>
+                    </div>
 
-                  <div>
-                    <p className="text-gray-500">Cantidad de productos</p>
-                    <p className="font-medium">{cantProductos}</p>
-                  </div>
+                    <div className="sm:col-span-2 rounded-xl bg-slate-50 border border-slate-200 p-4">
+                      <p className="text-xs font-semibold text-slate-500">
+                        Dirección
+                      </p>
+                      <p className="mt-1 text-sm text-slate-700 break-words">
+                        {pedido.direccion_envio}
+                      </p>
+                    </div>
 
-                  <div>
-                    <p className="text-gray-500">Monto total</p>
-                    <p className="font-semibold">
-                      S/.{" "}
-                      {montoTotal.toLocaleString("es-PE", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
+                    <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                      <p className="text-xs font-semibold text-slate-500">
+                        Cantidad de productos
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-slate-900 tabular-nums">
+                        {String(cantProductos).padStart(2, "0")}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
+                      <p className="text-xs font-semibold text-emerald-900">
+                        Monto total
+                      </p>
+                      <p className="mt-1 text-sm font-extrabold text-emerald-900 tabular-nums">
+                        S/.{" "}
+                        {montoTotal.toLocaleString("es-PE", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* ===================== PRODUCTOS ===================== */}
-              <div className="border rounded-lg overflow-hidden">
-                <div className="bg-gray-100 px-4 py-2 text-xs font-medium grid grid-cols-[1fr_80px]">
+              {/* ===================== PRODUCTOS (tu lógica intacta) ===================== */}
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100">
+                  <div className="text-sm font-bold text-slate-900">Productos</div>
+                  <div className="text-xs text-slate-500">Detalle por ítem</div>
+                </div>
+
+                <div className="bg-slate-100 px-4 py-3 text-xs font-semibold text-slate-700 grid grid-cols-[1fr_90px]">
                   <span>Producto</span>
                   <span className="text-center">Cantidad</span>
                 </div>
@@ -150,28 +232,33 @@ export default function VerPedidoGeneradoModal({
                 {detalles.map((d) => (
                   <div
                     key={d.id}
-                    className="px-4 py-3 grid grid-cols-[1fr_80px] items-center border-t text-sm"
+                    className="px-4 py-3 grid grid-cols-[1fr_90px] items-center border-t border-gray-100 hover:bg-slate-50 transition-colors"
                   >
                     <div className="min-w-0 pr-3">
-                      <p className="font-medium truncate">
+                      <p className="font-semibold text-slate-900 truncate">
                         {d.producto?.nombre_producto ?? "—"}
                       </p>
                       {d.producto?.descripcion && (
-                        <p className="text-xs text-gray-500 line-clamp-2">
+                        <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">
                           {d.producto.descripcion}
                         </p>
                       )}
                     </div>
 
-                    <div className="text-center font-medium">
-                      {Number(d.cantidad) || 0}
+                    <div className="text-center">
+                      <span className="inline-flex items-center justify-center min-w-[44px] rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-800 tabular-nums">
+                        {String(Number(d.cantidad) || 0).padStart(2, "0")}
+                      </span>
                     </div>
                   </div>
                 ))}
 
                 {detalles.length === 0 && (
-                  <div className="px-4 py-6 text-center text-gray-500 italic">
-                    No hay productos en este pedido.
+                  <div className="px-4 py-8 text-center text-slate-500">
+                    <div className="font-semibold">Sin productos en este pedido</div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      No hay ítems registrados para mostrar.
+                    </div>
                   </div>
                 )}
               </div>
@@ -179,15 +266,15 @@ export default function VerPedidoGeneradoModal({
           )}
         </div>
 
-        {/* ===================== FOOTER ===================== */}
-        <div className="border-t px-5 py-4 flex gap-3">
+        {/* ===================== FOOTER (sin líneas) ===================== */}
+        <div className="px-5 py-4 bg-white flex gap-3 shadow-md">
           {onEditar && pedidoId && (
             <Buttonx
-              variant="tertiary"
+              variant="secondary"
               onClick={() => onEditar(pedidoId)}
               label="Editar"
               icon="mdi:pencil-outline"
-              className="text-sm"
+              className="text-sm flex-1"
             />
           )}
 
@@ -196,7 +283,7 @@ export default function VerPedidoGeneradoModal({
             onClick={onClose}
             label="Cerrar"
             icon="mdi:close"
-            className="text-sm"
+            className="text-sm flex-1"
           />
         </div>
       </div>
