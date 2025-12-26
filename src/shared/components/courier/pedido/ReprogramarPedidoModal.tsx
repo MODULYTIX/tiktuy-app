@@ -98,6 +98,7 @@ export default function ReprogramarPedidoModal({
       setError(e?.message ?? "Error al reprogramar el pedido");
     }
   };
+  console.log("fechaNueva", fechaActualLabel);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">

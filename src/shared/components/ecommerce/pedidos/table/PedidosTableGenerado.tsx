@@ -174,12 +174,8 @@ export default function PedidosTableGenerado({
                   ? p.fecha_entrega_programada.slice(0, 10).split("-").reverse().join("/")
                   : "-";
 
-                const monto =
-                  p.detalles?.reduce(
-                    (acc, d) =>
-                      acc + Number(d.cantidad || 0) * Number(d.precio_unitario || 0),
-                    0
-                  ) ?? 0;
+                const monto = Number(p.monto_recaudar ?? 0);
+
 
                 return (
                   <tr key={p.id} className="hover:bg-gray10 transition-colors">

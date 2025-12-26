@@ -93,27 +93,24 @@ function toQueryHoy(q: ListPedidosHoyQuery = {}): string {
  * Ej:
  * UI: desde=20, hasta=20  -> API manda hasta=21  -> aparecen los del 20 ✅
  */
-function toQueryEstado(q: ListByEstadoQuery = {}): string {
+function toQueryEstado(q: ListByEstadoQuery = {}) {
   const sp = new URLSearchParams();
+
   if (q.page !== undefined) sp.set("page", String(q.page));
   if (q.perPage !== undefined) sp.set("perPage", String(q.perPage));
 
   if (q.desde !== undefined) {
-    const desde = toDateOnly(q.desde);
-    sp.set("desde", desde);
+    sp.set("desde", toDateOnly(q.desde));
   }
 
   if (q.hasta !== undefined) {
-    const hasta = toDateOnly(q.hasta);
-    const hastaMasUno = addDaysYMD(hasta, 1); // ✅ clave
-    sp.set("hasta", hastaMasUno);
+    sp.set("hasta", toDateOnly(q.hasta)); // ✅ SIN +1
   }
 
-  if (q.sortBy !== undefined) sp.set("sortBy", q.sortBy);
-  if (q.order !== undefined) sp.set("order", q.order);
+  if (q.sortBy) sp.set("sortBy", q.sortBy);
+  if (q.order) sp.set("order", q.order);
 
-  const s = sp.toString();
-  return s ? `?${s}` : "";
+  return `?${sp.toString()}`;
 }
 
 function hasMessage(v: unknown): v is { message: string } {

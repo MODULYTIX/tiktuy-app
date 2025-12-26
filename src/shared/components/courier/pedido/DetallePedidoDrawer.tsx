@@ -10,26 +10,21 @@ interface Props {
   loading?: boolean;
 }
 
-/* ✅ FIX FECHAS: mostrar siempre en Perú sin “-1 día” */
-const fmtPE = new Intl.DateTimeFormat("es-PE", {
-  timeZone: "America/Lima",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
 
 function formatFechaPE(fecha: string | null | undefined) {
   if (!fecha) return "—";
 
-  // Si viene "YYYY-MM-DD", NO uses new Date(fecha) (eso es UTC y resta 1 día en Perú)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-    // mediodía Perú, “seguro” contra corrimientos
-    return fmtPE.format(new Date(`${fecha}T12:00:00-05:00`));
+  // ✅ SIEMPRE tomar SOLO la parte YYYY-MM-DD
+  const dateOnly = fecha.slice(0, 10);
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+    const [y, m, d] = dateOnly.split("-");
+    return `${d}/${m}/${y}`; // 31/12/2025
   }
 
-  // Si viene ISO con Z, lo mostramos en Lima
-  return fmtPE.format(new Date(fecha));
+  return "—";
 }
+
 
 export default function DetallePedidoDrawer({
   open,
@@ -57,6 +52,11 @@ export default function DetallePedidoDrawer({
   const fechaEntrega = detalle ? formatFechaPE(detalle.fecha_entrega_programada) : "—";
   const productos = detalle?.cantidad_productos ?? 0;
   const total = detalle?.monto_total ?? 0;
+  console.log(
+    "RAW fecha_entrega_programada:",
+    detalle?.fecha_entrega_programada,
+    typeof detalle?.fecha_entrega_programada
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">

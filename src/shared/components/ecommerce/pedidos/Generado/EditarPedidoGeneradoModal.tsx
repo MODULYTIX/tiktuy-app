@@ -45,6 +45,7 @@ export default function EditarPedidoGeneradoModal({
   const [productos, setProductos] = useState<ProductoSede[]>([]);
   const [detalles, setDetalles] = useState<DetalleForm[]>([]);
   const [saving, setSaving] = useState(false);
+  const [montoEditado, setMontoEditado] = useState(false);
 
   /* ===================== FETCH ===================== */
   useEffect(() => {
@@ -82,16 +83,22 @@ export default function EditarPedidoGeneradoModal({
   }, [open, pedidoId, token]);
 
   /* ===================== HELPERS ===================== */
-  const montoTotal = detalles.reduce(
+  const montoCalculado = detalles.reduce(
     (s, d) => s + d.cantidad * d.precio_unitario,
     0
   );
+
+  const montoTotal = montoEditado
+    ? montoCalculado
+    : Number(pedido?.monto_recaudar ?? montoCalculado);
+
 
   const handleDetalleChange = (
     index: number,
     field: keyof DetalleForm,
     value: number
   ) => {
+    setMontoEditado(true);
     setDetalles((prev) =>
       prev.map((d, i) => (i === index ? { ...d, [field]: value } : d))
     );
@@ -267,19 +274,22 @@ export default function EditarPedidoGeneradoModal({
                     const productoId = Number(e.target.value);
                     const producto = productos.find((p) => p.id === productoId);
 
+                    setMontoEditado(true);
+
                     setDetalles((prev) =>
                       prev.map((det, idx) =>
                         idx === i
                           ? {
-                              ...det,
-                              producto_id: productoId,
-                              precio_unitario:
-                                producto?.precio ?? det.precio_unitario,
-                            }
+                            ...det,
+                            producto_id: productoId,
+                            precio_unitario:
+                              producto?.precio ?? det.precio_unitario,
+                          }
                           : det
                       )
                     );
                   }}
+
                 >
                   {productos.map((p) => (
                     <option key={p.id} value={p.id}>

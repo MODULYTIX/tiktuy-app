@@ -44,26 +44,23 @@ const PEN = new Intl.NumberFormat("es-PE", {
 });
 const two = (n: number) => String(n).padStart(2, "0");
 
-// ✅ NUEVO: forzar formato en Perú para evitar “-1 día”
-const fmtPE = new Intl.DateTimeFormat("es-PE", {
-  timeZone: "America/Lima",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-function formatFechaPE(fecha: string | null | undefined) {
-  if (!fecha) return "—";
-
-  // Si viene "YYYY-MM-DD" (date-only), NO usar new Date(fecha)
-  // porque JS lo interpreta UTC y en Perú queda día anterior.
-  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-    return fmtPE.format(new Date(`${fecha}T00:00:00-05:00`)); // ✅ Perú real
-  }
-
-  // Si viene ISO (con Z u offset), lo formateamos en Lima
-  return fmtPE.format(new Date(fecha));
+// 🔑 NORMALIZA cualquier fecha a YYYY-MM-DD
+function normalizeDateOnly(v?: string) {
+  if (!v) return undefined;
+  return v.slice(0, 10); // evita timezone / ISO issues
 }
+
+function normalizeRange(desde?: string, hasta?: string) {
+  const d = normalizeDateOnly(desde);
+  const h = normalizeDateOnly(hasta);
+
+  return {
+    ...(d ? { desde: d } : {}),
+    ...(h ? { hasta: h } : {}),
+  };
+}
+
+
 
 /* ✅ NUEVO: HOY en Perú como YYYY-MM-DD (para que el backend filtre hoy por defecto) */
 function getTodayPEYYYYMMDD() {
@@ -147,11 +144,11 @@ export default function TablePedidoCourier({
     () => ({
       page,
       perPage,
-      ...(desde ? { desde } : {}),
-      ...(hasta ? { hasta } : {}),
+      ...normalizeRange(desde, hasta),
     }),
     [page, perPage, desde, hasta]
   );
+
 
   const qEstado: ListByEstadoQuery = useMemo(
     () => ({
@@ -159,8 +156,7 @@ export default function TablePedidoCourier({
       perPage,
       sortBy: "programada",
       order: "asc",
-      ...(desde ? { desde } : {}),
-      ...(hasta ? { hasta } : {}),
+      ...normalizeRange(desde, hasta),
     }),
     [page, perPage, desde, hasta]
   );
@@ -421,15 +417,15 @@ export default function TablePedidoCourier({
             view === "asignados"
               ? "Pedidos Asignados"
               : view === "pendientes"
-              ? "Pedidos Pendientes"
-              : "Pedidos Terminados"
+                ? "Pedidos Pendientes"
+                : "Pedidos Terminados"
           }
           description={
             view === "asignados"
               ? "Selecciona y asigna pedidos a un repartidor."
               : view === "pendientes"
-              ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
-              : "Pedidos completados o cerrados."
+                ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
+                : "Pedidos completados o cerrados."
           }
         />
 
@@ -605,10 +601,8 @@ export default function TablePedidoCourier({
 
               <tbody className="divide-y divide-gray20">
                 {itemsFiltrados.map((p) => {
-                  const fecha =
-                    view === "terminados"
-                      ? p.fecha_entrega_real ?? p.fecha_entrega_programada
-                      : p.fecha_entrega_programada;
+                  const fecha = p.fecha_entrega_programada;
+
 
                   const cantidad =
                     p.items_total_cantidad ??
@@ -641,8 +635,9 @@ export default function TablePedidoCourier({
                       </td>
 
                       <td className="h-12 px-4 py-3 text-gray70">
-                        {formatFechaPE(fecha)}
+                        {fecha ?? "—"}
                       </td>
+
 
                       {/* ✅ NUEVO */}
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
