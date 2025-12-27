@@ -1,11 +1,24 @@
 // src/shared/common/ImagePreviewModalx.tsx
 import { useRef, useState, useEffect, useCallback } from "react";
+import type {
+  WheelEvent as ReactWheelEvent,
+  MouseEvent as ReactMouseEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 
 type Props = {
   open: boolean;
-  src: string;
+
+  /** ✅ compat: tu prop actual */
+  src?: string;
+
+  /** ✅ nuevo: alias para usar como `url` */
+  url?: string;
+
+  /** ✅ nuevo: título opcional */
+  title?: string;
+
   alt?: string;
   onClose: () => void;
 };
@@ -16,9 +29,13 @@ const clamp = (v: number, min: number, max: number) =>
 export default function ImagePreviewModalx({
   open,
   src,
+  url,
+  title,
   alt = "Vista previa",
   onClose,
 }: Props) {
+  const finalSrc = String(src ?? url ?? "").trim();
+
   const wrapRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +71,7 @@ export default function ImagePreviewModalx({
   useEffect(() => {
     if (!open) return;
     resetView();
-  }, [open, src, resetView]);
+  }, [open, finalSrc, resetView]);
 
   // Detectar cambios de fullscreen y resetear al entrar
   useEffect(() => {
@@ -65,7 +82,7 @@ export default function ImagePreviewModalx({
         (document as any).msFullscreenElement;
       const atFs = !!fsEl;
       setIsFullscreen(atFs);
-      if (atFs) resetView(); // 🔁 restablece al entrar a FS
+      if (atFs) resetView();
     };
 
     document.addEventListener("fullscreenchange", handler);
@@ -96,18 +113,21 @@ export default function ImagePreviewModalx({
 
     try {
       if (req) await Promise.resolve(req());
-      // El reset se hace en fullscreenchange
     } catch {}
   };
 
-  const openInNewTab = () => window.open(src, "_blank", "noopener,noreferrer");
+  const openInNewTab = () => {
+    if (!finalSrc) return;
+    window.open(finalSrc, "_blank", "noopener,noreferrer");
+  };
 
   // Wheel zoom (bloqueado en fullscreen)
   const onWheel = useCallback(
-    (e: React.WheelEvent) => {
+    (e: ReactWheelEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
-      if (isFullscreen) return; // 🔒 sin zoom en FS
+      if (isFullscreen) return;
+      if (!finalSrc) return;
 
       if (!contentRef.current) return;
       const rect = contentRef.current.getBoundingClientRect();
@@ -120,7 +140,6 @@ export default function ImagePreviewModalx({
       );
       if (nextScale === scale) return;
 
-      // zoom al cursor
       const offsetX = e.clientX - rect.left - rect.width / 2;
       const offsetY = e.clientY - rect.top - rect.height / 2;
       const ds = nextScale / scale;
@@ -129,15 +148,16 @@ export default function ImagePreviewModalx({
       setTy((prev) => prev - offsetY * (ds - 1));
       setScale(nextScale);
     },
-    [scale, isFullscreen]
+    [scale, isFullscreen, finalSrc]
   );
 
   // Doble click: alterna 1× / 2× (bloqueado en fullscreen)
   const onDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
+    (e: ReactMouseEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
-      if (isFullscreen) return; // 🔒 sin zoom en FS
+      if (isFullscreen) return;
+      if (!finalSrc) return;
 
       if (!contentRef.current) return;
       const rect = contentRef.current.getBoundingClientRect();
@@ -150,20 +170,21 @@ export default function ImagePreviewModalx({
       setTy((prev) => prev - offsetY * (ds - 1));
       setScale(targetScale);
     },
-    [scale, isFullscreen]
+    [scale, isFullscreen, finalSrc]
   );
 
   // Pan con arrastre (bloqueado en fullscreen)
-  const onMouseDown = (e: React.MouseEvent) => {
+  const onMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isFullscreen) return; // 🔒 sin pan en FS
+    if (isFullscreen) return;
+    if (!finalSrc) return;
     if (scale === 1) return;
     setPanning(true);
     panPoint.current = { x: e.clientX, y: e.clientY, startX: tx, startY: ty };
   };
 
-  const onMouseMove = (e: React.MouseEvent) => {
+  const onMouseMove = (e: ReactMouseEvent<HTMLDivElement>) => {
     if (!panning) return;
     e.preventDefault();
     e.stopPropagation();
@@ -173,7 +194,7 @@ export default function ImagePreviewModalx({
     setTy(panPoint.current.startY + dy);
   };
 
-  const endPan = (e?: React.MouseEvent) => {
+  const endPan = (e?: ReactMouseEvent<HTMLDivElement>) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -183,9 +204,11 @@ export default function ImagePreviewModalx({
 
   // Controles toolbar
   const zoomIn = () => {
+    if (!finalSrc) return;
     if (!isFullscreen) setScale((s) => clamp(s * 1.2, MIN_SCALE, MAX_SCALE));
   };
   const zoomOut = () => {
+    if (!finalSrc) return;
     if (isFullscreen) return;
     setScale((s) => {
       const next = clamp(s / 1.2, MIN_SCALE, MAX_SCALE);
@@ -206,6 +229,19 @@ export default function ImagePreviewModalx({
       onClick={onClose}
       onWheel={onWheel}
     >
+      {/* ✅ Title opcional */}
+      {title ? (
+        <div
+          className="absolute top-4 left-4 z-20 max-w-[70vw] truncate
+                     px-3 py-2 rounded-full bg-gray-900/70 border border-white/20
+                     text-white text-[12px] font-semibold"
+          onClick={(e) => e.stopPropagation()}
+          title={title}
+        >
+          {title}
+        </div>
+      ) : null}
+
       {/* Cerrar */}
       <button
         type="button"
@@ -242,9 +278,9 @@ export default function ImagePreviewModalx({
           onClick={zoomOut}
           title="Alejar"
           className={`inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10 ${
-            isFullscreen ? "opacity-40 cursor-not-allowed" : ""
+            isFullscreen || !finalSrc ? "opacity-40 cursor-not-allowed" : ""
           }`}
-          disabled={isFullscreen}
+          disabled={isFullscreen || !finalSrc}
         >
           <Icon icon="lucide:minus" className="text-[18px]" />
         </button>
@@ -258,9 +294,9 @@ export default function ImagePreviewModalx({
           onClick={zoomIn}
           title="Acercar"
           className={`inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10 ${
-            isFullscreen ? "opacity-40 cursor-not-allowed" : ""
+            isFullscreen || !finalSrc ? "opacity-40 cursor-not-allowed" : ""
           }`}
-          disabled={isFullscreen}
+          disabled={isFullscreen || !finalSrc}
         >
           <Icon icon="lucide:plus" className="text-[18px]" />
         </button>
@@ -269,7 +305,10 @@ export default function ImagePreviewModalx({
           type="button"
           onClick={resetToolbar}
           title="Restablecer"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10"
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10 ${
+            !finalSrc ? "opacity-40 cursor-not-allowed" : ""
+          }`}
+          disabled={!finalSrc}
         >
           <Icon icon="lucide:rotate-ccw" className="text-[18px]" />
         </button>
@@ -278,16 +317,21 @@ export default function ImagePreviewModalx({
           type="button"
           onClick={openInNewTab}
           title="Abrir en nueva pestaña"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10"
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10 ${
+            !finalSrc ? "opacity-40 cursor-not-allowed" : ""
+          }`}
+          disabled={!finalSrc}
         >
           <Icon icon="lucide:external-link" className="text-[18px]" />
         </button>
 
         <a
-          href={src}
+          href={finalSrc || undefined}
           download
           title="Descargar"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10"
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10 ${
+            !finalSrc ? "opacity-40 pointer-events-none" : ""
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           <Icon icon="lucide:download" className="text-[18px]" />
@@ -314,23 +358,28 @@ export default function ImagePreviewModalx({
             : "auto",
         }}
       >
-        {/* Capa transformada */}
-        <div
-          ref={contentRef}
-          className="will-change-transform"
-          style={{
-            transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
-            transformOrigin: "center center",
-          }}
-        >
-          <img
-            src={src}
-            alt={alt}
-            draggable={false}
-            className="block h-[92vh] max-h-[92vh] w-auto max-w-[96vw] object-contain rounded-md
-                      border border-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.06)] select-none"
-          />
-        </div>
+        {!finalSrc ? (
+          <div className="px-4 py-3 rounded-xl bg-gray-900/60 border border-white/20 text-white text-[12px]">
+            No hay imagen para mostrar.
+          </div>
+        ) : (
+          <div
+            ref={contentRef}
+            className="will-change-transform"
+            style={{
+              transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+              transformOrigin: "center center",
+            }}
+          >
+            <img
+              src={finalSrc}
+              alt={alt}
+              draggable={false}
+              className="block h-[92vh] max-h-[92vh] w-auto max-w-[96vw] object-contain rounded-md
+                        border border-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.06)] select-none"
+            />
+          </div>
+        )}
       </div>
     </div>,
     document.body

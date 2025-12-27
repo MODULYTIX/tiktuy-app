@@ -5,6 +5,10 @@ import { Icon } from "@iconify/react";
 import Tittlex from "@/shared/common/Tittlex";
 import Buttonx from "@/shared/common/Buttonx";
 
+// ✅ tus componentes
+import ImageUploadx from "@/shared/common/ImageUploadx";
+import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
+
 export type DetalleServicioPedidoItem = {
   id: number;
   fechaEntrega: string | Date | null;
@@ -57,6 +61,20 @@ const isProbablyImageUrl = (url: string) => {
     const ext = (path.split(".").pop() || "").toLowerCase().split("?")[0];
     return ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"].includes(ext);
   };
+
+  try {
+    const u = new URL(clean, window.location.origin);
+    return guessExt(u.pathname);
+  } catch {
+    return guessExt(clean);
+  }
+};
+
+const isPdfUrl = (url: string) => {
+  const clean = String(url || "").trim();
+  if (!clean) return false;
+  const guessExt = (path: string) =>
+    (path.split(".").pop() || "").toLowerCase().split("?")[0] === "pdf";
 
   try {
     const u = new URL(clean, window.location.origin);
@@ -177,8 +195,17 @@ export default function DetalleServiciosDiaModal({
     totals.neto < 0
       ? "text-red-600"
       : totals.neto === 0
-        ? "text-gray70"
-        : "text-gray90";
+      ? "text-gray70"
+      : "text-gray90";
+
+  const handleViewEvidence = (url: string) => {
+    const clean = String(url || "").trim();
+    if (!clean) return;
+
+    // ✅ tu preview modal es para imágenes; PDFs se abren aparte
+    if (isProbablyImageUrl(clean)) setPreviewUrl(clean);
+    else window.open(clean, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="fixed inset-0 z-50">
@@ -275,7 +302,9 @@ export default function DetalleServiciosDiaModal({
                   </div>
 
                   <span className="text-[12px] text-gray60">
-                    {pedido?.metodoPago ? `Pago: ${pedido.metodoPago}` : "Pago: —"}
+                    {pedido?.metodoPago
+                      ? `Pago: ${pedido.metodoPago}`
+                      : "Pago: —"}
                   </span>
                 </div>
 
@@ -294,7 +323,9 @@ export default function DetalleServiciosDiaModal({
                     </div>
 
                     <div className="rounded-xl border border-gray20 bg-white p-3">
-                      <div className="text-[12px] text-gray60">Método de pago</div>
+                      <div className="text-[12px] text-gray60">
+                        Método de pago
+                      </div>
                       <div className="mt-1 text-[13px] font-semibold text-gray90 truncate">
                         {pedido?.metodoPago ?? "-"}
                       </div>
@@ -338,13 +369,20 @@ export default function DetalleServiciosDiaModal({
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="text-[12px] text-gray60">Neto</div>
-                      <div className={["mt-1 text-[18px] font-semibold", netoTone].join(" ")}>
+                      <div
+                        className={[
+                          "mt-1 text-[18px] font-semibold",
+                          netoTone,
+                        ].join(" ")}
+                      >
                         {formatPEN(totals.neto)}
                       </div>
                     </div>
 
                     <div className="text-right">
-                      <div className="text-[12px] text-gray60">Servicio total</div>
+                      <div className="text-[12px] text-gray60">
+                        Servicio total
+                      </div>
                       <div className="mt-1 text-[14px] font-semibold text-gray90">
                         {formatPEN(totals.servicioTotal)}
                       </div>
@@ -364,12 +402,18 @@ export default function DetalleServiciosDiaModal({
               <div className="mt-4 rounded-2xl border border-gray30 bg-white shadow-sm overflow-hidden">
                 <div className="px-4 py-3 bg-gray10 border-b border-gray20 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-gray80 font-semibold text-[12px]">
-                    <Icon icon="mdi:receipt-text-outline" width={18} height={18} />
+                    <Icon
+                      icon="mdi:receipt-text-outline"
+                      width={18}
+                      height={18}
+                    />
                     Evidencia de pago
                   </div>
 
                   {!hasEvidencia ? (
-                    <span className="text-[12px] text-gray60">No registrada</span>
+                    <span className="text-[12px] text-gray60">
+                      No registrada
+                    </span>
                   ) : (
                     <span className="text-[12px] font-semibold text-emerald-700">
                       Registrada
@@ -382,7 +426,11 @@ export default function DetalleServiciosDiaModal({
                     <div className="rounded-xl border-2 border-dashed border-gray30 bg-gray10 px-4 py-4 text-[12px] text-gray70">
                       <div className="flex items-start gap-3">
                         <span className="inline-flex w-9 h-9 items-center justify-center rounded-full bg-white border border-gray20">
-                          <Icon icon="mdi:file-alert-outline" width={18} height={18} />
+                          <Icon
+                            icon="mdi:file-alert-outline"
+                            width={18}
+                            height={18}
+                          />
                         </span>
                         <div className="leading-relaxed">
                           <div className="font-semibold text-gray80">
@@ -395,44 +443,20 @@ export default function DetalleServiciosDiaModal({
                       </div>
                     </div>
                   ) : (
-                    <>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Buttonx
-                          variant="secondary"
-                          label="Ver evidencia"
-                          icon="mdi:eye-outline"
-                          onClick={() => setPreviewUrl(evidenciaUrl)}
-                        />
-
-                        <Buttonx
-                          variant="outlined"
-                          label="Abrir"
-                          icon="mdi:open-in-new"
-                          onClick={() =>
-                            window.open(evidenciaUrl, "_blank", "noopener,noreferrer")
-                          }
-                        />
-
-                        <div className="text-[12px] text-gray60 truncate max-w-[320px]">
-                          {evidenciaUrl}
-                        </div>
-                      </div>
-
-                      {isProbablyImageUrl(evidenciaUrl) && (
-                        <button
-                          type="button"
-                          onClick={() => setPreviewUrl(evidenciaUrl)}
-                          className="mt-4 w-full overflow-hidden rounded-2xl border border-gray20 bg-gray10 hover:bg-gray20 transition"
-                          title="Abrir vista previa"
-                        >
-                          <img
-                            src={evidenciaUrl}
-                            alt="Evidencia"
-                            className="h-[190px] w-full object-cover"
-                          />
-                        </button>
-                      )}
-                    </>
+                    <div className="rounded-xl border border-gray20 bg-white p-3">
+                      {/* ✅ tu componente en modo VER */}
+                      <ImageUploadx
+                        label="Evidencia"
+                        mode="view"
+                        value={evidenciaUrl}
+                        accept="image/*,.pdf"
+                        helperText={isPdfUrl(evidenciaUrl) ? "PDF" : "JPG, PNG"}
+                        onView={handleViewEvidence}
+                        // opcional, por si quieres ocultar acciones:
+                        // showActions
+                      />
+                      
+                    </div>
                   )}
                 </div>
               </div>
@@ -445,77 +469,23 @@ export default function DetalleServiciosDiaModal({
 
         {/* FOOTER sticky */}
         <div className="sticky bottom-0 z-10 bg-white border-t border-gray20 px-5 py-4">
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-start gap-3">
             <Buttonx
               variant="outlined"
               label="Cerrar"
-              icon="mdi:close"
               onClick={onClose}
             />
           </div>
         </div>
-
-        {/* Lightbox */}
-        {previewUrl && (
-          <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
-            onClick={() => setPreviewUrl(null)}
-            aria-modal="true"
-            role="dialog"
-          >
-            <div
-              className="relative w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl border border-gray30"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between border-b border-gray20 px-4 py-3">
-                <div className="text-[12px] font-semibold text-gray80 truncate flex items-center gap-2">
-                  <Icon icon="mdi:image-outline" width={16} height={16} />
-                  Vista previa de evidencia
-                </div>
-                <button
-                  onClick={() => setPreviewUrl(null)}
-                  className="rounded-md p-2 hover:bg-gray10"
-                  aria-label="Cerrar vista previa"
-                  title="Cerrar"
-                >
-                  <Icon icon="mdi:close" width={18} height={18} />
-                </button>
-              </div>
-
-              <div className="max-h-[75vh] overflow-auto bg-gray10">
-                {isProbablyImageUrl(previewUrl) ? (
-                  <img
-                    src={previewUrl}
-                    alt="Evidencia"
-                    className="block max-h-[75vh] w-full object-contain bg-white"
-                  />
-                ) : (
-                  <iframe
-                    src={previewUrl}
-                    className="block h-[75vh] w-full bg-white"
-                    title="Evidencia"
-                  />
-                )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 border-t border-gray20 px-4 py-3">
-                <Buttonx
-                  variant="outlined"
-                  label="Abrir"
-                  icon="mdi:open-in-new"
-                  onClick={() => window.open(previewUrl, "_blank", "noopener,noreferrer")}
-                />
-                <Buttonx
-                  variant="secondary"
-                  label="Cerrar"
-                  icon="mdi:close"
-                  onClick={() => setPreviewUrl(null)}
-                />
-              </div>
-            </div>
-          </div>
-        )}
       </aside>
+
+      {/* ✅ Preview SOLO para imágenes con tu ImagePreviewModalx */}
+      <ImagePreviewModalx
+        open={Boolean(previewUrl)}
+        onClose={() => setPreviewUrl(null)}
+        url={previewUrl ?? ""}
+        title={`Evidencia de pago • Pedido #${pedido?.id ?? "—"}`}
+      />
     </div>
   );
 }
