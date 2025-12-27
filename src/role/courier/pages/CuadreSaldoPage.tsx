@@ -102,7 +102,7 @@ const CuadreSaldoPage: React.FC = () => {
 
           <Buttonx
             label="Repartidor"
-            icon="mynaui:bike"
+            icon="hugeicons:motorbike-02"
             variant={tab === "REPARTIDOR" ? "secondary" : "tertiary"}
             onClick={() => setTab("REPARTIDOR")}
           />
