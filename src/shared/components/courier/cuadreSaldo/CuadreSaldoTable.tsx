@@ -5,15 +5,18 @@ import {
   updateServicio,
   updateServicioCourier,
   abonarPedidos,
+  getDetalleServiciosDia, // ✅ IMPORTANTE
 } from "@/services/courier/cuadre_saldo/cuadreSaldo.api";
 import type {
   ListPedidosParams,
   PedidoListItem,
+  DetalleServicioPedidoItem,
 } from "@/services/courier/cuadre_saldo/cuadreSaldo.types";
 
 import Tittlex from "@/shared/common/Tittlex";
 import { InputxNumber, InputxTextarea } from "@/shared/common/Inputx";
 import TableActionx from "@/shared/common/TableActionx";
+import DetalleServiciosDiaModal from "@/shared/components/courier/cuadreSaldo/DetalleServiciosDiaModal";
 
 /* ============== helpers ============== */
 const formatPEN = (v: number) =>
@@ -32,6 +35,17 @@ const toDMY = (iso?: string | Date | null) => {
 };
 
 const todayDMY = () => toDMY(new Date());
+
+/** extrae YYYY-MM-DD desde fechaEntrega */
+const toYMDFromFechaEntrega = (iso?: string | Date | null) => {
+  if (!iso) return null;
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  if (!Number.isFinite(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 /* ============== Modal Confirmar Abono ============== */
 type ConfirmAbonoModalProps = {
@@ -190,8 +204,8 @@ const EditServicioModal: React.FC<EditModalProps> = ({
       setMontoCour(
         String(
           (pedido as any).servicioCourier ??
-          (pedido as any).servicioCourierEfectivo ??
-          0
+            (pedido as any).servicioCourierEfectivo ??
+            0
         )
       );
     }
@@ -331,6 +345,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
 type Props = {
   token: string;
   motorizadoId?: number;
+  sedeId?: number;
   desde?: string;
   hasta?: string;
   pageSize?: number;
@@ -343,16 +358,23 @@ type Props = {
   }) => void;
 
   exposeActions?: (actions: { openAbonarSeleccionados: () => void }) => void;
+
+  // opcional para el modal (si quieres mostrar nombres)
+  sedeNombre?: string;
+  motorizadoNombre?: string;
 };
 
 const CuadreSaldoTable: React.FC<Props> = ({
   token,
   motorizadoId,
+  sedeId,
   desde,
   hasta,
   pageSize = 10,
   onSelectionChange,
   exposeActions,
+  sedeNombre,
+  motorizadoNombre,
 }) => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -366,12 +388,22 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const [openEdit, setOpenEdit] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
 
+  // ✅ MODAL OJITO (detalle)
+  const [openDetalle, setOpenDetalle] = useState(false);
+  const [detalleLoading, setDetalleLoading] = useState(false);
+  const [detalleFecha, setDetalleFecha] = useState<string>("");
+  const [detallePedidoId, setDetallePedidoId] = useState<number | null>(null);
+  const [detalleItems, setDetalleItems] = useState<DetalleServicioPedidoItem[]>(
+    []
+  );
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const params: ListPedidosParams = {
         motorizadoId,
+        sedeId,
         desde,
         hasta,
         page,
@@ -382,24 +414,24 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
       setRows(resp.items);
       setTotal(resp.total ?? resp.items.length);
-      // ⛔ NO limpiar selectedIds aquí (para no perder selección al paginar)
-
+      // ⛔ NO limpiar selectedIds aquí
     } catch (e) {
       console.error(e);
       setError("Error al obtener pedidos finalizados");
     } finally {
       setLoading(false);
     }
-  }, [token, motorizadoId, desde, hasta, page, pageSize]);
+  }, [token, motorizadoId, sedeId, desde, hasta, page, pageSize]);
+
   useEffect(() => {
     setPage(1);
     setSelectedIds([]);
-  }, [motorizadoId, desde, hasta, pageSize]);
+  }, [motorizadoId, sedeId, desde, hasta, pageSize]);
 
   useEffect(() => {
     void load();
   }, [load]);
-  
+
   const onSavedServicio = useCallback((chg: EditModalChange) => {
     setRows((prev) =>
       prev.map((r) => {
@@ -447,10 +479,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     () =>
       rows
         .filter((r) => selectedIds.includes(r.id))
-        .reduce(
-          (acc: number, r: any) => acc + Number(r.servicioEfectivo ?? 0),
-          0
-        ),
+        .reduce((acc: number, r: any) => acc + Number(r.servicioEfectivo ?? 0), 0),
     [rows, selectedIds]
   );
 
@@ -458,7 +487,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     async (row: any) => {
       try {
         const next = !row.abonado;
-        await abonarPedidos(token, { pedidoIds: [row.id], abonado: next });
+        await abonarPedidos(token, { pedidoIds: [row.id], abonado: next, sedeId });
         setRows((prev) =>
           prev.map((r: any) => (r.id === row.id ? { ...r, abonado: next } : r))
         );
@@ -468,7 +497,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
         alert("No se pudo actualizar el abono.");
       }
     },
-    [token]
+    [token, sedeId]
   );
 
   const abrirModalAbono = useCallback(() => {
@@ -482,6 +511,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
       await abonarPedidos(token, {
         pedidoIds: selectedIds,
         abonado: true,
+        sedeId,
       });
       setRows((prev) =>
         prev.map((r: any) =>
@@ -496,7 +526,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     } finally {
       setLoading(false);
     }
-  }, [token, selectedIds]);
+  }, [token, selectedIds, sedeId]);
 
   useEffect(() => {
     if (!exposeActions) return;
@@ -513,12 +543,43 @@ const CuadreSaldoTable: React.FC<Props> = ({
       loading,
       canAbonar: selectedIds.length > 0 && !loading,
     });
-  }, [
-    onSelectionChange,
-    selectedIds.length,
-    totalServicioSeleccionado,
-    loading,
-  ]);
+  }, [onSelectionChange, selectedIds.length, totalServicioSeleccionado, loading]);
+
+  // ✅ OJITO: abre detalle SOLO del pedido clickeado
+  const onViewDetallePedido = useCallback(
+    async (row: PedidoListItem) => {
+      const fechaYMD = toYMDFromFechaEntrega(row.fechaEntrega);
+      if (!fechaYMD) {
+        alert("El pedido no tiene fecha de entrega válida.");
+        return;
+      }
+
+      setDetallePedidoId(row.id);
+      setDetalleFecha(fechaYMD);
+      setOpenDetalle(true);
+      setDetalleLoading(true);
+      setDetalleItems([]);
+
+      try {
+        const resp = await getDetalleServiciosDia(token, {
+          fecha: fechaYMD,
+          sedeId,
+          motorizadoId,
+        });
+
+        // ✅ IMPORTANTÍSIMO: el modal filtrará por pedidoId,
+        // pero igual dejamos la lista completa por si quieres reusar.
+        setDetalleItems((resp as any).items ?? []);
+      } catch (e) {
+        console.error(e);
+        alert("No se pudo obtener el detalle del día.");
+        setOpenDetalle(false);
+      } finally {
+        setDetalleLoading(false);
+      }
+    },
+    [token, sedeId, motorizadoId]
+  );
 
   return (
     <div className="mt-5 flex flex-col gap-3">
@@ -536,12 +597,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 <col className="w-[6%]" />
                 <col className="w-[12%]" />
                 <col className="w-[16%]" />
-                <col className="w-[12%]" /> {/* ✅ Distrito */}
+                <col className="w-[12%]" /> {/* Distrito */}
                 <col className="w-[14%]" />
                 <col className="w-[12%]" />
                 <col className="w-[18%]" />
                 <col className="w-[10%]" />
-                <col className="w-[8%]" />
+                <col className="w-[10%]" /> {/* ✅ acciones un poco más */}
               </colgroup>
 
               <thead className="bg-[#E5E7EB]">
@@ -557,7 +618,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                   </th>
                   <th className="px-4 py-3 text-left">Fec. Entrega</th>
                   <th className="px-4 py-3 text-left">Cliente</th>
-                  <th className="px-4 py-3 text-left">Distrito</th> {/* ✅ */}
+                  <th className="px-4 py-3 text-left">Distrito</th>
                   <th className="px-4 py-3 text-left">Método de pago</th>
                   <th className="px-4 py-3 text-left">Monto</th>
                   <th className="px-4 py-3 text-left">Servicio motorizado</th>
@@ -570,7 +631,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 {rows.length === 0 ? (
                   <tr className="hover:bg-transparent">
                     <td
-                      colSpan={9} // ✅ antes 8
+                      colSpan={9}
                       className="px-4 py-8 text-center italic text-gray70"
                     >
                       Sin resultados para el filtro seleccionado.
@@ -580,11 +641,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
                   rows.map((r: any) => {
                     const checked = selectedIds.includes(r.id);
                     const disableCheck = r.abonado;
+
                     return (
-                      <tr
-                        key={r.id}
-                        className="transition-colors hover:bg-gray10"
-                      >
+                      <tr key={r.id} className="transition-colors hover:bg-gray10">
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
@@ -596,22 +655,13 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           />
                         </td>
 
-                        <td className="px-4 py-3 text-gray70">
-                          {toDMY(r.fechaEntrega)}
-                        </td>
+                        <td className="px-4 py-3 text-gray70">{toDMY(r.fechaEntrega)}</td>
                         <td className="px-4 py-3 text-gray70">{r.cliente}</td>
 
-                        {/* ✅ Distrito */}
-                        <td className="px-4 py-3 text-gray70">
-                          {r.distrito ?? "-"}
-                        </td>
+                        <td className="px-4 py-3 text-gray70">{r.distrito ?? "-"}</td>
 
-                        <td className="px-4 py-3 text-gray70">
-                          {r.metodoPago ?? "-"}
-                        </td>
-                        <td className="px-4 py-3 text-gray70">
-                          {formatPEN(r.monto)}
-                        </td>
+                        <td className="px-4 py-3 text-gray70">{r.metodoPago ?? "-"}</td>
+                        <td className="px-4 py-3 text-gray70">{formatPEN(r.monto)}</td>
 
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
@@ -635,9 +685,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                                 ? "bg-emerald-600 text-white"
                                 : "bg-gray-200 text-gray-900",
                             ].join(" ")}
-                            title={
-                              r.abonado ? "Quitar abono" : "Marcar abonado"
-                            }
+                            title={r.abonado ? "Quitar abono" : "Marcar abonado"}
                           >
                             {r.abonado ? "Abonado" : "Sin abonar"}
                           </button>
@@ -645,6 +693,14 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
+                            {/* ✅ OJITO: ver SOLO este pedido */}
+                            <TableActionx
+                              variant="view"
+                              title="Ver detalle del servicio (solo este pedido)"
+                              onClick={() => onViewDetallePedido(r)}
+                              size="sm"
+                            />
+
                             {!r.abonado && (
                               <TableActionx
                                 variant="edit"
@@ -681,6 +737,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
           </div>
         </section>
       </div>
+
       {/* PAGINADOR */}
       {totalPages > 1 && (
         <div className="flex items-center justify-end gap-1 border-t border-gray30 bg-white px-3 py-3 rounded-b-md">
@@ -693,10 +750,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
           </button>
 
           {Array.from({ length: totalPages }, (_, i) => i + 1)
-            .slice(
-              Math.max(0, page - 3),
-              Math.min(totalPages, page + 2)
-            )
+            .slice(Math.max(0, page - 3), Math.min(totalPages, page + 2))
             .map((p) => (
               <button
                 key={p}
@@ -749,6 +803,18 @@ const CuadreSaldoTable: React.FC<Props> = ({
         resumenRight={todayDMY()}
         onCancel={() => setOpenConfirm(false)}
         onConfirm={confirmarAbono}
+      />
+
+      {/* ✅ Modal de detalle (OJITO) */}
+      <DetalleServiciosDiaModal
+        open={openDetalle}
+        onClose={() => setOpenDetalle(false)}
+        fecha={detalleFecha}
+        sedeNombre={sedeNombre}
+        motorizadoNombre={motorizadoNombre}
+        items={detalleItems as any}
+        loading={detalleLoading}
+        pedidoId={detallePedidoId} // ✅ CLAVE: filtra por el pedido clickeado
       />
     </div>
   );

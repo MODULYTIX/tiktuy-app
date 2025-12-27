@@ -6,20 +6,30 @@ import type {
   UpdateServicioCourierPayload,
   AbonarPayload,
   ListMotorizadosResp,
+  ListSedesCuadreResp,
+  DetalleServiciosDiaParams,
+  DetalleServiciosDiaResp,
 } from "./cuadreSaldo.types";
 
 /* ================== Config / Helpers ================== */
-const BASE_URL = `${import.meta.env.VITE_API_URL ?? "http://localhost:4000"}`.replace(/\/$/, "");
+const BASE_URL = `${import.meta.env.VITE_API_URL ?? "http://localhost:4000"}`.replace(
+  /\/$/,
+  ""
+);
 
 /** Build URL with query params (omite undefined/null/"") */
 function withQuery(
   basePath: string,
   params: Record<string, string | number | boolean | undefined | null>
 ) {
-  const url = new URL(basePath, BASE_URL);
+  // ✅ soporta basePath con o sin "/"
+  const path = basePath.startsWith("/") ? basePath : `/${basePath}`;
+  const url = new URL(path, BASE_URL);
+
   Object.entries(params).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
   });
+
   return url.toString();
 }
 
@@ -44,7 +54,9 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
           j.message ||
           j.error ||
           j.detail ||
-          (Array.isArray(j.errors) && j.errors.length && (j.errors[0].message || j.errors[0])) ||
+          (Array.isArray(j.errors) &&
+            j.errors.length &&
+            (j.errors[0]?.message || j.errors[0])) ||
           msg;
       } else if (text) {
         msg = text;
@@ -66,18 +78,37 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
 /* ================== API Calls ================== */
 
 /** GET /courier/cuadre-saldo/pedidos */
-export async function listPedidos(
-  token: string,
-  params: ListPedidosParams
-): Promise<ListPedidosResp> {
+export async function listPedidos(token: string, params: ListPedidosParams): Promise<ListPedidosResp> {
   if (!token) throw new Error("Token vacío: no se envió Authorization.");
+
   const url = withQuery("/courier/cuadre-saldo/pedidos", {
     motorizadoId: params.motorizadoId,
+    sedeId: params.sedeId, // ✅
     desde: params.desde,
     hasta: params.hasta,
     page: params.page ?? 1,
     pageSize: params.pageSize ?? 10,
   });
+
+  return request<ListPedidosResp>(url, { headers: authHeaders(token) });
+}
+
+/** (alias) GET /courier/cuadre-saldo */
+export async function listPedidosAlias(
+  token: string,
+  params: ListPedidosParams
+): Promise<ListPedidosResp> {
+  if (!token) throw new Error("Token vacío: no se envió Authorization.");
+
+  const url = withQuery("/courier/cuadre-saldo", {
+    motorizadoId: params.motorizadoId,
+    sedeId: params.sedeId,
+    desde: params.desde,
+    hasta: params.hasta,
+    page: params.page ?? 1,
+    pageSize: params.pageSize ?? 10,
+  });
+
   return request<ListPedidosResp>(url, { headers: authHeaders(token) });
 }
 
@@ -85,10 +116,11 @@ export async function listPedidos(
 export async function updateServicio(
   token: string,
   pedidoId: number,
-  payload: UpdateServicioPayload // { servicio: number; motivo?: string }
+  payload: UpdateServicioPayload
 ): Promise<{ id: number; servicio: number | null; motivo?: string | null }> {
   if (!token) throw new Error("Token vacío: no se envió Authorization.");
-  if (!pedidoId) throw new Error("pedidoId es requerido.");
+  if (!Number.isFinite(pedidoId) || pedidoId <= 0) throw new Error("pedidoId es requerido.");
+
   const url = `${BASE_URL}/courier/cuadre-saldo/pedidos/${pedidoId}/servicio`;
 
   return request(url, {
@@ -102,10 +134,11 @@ export async function updateServicio(
 export async function updateServicioCourier(
   token: string,
   pedidoId: number,
-  payload: UpdateServicioCourierPayload 
+  payload: UpdateServicioCourierPayload
 ): Promise<{ id: number; servicioCourier: number | null }> {
   if (!token) throw new Error("Token vacío: no se envió Authorization.");
-  if (!pedidoId) throw new Error("pedidoId es requerido.");
+  if (!Number.isFinite(pedidoId) || pedidoId <= 0) throw new Error("pedidoId es requerido.");
+
   const url = `${BASE_URL}/courier/cuadre-saldo/pedidos/${pedidoId}/servicio-courier`;
 
   return request(url, {
@@ -118,10 +151,11 @@ export async function updateServicioCourier(
 /** PUT /courier/cuadre-saldo/abonar */
 export async function abonarPedidos(
   token: string,
-  payload: AbonarPayload // { pedidoIds: number[]; abonado: boolean }
+  payload: AbonarPayload
 ): Promise<{ updated: number; abonado: boolean; totalServicioSeleccionado: number }> {
   if (!token) throw new Error("Token vacío: no se envió Authorization.");
   if (!payload?.pedidoIds?.length) throw new Error("pedidoIds no puede estar vacío.");
+
   const url = `${BASE_URL}/courier/cuadre-saldo/abonar`;
 
   return request(url, {
@@ -131,15 +165,51 @@ export async function abonarPedidos(
   });
 }
 
-/** GET /courier/cuadre-saldo/motorizados */
+/**
+ * GET /courier/cuadre-saldo/motorizados
+ * ✅ IMPORTANTE: devolvemos SIEMPRE un ARRAY para que `motorizados.map(...)` no reviente.
+ */
 export async function listMotorizados(token: string): Promise<ListMotorizadosResp> {
   if (!token) throw new Error("Token vacío: no se envió Authorization.");
   const url = `${BASE_URL}/courier/cuadre-saldo/motorizados`;
 
-  // Puede venir como { items: [...] } o como [...]
   const resp = await request<any>(url, { headers: authHeaders(token) });
-  if (Array.isArray(resp)) return resp as ListMotorizadosResp;
+
+  // controller: { items: [...] } (recomendado)
   if (resp && Array.isArray(resp.items)) return resp.items as ListMotorizadosResp;
-  return [];
+
+  // compat: [...]
+  if (Array.isArray(resp)) return resp as ListMotorizadosResp;
+
+  // compat rara: { data: [...] }
+  if (resp && Array.isArray(resp.data)) return resp.data as ListMotorizadosResp;
+
+  return [] as ListMotorizadosResp;
 }
 
+/** GET /courier/cuadre-saldo/sedes */
+export async function listSedesCuadre(token: string): Promise<ListSedesCuadreResp> {
+  if (!token) throw new Error("Token vacío: no se envió Authorization.");
+  const url = `${BASE_URL}/courier/cuadre-saldo/sedes`;
+  return request<ListSedesCuadreResp>(url, { headers: authHeaders(token) });
+}
+
+/**
+ * ✅ NUEVO
+ * GET /courier/cuadre-saldo/detalle-servicios-dia?fecha=YYYY-MM-DD&sedeId?&motorizadoId?
+ */
+export async function getDetalleServiciosDia(
+  token: string,
+  params: DetalleServiciosDiaParams
+): Promise<DetalleServiciosDiaResp> {
+  if (!token) throw new Error("Token vacío: no se envió Authorization.");
+  if (!params?.fecha) throw new Error("fecha es requerida (YYYY-MM-DD).");
+
+  const url = withQuery("/courier/cuadre-saldo/detalle-servicios-dia", {
+    fecha: params.fecha,
+    sedeId: params.sedeId,
+    motorizadoId: params.motorizadoId,
+  });
+
+  return request<DetalleServiciosDiaResp>(url, { headers: authHeaders(token) });
+}

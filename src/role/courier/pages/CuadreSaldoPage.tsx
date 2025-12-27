@@ -18,6 +18,14 @@ const toYMD = (d: Date) =>
 const todayLocal = () => toYMD(new Date());
 const getToken = () => localStorage.getItem("token") ?? "";
 
+/** Normaliza cualquier shape raro a array de motorizados */
+function normalizeMotorizados(input: any): MotorizadoItem[] {
+  if (Array.isArray(input)) return input as MotorizadoItem[];
+  if (input && Array.isArray(input.items)) return input.items as MotorizadoItem[];
+  if (input && Array.isArray(input.data)) return input.data as MotorizadoItem[]; // por si tu wrapper usa data
+  return [];
+}
+
 /* ============== Página ============== */
 type Tab = "ECOMMERCE" | "REPARTIDOR";
 
@@ -50,14 +58,19 @@ const CuadreSaldoPage: React.FC = () => {
     const run = async () => {
       try {
         setLoadingMotorizados(true);
-        const data = await listMotorizados(token);
-        setMotorizados(data);
-      } catch {
-        // opcional: mostrar toast
+
+        const resp: any = await listMotorizados(token);
+        const arr = normalizeMotorizados(resp);
+
+        setMotorizados(arr);
+      } catch (e) {
+        console.error("Error listMotorizados:", e);
+        setMotorizados([]); // ✅ garantiza array
       } finally {
         setLoadingMotorizados(false);
       }
     };
+
     if (token) void run();
   }, [token]);
 
@@ -69,7 +82,7 @@ const CuadreSaldoPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap 5 pt-8">
+    <div className="flex flex-col gap-5 pt-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <Tittlex
@@ -126,9 +139,11 @@ const CuadreSaldoPage: React.FC = () => {
               placeholder={
                 loadingMotorizados ? "Cargando..." : "Seleccionar motorizado"
               }
+              className="w-full"
             >
               <option value="">— Seleccionar motorizado —</option>
-              {motorizados.map((m) => (
+
+              {(Array.isArray(motorizados) ? motorizados : []).map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.nombre}
                 </option>
@@ -141,6 +156,7 @@ const CuadreSaldoPage: React.FC = () => {
               value={repDesde}
               onChange={(e) => setRepDesde(e.target.value)}
               placeholder="dd/mm/aaaa"
+              className="w-full"
             />
 
             <SelectxDate
@@ -149,6 +165,7 @@ const CuadreSaldoPage: React.FC = () => {
               value={repHasta}
               onChange={(e) => setRepHasta(e.target.value)}
               placeholder="dd/mm/aaaa"
+              className="w-full"
             />
 
             <Buttonx
@@ -164,7 +181,9 @@ const CuadreSaldoPage: React.FC = () => {
           {token && (
             <RepartidorTable
               token={token}
-              motorizadoId={motorizadoId === "" ? undefined : Number(motorizadoId)}
+              motorizadoId={
+                motorizadoId === "" ? undefined : Number(motorizadoId)
+              }
               desde={repDesde}
               hasta={repHasta}
               // recibe updates de selección y loading
