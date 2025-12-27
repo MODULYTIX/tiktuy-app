@@ -289,10 +289,13 @@ export default function TableStockProductoCourier({
                           </td>
 
                           <td className="px-4 py-3 text-gray70 font-normal">
-                            {p.almacenamiento?.nombre_almacen || (
-                              <span className="italic text-gray-400">-</span>
-                            )}
+                            {filters.ecommerceOrigenId
+                              ? p.ecommerce_origen_nombre
+                              : p.almacenamiento?.nombre_almacen || (
+                                <span className="italic text-gray-400">-</span>
+                              )}
                           </td>
+
 
                           {/* aquí ya queda con el formato del stock del código base */}
                           <td className="px-4 py-3">{renderStock(p)}</td>
