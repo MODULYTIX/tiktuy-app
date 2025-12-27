@@ -260,7 +260,7 @@ type Props = {
   hasta?: string;
   triggerValidate?: number;
 
-  // ✅ para que el header deshabilite/habilite
+  //  para que el header deshabilite/habilite
   onSelectionCountChange?: (count: number) => void;
 };
 
@@ -272,7 +272,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
   onSelectionCountChange,
 }) => {
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize] = useState(6);
 
   const [items, setItems] = useState<CuadreResumenItem[]>([]);
   const [total, setTotal] = useState(0);
