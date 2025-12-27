@@ -219,16 +219,18 @@ export default function TableStockProductoCourier({
         <section className="flex-1 overflow-auto">
           <div className="overflow-x-auto bg-white">
             <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
+              {/* Miniatura | Código | Producto | Sede | Stock | Precio | Estado | Acciones */}
               <colgroup>
-                <col className="w-[8%]" /> {/* Miniatura */}
-                <col className="w-[12%]" /> {/* Código */}
-                <col className="w-[32%]" /> {/* Producto */}
-                <col className="w-[18%]" /> {/* Sede */}
-                <col className="w-[14%]" /> {/* Stock */}
-                <col className="w-[12%]" /> {/* Precio */}
-                <col className="w-[6%]" /> {/* Estado */}
-                <col className="w-[6%]" /> {/* Acciones */}
+                <col className="w-[8%]" />
+                <col className="w-[12%]" />
+                <col className="w-[32%]" />
+                <col className="w-[18%]" />
+                <col className="w-[14%]" />
+                <col className="w-[12%]" />
+                <col className="w-[6%]" />
+                <col className="w-[6%]" />
               </colgroup>
+
 
               <thead className="bg-[#E5E7EB]">
                 <tr className="text-gray70 font-roboto font-medium">
