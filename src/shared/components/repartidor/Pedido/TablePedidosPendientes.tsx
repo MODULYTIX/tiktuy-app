@@ -52,7 +52,7 @@ export default function TablePedidosPendientes(props: Props) {
       onCambiarEstado={props.onCambiarEstado}
       fetcher={fetcher}
       title="Pedidos Pendientes"
-      subtitle="Pedidos en gestión (recepcionará hoy / reprogramado)."
+      subtitle="Pedidos en gestión."
     />
   );
 }

@@ -146,7 +146,7 @@ export default function PedidosPage() {
         px-3 sm:px-4 lg:px-0
       "
     >
-      <header className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between min-w-0 pb-5 border-b border-gray30">
+      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between min-w-0 pb-5 border-b border-gray30">
         <div className="text-center md:text-left min-w-0">
           <Tittlex
             title="Mis Pedidos"
@@ -158,7 +158,7 @@ export default function PedidosPage() {
         <nav className="w-full md:w-auto min-w-0">
           <div
             className="
-              flex flex-wrap items-center justify-center gap-2
+              flex flex-wrap items-end justify-center gap-3
               md:flex-nowrap md:justify-end
               w-full md:w-auto min-w-0
               -mx-3 px-3 sm:-mx-4 sm:px-4 md:mx-0 md:px-0
@@ -170,12 +170,18 @@ export default function PedidosPage() {
               variant={vista === "asignados" ? "secondary" : "tertiary"}
               onClick={() => setVista("asignados")}
             />
+
+            <span className="w-[1px] h-10 bg-gray40" />
+
             <Buttonx
               label="Pendientes"
               icon="mdi:clock-outline"
               variant={vista === "pendientes" ? "secondary" : "tertiary"}
               onClick={() => setVista("pendientes")}
             />
+
+            <span className="w-[1px] h-10 bg-gray40" />
+
             <Buttonx
               label="Terminados"
               icon="mdi:clipboard-check-outline"
@@ -187,7 +193,7 @@ export default function PedidosPage() {
       </header>
 
       {/* Tablas */}
-      <div className="my-4 md:my-8 w-full min-w-0">
+      <div className="my-4 md:my-7 w-full min-w-0">
         {view === "hoy" && (
           <TablePedidosHoy
             token={token}

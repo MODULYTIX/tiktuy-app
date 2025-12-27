@@ -66,7 +66,7 @@ export default function PedidosPage() {
           description="Administra y visualiza el estado de tus pedidos en cada etapa del proceso"
         />
 
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-3 items-end">
           <Buttonx
             label="Asignados"
             icon="solar:bill-list-broken"

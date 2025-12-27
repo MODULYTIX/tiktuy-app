@@ -295,7 +295,6 @@ export default function BaseTablaPedidos({
       {/* Encabezado */}
       <Tittlex variant="section" title={title} description={subtitle} />
 
-
       <div className="bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 my-5 min-w-0">
         <div className="grid gap-4 min-w-0">
           {/* ===== Fila 1 ===== */}

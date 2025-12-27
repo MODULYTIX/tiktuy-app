@@ -84,19 +84,21 @@ const CuadreSaldoPage: React.FC = () => {
   return (
     <div className="flex flex-col gap-5 pt-8">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-5 flex items-end justify-between pb-5 border-b border-gray30">
         <Tittlex
           title="Cuadre de Saldo"
           description="Monitorea lo recaudado en el día"
         />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-end gap-3">
           <Buttonx
             label="Ecommerce"
             icon="mynaui:store"
             variant={tab === "ECOMMERCE" ? "secondary" : "tertiary"}
             onClick={() => setTab("ECOMMERCE")}
           />
+
+          <span className="w-[1px] h-10 bg-gray40" />
 
           <Buttonx
             label="Repartidor"

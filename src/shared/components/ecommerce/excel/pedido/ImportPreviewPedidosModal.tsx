@@ -31,7 +31,14 @@ type SedeOptionRaw = {
   ciudad: string | null;
 };
 
+
 const productoKey = (gIdx: number, iIdx: number) => `${gIdx}-${iIdx}`;
+
+function dateOnlyToPeruISO(dateOnly: string) {
+  const [y, m, d] = dateOnly.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 5, 0, 0)).toISOString(); // ✅ Perú
+}
+
 
 export default function ImportPreviewPedidosModal({
   open,
@@ -48,7 +55,12 @@ export default function ImportPreviewPedidosModal({
   onImported: () => void;
 }) {
   // ---------- estado base ----------
-  const [groups, setGroups] = useState<PreviewGroupDTO[]>(data.preview);
+  const [groups, setGroups] = useState<PreviewGroupDTO[]>(
+    data.preview.map((g) => ({
+      ...g,
+      monto_editado: false,
+    }))
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +75,6 @@ export default function ImportPreviewPedidosModal({
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
-      .replace(/s\b/g, '')
       .replace(/\s+/g, ' ')
       .trim();
 
@@ -281,8 +292,9 @@ export default function ImportPreviewPedidosModal({
         return {
           ...g,
           items: newItems,
-          monto_total: total,
+          monto_total: g.monto_editado ? g.monto_total : total,
         };
+
       })
     );
   };
@@ -357,7 +369,7 @@ export default function ImportPreviewPedidosModal({
               total += cantidad * precio;
             }
 
-            return total;
+            return g.monto_editado ? g.monto_total : total;
           })(),
         };
       })
@@ -390,7 +402,7 @@ export default function ImportPreviewPedidosModal({
       ...g,
       monto_total: Number(g.monto_total ?? 0),
       fecha_entrega: g.fecha_entrega
-        ? new Date(g.fecha_entrega).toISOString()
+        ? dateOnlyToPeruISO(g.fecha_entrega.slice(0, 10))
         : '',
     };
   }
@@ -537,16 +549,16 @@ export default function ImportPreviewPedidosModal({
           <thead>
             <tr className="sticky top-0 z-10 bg-[#F3F6FA] text-xs font-semibold text-gray-600">
               <th className="border-b border-gray-200 px-2 py-3" />
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Nombre</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Distrito</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Celular</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Dirección</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Referencia</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Sede</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">Producto</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-right">Cantidad</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-right">Monto</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-left">
+              <th className="border-b border-gray-200 px-3 py-3 text-center">Nombre</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-center">Distrito</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-center">Celular</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-center">Dirección</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-center">Referencia</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-center">Sede</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-center">Producto</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-center">Cantidad</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-center">Monto</th>
+              <th className="border-b border-gray-200 px-3 py-3 text-center">
                 Fec. Entrega
               </th>
             </tr>
@@ -750,8 +762,12 @@ export default function ImportPreviewPedidosModal({
                       step="0.01"
                       value={g.monto_total ?? 0}
                       onChange={(e) =>
-                        patchGroup(gi, { monto_total: Number(e.target.value) })
+                        patchGroup(gi, {
+                          monto_total: Number(e.target.value),
+                          monto_editado: true,
+                        })
                       }
+
                       className={`w-full bg-transparent border border-transparent rounded
   px-2 h-10
   text-right text-base leading-tight

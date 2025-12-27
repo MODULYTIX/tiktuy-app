@@ -61,23 +61,13 @@ function toDateOnly(val: string | Date): string {
   }).format(d);
 }
 
-/**
- * ✅ Suma días a un YYYY-MM-DD sin depender del timezone del navegador.
- * Usamos UTC para no tener “-1 día” por offsets.
- */
-function addDaysYMD(ymd: string, days: number): string {
-  const [y, m, d] = ymd.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  dt.setUTCDate(dt.getUTCDate() + days);
-  return dt.toISOString().slice(0, 10); // YYYY-MM-DD
-}
 
 function toQueryHoy(q: ListPedidosHoyQuery = {}): string {
   const sp = new URLSearchParams();
   if (q.page !== undefined) sp.set("page", String(q.page));
   if (q.perPage !== undefined) sp.set("perPage", String(q.perPage));
 
-  // ✅ Rango opcional para /hoy (lo dejamos tal cual porque a ti te funciona bien)
+  // Rango opcional para /hoy (lo dejamos tal cual porque a ti te funciona bien)
   if (q.desde !== undefined) sp.set("desde", toDateOnly(q.desde));
   if (q.hasta !== undefined) sp.set("hasta", toDateOnly(q.hasta));
 
@@ -86,34 +76,30 @@ function toQueryHoy(q: ListPedidosHoyQuery = {}): string {
 }
 
 /**
- * ✅ FIX: para pendientes/terminados/etc
  * Tu backend está interpretando `hasta` como límite no inclusivo / inicio de día.
  * Entonces enviamos `hasta = (hasta + 1 día)` para que sea inclusivo.
  *
  * Ej:
- * UI: desde=20, hasta=20  -> API manda hasta=21  -> aparecen los del 20 ✅
+ * UI: desde=20, hasta=20  -> API manda hasta=21  -> aparecen los del 20 
  */
-function toQueryEstado(q: ListByEstadoQuery = {}): string {
+function toQueryEstado(q: ListByEstadoQuery = {}) {
   const sp = new URLSearchParams();
+
   if (q.page !== undefined) sp.set("page", String(q.page));
   if (q.perPage !== undefined) sp.set("perPage", String(q.perPage));
 
   if (q.desde !== undefined) {
-    const desde = toDateOnly(q.desde);
-    sp.set("desde", desde);
+    sp.set("desde", toDateOnly(q.desde));
   }
 
   if (q.hasta !== undefined) {
-    const hasta = toDateOnly(q.hasta);
-    const hastaMasUno = addDaysYMD(hasta, 1); // ✅ clave
-    sp.set("hasta", hastaMasUno);
+    sp.set("hasta", toDateOnly(q.hasta)); 
   }
 
-  if (q.sortBy !== undefined) sp.set("sortBy", q.sortBy);
-  if (q.order !== undefined) sp.set("order", q.order);
+  if (q.sortBy) sp.set("sortBy", q.sortBy);
+  if (q.order) sp.set("order", q.order);
 
-  const s = sp.toString();
-  return s ? `?${s}` : "";
+  return `?${sp.toString()}`;
 }
 
 function hasMessage(v: unknown): v is { message: string } {
