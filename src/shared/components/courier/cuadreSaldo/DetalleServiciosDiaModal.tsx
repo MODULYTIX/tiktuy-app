@@ -24,18 +24,18 @@ type Props = {
   open: boolean;
   onClose: () => void;
 
-  // ✅ requerido por tu flujo
+  // requerido por tu flujo
   fecha: string; // YYYY-MM-DD
 
-  // ✅ opcionales para mostrar
+  // opcionales para mostrar
   sedeNombre?: string;
   motorizadoNombre?: string;
 
-  // ✅ lista (puede venir todo el día)
+  // lista (puede venir todo el día)
   items: DetalleServicioPedidoItem[];
   loading?: boolean;
 
-  // ✅ si quieres mostrar SOLO el pedido clickeado
+  // si quieres mostrar SOLO el pedido clickeado
   pedidoId?: number | null;
 };
 
@@ -81,7 +81,7 @@ export default function DetalleServiciosDiaModal({
     if (!open) setPreviewUrl(null);
   }, [open]);
 
-  // ✅ Solo el pedido seleccionado (estilo “Detalle del pedido”)
+  // Solo el pedido seleccionado (estilo “Detalle del pedido”)
   const pedido = useMemo(() => {
     if (!pedidoId) return items?.[0] ?? null;
     return items.find((x) => x.id === pedidoId) ?? null;

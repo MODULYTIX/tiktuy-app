@@ -5,7 +5,7 @@ import {
   updateServicio,
   updateServicioCourier,
   abonarPedidos,
-  getDetalleServiciosDia, // ✅ IMPORTANTE
+  getDetalleServiciosDia, // IMPORTANTE
 } from "@/services/courier/cuadre_saldo/cuadreSaldo.api";
 import type {
   ListPedidosParams,
@@ -388,7 +388,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const [openEdit, setOpenEdit] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
 
-  // ✅ MODAL OJITO (detalle)
+  // MODAL OJITO (detalle)
   const [openDetalle, setOpenDetalle] = useState(false);
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [detalleFecha, setDetalleFecha] = useState<string>("");
@@ -414,7 +414,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
       setRows(resp.items);
       setTotal(resp.total ?? resp.items.length);
-      // ⛔ NO limpiar selectedIds aquí
+      // NO limpiar selectedIds aquí
     } catch (e) {
       console.error(e);
       setError("Error al obtener pedidos finalizados");
@@ -597,12 +597,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 <col className="w-[6%]" />
                 <col className="w-[12%]" />
                 <col className="w-[16%]" />
-                <col className="w-[12%]" /> {/* Distrito */}
+                <col className="w-[12%]" /> 
                 <col className="w-[14%]" />
                 <col className="w-[12%]" />
                 <col className="w-[18%]" />
                 <col className="w-[10%]" />
-                <col className="w-[10%]" /> {/* ✅ acciones un poco más */}
+                <col className="w-[10%]" /> 
               </colgroup>
 
               <thead className="bg-[#E5E7EB]">
@@ -693,7 +693,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
-                            {/* ✅ OJITO: ver SOLO este pedido */}
+                            {/* OJITO: ver SOLO este pedido */}
                             <TableActionx
                               variant="view"
                               title="Ver detalle del servicio (solo este pedido)"
@@ -805,7 +805,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
         onConfirm={confirmarAbono}
       />
 
-      {/* ✅ Modal de detalle (OJITO) */}
+      {/* Modal de detalle (OJITO) */}
       <DetalleServiciosDiaModal
         open={openDetalle}
         onClose={() => setOpenDetalle(false)}
@@ -814,7 +814,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
         motorizadoNombre={motorizadoNombre}
         items={detalleItems as any}
         loading={detalleLoading}
-        pedidoId={detallePedidoId} // ✅ CLAVE: filtra por el pedido clickeado
+        pedidoId={detallePedidoId}
       />
     </div>
   );
