@@ -32,9 +32,7 @@ function withQuery(
 ) {
   const url = new URL(basePath, BASE_URL);
   Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== "") {
-      url.searchParams.set(k, String(v));
-    }
+    if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
   });
   return url.toString();
 }
@@ -54,7 +52,7 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
           j.detail ||
           (Array.isArray(j.errors) &&
             j.errors.length &&
-            (j.errors[0].message || j.errors[0])) ||
+            ((j.errors[0] && (j.errors[0].message || j.errors[0])) as any)) ||
           msg;
       } else if (text) {
         msg = text;
@@ -73,6 +71,12 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
   }
 }
 
+/* ================== Small helpers ================== */
+const normalizeYMD = (v: string | Date) => {
+  const iso = typeof v === "string" ? v : new Date(v).toISOString();
+  return iso.slice(0, 10);
+};
+
 /* ================== API Calls ================== */
 
 /** GET /courier/cuadre-saldo/ecommerces */
@@ -83,62 +87,78 @@ export async function listEcommercesCourier(token: string): Promise<EcommerceIte
 
 /**
  * GET /courier/cuadre-saldo/ecommerce/sedes
- *
- * Backend devuelve:
- * {
- *   sedeActualId: number;
- *   canFilterBySede: boolean;
- *   sedes: [{ id, nombre_almacen, ciudad, es_principal }, ...]
- * }
  */
-export async function listCourierSedesCuadre(
-  token: string
-): Promise<SedesCuadreResponse> {
+export async function listCourierSedesCuadre(token: string): Promise<SedesCuadreResponse> {
   const url = `${BASE_URL}/courier/cuadre-saldo/ecommerce/sedes`;
   return request<SedesCuadreResponse>(url, { headers: authHeaders(token) });
 }
 
-/** GET /courier/cuadre-saldo/ecommerce/resumen */
+/**
+ * ✅ NUEVA LÓGICA (Ecommerce)
+ * GET /courier/cuadre-saldo/ecommerce/resumen
+ *
+ * Backend (actualizado) debería devolver:
+ * [{ fecha, totalPedidos, totalCobrado, totalServicioCourier, totalNeto, abonoEstado }]
+ *
+ * Donde:
+ * - totalServicioCourier = SOLO courier (NO courier + repartidor)
+ * - totalNeto = totalCobrado - totalServicioCourier
+ *
+ * Front:
+ * - ResumenDia.servicioCourier = totalServicioCourier
+ * - (compat) ResumenDia.servicio = servicioCourier (si tu UI lo usa)
+ */
 export async function getEcommerceResumen(
   token: string,
   q: ResumenQuery
 ): Promise<ResumenDia[]> {
   const url = withQuery("/courier/cuadre-saldo/ecommerce/resumen", {
     ecommerceId: q.ecommerceId,
-    sedeId: q.sedeId, // filtro por sede si se envía
+    sedeId: q.sedeId,
     desde: q.desde,
     hasta: q.hasta,
   });
 
-  // BE -> [{ fecha, totalPedidos, totalCobrado, totalServicioCourier, totalNeto, abonoEstado }]
   const raw = await request<
     Array<{
       fecha: string | Date;
       totalPedidos: number;
       totalCobrado: number;
-      totalServicioCourier: number; // courier (efectivo) + motorizado
+      totalServicioCourier: number; // ✅ SOLO courier
       totalNeto: number;
       abonoEstado: AbonoEstado | null;
     }>
   >(url, { headers: authHeaders(token) });
 
   return raw.map((r) => {
-    const iso =
-      typeof r.fecha === "string" ? r.fecha : new Date(r.fecha).toISOString();
+    const servicioCourier = Number(r.totalServicioCourier ?? 0);
+    const cobrado = Number(r.totalCobrado ?? 0);
+
     return {
-      fecha: iso.slice(0, 10),
+      fecha: normalizeYMD(r.fecha),
       pedidos: Number(r.totalPedidos ?? 0),
-      cobrado: Number(r.totalCobrado ?? 0),
-      servicio: Number(r.totalServicioCourier ?? 0),
-      neto: Number(r.totalNeto ?? 0),
+      cobrado,
+      servicioCourier,
+      // ✅ compat (si tu UI todavía usa "servicio")
+      servicio: servicioCourier,
+      neto: Number.isFinite(Number(r.totalNeto))
+        ? Number(r.totalNeto)
+        : cobrado - servicioCourier,
       estado: (r.abonoEstado ?? "Sin Validar") as AbonoEstado,
     };
   });
 }
 
 /**
+ * ✅ NUEVA LÓGICA (Modal del día - Ecommerce)
  * GET /courier/cuadre-saldo/ecommerce/:ecommerceId/dia/:fecha/pedidos
- * Admite filtro opcional por sede vía query ?sedeId=...
+ *
+ * Backend (actualizado) debería devolver además:
+ * - motivo (servicio_repartidor_motivo)
+ * - pagoEvidenciaUrl (pago_evidencia_url)
+ *
+ * El cuadre de ecommerce usa SOLO servicioCourier,
+ * pero igual devolvemos servicioRepartidor para mostrarlo si quieres.
  */
 export async function getEcommercePedidosDia(
   token: string,
@@ -157,26 +177,40 @@ export async function getEcommercePedidosDia(
       monto: number;
       servicioCourier: number;
       servicioRepartidor: number;
+      motivo?: string | null; // ✅ nuevo
+      pagoEvidenciaUrl?: string | null; // ✅ nuevo
       abonado: boolean;
     }>
   >(url, { headers: authHeaders(token) });
 
-  return raw.map((r) => ({
-    id: r.id,
-    cliente: r.cliente,
-    metodoPago: r.metodoPago ?? null,
-    monto: Number(r.monto ?? 0),
-    servicioCourier: Number(r.servicioCourier ?? 0),
-    servicioRepartidor: Number(r.servicioRepartidor ?? 0),
-    servicioTotal:
-      Number(r.servicioCourier ?? 0) + Number(r.servicioRepartidor ?? 0),
-    abonado: Boolean(r.abonado),
-  }));
+  return raw.map((r) => {
+    const servicioCourier = Number(r.servicioCourier ?? 0);
+    const servicioRepartidor = Number(r.servicioRepartidor ?? 0);
+
+    return {
+      id: r.id,
+      cliente: r.cliente,
+      metodoPago: r.metodoPago ?? null,
+      monto: Number(r.monto ?? 0),
+      servicioCourier,
+      servicioRepartidor,
+      // opcional visual (NO usarlo como "servicio" del cuadre ecommerce)
+      servicioTotal: servicioCourier + servicioRepartidor,
+      motivo: r.motivo ?? null,
+      pagoEvidenciaUrl: r.pagoEvidenciaUrl ?? null,
+      abonado: Boolean(r.abonado),
+    };
+  });
 }
 
 /**
+ * ✅ NUEVA LÓGICA (Abono Ecommerce)
  * PUT /courier/cuadre-saldo/ecommerce/abonar
- * Abono por fechas, con soporte para archivo y filtro opcional por sedeId.
+ *
+ * Backend (actualizado) debería devolver:
+ * - totalCobradoSeleccionado
+ * - totalServicioCourierSeleccionado (SOLO courier)
+ * - totalAbonoSeleccionado = totalCobradoSeleccionado - totalServicioCourierSeleccionado
  */
 export async function abonarEcommerceFechas(
   token: string,
@@ -185,29 +219,35 @@ export async function abonarEcommerceFechas(
 ): Promise<AbonarEcommerceFechasResp> {
   const url = `${BASE_URL}/courier/cuadre-saldo/ecommerce/abonar`;
 
-  // ✅ Si es FormData, no forzamos Content-Type
+  // ✅ FormData (con voucher)
   if (isFormData || payload instanceof FormData) {
     const res = await fetch(url, {
       method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
       body: payload as FormData,
     });
 
-    if (!res.ok) {
-      const msg = await res.text();
-      throw new Error(msg || "Error al abonar (FormData)");
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || "Error al abonar (FormData)");
+
+    const data = text ? (JSON.parse(text) as AbonarEcommerceFechasResp) : ({} as any);
+
+    // ✅ fallback por si el BE aún no manda totalAbonoSeleccionado
+    if ((data as any).totalAbonoSeleccionado == null) {
+      const cob = Number((data as any).totalCobradoSeleccionado ?? 0);
+      const serv = Number((data as any).totalServicioCourierSeleccionado ?? 0);
+      (data as any).totalAbonoSeleccionado = cob - serv;
     }
-    return res.json() as Promise<AbonarEcommerceFechasResp>;
+
+    return data;
   }
 
-  // ✅ Si no es FormData, asumimos JSON estándar
+  // ✅ JSON estándar
   const jsonPayload = payload as AbonarEcommerceFechasPayload;
 
   const body: AbonarEcommerceFechasPayload = {
     ecommerceId: jsonPayload.ecommerceId,
-    sedeId: jsonPayload.sedeId, // se envía al BE si viene
+    sedeId: jsonPayload.sedeId,
     estado: jsonPayload.estado ?? "Por Validar",
     ...(jsonPayload.fechas?.length
       ? { fechas: jsonPayload.fechas }
@@ -216,9 +256,18 @@ export async function abonarEcommerceFechas(
       : {}),
   };
 
-  return request<AbonarEcommerceFechasResp>(url, {
+  const data = await request<AbonarEcommerceFechasResp>(url, {
     method: "PUT",
     headers: authHeaders(token, "json"),
     body: JSON.stringify(body),
   });
+
+  // ✅ fallback por si el BE aún no manda totalAbonoSeleccionado
+  if ((data as any).totalAbonoSeleccionado == null) {
+    const cob = Number((data as any).totalCobradoSeleccionado ?? 0);
+    const serv = Number((data as any).totalServicioCourierSeleccionado ?? 0);
+    (data as any).totalAbonoSeleccionado = cob - serv;
+  }
+
+  return data;
 }

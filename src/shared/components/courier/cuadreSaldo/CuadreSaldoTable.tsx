@@ -5,7 +5,7 @@ import {
   updateServicio,
   updateServicioCourier,
   abonarPedidos,
-  getDetalleServiciosDia, 
+  getDetalleServiciosDia,
 } from "@/services/courier/cuadre_saldo/cuadreSaldo.api";
 import type {
   ListPedidosParams,
@@ -46,6 +46,16 @@ const toYMDFromFechaEntrega = (iso?: string | Date | null) => {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
+
+/** normaliza método de pago para comparaciones */
+const normMetodoPago = (v: unknown) =>
+  String(v ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+
+/** solo contar efectivo */
+const isEfectivo = (metodoPago: unknown) => normMetodoPago(metodoPago) === "EFECTIVO";
 
 /* ============== Modal Confirmar Abono ============== */
 type ConfirmAbonoModalProps = {
@@ -465,7 +475,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     [rows, selectedIds]
   );
 
-  // Total servicio motorizado (lo que ya tenías)
+  // Total servicio motorizado (igual)
   const totalServicioMotorizado = useMemo(
     () =>
       selectedRows.reduce(
@@ -475,21 +485,20 @@ const CuadreSaldoTable: React.FC<Props> = ({
     [selectedRows]
   );
 
-  // Total cobrado (suma montos)
+  // ✅ Total cobrado: SOLO EFECTIVO
   const totalCobrado = useMemo(
-    () => selectedRows.reduce((acc, r: any) => acc + Number(r.monto ?? 0), 0),
+    () =>
+      selectedRows.reduce((acc: number, r: any) => {
+        if (!isEfectivo(r.metodoPago)) return acc;
+        return acc + Number(r.monto ?? 0);
+      }, 0),
     [selectedRows]
   );
 
-  // Total courier (suma servicio courier efectivo)
-  const totalCourier = useMemo(
-    () =>
-      selectedRows.reduce(
-        (acc, r: any) => acc + Number(r.servicioCourierEfectivo ?? r.servicioCourier ?? 0),
-        0
-      ),
-    [selectedRows]
-  );
+// ✅ Total courier: (total cobrado efectivo) - (servicio motorizado)
+const totalCourier = useMemo(() => {
+  return totalCobrado - totalServicioMotorizado;
+}, [totalCobrado, totalServicioMotorizado]);
 
   const toggleAbono = useCallback(
     async (row: any) => {
@@ -602,12 +611,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 <col className="w-[6%]" />
                 <col className="w-[12%]" />
                 <col className="w-[16%]" />
-                <col className="w-[12%]" /> 
+                <col className="w-[12%]" />
                 <col className="w-[14%]" />
                 <col className="w-[12%]" />
                 <col className="w-[14%]" />
                 <col className="w-[10%]" />
-                <col className="w-[10%]" /> 
+                <col className="w-[10%]" />
               </colgroup>
 
               <thead className="bg-[#E5E7EB]">
@@ -664,7 +673,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                         <td className="px-4 py-3 text-gray70">{r.metodoPago ?? "-"}</td>
                         <td className="px-4 py-3 text-gray70">{formatPEN(r.monto)}</td>
 
-                        {/* ✅ Servicio motorizado */}
+                        {/* Servicio motorizado */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray80">
@@ -678,11 +687,13 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           </div>
                         </td>
 
-                        {/* ✅ Servicio courier */}
+                        {/* Servicio courier */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray80">
-                              {formatPEN(Number(r.servicioCourierEfectivo ?? r.servicioCourier ?? 0))}
+                              {formatPEN(
+                                Number(r.servicioCourierEfectivo ?? r.servicioCourier ?? 0)
+                              )}
                             </span>
                             {r.servicioCourier != null && (
                               <span className="rounded-full bg-gray20 px-2 py-0.5 text-[11px] text-gray80">
@@ -697,7 +708,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
                             onClick={() => toggleAbono(r)}
                             className={[
                               "rounded-full px-3 py-1 text-[11px] font-semibold",
-                              r.abonado ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-900",
+                              r.abonado
+                                ? "bg-emerald-600 text-white"
+                                : "bg-gray-200 text-gray-900",
                             ].join(" ")}
                             title={r.abonado ? "Quitar abono" : "Marcar abonado"}
                           >
@@ -707,7 +720,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
-                            {/* OJITO: ver SOLO este pedido */}
                             <TableActionx
                               variant="view"
                               title="Ver detalle del servicio (solo este pedido)"
@@ -771,7 +783,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 onClick={() => setPage(p)}
                 className={[
                   "flex h-8 w-8 items-center justify-center rounded",
-                  p === page ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
+                  p === page
+                    ? "bg-gray90 text-white"
+                    : "bg-gray10 text-gray70 hover:bg-gray20",
                 ].join(" ")}
               >
                 {p}
@@ -823,7 +837,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
       <ConfirmAbonoModal
         open={openConfirm}
-        totalServicio={totalServicioMotorizado} // ✅ sigue mostrando el “servicio” en confirmar
+        totalServicio={totalServicioMotorizado}
         count={selectedIds.length}
         resumenLeft="Pedidos seleccionados"
         resumenRight={todayDMY()}

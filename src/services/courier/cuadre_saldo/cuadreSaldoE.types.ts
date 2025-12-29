@@ -6,13 +6,6 @@ export type EcommerceItem = {
 };
 
 /* ========= Sedes para cuadre de saldo ========= */
-/**
- * Respuesta del endpoint:
- * GET /courier/cuadre-saldo/ecommerce/sedes
- *
- * El backend devuelve los campos en snake_case, así que dejamos
- * los nombres tal cual para no tener que mapear en el API.
- */
 export type SedeCuadreItem = {
   id: number;
   nombre_almacen: string;
@@ -21,59 +14,99 @@ export type SedeCuadreItem = {
 };
 
 export type SedesCuadreResponse = {
-  sedeActualId: number;        // id de la sede donde está scoped el usuario
-  canFilterBySede: boolean;    // true solo dueño / sede principal
-  sedes: SedeCuadreItem[];     // lista completa de sedes del courier
+  sedeActualId: number;
+  canFilterBySede: boolean;
+  sedes: SedeCuadreItem[];
 };
 
 /* ========= Resumen diario ========= */
 export type ResumenQuery = {
   ecommerceId: number;
-  sedeId?: number;   // sede a filtrar (opcional, solo se respeta si puede)
-  desde?: string;    // YYYY-MM-DD
-  hasta?: string;    // YYYY-MM-DD
+  sedeId?: number;
+  desde?: string; // YYYY-MM-DD
+  hasta?: string; // YYYY-MM-DD
 };
 
-export type AbonoEstado = 'Sin Validar' | 'Por Validar' | 'Validado';
+export type AbonoEstado = "Sin Validar" | "Por Validar" | "Validado";
 
+/**
+ * ✅ IMPORTANTE:
+ * En cuadre de saldo Ecommerce el "servicio" debe ser SOLO el servicio courier.
+ * neto = cobrado - servicioCourier
+ */
 export type ResumenDia = {
-  fecha: string;          // YYYY-MM-DD (normalizado)
-  pedidos: number;        // conteo de pedidos del día
-  cobrado: number;        // SUM(monto_recaudar)
-  servicio: number;       // SUM(servicio_courier + servicio_repartidor)
-  neto: number;           // cobrado - servicio
-  estado: AbonoEstado;    // estado agregado del día
+  fecha: string;       // YYYY-MM-DD
+  pedidos: number;     // conteo de pedidos del día
+  cobrado: number;     // SUM(monto_recaudar)
+
+  /** ✅ nuevo nombre correcto (solo courier) */
+  servicioCourier: number;
+
+  /**
+   * (opcional compat) si ya tienes UI leyendo "servicio",
+   * puedes mapearlo a servicioCourier en tu adapter.
+   * Ideal: eliminarlo cuando migres todo.
+   */
+  servicio?: number;
+
+  neto: number;        // cobrado - servicioCourier
+  estado: AbonoEstado;
 };
 
-/* ========= Pedidos del día ========= */
+/* ========= Pedidos del día (Ecommerce) ========= */
+/**
+ * ✅ Para el modal del ecommerce:
+ * - el cuadre usa servicioCourier como el "servicio"
+ * - pero igual mostramos servicioRepartidor si quieres visualizarlo
+ * - y además: motivo + evidencia del repartidor
+ */
 export type PedidoDiaItem = {
   id: number;
   cliente: string;
   metodoPago: string | null;
   monto: number;
+
   servicioCourier: number;     // efectivo para courier (usa tarifa si no hay)
   servicioRepartidor: number;  // efectivo para repartidor (editado si aplica)
-  servicioTotal: number;       // servicioCourier + servicioRepartidor (calculado en el front)
+
+  /**
+   * (opcional) si lo quieres mostrar en tabla detalle como "courier + repartidor"
+   * NO usarlo como "servicio del cuadre"
+   */
+  servicioTotal?: number;
+
+  /** ✅ nuevo: motivo del ajuste del repartidor */
+  motivo?: string | null;
+
+  /** ✅ nuevo: evidencia registrada por el repartidor (pago_evidencia_url) */
+  pagoEvidenciaUrl?: string | null;
+
   abonado: boolean;
 };
 
 /* ========= Abono por FECHAS (Ecommerce) ========= */
 export type AbonarEcommerceFechasPayload = {
   ecommerceId: number;
-  sedeId?: number;       // sede a la que aplica el abono (opcional)
-  fecha?: string;        // YYYY-MM-DD (opcional si envías una sola)
-  fechas?: string[];     // lista de YYYY-MM-DD
-  estado?: AbonoEstado;  // por defecto "Por Validar"
+  sedeId?: number;
+  fecha?: string;      // YYYY-MM-DD
+  fechas?: string[];
+  estado?: AbonoEstado;
 };
 
 /**
- * Shape real que devuelve el backend en abonarEcommerceFechasForUser
+ * ✅ Ahora el backend debería devolver también:
+ * totalAbonoSeleccionado = totalCobradoSeleccionado - totalServicioCourierSeleccionado
  */
 export type AbonarEcommerceFechasResp = {
   updated: number;
-  estadoNombre: string;                  // "Sin Validar" | "Por Validar" | "Validado"
+  estadoNombre: AbonoEstado | string;
   estadoId: number;
-  fechas: string[];                      // normalizadas a YYYY-MM-DD
+  fechas: string[];
   totalCobradoSeleccionado: number;
+
+  /** ✅ SOLO courier (NO courier + repartidor) */
   totalServicioCourierSeleccionado: number;
+
+  /** ✅ NUEVO: lo que realmente se abona al ecommerce */
+  totalAbonoSeleccionado: number;
 };
