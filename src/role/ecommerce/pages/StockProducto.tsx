@@ -116,14 +116,13 @@ export default function StockPage() {
 
     debounceRef.current = window.setTimeout(() => {
       setPage(1);
-      cargarProductos(filters, 1);
     }, debounceMs);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, token]);
+
 
   /* ========================
      CAMBIO DE PÁGINA
@@ -131,7 +130,8 @@ export default function StockPage() {
   useEffect(() => {
     cargarProductos(filters, page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [filters, page]);
+
 
   /* ========================
      CRUD
