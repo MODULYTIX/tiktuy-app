@@ -125,9 +125,7 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
               checked={checked}
               onChange={(e) => setChecked(e.target.checked)}
             />
-            <span>
-              Confirmo que verifiqué los pedidos y realicé la transferencia
-            </span>
+            <span>Confirmo que verifiqué los pedidos y realicé la transferencia</span>
           </label>
         </div>
 
@@ -196,9 +194,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   useEffect(() => {
     if (open && pedido) {
       setMontoRep(
-        String(
-          (pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0
-        )
+        String((pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0)
       );
       setMotivo((pedido as any).motivo ?? "");
       setMontoCour(
@@ -216,10 +212,8 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   const onGuardar = async () => {
     const valRep = Number(montoRep);
     const valCour = Number(montoCour);
-    if (Number.isNaN(valRep) || valRep < 0)
-      return alert("Servicio del motorizado inválido.");
-    if (Number.isNaN(valCour) || valCour < 0)
-      return alert("Servicio courier inválido.");
+    if (Number.isNaN(valRep) || valRep < 0) return alert("Servicio del motorizado inválido.");
+    if (Number.isNaN(valCour) || valCour < 0) return alert("Servicio courier inválido.");
 
     try {
       const chg: EditModalChange = { id: pedido.id };
@@ -289,9 +283,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
                 value={montoRep}
                 onChange={(e) => setMontoRep(e.target.value)}
               />
-              <p className="text-[11px] text-gray-500">
-                Sugerido: {formatPEN(sugeridoRep)}
-              </p>
+              <p className="text-[11px] text-gray-500">Sugerido: {formatPEN(sugeridoRep)}</p>
             </div>
 
             <div className="space-y-1.5">
@@ -304,9 +296,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
                 onChange={(e) => setMontoCour(e.target.value)}
               />
               {baseCour != null && (
-                <p className="text-[11px] text-gray-500">
-                  Base: {formatPEN(Number(baseCour))}
-                </p>
+                <p className="text-[11px] text-gray-500">Base: {formatPEN(Number(baseCour))}</p>
               )}
             </div>
           </div>
@@ -359,7 +349,6 @@ type Props = {
 
   exposeActions?: (actions: { openAbonarSeleccionados: () => void }) => void;
 
-  // opcional para el modal (si quieres mostrar nombres)
   sedeNombre?: string;
   motorizadoNombre?: string;
 };
@@ -393,9 +382,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [detalleFecha, setDetalleFecha] = useState<string>("");
   const [detallePedidoId, setDetallePedidoId] = useState<number | null>(null);
-  const [detalleItems, setDetalleItems] = useState<DetalleServicioPedidoItem[]>(
-    []
-  );
+  const [detalleItems, setDetalleItems] = useState<DetalleServicioPedidoItem[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -440,8 +427,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
         if (chg.servicioRepartidor !== undefined) {
           next.servicioRepartidor = chg.servicioRepartidor;
-          next.servicioEfectivo =
-            chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
+          next.servicioEfectivo = chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
         }
         if (chg.motivo !== undefined) {
           next.motivo = chg.motivo ?? null;
@@ -449,8 +435,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
         if (chg.servicioCourier !== undefined) {
           next.servicioCourier = chg.servicioCourier;
           if ("servicioCourierEfectivo" in next) {
-            next.servicioCourierEfectivo =
-              chg.servicioCourier ?? next.servicioCourierEfectivo ?? 0;
+            next.servicioCourierEfectivo = chg.servicioCourier ?? next.servicioCourierEfectivo ?? 0;
           }
         }
         return next;
@@ -475,12 +460,35 @@ const CuadreSaldoTable: React.FC<Props> = ({
     );
   }, []);
 
-  const totalServicioSeleccionado = useMemo(
-    () =>
-      rows
-        .filter((r) => selectedIds.includes(r.id))
-        .reduce((acc: number, r: any) => acc + Number(r.servicioEfectivo ?? 0), 0),
+  const selectedRows = useMemo(
+    () => rows.filter((r) => selectedIds.includes(r.id)),
     [rows, selectedIds]
+  );
+
+  // ✅ Total servicio motorizado (lo que ya tenías)
+  const totalServicioMotorizado = useMemo(
+    () =>
+      selectedRows.reduce(
+        (acc: number, r: any) => acc + Number(r.servicioEfectivo ?? 0),
+        0
+      ),
+    [selectedRows]
+  );
+
+  // ✅ Total cobrado (suma montos)
+  const totalCobrado = useMemo(
+    () => selectedRows.reduce((acc, r: any) => acc + Number(r.monto ?? 0), 0),
+    [selectedRows]
+  );
+
+  // ✅ Total courier (suma servicio courier efectivo)
+  const totalCourier = useMemo(
+    () =>
+      selectedRows.reduce(
+        (acc, r: any) => acc + Number(r.servicioCourierEfectivo ?? r.servicioCourier ?? 0),
+        0
+      ),
+    [selectedRows]
   );
 
   const toggleAbono = useCallback(
@@ -514,9 +522,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
         sedeId,
       });
       setRows((prev) =>
-        prev.map((r: any) =>
-          selectedIds.includes(r.id) ? { ...r, abonado: true } : r
-        )
+        prev.map((r: any) => (selectedIds.includes(r.id) ? { ...r, abonado: true } : r))
       );
       setSelectedIds([]);
       setOpenConfirm(false);
@@ -535,15 +541,16 @@ const CuadreSaldoTable: React.FC<Props> = ({
     });
   }, [exposeActions, abrirModalAbono]);
 
+  // ✅ Mantengo el contrato: totalServicio = total servicio motorizado
   useEffect(() => {
     if (!onSelectionChange) return;
     onSelectionChange({
       selectedCount: selectedIds.length,
-      totalServicio: totalServicioSeleccionado,
+      totalServicio: totalServicioMotorizado,
       loading,
       canAbonar: selectedIds.length > 0 && !loading,
     });
-  }, [onSelectionChange, selectedIds.length, totalServicioSeleccionado, loading]);
+  }, [onSelectionChange, selectedIds.length, totalServicioMotorizado, loading]);
 
   // ✅ OJITO: abre detalle SOLO del pedido clickeado
   const onViewDetallePedido = useCallback(
@@ -567,8 +574,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
           motorizadoId,
         });
 
-        // ✅ IMPORTANTÍSIMO: el modal filtrará por pedidoId,
-        // pero igual dejamos la lista completa por si quieres reusar.
         setDetalleItems((resp as any).items ?? []);
       } catch (e) {
         console.error(e);
@@ -600,7 +605,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 <col className="w-[12%]" /> 
                 <col className="w-[14%]" />
                 <col className="w-[12%]" />
-                <col className="w-[18%]" />
+                <col className="w-[14%]" />
                 <col className="w-[10%]" />
                 <col className="w-[10%]" /> 
               </colgroup>
@@ -622,6 +627,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                   <th className="px-4 py-3 text-left">Método de pago</th>
                   <th className="px-4 py-3 text-left">Monto</th>
                   <th className="px-4 py-3 text-left">Servicio motorizado</th>
+                  <th className="px-4 py-3 text-left">Servicio courier</th>
                   <th className="px-4 py-3 text-left">Abono</th>
                   <th className="px-4 py-3 text-right">Acciones</th>
                 </tr>
@@ -630,10 +636,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
               <tbody className="divide-y divide-gray20">
                 {rows.length === 0 ? (
                   <tr className="hover:bg-transparent">
-                    <td
-                      colSpan={9}
-                      className="px-4 py-8 text-center italic text-gray70"
-                    >
+                    <td colSpan={10} className="px-4 py-8 text-center italic text-gray70">
                       Sin resultados para el filtro seleccionado.
                     </td>
                   </tr>
@@ -657,18 +660,31 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
                         <td className="px-4 py-3 text-gray70">{toDMY(r.fechaEntrega)}</td>
                         <td className="px-4 py-3 text-gray70">{r.cliente}</td>
-
                         <td className="px-4 py-3 text-gray70">{r.distrito ?? "-"}</td>
-
                         <td className="px-4 py-3 text-gray70">{r.metodoPago ?? "-"}</td>
                         <td className="px-4 py-3 text-gray70">{formatPEN(r.monto)}</td>
 
+                        {/* ✅ Servicio motorizado */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray80">
-                              {formatPEN(r.servicioEfectivo)}
+                              {formatPEN(Number(r.servicioEfectivo ?? 0))}
                             </span>
                             {r.servicioRepartidor != null && (
+                              <span className="rounded-full bg-gray20 px-2 py-0.5 text-[11px] text-gray80">
+                                editado
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* ✅ Servicio courier */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray80">
+                              {formatPEN(Number(r.servicioCourierEfectivo ?? r.servicioCourier ?? 0))}
+                            </span>
+                            {r.servicioCourier != null && (
                               <span className="rounded-full bg-gray20 px-2 py-0.5 text-[11px] text-gray80">
                                 editado
                               </span>
@@ -681,9 +697,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                             onClick={() => toggleAbono(r)}
                             className={[
                               "rounded-full px-3 py-1 text-[11px] font-semibold",
-                              r.abonado
-                                ? "bg-emerald-600 text-white"
-                                : "bg-gray-200 text-gray-900",
+                              r.abonado ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-900",
                             ].join(" ")}
                             title={r.abonado ? "Quitar abono" : "Marcar abonado"}
                           >
@@ -740,7 +754,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
       {/* PAGINADOR */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-1 border-t border-gray30 bg-white px-3 py-3 rounded-b-md">
+        <div className="flex items-center justify-end gap-1 rounded-b-md border-t border-gray30 bg-white px-3 py-3">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
@@ -757,9 +771,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 onClick={() => setPage(p)}
                 className={[
                   "flex h-8 w-8 items-center justify-center rounded",
-                  p === page
-                    ? "bg-gray90 text-white"
-                    : "bg-gray10 text-gray70 hover:bg-gray20",
+                  p === page ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
                 ].join(" ")}
               >
                 {p}
@@ -776,14 +788,28 @@ const CuadreSaldoTable: React.FC<Props> = ({
         </div>
       )}
 
+      {/* ✅ resumen abajo */}
       <div className="flex items-center justify-between">
         {error ? (
           <span className="text-[12px] text-red-600">{error}</span>
         ) : (
-          <span className="text-[12px] text-gray-600">
-            Seleccionados: <b>{selectedIds.length}</b> · Servicio:{" "}
-            <b>{formatPEN(totalServicioSeleccionado)}</b>
-          </span>
+          <div className="flex flex-wrap items-center gap-3 text-[12px] text-gray-600">
+            <span>
+              Seleccionados: <b>{selectedIds.length}</b>
+            </span>
+
+            <span>
+              · Servicio motorizado: <b>{formatPEN(totalServicioMotorizado)}</b>
+            </span>
+
+            <span>
+              · Total cobrado: <b>{formatPEN(totalCobrado)}</b>
+            </span>
+
+            <span>
+              · Total courier: <b>{formatPEN(totalCourier)}</b>
+            </span>
+          </div>
         )}
       </div>
 
@@ -797,7 +823,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
       <ConfirmAbonoModal
         open={openConfirm}
-        totalServicio={totalServicioSeleccionado}
+        totalServicio={totalServicioMotorizado} // ✅ sigue mostrando el “servicio” en confirmar
         count={selectedIds.length}
         resumenLeft="Pedidos seleccionados"
         resumenRight={todayDMY()}
