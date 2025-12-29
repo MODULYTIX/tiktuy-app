@@ -38,8 +38,6 @@ export async function importVentasDesdePreview(
   payload: ImportPayload,
   token: string
 ): Promise<ImportResultado> {
-  // Log opcional
-  console.log('🚚 Enviando payload a /import/excel/v1/pedidos:', payload);
 
   const res = await fetch(`${API_URL}/import/excel/v1/pedidos`, {
     method: 'POST',
@@ -104,19 +102,3 @@ export async function importVentasDesdeArchivo(args: {
 export const previewPedidosExcel = previewVentasExcel;
 export const importPedidosDesdePreview = importVentasDesdePreview;
 export const importPedidosDesdeArchivo = importVentasDesdeArchivo;
-
-/* (Opcional) Si expones una ruta para descargar la plantilla desde el backend
-export async function descargarPlantillaExcel(token?: string): Promise<void> {
-  const res = await fetch(`${API_URL}/import/excel/v1/pedidos/plantilla`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
-  if (!res.ok) throw new Error('No se pudo descargar la plantilla');
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'plantilla_pedidos.xlsx';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-*/

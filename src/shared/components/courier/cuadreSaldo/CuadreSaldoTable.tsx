@@ -5,7 +5,7 @@ import {
   updateServicio,
   updateServicioCourier,
   abonarPedidos,
-  getDetalleServiciosDia, // IMPORTANTE
+  getDetalleServiciosDia, 
 } from "@/services/courier/cuadre_saldo/cuadreSaldo.api";
 import type {
   ListPedidosParams,
@@ -465,7 +465,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     [rows, selectedIds]
   );
 
-  // ✅ Total servicio motorizado (lo que ya tenías)
+  // Total servicio motorizado (lo que ya tenías)
   const totalServicioMotorizado = useMemo(
     () =>
       selectedRows.reduce(
@@ -475,13 +475,13 @@ const CuadreSaldoTable: React.FC<Props> = ({
     [selectedRows]
   );
 
-  // ✅ Total cobrado (suma montos)
+  // Total cobrado (suma montos)
   const totalCobrado = useMemo(
     () => selectedRows.reduce((acc, r: any) => acc + Number(r.monto ?? 0), 0),
     [selectedRows]
   );
 
-  // ✅ Total courier (suma servicio courier efectivo)
+  // Total courier (suma servicio courier efectivo)
   const totalCourier = useMemo(
     () =>
       selectedRows.reduce(
@@ -552,7 +552,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     });
   }, [onSelectionChange, selectedIds.length, totalServicioMotorizado, loading]);
 
-  // ✅ OJITO: abre detalle SOLO del pedido clickeado
+  // OJITO: abre detalle SOLO del pedido clickeado
   const onViewDetallePedido = useCallback(
     async (row: PedidoListItem) => {
       const fechaYMD = toYMDFromFechaEntrega(row.fechaEntrega);
@@ -788,7 +788,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
         </div>
       )}
 
-      {/* ✅ resumen abajo */}
+      {/* resumen abajo */}
       <div className="flex items-center justify-between">
         {error ? (
           <span className="text-[12px] text-red-600">{error}</span>
