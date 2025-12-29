@@ -445,7 +445,7 @@ export default function DetalleServiciosDiaModal({
                     </div>
                   ) : (
                     <div className="rounded-xl border border-gray20 bg-white p-3">
-                      {/* ✅ tu componente en modo VER */}
+                      {/*  tu componente en modo VER */}
                       <ImageUploadx
                         label="Evidencia"
                         mode="view"
@@ -480,7 +480,7 @@ export default function DetalleServiciosDiaModal({
         </div>
       </aside>
 
-      {/* ✅ Preview SOLO para imágenes con tu ImagePreviewModalx */}
+      {/*  Preview SOLO para imágenes con tu ImagePreviewModalx */}
       <ImagePreviewModalx
         open={Boolean(previewUrl)}
         onClose={() => setPreviewUrl(null)}
