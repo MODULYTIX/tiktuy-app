@@ -57,6 +57,21 @@ export type LoginResponse = {
   token: string;
   user: User;
 };
+// --- Recuperar contraseña ---
+export type RecoverPasswordRequest = {
+  email: string;
+};
+
+export type RecoverPasswordConfirmRequest = {
+  token: string;
+  password: string;
+  confirmPassword: string;
+};
+
+export type RecoverPasswordResponse = {
+  ok: boolean;
+  message?: string;
+};
 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -99,7 +114,7 @@ export async function registerRequest(
       correo: userData.email,
       contrasena: userData.password,
       rol_id: userData.rol_id,
-      estado_id: userData.estado, 
+      estado_id: userData.estado,
       DNI_CI: userData.DNI_CI,
     }),
   });
@@ -122,6 +137,48 @@ export async function fetchMe(token: string): Promise<User> {
 
   if (!res.ok) {
     throw new Error('Sesión inválida');
+  }
+
+  return await res.json();
+}
+
+// --- Solicitar recuperación de contraseña ---
+export async function recoverPasswordRequest(
+  data: RecoverPasswordRequest
+): Promise<RecoverPasswordResponse> {
+  const res = await fetch(`${API_URL}/auth/recuperar-contrasena`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      correo: data.email,
+    }),
+  });
+
+  if (!res.ok) {
+    const { error } = await res.json().catch(() => ({}));
+    throw new Error(error || 'Error al solicitar recuperación');
+  }
+
+  return await res.json();
+}
+
+// --- Confirmar recuperación de contraseña ---
+export async function confirmRecoverPasswordRequest(
+  data: RecoverPasswordConfirmRequest
+): Promise<RecoverPasswordResponse> {
+  const res = await fetch(`${API_URL}/auth/recuperar-contrasena/confirmar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token: data.token,
+      contrasena: data.password,
+      confirmar_contrasena: data.confirmPassword,
+    }),
+  });
+
+  if (!res.ok) {
+    const { error } = await res.json().catch(() => ({}));
+    throw new Error(error || 'Error al confirmar recuperación');
   }
 
   return await res.json();

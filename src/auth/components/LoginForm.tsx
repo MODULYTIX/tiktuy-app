@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLogin } from '@/auth/hooks/useLogin';
 import Logo from '@/assets/logos/logo-tiktuy.webp';
+import { Link } from 'react-router';
 
 export default function LoginForm() {
   const { login, loading, error } = useLogin();
@@ -66,9 +67,9 @@ export default function LoginForm() {
               />
               Recuérdame
             </label>
-            <a href="#" className="text-[#1b1b77] hover:underline">
+            <Link to="/recuperar-contrasena" className="text-[#1b1b77] hover:underline">
               ¿Problemas para iniciar sesión?
-            </a>
+            </Link>
           </div>
 
           <button
