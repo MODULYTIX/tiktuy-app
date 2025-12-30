@@ -19,10 +19,7 @@ const money = (n: number) =>
 const PAGE_SIZE = 5;
 
 /* ============================
- * ✅ Helpers SOLO VISUALES
- * - NO toca BD, NO toca servicios
- * - Si el backend/parent manda el acumulado de DIRECTO_ECOMMERCE,
- *   se descuenta del cobrado y se recalcula neto para mostrar.
+ * Helpers SOLO VISUALES
  * ============================ */
 const num = (v: any) => {
   const x = Number(v);
@@ -30,7 +27,6 @@ const num = (v: any) => {
 };
 
 function getMontoDirectoEcommerce(r: any) {
-  // soporta varios nombres por compatibilidad
   return num(
     r?.montoDirectoEcommerce ??
       r?.monto_directo_ecommerce ??
@@ -49,8 +45,12 @@ function cobradoVisual(r: any) {
 }
 
 function netoVisual(r: any) {
-  // neto visual = cobrado visual - servicio (servicio NO se toca)
   return cobradoVisual(r) - num(r?.servicio);
+}
+
+/** ✅ Solo NO se puede seleccionar cuando está "Validado" */
+function isSelectable(estado: ResumenDia["estado"]) {
+  return estado !== "Validado";
 }
 
 export default function CuadreSaldoTable({
@@ -62,7 +62,7 @@ export default function CuadreSaldoTable({
 }: Props) {
   const [page, setPage] = useState(1);
 
-  // Filtro y paginación
+  // paginación
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   useEffect(() => setPage(1), [rows]);
 
@@ -100,6 +100,23 @@ export default function CuadreSaldoTable({
   }, [page, totalPages]);
 
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
+
+  /**
+   * ✅ Limpieza automática:
+   * si una fecha en `selected` ahora está Validado, la removemos.
+   */
+  useEffect(() => {
+    if (!rows.length || !selected.length) return;
+
+    const validatedSelected = selected.filter((date) => {
+      const r = rows.find((x) => x.fecha === date);
+      return r?.estado === "Validado";
+    });
+    if (!validatedSelected.length) return;
+
+    validatedSelected.forEach((d) => onToggle(d));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
 
   return (
     <div className="overflow-hidden rounded-md shadow-default bg-white">
@@ -140,6 +157,8 @@ export default function CuadreSaldoTable({
             <tbody className="divide-y divide-gray20">
               {currentData.map((r) => {
                 const checked = selected.includes(r.fecha);
+                const selectable = isSelectable(r.estado);
+
                 const pill =
                   r.estado === "Validado"
                     ? "bg-gray-900 text-white"
@@ -147,7 +166,6 @@ export default function CuadreSaldoTable({
                     ? "bg-gray-100 text-gray-700 border border-gray-200"
                     : "bg-blue-100 text-blue-900 border border-blue-200";
 
-                // ✅ valores visuales (solo si viene montoDirectoEcommerce)
                 const cobradoV = cobradoVisual(r as any);
                 const netoV = netoVisual(r as any);
 
@@ -158,8 +176,13 @@ export default function CuadreSaldoTable({
                         type="checkbox"
                         checked={checked}
                         onChange={() => onToggle(r.fecha)}
-                        disabled={r.estado === "Validado"}
-                        className="h-4 w-4 accent-blue-600"
+                        disabled={!selectable} // ✅ solo Validado
+                        className="h-4 w-4 accent-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                        title={
+                          selectable
+                            ? "Seleccionar fecha"
+                            : "No puedes seleccionar fechas Validadas"
+                        }
                       />
                     </td>
 
@@ -169,13 +192,8 @@ export default function CuadreSaldoTable({
                       )}
                     </td>
 
-                    {/* ✅ Monto visual (cobrado - DIRECTO_ECOMMERCE acumulado) */}
                     <td className="p-3">{money(cobradoV)}</td>
-
-                    {/* ❗ Servicio NO se toca */}
                     <td className="p-3">{money(num((r as any).servicio))}</td>
-
-                    {/* ✅ Neto visual (cobradoVisual - servicio) */}
                     <td className="p-3">{money(netoV)}</td>
 
                     <td className="p-3">
@@ -196,7 +214,7 @@ export default function CuadreSaldoTable({
                 );
               })}
 
-              {/* Relleno para mantener altura */}
+              {/* Relleno */}
               {emptyRows > 0 &&
                 Array.from({ length: emptyRows }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="hover:bg-transparent">
