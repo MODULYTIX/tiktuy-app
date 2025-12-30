@@ -20,6 +20,8 @@ import PublicLayout from '@/role/user/layout/PublicLayout';
 import HomePublicPage from '@/role/user/pages/HomePublicPage';
 import RegistroInvitacionCourier from '@/role/admin/pages/RegistroInvitacionCourier';
 import RegistroInvitacionEcommerce from '@/role/admin/pages/RegistroInvitacionEcommerce';
+import RecoverPasswordPage from '@/auth/pages/RecoverPasswordPage';
+import ChangePasswordForm from '@/auth/components/ChangePasswordForm';
 
 export default function AppRouter() {
   return (
@@ -33,6 +35,8 @@ export default function AppRouter() {
           </PublicLayout>
         }
       />
+      <Route path="/recuperar-contrasena" element={<RecoverPasswordPage />} />
+      <Route path="/recuperar-contrasena/confirmar" element={<ChangePasswordForm />} />
 
       {/* Login */}
       <Route
