@@ -407,6 +407,24 @@ export default function TablePedidoCourier({
     setHasta("");
   };
 
+  const getEstadoPill = (estado: string) => {
+    const base =
+      "inline-flex items-center px-2 py-[2px] rounded text-[11px] font-medium border";
+
+    const lower = (estado || "").toLowerCase();
+
+    const classes =
+      lower === "pendiente"
+        ? "bg-amber-50 text-amber-700 border-amber-200"
+        : lower === "entregado"
+          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+          : "bg-gray-50 text-gray-600 border-gray-200";
+
+    const label = lower === "pendiente" ? "Pendiente" : estado;
+
+    return <span className={`${base} ${classes}`}>{label}</span>;
+  };
+
   return (
     <div className="flex flex-col gap-5 w-full bg-transparent overflow-visible">
       {/* Header */}
@@ -548,15 +566,18 @@ export default function TablePedidoCourier({
       {!loading && !error && (
         <div className="bg-white rounded-md overflow-hidden shadow-default">
           <div className="overflow-x-auto bg-white">
-            <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
-              <colgroup>
+            <table
+              key={view}
+              className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md"
+            >              <colgroup>
                 <col className="w-[5%]" />
                 <col className="w-[12%]" />
-                <col className="w-[12%]" /> {/* ✅ NUEVO: Distrito */}
-                <col className="w-[15%]" />
-                <col className="w-[15%]" />
+                <col className="w-[12%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
                 <col className="w-[28%]" />
                 <col className="w-[8%]" />
+                <col className="w-[10%]" />
                 <col className="w-[10%]" />
                 <col className="w-[5%]" />
               </colgroup>
@@ -586,15 +607,15 @@ export default function TablePedidoCourier({
                   </th>
 
                   <th className="px-4 py-3 text-left">Fec. Entrega</th>
-
-                  {/* ✅ NUEVO */}
                   <th className="px-4 py-3 text-left">Distrito</th>
-
                   <th className="px-4 py-3 text-left">Ecommerce</th>
                   <th className="px-4 py-3 text-left">Cliente</th>
                   <th className="px-4 py-3 text-left">Dirección de Entrega</th>
                   <th className="px-4 py-3 text-center">Cant. de productos</th>
                   <th className="px-4 py-3 text-left">Monto</th>
+                  {(view === "pendientes" || view === "terminados") && (
+                    <th className="px-4 py-3 text-center">Estado</th>
+                  )}
                   <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
@@ -639,7 +660,6 @@ export default function TablePedidoCourier({
                       </td>
 
 
-                      {/* ✅ NUEVO */}
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
                         {p.cliente?.distrito ?? "—"}
                       </td>
@@ -666,6 +686,11 @@ export default function TablePedidoCourier({
                       <td className="h-12 px-4 py-3 text-gray70">
                         {PEN.format(montoNumber)}
                       </td>
+                      {(view === "pendientes" || view === "terminados") && (
+                        <td className="px-4 py-3 text-center">
+                          {getEstadoPill(p.estado_nombre ?? "—")}
+                        </td>
+                      )}
 
                       <td className="h-12 px-4 py-3">
                         <div className="flex items-center justify-center gap-3">
