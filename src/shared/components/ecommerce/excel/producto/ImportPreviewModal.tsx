@@ -313,7 +313,7 @@ export default function ImportProductosPreviewModal({
           <thead>
             <tr className="sticky top-0 z-10 bg-[#F3F6FA] text-[13px] font-semibold text-gray-600">
               <th className="border-b px-2 py-3" />
-              <th className="border-b px-3 py-3 text-left">N. Producto</th>
+              <th className="border-b px-3 py-3 text-left">Nombre de Producto</th>
               <th className="border-b px-3 py-3 text-left">Descripción</th>
               <th className="border-b px-3 py-3 text-left">Categoría</th>
               <th className="border-b px-3 py-3 text-right">Precio</th>
