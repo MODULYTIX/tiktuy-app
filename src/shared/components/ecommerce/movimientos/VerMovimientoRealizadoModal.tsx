@@ -31,17 +31,17 @@ const nombreAlmacen = (ref?: AlmacenRef | number | string | null) =>
   !ref && ref !== 0
     ? ""
     : typeof ref === "object"
-    ? toText(
+      ? toText(
         (ref as any)?.nombre_almacen ?? (ref as any)?.nombre ?? (ref as any)?.id
       )
-    : toText(ref);
+      : toText(ref);
 
 const nombreEstado = (ref?: EstadoRef | string | null) =>
   !ref
     ? ""
     : typeof ref === "object"
-    ? toText((ref as any)?.nombre ?? (ref as any)?.id)
-    : toText(ref);
+      ? toText((ref as any)?.nombre ?? (ref as any)?.id)
+      : toText(ref);
 
 const fechaLegible = (iso?: string, sep: string = " - ") => {
   if (!iso) return "";
@@ -241,6 +241,14 @@ export default function VerMovimientoRealizadoModal(props: Props) {
       console.warn("No se pudo copiar el código:", e);
     }
   };
+  function nombreArchivoDesdeUrl(url: string) {
+    try {
+      const last = url.split("/").pop() ?? "";
+      return last.split("?")[0];
+    } catch {
+      return "archivo_adjunto";
+    }
+  }
 
   return createPortal(
     <div className="fixed inset-0 z-50">
@@ -410,9 +418,8 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                         </span>
                         <span className="text-xs font-bold tabular-nums text-slate-800">
                           {diasTranscurridos
-                            ? `${diasTranscurridos} día${
-                                diasTranscurridos === "01" ? "" : "s"
-                              }`
+                            ? `${diasTranscurridos} día${diasTranscurridos === "01" ? "" : "s"
+                            }`
                             : "—"}
                         </span>
                       </div>
@@ -724,8 +731,9 @@ export default function VerMovimientoRealizadoModal(props: Props) {
                               Evidencia del movimiento
                             </div>
                             <div className="text-xs text-slate-500 truncate">
-                              {evidenciaUrl}
+                              {nombreArchivoDesdeUrl(evidenciaUrl)}
                             </div>
+
                           </div>
                         </div>
 
