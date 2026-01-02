@@ -24,7 +24,7 @@ export default function ZonaFilterCourier({
       className="
         relative bg-white p-5 rounded-md shadow-default border border-gray30
         after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0
-        after:h-[6px] after:bg-gray90 after:rounded-b-md
+        after:h-[4px] after:bg-gray90 after:rounded-b-md
       "
     >
       {/* cols = Ciudad | Zona | Botón, con buenas proporciones en desktop */}
