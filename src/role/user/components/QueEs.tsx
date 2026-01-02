@@ -17,7 +17,7 @@ export default function QueEs() {
             tienes control total de tu logística en una herramienta moderna,
             escalable y fácil de usar.
           </p>
-        </div>.
+        </div>
 
         <img
             src={queEsImg}

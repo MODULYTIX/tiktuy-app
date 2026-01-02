@@ -463,7 +463,7 @@ export default function ImportProductosPreviewModal({
                   <tr className="text-[12px] font-bold">
                     <th className="p-3 border-b border-gray-200" />
                     <th className="p-3 text-left border-b border-gray-200">
-                      N. Producto
+                      Nombre de Producto
                     </th>
                     <th className="p-3 text-left border-b border-gray-200">
                       Descripción

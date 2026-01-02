@@ -89,12 +89,14 @@ export default function Navbar({ isOpen, open, setOpen }: Props) {
         label: "Panel de Control",
         icon: <Icon icon="lucide:layout-panel-top" width="20" height="20" />,
       },
+      /*
       {
         to: "/almacen",
         label: "Sede",
         icon: <Icon icon="hugeicons:warehouse" width="20" height="20" />,
         modulo: "stock",
       },
+      */
       {
         to: "/stock",
         label: "Stock de Productos",
@@ -126,11 +128,13 @@ export default function Navbar({ isOpen, open, setOpen }: Props) {
         label: "Cuadre de Saldos",
         icon: <Icon icon="prime:wallet" width="20" height="20" />,
       },
+      /*
       {
         to: "/perfiles",
         label: "Perfiles",
         icon: <Icon icon="hugeicons:access" width="20" height="20" />,
       },
+      */
       {
         to: "/reportes",
         label: "Reportes",
@@ -189,11 +193,13 @@ export default function Navbar({ isOpen, open, setOpen }: Props) {
         label: "Cuadre de Saldos",
         icon: <Icon icon="prime:wallet" width="20" height="20" />,
       },
+      /*
       {
         to: "/perfiles",
         label: "Perfiles",
         icon: <Icon icon="hugeicons:access" width="20" height="20" />,
       },
+      */
       {
         to: "/reportes",
         label: "Reportes",

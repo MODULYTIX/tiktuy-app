@@ -69,12 +69,14 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         label: "Panel de Control",
         icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
       },
+      /*
       {
         to: "/almacen",
         label: "Sede",
         icon: <Icon icon="hugeicons:warehouse" width="24" height="24" />,
         modulo: "stock",
       },
+      */
       {
         to: "/stock",
         label: "Stock de Productos",
@@ -106,11 +108,13 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         label: "Cuadre de Saldos",
         icon: <Icon icon="prime:wallet" width="24" height="24" />,
       },
+      /*
       {
         to: "/perfiles",
         label: "Perfiles",
         icon: <Icon icon="hugeicons:access" width="24" height="24" />,
       },
+      */
       {
         to: "/reportes",
         label: "Reportes",
@@ -163,11 +167,13 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         label: "Cuadre de Saldos",
         icon: <Icon icon="prime:wallet" width="24" height="24" />,
       },
+      /*
       {
         to: "/perfiles",
         label: "Perfiles",
         icon: <Icon icon="hugeicons:access" width="24" height="24" />,
       },
+      */
       {
         to: "/reportes",
         label: "Reportes",
