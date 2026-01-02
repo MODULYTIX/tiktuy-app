@@ -33,17 +33,23 @@ export default function AnimatedExcelMenu({
   const menuId = "excel-actions-popover";
 
   return (
-    <div className="relative flex items-end " ref={ref}>
-      {/* Botones deslizantes */}
+    <div className="relative isolate flex items-end" ref={ref}>
+      {/* ✅ Menú (sale desde detrás del botón Excel) */}
       <div
         id={menuId}
         role="menu"
         aria-hidden={!show}
-        className={`flex items-center gap-2 transition-all duration-300 ${
+        className={[
+          // posición: pegado a la izquierda del botón Excel
+          "absolute right-full bottom-0 mr-2",
+          "flex items-center gap-2",
+          // z-index menor => queda detrás del Excel al cruzarse
+          "z-0",
+          "transition-all duration-300",
           show
             ? "opacity-100 translate-x-0"
-            : "opacity-0 translate-x-10 pointer-events-none"
-        }`}
+            : "opacity-0 translate-x-8 pointer-events-none",
+        ].join(" ")}
       >
         <Buttonx
           type="button"
@@ -62,27 +68,30 @@ export default function AnimatedExcelMenu({
           icon="material-symbols:download-rounded"
           variant="secondary"
         />
+
+        {/* Separador pegado al Excel */}
+        <div
+          className={[
+            "h-10 w-px bg-gray-300 ml-2 transition-opacity duration-300",
+            show ? "opacity-100" : "opacity-0",
+          ].join(" ")}
+        />
       </div>
 
-      {/* Separador */}
-      <div
-        className={`h-10 w-px bg-gray-300 mx-2 transition-all duration-300 ${
-          show ? "opacity-100" : "opacity-0 w-0 mx-0"
-        }`}
-      />
-
-      {/* Botón Excel */}
-      <Buttonx
-        type="button"
-        variant="outlined"
-        icon="mdi:microsoft-excel"
-        label="" // si no quieres texto
-        aria-label="Acciones de Excel"
-        aria-haspopup="menu"
-        aria-expanded={show}
-        aria-controls={menuId}
-        onClick={() => setShow((prev) => !prev)}
-      />
+      {/* ✅ Botón Excel encima (tapa el menú al animar) */}
+      <div className="relative z-10">
+        <Buttonx
+          type="button"
+          variant="outlined"
+          icon="mdi:microsoft-excel"
+          label="" // si no quieres texto
+          aria-label="Acciones de Excel"
+          aria-haspopup="menu"
+          aria-expanded={show}
+          aria-controls={menuId}
+          onClick={() => setShow((prev) => !prev)}
+        />
+      </div>
     </div>
   );
 }
