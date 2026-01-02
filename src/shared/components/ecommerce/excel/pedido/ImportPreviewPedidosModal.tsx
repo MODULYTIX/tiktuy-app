@@ -1,28 +1,28 @@
 // src/shared/components/ecommerce/excel/ImportPreviewPedidosModal.tsx
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { fetchSedesEcommerceCourierAsociados } from '@/services/ecommerce/ecommerceCourier.api';
+import { useState, useEffect, useRef, useMemo } from "react";
+import { fetchSedesEcommerceCourierAsociados } from "@/services/ecommerce/ecommerceCourier.api";
 
-import CenteredModal from '@/shared/common/CenteredModal';
-import Autocomplete, { type Option } from '@/shared/common/Autocomplete';
+import CenteredModal from "@/shared/common/CenteredModal";
+import Autocomplete, { type Option } from "@/shared/common/Autocomplete";
 import type {
   ImportPayload,
   PreviewGroupDTO,
   PreviewResponseDTO,
-} from '@/services/ecommerce/importexcelPedido/importexcelPedido.type';
-import { importPedidosDesdePreview } from '@/services/ecommerce/importexcelPedido/importexcelPedido.api';
-import { Icon } from '@iconify/react';
+} from "@/services/ecommerce/importexcelPedido/importexcelPedido.type";
+import { importPedidosDesdePreview } from "@/services/ecommerce/importexcelPedido/importexcelPedido.api";
+import { Icon } from "@iconify/react";
 
 // Productos y zonas por sede
 import {
   fetchProductosPorSede,
   fetchZonasTarifariasPorSede,
-} from '@/services/ecommerce/pedidos/pedidos.api';
+} from "@/services/ecommerce/pedidos/pedidos.api";
 import type {
   ProductoSede,
   ZonaTarifariaSede,
-} from '@/services/ecommerce/pedidos/pedidos.types';
+} from "@/services/ecommerce/pedidos/pedidos.types";
 
-// ---------- helpers fecha local ----------
+import Buttonx from "@/shared/common/Buttonx";
 
 // Para sedes asociadas (lo que usa este modal)
 type SedeOptionRaw = {
@@ -31,14 +31,12 @@ type SedeOptionRaw = {
   ciudad: string | null;
 };
 
-
 const productoKey = (gIdx: number, iIdx: number) => `${gIdx}-${iIdx}`;
 
 function dateOnlyToPeruISO(dateOnly: string) {
-  const [y, m, d] = dateOnly.split('-').map(Number);
+  const [y, m, d] = dateOnly.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d, 5, 0, 0)).toISOString(); // ✅ Perú
 }
-
 
 export default function ImportPreviewPedidosModal({
   open,
@@ -71,13 +69,12 @@ export default function ImportPreviewPedidosModal({
   const headerChkRef = useRef<HTMLInputElement>(null);
 
   const normalizeProducto = (s: string) =>
-    (s || '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+    (s || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
-      .replace(/\s+/g, ' ')
+      .replace(/\s+/g, " ")
       .trim();
-
 
   useEffect(() => {
     if (headerChkRef.current) {
@@ -101,7 +98,11 @@ export default function ImportPreviewPedidosModal({
   };
 
   const norm = (s: string) =>
-    (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+    (s || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
 
   // ============ SEDES DEL ECOMMERCE ============
   const [sedes, setSedes] = useState<SedeOptionRaw[]>([]);
@@ -117,14 +118,14 @@ export default function ImportPreviewPedidosModal({
 
         const mapped: SedeOptionRaw[] = (list || []).map((s: any) => ({
           sede_id: Number(s.sede_id),
-          nombre: s.nombre || '',
+          nombre: s.nombre || "",
           ciudad: s.ciudad ?? null,
         }));
 
         setSedes(mapped);
       } catch (e) {
         if (!cancel) {
-          console.error('Error cargando sedes para importación:', e);
+          console.error("Error cargando sedes para importación:", e);
           setSedes([]);
         }
       }
@@ -155,7 +156,7 @@ export default function ImportPreviewPedidosModal({
         [sedeId]: Array.isArray(list) ? list : [],
       }));
     } catch (e) {
-      console.error('Error cargando productos de la sede:', e);
+      console.error("Error cargando productos de la sede:", e);
     }
   };
 
@@ -175,7 +176,7 @@ export default function ImportPreviewPedidosModal({
         [sedeId]: Array.isArray(data) ? data : [],
       }));
     } catch (e) {
-      console.error('Error cargando zonas tarifarias de la sede:', e);
+      console.error("Error cargando zonas tarifarias de la sede:", e);
     }
   };
 
@@ -207,8 +208,7 @@ export default function ImportPreviewPedidosModal({
   const isInvalidSede = (s: string) =>
     !s || !sedes.some((sed) => norm(sed.nombre) === norm(s));
 
-  const isInvalidDistrito = (d?: string | null) =>
-    !d || !d.toString().trim();
+  const isInvalidDistrito = (d?: string | null) => !d || !d.toString().trim();
 
   const isInvalidCantidad = (n: number | null, stock?: number) =>
     n == null ||
@@ -217,7 +217,9 @@ export default function ImportPreviewPedidosModal({
     (stock != null && Number(n) > stock);
 
   // errores de producto por fila
-  const [productoErrors, setProductoErrors] = useState<Record<string, boolean>>({});
+  const [productoErrors, setProductoErrors] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // Validar productos cuando haya productosPorSede o cambien los grupos
   useEffect(() => {
@@ -244,7 +246,6 @@ export default function ImportPreviewPedidosModal({
         if (!found && it.producto) {
           newErrors[key] = true;
         }
-
       });
     });
 
@@ -253,7 +254,7 @@ export default function ImportPreviewPedidosModal({
 
   const hasInvalid = useMemo(() => {
     for (const g of groups) {
-      if (isInvalidSede(g.courier || '')) return true;
+      if (isInvalidSede(g.courier || "")) return true;
       if (isInvalidDistrito(g.distrito)) return true;
       if ((g.monto_total ?? 0) < 0) return true;
 
@@ -263,7 +264,6 @@ export default function ImportPreviewPedidosModal({
     }
 
     if (Object.values(productoErrors).some(Boolean)) return true;
-
     return false;
   }, [groups, sedes, productoErrors]);
 
@@ -276,12 +276,10 @@ export default function ImportPreviewPedidosModal({
       prev.map((g, gi) => {
         if (gi !== gIdx) return g;
 
-        // Actualizamos items
         const newItems = g.items.map((it, ii) =>
           ii === iIdx ? { ...it, cantidad: val } : it
         );
 
-        // Recalculamos monto_total
         let total = 0;
         for (const item of newItems) {
           const cant = item.cantidad ?? 0;
@@ -294,13 +292,10 @@ export default function ImportPreviewPedidosModal({
           items: newItems,
           monto_total: g.monto_editado ? g.monto_total : total,
         };
-
       })
     );
   };
 
-
-  // cuando cambias el nombre del producto en una fila
   const handleProductoNombre = (gIdx: number, iIdx: number, val: string) => {
     setGroups((prev) =>
       prev.map((g, gi) => {
@@ -312,10 +307,8 @@ export default function ImportPreviewPedidosModal({
         if (sede && productosPorSede[sede.sede_id]) {
           productoReal = productosPorSede[sede.sede_id].find(
             (p) =>
-              normalizeProducto(p.nombre_producto) ===
-              normalizeProducto(val)
+              normalizeProducto(p.nombre_producto) === normalizeProducto(val)
           );
-
         }
 
         return {
@@ -323,7 +316,6 @@ export default function ImportPreviewPedidosModal({
           items: g.items.map((it, ii) => {
             if (ii !== iIdx) return it;
 
-            // Producto NO encontrado
             if (!productoReal) {
               return {
                 ...it,
@@ -334,8 +326,8 @@ export default function ImportPreviewPedidosModal({
               };
             }
 
-            // ✔ Producto encontrado
-            const cantidadActual = it.cantidad && it.cantidad > 0 ? it.cantidad : 1;
+            const cantidadActual =
+              it.cantidad && it.cantidad > 0 ? it.cantidad : 1;
 
             return {
               ...it,
@@ -347,7 +339,6 @@ export default function ImportPreviewPedidosModal({
             };
           }),
 
-          // Recalcular monto total del grupo
           monto_total: (() => {
             let total = 0;
 
@@ -376,7 +367,6 @@ export default function ImportPreviewPedidosModal({
     );
   };
 
-  // cuando cambias la sede (campo courier en el DTO)
   const handleSedeChange = (gIdx: number, value: string) => {
     const sede = findSedeByNombre(value);
     if (sede) {
@@ -384,15 +374,14 @@ export default function ImportPreviewPedidosModal({
       void loadZonasForSede(sede.sede_id);
     }
 
-    // 👉 Ya NO tocamos el distrito aquí, se mantiene lo que venga del Excel / usuario
     setGroups((prev) =>
       prev.map((g, gi) =>
         gi !== gIdx
           ? g
           : {
-            ...g,
-            courier: value,
-          }
+              ...g,
+              courier: value,
+            }
       )
     );
   };
@@ -403,7 +392,7 @@ export default function ImportPreviewPedidosModal({
       monto_total: Number(g.monto_total ?? 0),
       fecha_entrega: g.fecha_entrega
         ? dateOnlyToPeruISO(g.fecha_entrega.slice(0, 10))
-        : '',
+        : "",
     };
   }
 
@@ -411,7 +400,7 @@ export default function ImportPreviewPedidosModal({
     setError(null);
 
     if (hasInvalid) {
-      setError('Hay datos inválidos o faltantes. Corrige los campos en rojo.');
+      setError("Hay datos inválidos o faltantes. Corrige los campos en rojo.");
       return;
     }
 
@@ -429,13 +418,13 @@ export default function ImportPreviewPedidosModal({
       onImported();
       onClose();
     } catch (e: any) {
-      setError(e?.message || 'Error al importar');
+      setError(e?.message || "Error al importar");
     } finally {
       setLoading(false);
     }
   };
 
-  // ===== eliminar filas seleccionadas (como en productos) =====
+  // ===== eliminar filas seleccionadas =====
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleConfirmDelete = () => {
@@ -444,401 +433,542 @@ export default function ImportPreviewPedidosModal({
     setShowDeleteConfirm(false);
   };
 
+  const selectedCount = Object.values(selected).filter(Boolean).length;
+
   if (!open) return null;
 
-  // ---------- UI ----------
   return (
-    <CenteredModal title="" onClose={onClose} widthClass="max-w-[1680px] w-[98vw]">
-      {/* Header visual */}
-      <div className="pb-3 border-gray-200 flex items-center gap-3">
-        <span className="text-[#1F2A7A]">
-          <Icon icon="vaadin:stock" width="22" height="22" />
-        </span>
-        <div className="text-[#1F2A7A]">
-          <h2 className="uppercase tracking-wide font-bold text-[18px] leading-6">
-            Validación de datos
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Datos ingresados del excel, última validación
-          </p>
-        </div>
-      </div>
+    <CenteredModal
+      title=""
+      onClose={onClose}
+      widthClass="max-w-[1680px] w-[98vw]"
+      hideHeader
+      hideCloseButton
+      bodyClassName="p-4 sm:p-5 md:p-6 bg-white max-h-[82vh] overflow-auto"
+    >
+      <div className="space-y-4">
+        {/* ================= HEADER ================= */}
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="px-5 py-4 bg-slate-50 border-b border-gray-200">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center shrink-0">
+                  <Icon
+                    icon="mdi:clipboard-check-outline"
+                    width="22"
+                    height="22"
+                    className="text-primary"
+                  />
+                </div>
 
-      {/* Barra superior tipo “productos”: seleccionar todo + eliminar filas */}
-      <div className="mt-3 mb-4 rounded-lg border border-gray-200 bg-white p-4 flex items-center justify-between">
-        <label className="flex items-center gap-3 cursor-pointer select-none">
-          <input
-            ref={headerChkRef}
-            type="checkbox"
-            checked={allSelected}
-            onChange={toggleAll}
-            className="h-4 w-4 rounded border-gray-400 text-[#1F2A44] focus:ring-[#1F2A44]"
-          />
-          <span className="text-[14px] text-gray-700 font-medium">
-            Seleccionar todo
-          </span>
-        </label>
+                <div className="min-w-0">
+                  <div className="text-lg md:text-xl font-extrabold tracking-tight text-slate-900">
+                    VALIDACIÓN DE DATOS
+                  </div>
+                  <div className="mt-1 text-sm text-slate-500">
+                    Datos ingresados del excel, última validación
+                  </div>
 
-        <button
-          disabled={!someSelected}
-          onClick={() => setShowDeleteConfirm(true)}
-          className={`
-            flex items-center gap-2 px-4 h-10 text-sm rounded-md border text-red-600 
-            border-red-300 hover:bg-red-50 transition-all
-            ${!someSelected
-              ? 'opacity-40 cursor-not-allowed hover:bg-transparent'
-              : ''
-            }
-          `}
-        >
-          <Icon icon="tabler:trash" width="18" />
-          Eliminar seleccionadas
-        </button>
-      </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-700">
+                      <span className="font-semibold text-slate-500">Total:</span>
+                      <span className="font-extrabold tabular-nums">
+                        {groups.length}
+                      </span>
+                    </span>
 
-      {/* Modal de confirmación de eliminación */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-[380px] animate-fadeIn">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
-              <Icon icon="tabler:alert-circle" width="22" className="text-red-500" />
-              Confirmar eliminación
-            </h3>
+                    <span className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-700">
+                      <span className="font-semibold text-slate-500">
+                        Seleccionados:
+                      </span>
+                      <span className="font-extrabold tabular-nums">
+                        {selectedCount}
+                      </span>
+                    </span>
 
-            <p className="text-gray-600 text-sm mb-5">
-              ¿Estás seguro que deseas eliminar las filas seleccionadas? Esta
-              acción no se puede deshacer.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-100"
-              >
-                Cancelar
-              </button>
+                    <span
+                      className={[
+                        "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold",
+                        hasInvalid
+                          ? "bg-rose-50 border border-rose-100 text-rose-700"
+                          : "bg-emerald-50 border border-emerald-100 text-emerald-800",
+                      ].join(" ")}
+                    >
+                      <span
+                        className={[
+                          "w-2 h-2 rounded-full",
+                          hasInvalid ? "bg-rose-500" : "bg-emerald-500",
+                        ].join(" ")}
+                      />
+                      {hasInvalid ? "Hay campos por corregir" : "Listo para importar"}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               <button
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700"
+                onClick={onClose}
+                className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-50 text-slate-700 shrink-0"
+                aria-label="Cerrar"
+                title="Cerrar"
               >
-                Eliminar
+                ✕
               </button>
             </div>
           </div>
+
+          {/* ================= TOOLBAR ================= */}
+          <div className="px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  ref={headerChkRef}
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  className="mt-1 h-4 w-4 rounded border-gray-400 text-primary focus:ring-primary/30"
+                />
+                <span className="min-w-0">
+                  <span className="block text-[14px] text-slate-800 font-semibold">
+                    Seleccionar todo
+                  </span>
+                  <span className="block text-[12px] text-slate-500">
+                    Selecciona filas para importar o eliminar
+                  </span>
+                </span>
+              </label>
+
+              <Buttonx
+                variant="outlined"
+                label="Eliminar seleccionadas"
+                icon="tabler:trash"
+                disabled={!someSelected}
+                onClick={() => setShowDeleteConfirm(true)}
+                className={[
+                  "text-sm",
+                  "!border-rose-300 !text-rose-600 hover:!bg-rose-50",
+                  !someSelected ? "opacity-50" : "",
+                ].join(" ")}
+              />
+            </div>
+
+            {/* Leyendas */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-600">
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                Campos inválidos / requeridos
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-600">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                Sede / distrito no válido
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-600">
+                <span className="w-2 h-2 rounded-full bg-violet-500" />
+                Producto no encontrado en sede
+              </span>
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* ===== Tabla ===== */}
-      <div className="rounded-lg border border-gray-200 overflow-auto max-h-[80vh] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-        <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
-
-          <colgroup>
-            <col className="w-9" />
-            <col className="w-[14%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
-            <col className="w-[18%]" />
-            <col className="w-[14%]" />
-            <col className="w-[16%]" />
-            <col className="w-[16%]" />
-            <col className="w-[100px]" />
-            <col className="w-[120px]" />
-            <col className="w-[110px]" />
-          </colgroup>
-          <thead>
-            <tr className="sticky top-0 z-10 bg-[#F3F6FA] text-xs font-semibold text-gray-600">
-              <th className="border-b border-gray-200 px-2 py-3" />
-              <th className="border-b border-gray-200 px-3 py-3 text-center">Nombre</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-center">Distrito</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-center">Celular</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-center">Dirección</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-center">Referencia</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-center">Sede</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-center">Producto</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-center">Cantidad</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-center">Monto</th>
-              <th className="border-b border-gray-200 px-3 py-3 text-center">
-                Fec. Entrega
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {groups.map((g, gi) => {
-              const isInvalidSedeRow = isInvalidSede(g.courier || '');
-              const sedeClass = isInvalidSedeRow ? 'bg-red-50' : '';
-
-              const sede = g.courier ? findSedeByNombre(g.courier) : undefined;
-              const distritosDeSede: Option[] = sede
-                ? (zonasPorSede[sede.sede_id] || []).map((z) => ({
-                  value: z.distrito,
-                  label: z.distrito,
-                }))
-                : [];
-
-              const distritoInvalido = isInvalidDistrito(g.distrito);
-
-              return (
-                <tr
-                  key={gi}
-                  className="odd:bg-white even:bg-gray-50 hover:bg-[#F8FAFD] transition-colors duration-150"
+        {/* ================= CONFIRM DELETE MODAL ================= */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
+            <div className="w-full max-w-[420px] rounded-2xl bg-white border border-gray-200 shadow-2xl overflow-hidden">
+              <div className="px-5 py-4 bg-slate-50 border-b border-gray-200 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Icon icon="tabler:alert-circle" width="22" className="text-rose-600" />
+                  <div className="text-sm font-extrabold text-slate-900">
+                    Confirmar eliminación
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="w-9 h-9 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-50"
+                  aria-label="Cerrar"
+                  title="Cerrar"
                 >
-                  <td className="border-b border-gray-200 px-2 py-2 align-middle">
-                    <input
-                      type="checkbox"
-                      checked={!!selected[gi]}
-                      onChange={() => toggleRow(gi)}
-                      className="h-4 w-4 rounded accent-amber-500"
-                    />
-                  </td>
+                  ✕
+                </button>
+              </div>
 
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
-                    <input
-                      value={g.nombre}
-                      onChange={(e) => patchGroup(gi, { nombre: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-0 px-1 py-1 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
-                      title={g.nombre}
-                    />
-                  </td>
+              <div className="px-5 py-4 text-sm text-slate-600">
+                ¿Seguro que deseas eliminar las filas seleccionadas? Esta acción no se puede deshacer.
+              </div>
 
-                  {/* DISTRITO: ahora obligatorio y ligado a la sede (zonas) */}
-                  <td
-                    className={`border-b border-gray-200 px-3 py-2 align-middle ${distritoInvalido ? 'bg-red-50' : ''
-                      }`}
-                  >
-                    <Autocomplete
-                      value={g.distrito || ''}
-                      onChange={(v: string) => patchGroup(gi, { distrito: v })}
-                      options={distritosDeSede}
-                      placeholder="Distrito"
-                      className="w-full"
-                    />
-                    {distritoInvalido && (
-                      <div className="text-[11px] text-red-600 mt-1">
-                        El distrito es obligatorio.
-                      </div>
-                    )}
-                  </td>
+              <div className="px-5 pb-5 flex items-center justify-end gap-2">
+                <Buttonx
+                  variant="outlined"
+                  label="Cancelar"
+                  icon="mdi:close"
+                  onClick={() => setShowDeleteConfirm(false)}
+                />
+                <Buttonx
+                  variant="secondary"
+                  label="Eliminar"
+                  icon="tabler:trash"
+                  onClick={handleConfirmDelete}
+                  className="!bg-rose-600 hover:!bg-rose-700"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
-                    <input
-                      value={g.telefono}
-                      onChange={(e) => patchGroup(gi, { telefono: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
-                      title={g.telefono}
-                    />
-                  </td>
+        {/* ================= TABLE CARD ================= */}
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="px-5 py-4 bg-white border-b border-gray-100 flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-extrabold text-slate-900">Vista previa</div>
+              <div className="text-xs text-slate-500">
+                Edita en línea y corrige los campos marcados
+              </div>
+            </div>
 
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
-                    <input
-                      value={g.direccion}
-                      onChange={(e) => patchGroup(gi, { direccion: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
-                      title={g.direccion}
-                    />
-                  </td>
+            <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-[12px] text-slate-700">
+              <span className="font-semibold text-slate-500">Modo:</span>
+              <span className="font-bold">Importar todo</span>
+            </span>
+          </div>
 
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
-                    <input
-                      value={g.referencia || ''}
-                      onChange={(e) => patchGroup(gi, { referencia: e.target.value })}
-                      className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
-                      title={g.referencia || ''}
-                    />
-                  </td>
+          <div className="overflow-auto max-h-[56vh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
+              <colgroup>
+                <col className="w-9" />
+                <col className="w-[14%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[18%]" />
+                <col className="w-[14%]" />
+                <col className="w-[16%]" />
+                <col className="w-[16%]" />
+                <col className="w-[100px]" />
+                <col className="w-[120px]" />
+                <col className="w-[110px]" />
+              </colgroup>
 
-                  {/* Sede (antes courier) */}
-                  <td
-                    className={`border-b border-gray-200 px-3 py-2 align-middle ${sedeClass}`}
-                  >
-                    <Autocomplete
-                      value={g.courier || ''}
-                      onChange={(v: string) => handleSedeChange(gi, v)}
-                      options={sedeOptions}
-                      placeholder="Sede"
-                      invalid={isInvalidSedeRow}
-                      className="w-full"
-                    />
-                    {isInvalidSedeRow && g.courier ? (
-                      <div className="text-[11px] text-red-600 mt-1">
-                        La sede no coincide con las sedes asociadas al ecommerce.
-                      </div>
-                    ) : null}
-                  </td>
-
-                  {/* PRODUCTOS */}
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle">
-                    <div className="space-y-1">
-                      {g.items.map((it, ii) => {
-                        const key = productoKey(gi, ii);
-                        const hasError = !!productoErrors[key];
-
-                        const rowSede = g.courier
-                          ? findSedeByNombre(g.courier)
-                          : undefined;
-                        const productosOptions: Option[] = rowSede
-                          ? (productosPorSede[rowSede.sede_id] || []).map((p) => ({
-                            value: p.nombre_producto,
-                            label: p.nombre_producto,
-                          }))
-                          : [];
-
-                        return (
-                          <div key={ii} className="space-y-0.5">
-                            <Autocomplete
-                              value={it.producto || ''}
-                              onChange={(v: string) =>
-                                handleProductoNombre(gi, ii, v || '')
-                              }
-                              options={productosOptions}
-                              placeholder="Nombre del producto"
-                              className={`w-full ${hasError
-                                ? 'bg-red-50 border-red-300 rounded-md'
-                                : ''
-                                }`}
-                            />
-
-                            {hasError && (
-                              <div className="text-[11px] text-red-600">
-                                Producto no encontrado en la sede seleccionada.
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </td>
-
-                  {/* CANTIDAD */}
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
-                    <div className="space-y-1">
-                      {g.items.map((it, ii) => {
-                        const cantidad = it.cantidad ?? 0;
-                        const stock = it.stock ?? undefined;
-
-                        const cantidadInvalida = isInvalidCantidad(cantidad, stock);
-
-                        return (
-                          <div key={ii} className="space-y-0.5">
-                            <input
-                              type="number"
-                              min={0}
-                              value={cantidad}
-                              onChange={(e) =>
-                                handleCantidad(gi, ii, Number(e.target.value))
-                              }
-                              className={`w-full bg-transparent border border-transparent rounded
-  px-2 h-10
-  text-right text-base leading-tight
-  focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20
-  ${cantidadInvalida ? 'bg-red-50' : ''}
-`}
-
-                              title={String(cantidad)}
-                            />
-
-                            {stock !== undefined && cantidad > stock && (
-                              <div className="text-[11px] text-red-600">
-                                Stock insuficiente. Máximo disponible: {stock}.
-                              </div>
-                            )}
-
-                            {cantidad <= 0 && (
-                              <div className="text-[11px] text-red-600">
-                                La cantidad debe ser mayor a 0.
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </td>
-
-                  {/* MONTO */}
-                  <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={g.monto_total ?? 0}
-                      onChange={(e) =>
-                        patchGroup(gi, {
-                          monto_total: Number(e.target.value),
-                          monto_editado: true,
-                        })
-                      }
-
-                      className={`w-full bg-transparent border border-transparent rounded
-  px-2 h-10
-  text-right text-base leading-tight
-  focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20
-  ${(g.monto_total ?? 0) < 0 ? 'bg-red-50' : ''}
-`}
-
-
-
-                      title={String(g.monto_total ?? '')}
-                    />
-                  </td>
-
-                  {/* FECHA ENTREGA */}
-                  <td className="border-b border-gray-200 px-3 py-2.5 align-middle">
-                    <input
-                      type="date"
-                      value={g.fecha_entrega ? g.fecha_entrega.slice(0, 10) : ''}
-                      onChange={(e) =>
-                        patchGroup(gi, {
-                          fecha_entrega: e.target.value
-                            ? new Date(e.target.value).toISOString()
-                            : undefined,
-                        })
-                      }
-                      className="w-full bg-transparent border border-transparent rounded px-1 py-1
-                        text-[0.9rem]
-                        focus:bg-white focus:border-[#1F2A44] focus:ring-2 focus:ring-[#1F2A44]/20"
-                    />
-
-                  </td>
+              <thead>
+                <tr className="sticky top-0 z-10 bg-[#F3F6FA] text-xs font-semibold text-slate-600">
+                  <th className="border-b border-gray-200 px-2 py-3" />
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Nombre
+                  </th>
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Distrito
+                  </th>
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Celular
+                  </th>
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Dirección
+                  </th>
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Referencia
+                  </th>
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Sede
+                  </th>
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Producto
+                  </th>
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Cantidad
+                  </th>
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Monto
+                  </th>
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Fec. Entrega
+                  </th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              </thead>
+
+              <tbody>
+                {groups.map((g, gi) => {
+                  const isInvalidSedeRow = isInvalidSede(g.courier || "");
+                  const sedeClass = isInvalidSedeRow ? "bg-red-50" : "";
+
+                  const sede = g.courier ? findSedeByNombre(g.courier) : undefined;
+                  const distritosDeSede: Option[] = sede
+                    ? (zonasPorSede[sede.sede_id] || []).map((z) => ({
+                        value: z.distrito,
+                        label: z.distrito,
+                      }))
+                    : [];
+
+                  const distritoInvalido = isInvalidDistrito(g.distrito);
+
+                  return (
+                    <tr
+                      key={gi}
+                      className="odd:bg-white even:bg-slate-50/40 hover:bg-[#F8FAFD] transition-colors duration-150"
+                    >
+                      <td className="border-b border-gray-200 px-2 py-2 align-middle">
+                        <input
+                          type="checkbox"
+                          checked={!!selected[gi]}
+                          onChange={() => toggleRow(gi)}
+                          className="h-4 w-4 rounded accent-primary"
+                        />
+                      </td>
+
+                      <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                        <input
+                          value={g.nombre}
+                          onChange={(e) => patchGroup(gi, { nombre: e.target.value })}
+                          className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          title={g.nombre}
+                        />
+                      </td>
+
+                      {/* DISTRITO */}
+                      <td
+                        className={[
+                          "border-b border-gray-200 px-3 py-2 align-middle",
+                          distritoInvalido ? "bg-red-50" : "",
+                        ].join(" ")}
+                      >
+                        <Autocomplete
+                          value={g.distrito || ""}
+                          onChange={(v: string) => patchGroup(gi, { distrito: v })}
+                          options={distritosDeSede}
+                          placeholder="Distrito"
+                          className="w-full"
+                        />
+                        {distritoInvalido && (
+                          <div className="text-[11px] text-red-600 mt-1">
+                            El distrito es obligatorio.
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                        <input
+                          value={g.telefono}
+                          onChange={(e) => patchGroup(gi, { telefono: e.target.value })}
+                          className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          title={g.telefono}
+                        />
+                      </td>
+
+                      <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                        <input
+                          value={g.direccion}
+                          onChange={(e) => patchGroup(gi, { direccion: e.target.value })}
+                          className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          title={g.direccion}
+                        />
+                      </td>
+
+                      <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                        <input
+                          value={g.referencia || ""}
+                          onChange={(e) =>
+                            patchGroup(gi, { referencia: e.target.value })
+                          }
+                          className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          title={g.referencia || ""}
+                        />
+                      </td>
+
+                      {/* Sede */}
+                      <td
+                        className={[
+                          "border-b border-gray-200 px-3 py-2 align-middle",
+                          sedeClass,
+                        ].join(" ")}
+                      >
+                        <Autocomplete
+                          value={g.courier || ""}
+                          onChange={(v: string) => handleSedeChange(gi, v)}
+                          options={sedeOptions}
+                          placeholder="Sede"
+                          invalid={isInvalidSedeRow}
+                          className="w-full"
+                        />
+                        {isInvalidSedeRow && g.courier ? (
+                          <div className="text-[11px] text-red-600 mt-1">
+                            La sede no coincide con las sedes asociadas al ecommerce.
+                          </div>
+                        ) : null}
+                      </td>
+
+                      {/* PRODUCTOS */}
+                      <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                        <div className="space-y-1">
+                          {g.items.map((it, ii) => {
+                            const key = productoKey(gi, ii);
+                            const hasError = !!productoErrors[key];
+
+                            const rowSede = g.courier
+                              ? findSedeByNombre(g.courier)
+                              : undefined;
+                            const productosOptions: Option[] = rowSede
+                              ? (productosPorSede[rowSede.sede_id] || []).map(
+                                  (p) => ({
+                                    value: p.nombre_producto,
+                                    label: p.nombre_producto,
+                                  })
+                                )
+                              : [];
+
+                            return (
+                              <div key={ii} className="space-y-0.5">
+                                <Autocomplete
+                                  value={it.producto || ""}
+                                  onChange={(v: string) =>
+                                    handleProductoNombre(gi, ii, v || "")
+                                  }
+                                  options={productosOptions}
+                                  placeholder="Nombre del producto"
+                                  className={[
+                                    "w-full",
+                                    hasError
+                                      ? "bg-red-50 border-red-300 rounded-md"
+                                      : "",
+                                  ].join(" ")}
+                                />
+                                {hasError && (
+                                  <div className="text-[11px] text-red-600">
+                                    Producto no encontrado en la sede seleccionada.
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </td>
+
+                      {/* CANTIDAD */}
+                      <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
+                        <div className="space-y-1">
+                          {g.items.map((it, ii) => {
+                            const cantidad = it.cantidad ?? 0;
+                            const stock = it.stock ?? undefined;
+
+                            const cantidadInvalida = isInvalidCantidad(
+                              cantidad,
+                              stock
+                            );
+
+                            return (
+                              <div key={ii} className="space-y-0.5">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={cantidad}
+                                  onChange={(e) =>
+                                    handleCantidad(gi, ii, Number(e.target.value))
+                                  }
+                                  className={[
+                                    "w-full bg-transparent border border-transparent rounded px-2 h-10",
+                                    "text-right text-base leading-tight",
+                                    "focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20",
+                                    cantidadInvalida ? "bg-red-50" : "",
+                                  ].join(" ")}
+                                  title={String(cantidad)}
+                                />
+
+                                {stock !== undefined && cantidad > stock && (
+                                  <div className="text-[11px] text-red-600">
+                                    Stock insuficiente. Máximo disponible: {stock}.
+                                  </div>
+                                )}
+
+                                {cantidad <= 0 && (
+                                  <div className="text-[11px] text-red-600">
+                                    La cantidad debe ser mayor a 0.
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </td>
+
+                      {/* MONTO */}
+                      <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={g.monto_total ?? 0}
+                          onChange={(e) =>
+                            patchGroup(gi, {
+                              monto_total: Number(e.target.value),
+                              monto_editado: true,
+                            })
+                          }
+                          className={[
+                            "w-full bg-transparent border border-transparent rounded px-2 h-10",
+                            "text-right text-base leading-tight",
+                            "focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20",
+                            (g.monto_total ?? 0) < 0 ? "bg-red-50" : "",
+                          ].join(" ")}
+                          title={String(g.monto_total ?? "")}
+                        />
+                      </td>
+
+                      {/* FECHA ENTREGA */}
+                      <td className="border-b border-gray-200 px-3 py-2.5 align-middle">
+                        <input
+                          type="date"
+                          value={g.fecha_entrega ? g.fecha_entrega.slice(0, 10) : ""}
+                          onChange={(e) =>
+                            patchGroup(gi, {
+                              fecha_entrega: e.target.value
+                                ? new Date(e.target.value).toISOString()
+                                : undefined,
+                            })
+                          }
+                          className="w-full bg-transparent border border-transparent rounded px-1 py-1 text-[0.9rem]
+                            focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {error && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {error}
+          </div>
+        )}
+
+        {/* ================= FOOTER ================= */}
+        <div className="flex items-center justify-end gap-2">
+          <Buttonx
+            variant="outlined"
+            label="Cerrar"
+            icon="mdi:close"
+            onClick={onClose}
+          />
+
+          <Buttonx
+            variant="secondary"
+            onClick={confirmarImportacion}
+            disabled={loading || hasInvalid}
+            label={loading ? "Importando…" : "Cargar Datos"}
+            icon={loading ? "line-md:loading-twotone-loop" : "mdi:cloud-upload-outline"}
+            className={loading ? "[&_svg]:animate-spin" : ""}
+            title={hasInvalid ? "Corrige los campos en rojo" : ""}
+          />
+        </div>
+
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: scale(.97); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          .animate-fadeIn { animation: fadeIn .15s ease-out; }
+
+          table td, table th { border-right: 1px solid #eef0f2; }
+          thead tr th:last-child, tbody tr td:last-child { border-right: none; }
+          tbody tr:last-child td { border-bottom: 1px solid #eef0f2; }
+        `}</style>
       </div>
-
-      {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
-
-      {/* Footer */}
-      <div className="flex justify-end gap-2 mt-4">
-        <button
-          className="px-4 h-10 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
-          onClick={onClose}
-        >
-          Cerrar
-        </button>
-        <button
-          onClick={confirmarImportacion}
-          disabled={loading || hasInvalid}
-          className="px-5 h-10 text-sm rounded-md bg-[#1F2A44] text-white hover:bg-[#182238] disabled:opacity-60"
-          title={hasInvalid ? 'Corrige los campos en rojo' : ''}
-        >
-          {loading ? 'Importando…' : 'Cargar Datos'}
-        </button>
-      </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(.97); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn .15s ease-out;
-        }
-
-        table td, table th { border-right: 1px solid #eef0f2; }
-        thead tr th:last-child, tbody tr td:last-child { border-right: none; }
-        tbody tr:last-child td { border-bottom: 1px solid #eef0f2; }
-      `}</style>
     </CenteredModal>
   );
 }
