@@ -35,7 +35,7 @@ const productoKey = (gIdx: number, iIdx: number) => `${gIdx}-${iIdx}`;
 
 function dateOnlyToPeruISO(dateOnly: string) {
   const [y, m, d] = dateOnly.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d, 5, 0, 0)).toISOString(); // ✅ Perú
+  return new Date(Date.UTC(y, m - 1, d, 5, 0, 0)).toISOString();
 }
 
 export default function ImportPreviewPedidosModal({
@@ -48,7 +48,7 @@ export default function ImportPreviewPedidosModal({
   open: boolean;
   onClose: () => void;
   token: string;
-  allowMultiCourier: boolean; // se mantiene por compat, aunque ya no se usa
+  allowMultiCourier: boolean;
   data: PreviewResponseDTO;
   onImported: () => void;
 }) {
@@ -205,16 +205,35 @@ export default function ImportPreviewPedidosModal({
   );
 
   // ================= VALIDACIONES =================
+
+  const isSinStock = (stock?: number | null) =>
+    stock == null || Number(stock) <= 0;
+
+
   const isInvalidSede = (s: string) =>
     !s || !sedes.some((sed) => norm(sed.nombre) === norm(s));
 
-  const isInvalidDistrito = (d?: string | null) => !d || !d.toString().trim();
+  const isInvalidDistritoBySede = (g: PreviewGroupDTO) => {
+    if (!g.distrito || !g.courier) return true;
+
+    const sede = findSedeByNombre(g.courier);
+    if (!sede) return true;
+
+    const zonas = zonasPorSede[sede.sede_id] || [];
+
+    return !zonas.some(
+      (z) => norm(z.distrito) === norm(g.distrito!)
+    );
+  };
 
   const isInvalidCantidad = (n: number | null, stock?: number) =>
     n == null ||
     Number.isNaN(n) ||
     Number(n) <= 0 ||
-    (stock != null && Number(n) > stock);
+    stock == null ||
+    Number(stock) <= 0 ||
+    Number(n) > Number(stock);
+
 
   // errores de producto por fila
   const [productoErrors, setProductoErrors] = useState<Record<string, boolean>>(
@@ -255,7 +274,7 @@ export default function ImportPreviewPedidosModal({
   const hasInvalid = useMemo(() => {
     for (const g of groups) {
       if (isInvalidSede(g.courier || "")) return true;
-      if (isInvalidDistrito(g.distrito)) return true;
+      if (isInvalidDistritoBySede(g)) return true;
       if ((g.monto_total ?? 0) < 0) return true;
 
       for (const it of g.items) {
@@ -297,19 +316,15 @@ export default function ImportPreviewPedidosModal({
   };
 
   const handleProductoNombre = (gIdx: number, iIdx: number, val: string) => {
-    setGroups((prev) =>
+    setGroups(prev =>
       prev.map((g, gi) => {
         if (gi !== gIdx) return g;
 
         const sede = g.courier ? findSedeByNombre(g.courier) : undefined;
+        if (!sede) return g;
 
-        let productoReal: ProductoSede | undefined = undefined;
-        if (sede && productosPorSede[sede.sede_id]) {
-          productoReal = productosPorSede[sede.sede_id].find(
-            (p) =>
-              normalizeProducto(p.nombre_producto) === normalizeProducto(val)
-          );
-        }
+        const productos = productosPorSede[sede.sede_id] || [];
+        const productoReal = productos.find(p => String(p.id) === val);
 
         return {
           ...g,
@@ -319,49 +334,22 @@ export default function ImportPreviewPedidosModal({
             if (!productoReal) {
               return {
                 ...it,
-                producto: val,
+                producto: '',
                 producto_id: undefined,
                 precio_unitario: undefined,
                 stock: undefined,
               };
             }
 
-            const cantidadActual =
-              it.cantidad && it.cantidad > 0 ? it.cantidad : 1;
-
             return {
               ...it,
-              producto: productoReal!.nombre_producto,
-              producto_id: productoReal!.id,
-              precio_unitario: productoReal!.precio,
-              stock: productoReal!.stock,
-              cantidad: cantidadActual,
+              producto: productoReal.nombre_producto,
+              producto_id: productoReal.id,
+              precio_unitario: productoReal.precio,
+              stock: productoReal.stock,
+              cantidad: it.cantidad && it.cantidad > 0 ? it.cantidad : 1,
             };
           }),
-
-          monto_total: (() => {
-            let total = 0;
-
-            for (let idx = 0; idx < g.items.length; idx++) {
-              const item = g.items[idx];
-
-              const cantidad =
-                idx === iIdx
-                  ? item.cantidad && item.cantidad > 0
-                    ? item.cantidad
-                    : 1
-                  : item.cantidad ?? 0;
-
-              const precio =
-                idx === iIdx
-                  ? productoReal?.precio ?? item.precio_unitario ?? 0
-                  : item.precio_unitario ?? 0;
-
-              total += cantidad * precio;
-            }
-
-            return g.monto_editado ? g.monto_total : total;
-          })(),
         };
       })
     );
@@ -379,9 +367,9 @@ export default function ImportPreviewPedidosModal({
         gi !== gIdx
           ? g
           : {
-              ...g,
-              courier: value,
-            }
+            ...g,
+            courier: value,
+          }
       )
     );
   };
@@ -436,6 +424,15 @@ export default function ImportPreviewPedidosModal({
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   if (!open) return null;
+
+  const isProductoNoExiste = (gIdx: number, iIdx: number) => {
+    const key = productoKey(gIdx, iIdx);
+    return !!productoErrors[key];
+  };
+
+  const isProductoSinStock = (stock?: number | null) =>
+    stock != null && Number(stock) <= 0;
+
 
   return (
     <CenteredModal
@@ -690,12 +687,12 @@ export default function ImportPreviewPedidosModal({
                   const sede = g.courier ? findSedeByNombre(g.courier) : undefined;
                   const distritosDeSede: Option[] = sede
                     ? (zonasPorSede[sede.sede_id] || []).map((z) => ({
-                        value: z.distrito,
-                        label: z.distrito,
-                      }))
+                      value: z.distrito,
+                      label: z.distrito,
+                    }))
                     : [];
 
-                  const distritoInvalido = isInvalidDistrito(g.distrito);
+                  const distritoInvalido = isInvalidDistritoBySede(g);
 
                   return (
                     <tr
@@ -727,6 +724,8 @@ export default function ImportPreviewPedidosModal({
                           distritoInvalido ? "bg-red-50" : "",
                         ].join(" ")}
                       >
+
+
                         <Autocomplete
                           value={g.distrito || ""}
                           onChange={(v: string) => patchGroup(gi, { distrito: v })}
@@ -795,46 +794,69 @@ export default function ImportPreviewPedidosModal({
                       {/* PRODUCTOS */}
                       <td className="border-b border-gray-200 px-3 py-2 align-middle">
                         <div className="space-y-1">
-                          {g.items.map((it, ii) => {
-                            const key = productoKey(gi, ii);
-                            const hasError = !!productoErrors[key];
 
+                          {g.items.map((it, ii) => {
+                            const noExiste = isProductoNoExiste(gi, ii);
+                            const sinStock = isProductoSinStock(it.stock);
                             const rowSede = g.courier
                               ? findSedeByNombre(g.courier)
                               : undefined;
+
                             const productosOptions: Option[] = rowSede
-                              ? (productosPorSede[rowSede.sede_id] || []).map(
-                                  (p) => ({
-                                    value: p.nombre_producto,
-                                    label: p.nombre_producto,
-                                  })
-                                )
+                              ? (productosPorSede[rowSede.sede_id] || []).map((p) => ({
+                                value: String(p.id),
+                                label: p.nombre_producto,
+                              }))
                               : [];
 
                             return (
                               <div key={ii} className="space-y-0.5">
                                 <Autocomplete
                                   value={it.producto || ""}
-                                  onChange={(v: string) =>
-                                    handleProductoNombre(gi, ii, v || "")
-                                  }
                                   options={productosOptions}
                                   placeholder="Nombre del producto"
                                   className={[
-                                    "w-full",
-                                    hasError
-                                      ? "bg-red-50 border-red-300 rounded-md"
+                                    "border-b border-gray-200 px-3 py-2 align-middle",
+                                    g.items.some((_, ii) => isProductoNoExiste(gi, ii))
+                                      ? "bg-red-100"
                                       : "",
                                   ].join(" ")}
+                                  onChange={(label: string) => {
+                                    setGroups(prev =>
+                                      prev.map((g, gii) =>
+                                        gii !== gi
+                                          ? g
+                                          : {
+                                            ...g,
+                                            items: g.items.map((item, iii) =>
+                                              iii !== ii ? item : { ...item, producto: label }
+                                            ),
+                                          }
+                                      )
+                                    );
+                                  }}
+                                  onSelectOption={(opt) => {
+                                    handleProductoNombre(gi, ii, String(opt.value));
+                                  }}
                                 />
-                                {hasError && (
+
+                                {/* MENSAJES */}
+
+                                {noExiste && (
+                                  <div className="text-[11px] text-red-700 font-semibold">
+                                    Producto no existe en la sede
+                                  </div>
+                                )}
+
+                                {!noExiste && sinStock && (
                                   <div className="text-[11px] text-red-600">
-                                    Producto no encontrado en la sede seleccionada.
+                                     Producto sin stock
                                   </div>
                                 )}
                               </div>
                             );
                           })}
+
                         </div>
                       </td>
 
@@ -868,17 +890,25 @@ export default function ImportPreviewPedidosModal({
                                   title={String(cantidad)}
                                 />
 
-                                {stock !== undefined && cantidad > stock && (
+                                {isSinStock(stock) && (
+                                  <div className="text-[11px] text-red-600">
+                                    Producto sin stock disponible.
+                                  </div>
+                                )}
+
+                                {typeof stock === "number" && cantidad > stock && (
                                   <div className="text-[11px] text-red-600">
                                     Stock insuficiente. Máximo disponible: {stock}.
                                   </div>
                                 )}
+
 
                                 {cantidad <= 0 && (
                                   <div className="text-[11px] text-red-600">
                                     La cantidad debe ser mayor a 0.
                                   </div>
                                 )}
+
                               </div>
                             );
                           })}

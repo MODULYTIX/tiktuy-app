@@ -44,33 +44,25 @@ export default function PedidosTableGenerado({
      AHORA TRAE ESTADO "Asignado"
      ========================================================== */
   useEffect(() => {
+    setPage(1);
     if (!token) return;
 
     setLoading(true);
 
-    fetchPedidos(token, 'Asignado', page, PAGE_SIZE)
+    fetchPedidos(token, 'Asignado', page, PAGE_SIZE, {
+      courierId: Number.isFinite(Number(filtros.courier))
+        ? Number(filtros.courier)
+        : undefined,
+      productoId: filtros.producto ? Number(filtros.producto) : undefined,
+      fechaInicio: filtros.fechaInicio || undefined,
+      fechaFin: filtros.fechaFin || undefined,
+    })
       .then((res) => {
         setPedidos(res.data || []);
-        setServerPagination(res.pagination || serverPagination);
-      })
-      .catch(() => {
-        setPedidos([]);
+        setServerPagination(res.pagination);
       })
       .finally(() => setLoading(false));
-  }, [token, page, refreshKey]);
-
-  /* ==========================================================
-     FILTROS
-     ========================================================== */
-  const parseDateInput = (s?: string) => {
-    if (!s) return undefined;
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? undefined : d;
-  };
-
-  const end = parseDateInput(filtros.fechaFin);
-  if (end) end.setHours(23, 59, 59, 999);
-  const visiblePedidos = pedidos;
+  }, [token, page, refreshKey, filtros]);
 
 
   const totalPages = serverPagination.totalPages;
@@ -116,7 +108,7 @@ export default function PedidosTableGenerado({
     setPage(p);
   };
 
-  const emptyRowsCount = PAGE_SIZE - visiblePedidos.length;
+  const emptyRowsCount = PAGE_SIZE - pedidos.length;
 
   /* ==========================================================
      TABLA
@@ -158,7 +150,7 @@ export default function PedidosTableGenerado({
                 ))}
               </tr>
             ))
-          ) : visiblePedidos.length === 0 ? (
+          ) : pedidos.length === 0 ? (
             <tr>
               <td
                 colSpan={7}
@@ -169,7 +161,7 @@ export default function PedidosTableGenerado({
             </tr>
           ) : (
             <>
-              {visiblePedidos.map((p) => {
+              {pedidos.map((p) => {
                 const fecha = p.fecha_entrega_programada
                   ? p.fecha_entrega_programada.slice(0, 10).split("-").reverse().join("/")
                   : "-";

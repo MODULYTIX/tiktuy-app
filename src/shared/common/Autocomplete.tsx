@@ -127,9 +127,8 @@ export default function Autocomplete({
           setHighlight(-1);
         }}
         onKeyDown={onKeyDown}
-        className={`w-full border rounded px-2 py-1 text-sm outline-none ${
-          invalid ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:ring-1 focus:ring-gray-300'
-        } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+        className={`w-full border rounded px-2 py-1 text-sm outline-none ${invalid ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:ring-1 focus:ring-gray-300'
+          } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
       />
 
       {open && (
@@ -139,11 +138,10 @@ export default function Autocomplete({
           ) : (
             filtered.map((o, i) => (
               <button
-                key={`${o.value}-${o.label}`}
+                key={`${o.value}-${i}`}
                 type="button"
-                className={`w-full text-left px-2 py-1 text-sm hover:bg-gray-100 ${
-                  i === highlight ? 'bg-gray-100' : ''
-                }`}
+                className={`w-full text-left px-2 py-1 text-sm hover:bg-gray-100 ${i === highlight ? 'bg-gray-100' : ''
+                  }`}
                 onMouseEnter={() => setHighlight(i)}
                 onMouseDown={(e) => e.preventDefault()} // para no perder el foco antes del click
                 onClick={() => select(o)}

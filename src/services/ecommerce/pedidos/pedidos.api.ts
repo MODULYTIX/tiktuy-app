@@ -16,13 +16,30 @@ export async function fetchPedidos(
   token: string,
   estado?: EstadoTab,
   page = 1,
-  perPage = 10
+  perPage = 10,
+  filtros?: {
+    courierId?: number;
+    productoId?: number;
+    fechaInicio?: string;
+    fechaFin?: string;
+  }
 ): Promise<{ data: Pedido[]; pagination: any }> {
   const url = new URL(`${API_URL}/pedido`);
 
   url.searchParams.set('page', String(page));
   url.searchParams.set('perPage', String(perPage));
   if (estado) url.searchParams.set('estado', estado);
+
+  if (filtros) {
+    if (Number.isFinite(filtros.courierId)) {
+      url.searchParams.set('courierId', String(filtros.courierId));
+    }
+    if (filtros.productoId) url.searchParams.set('productoId', String(filtros.productoId));
+    if (filtros.fechaInicio) {
+      url.searchParams.set('fechaInicio', filtros.fechaInicio.slice(0, 10));
+    }
+    if (filtros.fechaFin) url.searchParams.set('fechaFin', filtros.fechaFin);
+  }
 
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },

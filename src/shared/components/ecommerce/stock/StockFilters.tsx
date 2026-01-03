@@ -38,7 +38,7 @@ function toArray<T = unknown>(res: any): T[] {
 }
 
 export default function StockFilters({ onFilterChange }: Props) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   /* Data */
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -97,7 +97,14 @@ export default function StockFilters({ onFilterChange }: Props) {
     fetchSedesConRepresentante(token)
       .then((res) => {
         if (!mountedRef.current) return;
-        setAlmacenes(toArray<Almacenamiento>(res));
+
+        const all = toArray<Almacenamiento>(res);
+        
+        const soloCourier = all.filter(
+          (a) => a.courier_id !== null
+        );
+
+        setAlmacenes(soloCourier);
       })
       .catch(() => {
         if (!mountedRef.current) return;
@@ -105,7 +112,7 @@ export default function StockFilters({ onFilterChange }: Props) {
         setAlmacenes([]);
       })
       .finally(() => mountedRef.current && setLoadingAlm(false));
-  }, [token]);
+  }, [token, user]);
 
   /* Notificar cambios al padre (el padre ya hace debounce) */
   useEffect(() => {
