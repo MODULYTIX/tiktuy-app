@@ -90,6 +90,7 @@ export default function StockPage() {
       const resp = await fetchProductosFiltrados(
         {
           ...filtros,
+          q: filtros.search,
           page: pageToLoad,
           perPage: PER_PAGE,
           order: filtros.order ?? "new_first",

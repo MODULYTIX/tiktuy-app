@@ -15,7 +15,6 @@ export interface Filters {
   nombre: string;
   stock_bajo: boolean;
 
-  // ✅ quedan pero ahora se controlan como "radio" (mutuamente excluyentes)
   precio_bajo: boolean;
   precio_alto: boolean;
 

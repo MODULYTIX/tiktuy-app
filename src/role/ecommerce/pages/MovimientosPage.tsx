@@ -66,36 +66,36 @@ export default function RegistroMovimientoPage() {
   };
 
   const handleSelectProducts = useCallback(
-  ({
-    pageProducts,
-    selectedIds,
-  }: {
-    pageProducts: Producto[];
-    selectedIds: string[];
-  }) => {
-    setSelectedProductsMap((prev) => {
-      const next = { ...prev };
-      const selectedSet = new Set(selectedIds);
+    ({
+      pageProducts,
+      selectedIds,
+    }: {
+      pageProducts: Producto[];
+      selectedIds: string[];
+    }) => {
+      setSelectedProductsMap((prev) => {
+        const next = { ...prev };
+        const selectedSet = new Set(selectedIds);
 
-      // Quitar deseleccionados de esta página
-      pageProducts.forEach((p) => {
-        if (!selectedSet.has(p.uuid)) {
-          delete next[p.uuid];
-        }
+        // Quitar deseleccionados de esta página
+        pageProducts.forEach((p) => {
+          if (!selectedSet.has(p.uuid)) {
+            delete next[p.uuid];
+          }
+        });
+
+        // Agregar / mantener seleccionados
+        pageProducts.forEach((p) => {
+          if (selectedSet.has(p.uuid)) {
+            next[p.uuid] = p;
+          }
+        });
+
+        return next;
       });
-
-      // Agregar / mantener seleccionados
-      pageProducts.forEach((p) => {
-        if (selectedSet.has(p.uuid)) {
-          next[p.uuid] = p;
-        }
-      });
-
-      return next;
-    });
-  },
-  []
-);
+    },
+    []
+  );
 
   const selectedProducts = Object.values(selectedProductsMap);
 
@@ -182,6 +182,8 @@ export default function RegistroMovimientoPage() {
               onSelectProducts={handleSelectProducts}
               onViewProduct={handleViewProduct}
             />
+
+
           </div>
 
           {/* Modal CREAR */}

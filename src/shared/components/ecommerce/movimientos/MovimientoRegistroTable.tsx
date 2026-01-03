@@ -39,15 +39,25 @@ const buildQuery = (
 ): Partial<ProductoListQuery> => ({
   page,
   perPage: PAGE_SIZE,
+
+  q: filters.search?.trim() || undefined,
+
   almacenamiento_id: filters.almacenamiento_id
     ? Number(filters.almacenamiento_id)
     : undefined,
-  categoria_id: filters.categoria_id ? Number(filters.categoria_id) : undefined,
+
+  categoria_id: filters.categoria_id
+    ? Number(filters.categoria_id)
+    : undefined,
+
   estado: normalizeEstado(filters.estado),
+
   stock_bajo: filters.stock_bajo || undefined,
   precio_bajo: filters.precio_bajo || undefined,
   precio_alto: filters.precio_alto || undefined,
 });
+
+
 
 export default function MovimientoRegistroTable({
   filters,
@@ -61,13 +71,14 @@ export default function MovimientoRegistroTable({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [, setLoading] = useState(false);
-
   const cargarProductos = async (pageToLoad = page) => {
     if (!token) return;
 
     setLoading(true);
 
     try {
+      const hayBusqueda = !!filters.search?.trim();
+
       let visibles: Producto[] = [];
       let currentPage = pageToLoad;
       let totalPagesFromApi = 1;
@@ -81,18 +92,17 @@ export default function MovimientoRegistroTable({
         const list = Array.isArray(resp?.data) ? resp.data : [];
         totalPagesFromApi = resp?.pagination?.totalPages ?? 1;
 
-        // solo productos con stock
         const conStock = list.filter((p) => Number(p.stock) > 0);
 
         visibles.push(...conStock);
 
-        // si ya no hay más páginas, salimos
+        if (hayBusqueda) break;
+
         if (currentPage >= totalPagesFromApi) break;
 
         currentPage++;
       }
 
-      // SIEMPRE máximo 6
       setProductos(visibles.slice(0, PAGE_SIZE));
       setTotalPages(totalPagesFromApi);
     } catch (err) {
@@ -101,7 +111,6 @@ export default function MovimientoRegistroTable({
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     setPage(1);

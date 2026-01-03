@@ -68,7 +68,7 @@ export async function fetchProductos(
     cache: 'no-store',
   });
 
-    if (!res.ok) {
+  if (!res.ok) {
     console.error('[fetchProductos] ERROR RESPONSE →', res.statusText);
     throw new Error('Error al obtener productos');
   }
@@ -248,7 +248,7 @@ export async function fetchProductosFiltrados(
   token: string
 ): Promise<Paginated<Producto>> {
   const query: ProductoListQuery = {
-    q: ui.search?.trim() || undefined,
+    q: ((ui as any).q ?? ui.search?.trim()) || undefined,
     almacenamiento_id: ui.almacenamiento_id
       ? Number(ui.almacenamiento_id)
       : undefined,
@@ -262,8 +262,8 @@ export async function fetchProductosFiltrados(
     order: ui.precio_bajo
       ? 'price_asc'
       : ui.precio_alto
-      ? 'price_desc'
-      : ui.order || 'new_first',
+        ? 'price_desc'
+        : ui.order || 'new_first',
     page: ui.page ?? 1,
     perPage: ui.perPage ?? 10,
   };
