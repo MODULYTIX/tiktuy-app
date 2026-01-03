@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import Buttonx from "@/shared/common/Buttonx";
+import { Icon } from "@iconify/react";
 
 /* ================= helpers ================= */
 const formatPEN = (v: number) =>
@@ -88,94 +90,121 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
         {/* HEADER */}
-        <div className="flex flex-col items-center gap-2 px-6 pt-7">
-          <div className="rounded-full bg-emerald-50 p-4">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+        <div className="px-6 pt-7 text-center">
+          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
               <path
                 d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z"
-                fill="#22c55e"
-                opacity="0.12"
+                stroke="currentColor"
+                strokeWidth="1.8"
               />
               <path
-                d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6l7-3z"
-                stroke="#22c55e"
-                strokeWidth="1.6"
-              />
-              <path
-                d="M8.3 12.7l2.3 2.3 5-5"
-                stroke="#22c55e"
-                strokeWidth="2"
+                d="M9 12.5l2 2 4.5-4.5"
+                stroke="currentColor"
+                strokeWidth="2.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
           </div>
-          <h3 className="text-center text-2xl font-semibold tracking-wide">
+
+          <h3 className="text-center text-xl sm:text-2xl font-bold tracking-wide text-gray90">
             CONFIRMAR ABONO
           </h3>
-          <p className="mb-2 -mt-1 text-center text-[13px] text-gray-600">
+          <p className="mt-1 text-center text-[13px] text-gray-600">
             Valida el abono al ecommerce y registra el ingreso en el sistema
           </p>
         </div>
 
         {/* RESUMEN */}
-        <div className="mx-6 mt-2 rounded-xl border">
-          <div className="border-b px-5 py-3 text-sm font-semibold text-gray-700">
-            Resumen
+        <div className="mx-6 mt-5 rounded-xl border border-gray-200 bg-white">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+            <div className="text-sm font-semibold text-gray80">Resumen</div>
+            <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-900 border border-blue-100">
+              Por confirmar
+            </span>
           </div>
-          <div className="grid grid-cols-2 items-center gap-2 px-5 py-4 text-sm">
-            <div className="text-gray-600">Ecommerce</div>
-            <div className="text-right font-medium">{ecommerceNombre}</div>
 
-            <div className="text-gray-600">
-              {fechas.length <= 1 ? "Fecha" : "Fechas"}
+          <div className="px-5 py-4">
+            {/* Neto protagonista */}
+            <div className="flex items-end justify-between gap-4 rounded-lg bg-gray-50 border border-gray-200 px-4 py-3">
+              <div className="min-w-0">
+                <div className="text-[12px] text-gray60">Neto a abonar</div>
+                <div className="mt-0.5 text-2xl font-bold text-gray90 tabular-nums">
+                  {formatPEN(neto)}
+                </div>
+              </div>
+              <div className="text-right text-xs text-gray60">
+                {fechas.length <= 1 ? "Fecha" : "Fechas"}:{" "}
+                <span className="text-gray80 font-medium">{fechasLabel}</span>
+              </div>
             </div>
-            <div className="text-right">{fechasLabel}</div>
 
-            {ciudad && (
-              <>
-                <div className="text-gray-600">Ciudad</div>
-                <div className="text-right">{ciudad}</div>
-              </>
-            )}
+            {/* Detalle */}
+            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div className="text-gray60">Ecommerce</div>
+              <div className="text-right font-medium text-gray80 truncate">
+                {ecommerceNombre}
+              </div>
 
-            <div className="text-gray-600">Pedidos seleccionados</div>
-            <div className="text-right font-medium">{pedidosCount}</div>
+              {ciudad && (
+                <>
+                  <div className="text-gray60">Ciudad</div>
+                  <div className="text-right text-gray80 truncate">
+                    {ciudad}
+                  </div>
+                </>
+              )}
 
-            <div className="text-gray-600">Cobrado total</div>
-            <div className="text-right">{formatPEN(cobradoTotal)}</div>
+              <div className="text-gray60">Pedidos seleccionados</div>
+              <div className="text-right font-medium text-gray80 tabular-nums">
+                {pedidosCount}
+              </div>
 
-            <div className="text-gray-600">
-              Servicio total
-            </div>
-            <div className="text-right">{formatPEN(servicioTotal)}</div>
+              <div className="text-gray60">Cobrado total</div>
+              <div className="text-right text-gray80 tabular-nums">
+                {formatPEN(cobradoTotal)}
+              </div>
 
-            <div className="text-gray-600 font-semibold">Neto a abonar</div>
-            <div className="text-right text-lg font-semibold">
-              {formatPEN(neto)}
+              <div className="text-gray60">Servicio total</div>
+              <div className="text-right text-gray80 tabular-nums">
+                {formatPEN(servicioTotal)}
+              </div>
             </div>
           </div>
         </div>
 
         {/* SUBIR VOUCHER */}
-        <div className="mx-6 mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Voucher / Evidencia de pago:
+        <div className="mx-6 mt-5">
+          <label className="block text-sm font-semibold text-gray80 mb-2">
+            Voucher / Evidencia de pago
           </label>
 
           {!voucherFile ? (
-            <label className="flex cursor-pointer items-center justify-center rounded-md border border-gray-300 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50">
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-white px-4 py-3 text-sm text-gray70 hover:bg-gray-50">
               <svg
-                className="mr-2 h-5 w-5 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
               >
-                <path d="M12 16V4m0 12l4-4m-4 4l-4-4M4 20h16" />
+                <path
+                  d="M12 16V4m0 12l4-4m-4 4l-4-4M4 20h16"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
               Adjuntar imagen
               <input
@@ -186,79 +215,123 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
               />
             </label>
           ) : (
-            <div className="flex items-center justify-between rounded-md border px-4 py-2 bg-gray-50">
-              <div className="flex items-center text-sm text-gray-700 truncate">
-                <svg
-                  className="mr-2 h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v8m0-8l-4 4m4-4l4 4M12 4v8" />
-                </svg>
-                <span className="truncate max-w-[180px]">
-                  {voucherFile.name}
-                </span>
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm text-gray80">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M14 2v6h6"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className="truncate max-w-[260px]">
+                    {voucherFile.name}
+                  </span>
+                </div>
+                <div className="mt-1 text-xs text-gray60">
+                  Archivo adjunto. Puedes verlo, descargarlo o eliminarlo.
+                </div>
               </div>
-              <div className="flex gap-2">
+
+              <div className="flex items-center gap-2">
                 {previewUrl && (
                   <button
+                    type="button"
                     onClick={() => window.open(previewUrl, "_blank")}
                     title="Ver"
-                    className="rounded bg-gray-800 p-1.5 text-white hover:opacity-90"
+                    className="h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray70 hover:bg-gray-50 hover:text-gray90 focus:outline-none focus:ring-2 focus:ring-emerald-200"
                   >
-                    👁️
+                    <span className="sr-only">Ver</span>
+                    <Icon
+                      icon="mdi:eye-outline"
+                      className="mx-auto text-[18px]"
+                    />
                   </button>
                 )}
+
                 <button
+                  type="button"
                   onClick={handleDownloadFile}
                   title="Descargar"
-                  className="rounded bg-gray-800 p-1.5 text-white hover:opacity-90"
+                  className="h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray70 hover:bg-gray-50 hover:text-gray90 focus:outline-none focus:ring-2 focus:ring-emerald-200"
                 >
-                  ⬇️
+                  <span className="sr-only">Descargar</span>
+                  <Icon
+                    icon="mdi:download-outline"
+                    className="mx-auto text-[18px]"
+                  />
                 </button>
+
                 <button
+                  type="button"
                   onClick={handleRemoveFile}
                   title="Eliminar"
-                  className="rounded bg-gray-800 p-1.5 text-white hover:opacity-90"
+                  className="h-9 w-9 rounded-lg border border-gray-200 bg-white text-gray70 hover:bg-gray-50 hover:text-gray90 focus:outline-none focus:ring-2 focus:ring-emerald-200"
                 >
-                  🗑️
+                  <span className="sr-only">Eliminar</span>
+                  <Icon
+                    icon="mdi:trash-can-outline"
+                    className="mx-auto text-[18px]"
+                  />
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* CHECK Y BOTONES */}
-        <label className="mx-6 mt-4 flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={(e) => setChecked(e.target.checked)}
-            className="h-4 w-4"
-          />
-          Confirmo que verifiqué e hice la transferencia
-        </label>
+        {/* CHECK */}
+        <div className="mx-6 mt-5">
+          <label className="flex cursor-pointer select-none gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(e) => setChecked(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-emerald-600"
+            />
+            <div className="min-w-0">
+              <div className="text-sm text-gray80">
+                Confirmo que verifiqué e hice la transferencia
+              </div>
+              <div className="mt-1 text-xs text-gray60">
+                Requerido para habilitar{" "}
+                <span className="font-medium">Confirmar</span>.
+              </div>
+            </div>
+          </label>
+        </div>
 
-        <div className="mt-5 flex items-center justify-end gap-2 border-t px-6 py-4">
-          <button
+        {/* FOOTER */}
+        <div className="mt-6 flex items-center justify-end gap-2 border-t border-gray-100 px-6 py-4">
+          <Buttonx
+            type="button"
             onClick={onCancel}
-            className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
+            variant="outlined"
+            label="Cancelar"
+          />
+
+          <Buttonx
+            type="button"
             onClick={() => onConfirm(voucherFile)}
             disabled={!checked || !voucherFile}
-            className={`rounded-md px-4 py-2 text-sm font-semibold text-white ${
-              checked && voucherFile
-                ? "bg-emerald-600 hover:opacity-90"
-                : "bg-emerald-300 cursor-not-allowed"
-            }`}
-          >
-            ✓ Confirmar
-          </button>
+            variant="secondary"
+            label="✓ Confirmar"
+          />
         </div>
       </div>
     </div>
@@ -266,4 +339,3 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
 };
 
 export default ConfirmAbonoModal;
-  

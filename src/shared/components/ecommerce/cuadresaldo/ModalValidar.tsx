@@ -1,3 +1,4 @@
+import Buttonx from "@/shared/common/Buttonx";
 import { useMemo, useState } from "react";
 
 type Props = {
@@ -28,6 +29,12 @@ const money = (n: number) =>
 
 const clamp0 = (n: number) => (Number.isFinite(n) ? Math.max(0, n) : 0);
 
+function formatFechasLabel(fechas: string[]) {
+  if (!fechas?.length) return "-";
+  if (fechas.length === 1) return fechas[0];
+  return `${fechas.length} fechas`;
+}
+
 export default function ValidarAbonoModal({
   open,
   onClose,
@@ -56,108 +63,178 @@ export default function ValidarAbonoModal({
 
   if (!open) return null;
 
+  const handleClose = () => {
+    if (saving) return; // UX: evita cierre accidental durante validación
+    setAgree(false);
+    onClose();
+  };
+
   const handleConfirm = async () => {
     if (!agree || saving) return;
     setSaving(true);
     try {
       await onConfirm();
-      onClose();
+      handleClose();
     } finally {
       setSaving(false);
       setAgree(false);
     }
   };
 
+  const fechasLabel = formatFechasLabel(fechas);
+  const showDirecto = Number(totalDirectoEcommerce) > 0;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="validar-abono-title"
+      aria-describedby="validar-abono-desc"
+    >
+      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
+        {/* Header */}
         <div className="px-6 pt-6 text-center">
-          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-600">
-            ✓
+          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M20 7L10 17l-5-5"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
-          <h3 className="text-xl font-bold">CONFIRMAR RECEPCIÓN</h3>
-          <p className="mt-1 text-sm text-gray-600">
-            Valida la transferencia y registra el ingreso en el sistema
+
+          <h3
+            id="validar-abono-title"
+            className="text-lg font-bold text-gray90"
+          >
+            Confirmar recepción
+          </h3>
+          <p id="validar-abono-desc" className="mt-1 text-sm text-gray-600">
+            Verifica los montos y confirma que la transferencia fue recibida.
           </p>
         </div>
 
-        <div className="mx-6 my-4 rounded-xl border">
-          <div className="grid grid-cols-2 gap-2 px-4 py-3 text-sm">
-            {/* ✅ ANTES: totalCobrado  |  AHORA: cobradoVisible */}
-            <div className="font-semibold">{money(cobradoVisible)}</div>
-            <div className="text-right">{ciudad ?? ""}</div>
+        {/* Resumen (más escaneable y sutil) */}
+        <div className="px-6 mt-4">
+          <div className="rounded-xl border border-gray-200 bg-white">
+            {/* mini header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <div className="text-sm font-semibold text-gray90">
+                Resumen del ingreso
+              </div>
 
-            <div className="text-gray-500">Origen: {courierNombre ?? "-"}</div>
-            <div className="text-right text-gray-500">
-              {fechas.length > 1 ? `${fechas.length} fechas` : fechas[0]}
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-900 border border-blue-100">
+                Por validar
+              </span>
             </div>
 
-            {/* (opcional) mostramos cuanto fue DIRECTO_ECOMMERCE */}
-            {Number(totalDirectoEcommerce) > 0 && (
-              <>
-                <div className="text-gray-500">Directo ecommerce</div>
-                <div className="text-right">{money(totalDirectoEcommerce)}</div>
-              </>
-            )}
+            {/* contenido */}
+            <div className="px-4 py-4">
+              {/* Neto protagonista */}
+              <div className="text-[12px] text-gray60">Neto a registrar</div>
+              <div className="mt-0.5 text-2xl font-bold text-gray90 tabular-nums">
+                {money(netoVisible)}
+              </div>
 
-            <div className="text-gray-500">Servicio total</div>
-            <div className="text-right">{money(totalServicio)}</div>
+              {/* desglose */}
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                <div className="text-gray60">Cobrado (sin directo)</div>
+                <div className="text-right font-medium text-gray80 tabular-nums">
+                  {money(cobradoVisible)}
+                </div>
 
-            <div className="text-gray-500">Neto</div>
-            <div className="text-right font-medium">{money(netoVisible)}</div>
+                {showDirecto && (
+                  <>
+                    <div className="text-gray60">Directo ecommerce</div>
+                    <div className="text-right text-gray80 tabular-nums">
+                      {money(totalDirectoEcommerce)}
+                    </div>
+                  </>
+                )}
 
-            <div className="text-gray-500">Estado</div>
-            <div className="text-right">
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-900 border border-blue-200">
-                Por Validar
-              </span>
+                <div className="text-gray60">Servicio total</div>
+                <div className="text-right text-gray80 tabular-nums">
+                  {money(totalServicio)}
+                </div>
+              </div>
+
+              {/* meta info */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray60">
+                  <div className="truncate">
+                    <span className="text-gray50">Origen: </span>
+                    <span className="text-gray70">{courierNombre ?? "-"}</span>
+                  </div>
+                  <div className="text-right truncate">
+                    <span className="text-gray50">Fechas: </span>
+                    <span className="text-gray70">{fechasLabel}</span>
+                  </div>
+
+                  <div className="truncate">
+                    <span className="text-gray50">Ciudad: </span>
+                    <span className="text-gray70">{ciudad ?? "-"}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-gray50">Estado: </span>
+                    <span className="text-gray70">Por validar</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <label className="mx-6 mb-2 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="h-4 w-4 accent-emerald-600"
-            checked={agree}
-            onChange={(e) => setAgree(e.target.checked)}
-          />
-          Confirmo que verifiqué y recibí la transferencia
-        </label>
+        {/* Confirmación (área clickeable grande + helper) */}
+        <div className="px-6 mt-4">
+          <label className="flex gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-emerald-600"
+              checked={agree}
+              disabled={saving}
+              onChange={(e) => setAgree(e.target.checked)}
+            />
+            <div className="min-w-0">
+              <div className="text-sm text-gray80">
+                Confirmo que revisé el monto y recibí la transferencia
+              </div>
+              <div className="mt-1 text-xs text-gray60">
+                Obligatorio para habilitar{" "}
+                <span className="font-medium">Validar</span>.
+              </div>
+            </div>
+          </label>
+        </div>
 
-        <div className="flex justify-end gap-2 px-6 py-4 border-t">
-          <button
-            onClick={onClose}
-            className="rounded-md border px-4 py-2 hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
+        {/* Footer */}
+        <div className="mt-4 flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100">
+          <Buttonx
+            type="button"
+            onClick={handleClose}
+            disabled={saving}
+            variant="outlined"
+            label="Cancelar"
+          />
+
+          <Buttonx
+            type="button"
             onClick={handleConfirm}
             disabled={!agree || saving}
-            className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-white disabled:opacity-50"
-          >
-            {saving && (
-              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                  opacity=".25"
-                />
-                <path
-                  d="M4 12a8 8 0 0 1 8-8"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-              </svg>
-            )}
-            Validar
-          </button>
+            variant="secondary"
+            icon={saving ? "mdi:reload" : undefined}
+            label={saving ? "Validando…" : "Validar y registrar"}
+            className={saving ? "[&>span>svg]:animate-spin" : ""}
+          />
         </div>
       </div>
     </div>
