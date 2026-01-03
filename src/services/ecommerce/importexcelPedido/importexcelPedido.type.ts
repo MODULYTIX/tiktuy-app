@@ -24,6 +24,8 @@ export interface PreviewGroupDTO {
   monto_editado?: boolean;
   valido: boolean;
   items: PreviewItemDTO[];
+  errores?: string[];
+
 }
 
 /** Respuesta del endpoint /import/excel/v1/ventas/preview */
@@ -46,11 +48,16 @@ export interface ImportPayload {
   estadoId?: number;
 }
 
+export interface ImportErrorFila {
+  fila: number;
+  errores: string[];
+}
+
 /** Respuesta genérica de la importación */
 export interface ImportResultado {
+  total?: ImportEstado;
   estado: ImportEstado;
   insertados?: number;
-  errores?: number;
+  errores?: ImportErrorFila[];
   detalles?: any;
-  [key: string]: any;
 }

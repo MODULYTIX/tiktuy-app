@@ -52,12 +52,12 @@ export async function importVentasDesdePreview(
     const errJson = await res.json().catch(async () => ({
       message: await res.text().catch(() => 'Error desconocido'),
     }));
-    console.error('❌ Error al importar pedidos — backend respondió:', errJson);
     throw new Error(errJson?.message || 'Error al importar pedidos');
   }
 
-  return res.json();
+  return (await res.json()) as ImportResultado; 
 }
+
 
 /**
  * POST /import/excel/v1/pedidos/file

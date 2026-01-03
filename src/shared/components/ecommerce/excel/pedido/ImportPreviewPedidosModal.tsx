@@ -1,5 +1,5 @@
 // src/shared/components/ecommerce/excel/ImportPreviewPedidosModal.tsx
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { fetchSedesEcommerceCourierAsociados } from "@/services/ecommerce/ecommerceCourier.api";
 
 import CenteredModal from "@/shared/common/CenteredModal";
@@ -272,23 +272,29 @@ export default function ImportPreviewPedidosModal({
   }, [groups, productosPorSede, sedes]);
 
   const hasInvalid = useMemo(() => {
-    for (const g of groups) {
-      if (isInvalidSede(g.courier || "")) return true;
-      if (isInvalidDistritoBySede(g)) return true;
-      if ((g.monto_total ?? 0) < 0) return true;
+    return groups.some(
+      (g) =>
+        g.valido === false ||
+        (Array.isArray(g.errores) && g.errores.length > 0)
+    );
+  }, [groups]);
 
-      for (const it of g.items) {
-        if (isInvalidCantidad(it.cantidad, it.stock ?? undefined)) return true;
-      }
-    }
-
-    if (Object.values(productoErrors).some(Boolean)) return true;
-    return false;
-  }, [groups, sedes, productoErrors]);
 
   // ================= PATCH HELPERS =================
   const patchGroup = (idx: number, patch: Partial<PreviewGroupDTO>) =>
-    setGroups((prev) => prev.map((g, i) => (i === idx ? { ...g, ...patch } : g)));
+    setGroups((prev) =>
+      prev.map((g, i) =>
+        i === idx
+          ? {
+            ...g,
+            ...patch,
+            valido: true,
+            errores: [],
+          }
+          : g
+      )
+    );
+
 
   const handleCantidad = (gIdx: number, iIdx: number, val: number) => {
     setGroups((prev) =>
@@ -402,7 +408,23 @@ export default function ImportPreviewPedidosModal({
 
     try {
       setLoading(true);
-      await importPedidosDesdePreview(payload, token);
+
+      const result = await importPedidosDesdePreview(payload, token);
+
+      if (result.estado === "parcial" || result.estado === "error") {
+        const errores = result.errores ?? [];
+
+        setError(
+          `Se importaron ${result.insertados} de ${result.total} pedidos.\n\n` +
+          errores
+            .map((e) => `Fila ${e.fila}: ${e.errores.join(", ")}`)
+            .join("\n")
+        );
+        return;
+      }
+
+
+
       onImported();
       onClose();
     } catch (e: any) {
@@ -695,268 +717,281 @@ export default function ImportPreviewPedidosModal({
                   const distritoInvalido = isInvalidDistritoBySede(g);
 
                   return (
-                    <tr
-                      key={gi}
-                      className="odd:bg-white even:bg-slate-50/40 hover:bg-[#F8FAFD] transition-colors duration-150"
-                    >
-                      <td className="border-b border-gray-200 px-2 py-2 align-middle">
-                        <input
-                          type="checkbox"
-                          checked={!!selected[gi]}
-                          onChange={() => toggleRow(gi)}
-                          className="h-4 w-4 rounded accent-primary"
-                        />
-                      </td>
-
-                      <td className="border-b border-gray-200 px-3 py-2 align-middle">
-                        <input
-                          value={g.nombre}
-                          onChange={(e) => patchGroup(gi, { nombre: e.target.value })}
-                          className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
-                          title={g.nombre}
-                        />
-                      </td>
-
-                      {/* DISTRITO */}
-                      <td
-                        className={[
-                          "border-b border-gray-200 px-3 py-2 align-middle",
-                          distritoInvalido ? "bg-red-50" : "",
-                        ].join(" ")}
+                    <React.Fragment key={gi}>
+                      <tr
+                        key={gi}
+                        className="odd:bg-white even:bg-slate-50/40 hover:bg-[#F8FAFD] transition-colors duration-150"
                       >
+                        <td className="border-b border-gray-200 px-2 py-2 align-middle">
+                          <input
+                            type="checkbox"
+                            checked={!!selected[gi]}
+                            onChange={() => toggleRow(gi)}
+                            className="h-4 w-4 rounded accent-primary"
+                          />
+                        </td>
 
+                        <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                          <input
+                            value={g.nombre}
+                            onChange={(e) => patchGroup(gi, { nombre: e.target.value })}
+                            className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            title={g.nombre}
+                          />
+                        </td>
 
-                        <Autocomplete
-                          value={g.distrito || ""}
-                          onChange={(v: string) => patchGroup(gi, { distrito: v })}
-                          options={distritosDeSede}
-                          placeholder="Distrito"
-                          className="w-full"
-                        />
-                        {distritoInvalido && (
-                          <div className="text-[11px] text-red-600 mt-1">
-                            El distrito es obligatorio.
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="border-b border-gray-200 px-3 py-2 align-middle">
-                        <input
-                          value={g.telefono}
-                          onChange={(e) => patchGroup(gi, { telefono: e.target.value })}
-                          className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
-                          title={g.telefono}
-                        />
-                      </td>
-
-                      <td className="border-b border-gray-200 px-3 py-2 align-middle">
-                        <input
-                          value={g.direccion}
-                          onChange={(e) => patchGroup(gi, { direccion: e.target.value })}
-                          className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
-                          title={g.direccion}
-                        />
-                      </td>
-
-                      <td className="border-b border-gray-200 px-3 py-2 align-middle">
-                        <input
-                          value={g.referencia || ""}
-                          onChange={(e) =>
-                            patchGroup(gi, { referencia: e.target.value })
-                          }
-                          className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
-                          title={g.referencia || ""}
-                        />
-                      </td>
-
-                      {/* Sede */}
-                      <td
-                        className={[
-                          "border-b border-gray-200 px-3 py-2 align-middle",
-                          sedeClass,
-                        ].join(" ")}
-                      >
-                        <Autocomplete
-                          value={g.courier || ""}
-                          onChange={(v: string) => handleSedeChange(gi, v)}
-                          options={sedeOptions}
-                          placeholder="Sede"
-                          invalid={isInvalidSedeRow}
-                          className="w-full"
-                        />
-                        {isInvalidSedeRow && g.courier ? (
-                          <div className="text-[11px] text-red-600 mt-1">
-                            La sede no coincide con las sedes asociadas al ecommerce.
-                          </div>
-                        ) : null}
-                      </td>
-
-                      {/* PRODUCTOS */}
-                      <td className="border-b border-gray-200 px-3 py-2 align-middle">
-                        <div className="space-y-1">
-
-                          {g.items.map((it, ii) => {
-                            const noExiste = isProductoNoExiste(gi, ii);
-                            const sinStock = isProductoSinStock(it.stock);
-                            const rowSede = g.courier
-                              ? findSedeByNombre(g.courier)
-                              : undefined;
-
-                            const productosOptions: Option[] = rowSede
-                              ? (productosPorSede[rowSede.sede_id] || []).map((p) => ({
-                                value: String(p.id),
-                                label: p.nombre_producto,
-                              }))
-                              : [];
-
-                            return (
-                              <div key={ii} className="space-y-0.5">
-                                <Autocomplete
-                                  value={it.producto || ""}
-                                  options={productosOptions}
-                                  placeholder="Nombre del producto"
-                                  className={[
-                                    "border-b border-gray-200 px-3 py-2 align-middle",
-                                    g.items.some((_, ii) => isProductoNoExiste(gi, ii))
-                                      ? "bg-red-100"
-                                      : "",
-                                  ].join(" ")}
-                                  onChange={(label: string) => {
-                                    setGroups(prev =>
-                                      prev.map((g, gii) =>
-                                        gii !== gi
-                                          ? g
-                                          : {
-                                            ...g,
-                                            items: g.items.map((item, iii) =>
-                                              iii !== ii ? item : { ...item, producto: label }
-                                            ),
-                                          }
-                                      )
-                                    );
-                                  }}
-                                  onSelectOption={(opt) => {
-                                    handleProductoNombre(gi, ii, String(opt.value));
-                                  }}
-                                />
-
-                                {/* MENSAJES */}
-
-                                {noExiste && (
-                                  <div className="text-[11px] text-red-700 font-semibold">
-                                    Producto no existe en la sede
-                                  </div>
-                                )}
-
-                                {!noExiste && sinStock && (
-                                  <div className="text-[11px] text-red-600">
-                                     Producto sin stock
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-
-                        </div>
-                      </td>
-
-                      {/* CANTIDAD */}
-                      <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
-                        <div className="space-y-1">
-                          {g.items.map((it, ii) => {
-                            const cantidad = it.cantidad ?? 0;
-                            const stock = it.stock ?? undefined;
-
-                            const cantidadInvalida = isInvalidCantidad(
-                              cantidad,
-                              stock
-                            );
-
-                            return (
-                              <div key={ii} className="space-y-0.5">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={cantidad}
-                                  onChange={(e) =>
-                                    handleCantidad(gi, ii, Number(e.target.value))
-                                  }
-                                  className={[
-                                    "w-full bg-transparent border border-transparent rounded px-2 h-10",
-                                    "text-right text-base leading-tight",
-                                    "focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20",
-                                    cantidadInvalida ? "bg-red-50" : "",
-                                  ].join(" ")}
-                                  title={String(cantidad)}
-                                />
-
-                                {isSinStock(stock) && (
-                                  <div className="text-[11px] text-red-600">
-                                    Producto sin stock disponible.
-                                  </div>
-                                )}
-
-                                {typeof stock === "number" && cantidad > stock && (
-                                  <div className="text-[11px] text-red-600">
-                                    Stock insuficiente. Máximo disponible: {stock}.
-                                  </div>
-                                )}
-
-
-                                {cantidad <= 0 && (
-                                  <div className="text-[11px] text-red-600">
-                                    La cantidad debe ser mayor a 0.
-                                  </div>
-                                )}
-
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </td>
-
-                      {/* MONTO */}
-                      <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={g.monto_total ?? 0}
-                          onChange={(e) =>
-                            patchGroup(gi, {
-                              monto_total: Number(e.target.value),
-                              monto_editado: true,
-                            })
-                          }
+                        {/* DISTRITO */}
+                        <td
                           className={[
-                            "w-full bg-transparent border border-transparent rounded px-2 h-10",
-                            "text-right text-base leading-tight",
-                            "focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20",
-                            (g.monto_total ?? 0) < 0 ? "bg-red-50" : "",
+                            "border-b border-gray-200 px-3 py-2 align-middle",
+                            distritoInvalido ? "bg-red-50" : "",
                           ].join(" ")}
-                          title={String(g.monto_total ?? "")}
-                        />
-                      </td>
+                        >
 
-                      {/* FECHA ENTREGA */}
-                      <td className="border-b border-gray-200 px-3 py-2.5 align-middle">
-                        <input
-                          type="date"
-                          value={g.fecha_entrega ? g.fecha_entrega.slice(0, 10) : ""}
-                          onChange={(e) =>
-                            patchGroup(gi, {
-                              fecha_entrega: e.target.value
-                                ? new Date(e.target.value).toISOString()
-                                : undefined,
-                            })
-                          }
-                          className="w-full bg-transparent border border-transparent rounded px-1 py-1 text-[0.9rem]
+
+                          <Autocomplete
+                            value={g.distrito || ""}
+                            onChange={(v: string) => patchGroup(gi, { distrito: v })}
+                            options={distritosDeSede}
+                            placeholder="Distrito"
+                            className="w-full"
+                          />
+                          {distritoInvalido && (
+                            <div className="text-[11px] text-red-600 mt-1">
+                              El distrito es obligatorio.
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                          <input
+                            value={g.telefono}
+                            onChange={(e) => patchGroup(gi, { telefono: e.target.value })}
+                            className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            title={g.telefono}
+                          />
+                        </td>
+
+                        <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                          <input
+                            value={g.direccion}
+                            onChange={(e) => patchGroup(gi, { direccion: e.target.value })}
+                            className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            title={g.direccion}
+                          />
+                        </td>
+
+                        <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                          <input
+                            value={g.referencia || ""}
+                            onChange={(e) =>
+                              patchGroup(gi, { referencia: e.target.value })
+                            }
+                            className="w-full bg-transparent border border-transparent rounded px-1 py-1 truncate focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            title={g.referencia || ""}
+                          />
+                        </td>
+
+                        {/* Sede */}
+                        <td
+                          className={[
+                            "border-b border-gray-200 px-3 py-2 align-middle",
+                            sedeClass,
+                          ].join(" ")}
+                        >
+                          <Autocomplete
+                            value={g.courier || ""}
+                            onChange={(v: string) => handleSedeChange(gi, v)}
+                            options={sedeOptions}
+                            placeholder="Sede"
+                            invalid={isInvalidSedeRow}
+                            className="w-full"
+                          />
+                          {isInvalidSedeRow && g.courier ? (
+                            <div className="text-[11px] text-red-600 mt-1">
+                              La sede no coincide con las sedes asociadas al ecommerce.
+                            </div>
+                          ) : null}
+                        </td>
+
+                        {/* PRODUCTOS */}
+                        <td className="border-b border-gray-200 px-3 py-2 align-middle">
+                          <div className="space-y-1">
+
+                            {g.items.map((it, ii) => {
+                              const noExiste = isProductoNoExiste(gi, ii);
+                              const sinStock = isProductoSinStock(it.stock);
+                              const rowSede = g.courier
+                                ? findSedeByNombre(g.courier)
+                                : undefined;
+
+                              const productosOptions: Option[] = rowSede
+                                ? (productosPorSede[rowSede.sede_id] || []).map((p) => ({
+                                  value: String(p.id),
+                                  label: p.nombre_producto,
+                                }))
+                                : [];
+
+                              return (
+                                <div key={ii} className="space-y-0.5">
+                                  <Autocomplete
+                                    value={it.producto || ""}
+                                    options={productosOptions}
+                                    placeholder="Nombre del producto"
+                                    className={[
+                                      "border-b border-gray-200 px-3 py-2 align-middle",
+                                      g.items.some((_, ii) => isProductoNoExiste(gi, ii))
+                                        ? "bg-red-100"
+                                        : "",
+                                    ].join(" ")}
+                                    onChange={(label: string) => {
+                                      setGroups(prev =>
+                                        prev.map((g, gii) =>
+                                          gii !== gi
+                                            ? g
+                                            : {
+                                              ...g,
+                                              items: g.items.map((item, iii) =>
+                                                iii !== ii ? item : { ...item, producto: label }
+                                              ),
+                                            }
+                                        )
+                                      );
+                                    }}
+                                    onSelectOption={(opt) => {
+                                      handleProductoNombre(gi, ii, String(opt.value));
+                                    }}
+                                  />
+
+                                  {/* MENSAJES */}
+
+                                  {noExiste && (
+                                    <div className="text-[11px] text-red-700 font-semibold">
+                                      Producto no existe en la sede
+                                    </div>
+                                  )}
+
+                                  {!noExiste && sinStock && (
+                                    <div className="text-[11px] text-red-600">
+                                      Producto sin stock
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                          </div>
+                        </td>
+
+                        {/* CANTIDAD */}
+                        <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
+                          <div className="space-y-1">
+                            {g.items.map((it, ii) => {
+                              const cantidad = it.cantidad ?? 0;
+                              const stock = it.stock ?? undefined;
+
+                              const cantidadInvalida = isInvalidCantidad(
+                                cantidad,
+                                stock
+                              );
+
+                              return (
+                                <div key={ii} className="space-y-0.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={cantidad}
+                                    onChange={(e) =>
+                                      handleCantidad(gi, ii, Number(e.target.value))
+                                    }
+                                    className={[
+                                      "w-full bg-transparent border border-transparent rounded px-2 h-10",
+                                      "text-right text-base leading-tight",
+                                      "focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20",
+                                      cantidadInvalida ? "bg-red-50" : "",
+                                    ].join(" ")}
+                                    title={String(cantidad)}
+                                  />
+
+                                  {isSinStock(stock) && (
+                                    <div className="text-[11px] text-red-600">
+                                      Producto sin stock disponible.
+                                    </div>
+                                  )}
+
+                                  {typeof stock === "number" && cantidad > stock && (
+                                    <div className="text-[11px] text-red-600">
+                                      Stock insuficiente. Máximo disponible: {stock}.
+                                    </div>
+                                  )}
+
+
+                                  {cantidad <= 0 && (
+                                    <div className="text-[11px] text-red-600">
+                                      La cantidad debe ser mayor a 0.
+                                    </div>
+                                  )}
+
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+
+                        {/* MONTO */}
+                        <td className="border-b border-gray-200 px-3 py-2 align-middle text-right">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={g.monto_total ?? 0}
+                            onChange={(e) =>
+                              patchGroup(gi, {
+                                monto_total: Number(e.target.value),
+                                monto_editado: true,
+                              })
+                            }
+                            className={[
+                              "w-full bg-transparent border border-transparent rounded px-2 h-10",
+                              "text-right text-base leading-tight",
+                              "focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20",
+                              (g.monto_total ?? 0) < 0 ? "bg-red-50" : "",
+                            ].join(" ")}
+                            title={String(g.monto_total ?? "")}
+                          />
+                        </td>
+
+                        {/* FECHA ENTREGA */}
+                        <td className="border-b border-gray-200 px-3 py-2.5 align-middle">
+                          <input
+                            type="date"
+                            value={g.fecha_entrega ? g.fecha_entrega.slice(0, 10) : ""}
+                            onChange={(e) =>
+                              patchGroup(gi, {
+                                fecha_entrega: e.target.value
+                                  ? new Date(e.target.value).toISOString()
+                                  : undefined,
+                              })
+                            }
+                            className="w-full bg-transparent border border-transparent rounded px-1 py-1 text-[0.9rem]
                             focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        />
-                      </td>
-                    </tr>
+                          />
+                        </td>
+                      </tr>
+                      {g.errores && g.errores.length > 0 && (
+                        <tr className="bg-red-50">
+                          <td colSpan={11} className="px-4 py-2">
+                            <ul className="list-disc pl-5 text-[12px] text-red-700 space-y-1">
+                              {g.errores.map((err, i) => (
+                                <li key={i}>{err}</li>
+                              ))}
+                            </ul>
+                          </td>
+                        </tr>
+                      )}
+                    </ React.Fragment >
                   );
                 })}
-              </tbody>
+              </tbody >
             </table>
           </div>
         </div>
