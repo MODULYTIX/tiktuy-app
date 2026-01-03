@@ -254,33 +254,74 @@ export default function ImportPreviewPedidosModal({
 
       g.items.forEach((it, ii) => {
         if (!it.producto) return;
-        const key = productoKey(gi, ii);
 
+        const key = productoKey(gi, ii);
         const found = productos.find(
           (p) =>
             normalizeProducto(p.nombre_producto) ===
             normalizeProducto(it.producto)
         );
 
-        if (!found && it.producto) {
+        if (!found) {
           newErrors[key] = true;
         }
       });
     });
 
+    //  stock acumulado
+    const erroresAcumulados = validarStockAcumulado(
+      groups,
+      findSedeByNombre
+    );
+
+    Object.assign(newErrors, erroresAcumulados);
+
     setProductoErrors(newErrors);
   }, [groups, productosPorSede, sedes]);
 
-  const hasInvalid = useMemo(() => {
-    return groups.some(
-      (g) =>
-        g.valido === false ||
-        (Array.isArray(g.errores) && g.errores.length > 0)
-    );
-  }, [groups]);
 
 
   // ================= PATCH HELPERS =================
+
+  function validarStockAcumulado(
+    groups: PreviewGroupDTO[],
+    findSedeByNombre: (n: string) => any
+  ): Record<string, boolean> {
+
+    const errores: Record<string, boolean> = {};
+
+    // key = sedeId-productoId
+    const acumulado: Record<string, { total: number; stock: number }> = {};
+
+    groups.forEach((g, gi) => {
+      if (!g.courier) return;
+      const sede = findSedeByNombre(g.courier);
+      if (!sede) return;
+
+      g.items.forEach((it, ii) => {
+        if (!it.producto_id || !it.cantidad) return;
+
+        const key = `${sede.sede_id}-${it.producto_id}`;
+
+        if (!acumulado[key]) {
+          acumulado[key] = {
+            total: 0,
+            stock: it.stock ?? 0,
+          };
+        }
+
+        acumulado[key].total += it.cantidad;
+
+        if (acumulado[key].total > acumulado[key].stock) {
+          errores[productoKey(gi, ii)] = true;
+        }
+      });
+    });
+
+    return errores;
+  }
+
+
   const patchGroup = (idx: number, patch: Partial<PreviewGroupDTO>) =>
     setGroups((prev) =>
       prev.map((g, i) =>
@@ -389,6 +430,16 @@ export default function ImportPreviewPedidosModal({
         : "",
     };
   }
+  const hasInvalid = useMemo(() => {
+    return (
+      Object.keys(productoErrors).length > 0 ||
+      groups.some(
+        (g) =>
+          g.valido === false ||
+          (Array.isArray(g.errores) && g.errores.length > 0)
+      )
+    );
+  }, [groups, productoErrors]);
 
   const confirmarImportacion = async () => {
     setError(null);
@@ -871,11 +922,19 @@ export default function ImportPreviewPedidosModal({
                                     </div>
                                   )}
 
-                                  {!noExiste && sinStock && (
+                                  {!noExiste && sinStock && !productoErrors[productoKey(gi, ii)] && (
                                     <div className="text-[11px] text-red-600">
                                       Producto sin stock
                                     </div>
                                   )}
+
+                                  {productoErrors[productoKey(gi, ii)] && !noExiste && (
+                                    <div className="text-[11px] text-red-700 font-semibold">
+                                      Stock total insuficiente considerando todas las filas
+                                    </div>
+                                  )}
+
+
                                 </div>
                               );
                             })}
