@@ -134,7 +134,7 @@ const options = useMemo(() => {
   return (
     <section className="mt-8">
       <Tittlex
-        title="Stock por sede"
+        title="Stock de Productos"
         description="Control de stock físico por almacén del courier"
       />
 

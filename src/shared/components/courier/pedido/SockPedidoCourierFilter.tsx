@@ -15,8 +15,6 @@ export type StockFilters = {
   q: string;
 };
 
-
-
 type Option = { value: string; label: string };
 
 type Props = {
@@ -51,7 +49,6 @@ export default function StockPedidoFilterCourier({
   // fuente de lectura
   const view = filters ?? internal;
 
-
   // setter unificado
   const set = (patch: Partial<StockFilters>) => {
     if (onChange) {
@@ -75,14 +72,12 @@ export default function StockPedidoFilterCourier({
     <div className="mb-5">
       <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 text-sm items-end">
-
           {/* =======================
               SEDE (Courier)
           ======================= */}
           <Selectx
             label="Ecommerce"
             name="ecommerceOrigenId"
-
             value={view.ecommerceOrigenId}
             onChange={(e) => {
               set({ ecommerceOrigenId: e.target.value });
@@ -90,7 +85,6 @@ export default function StockPedidoFilterCourier({
             placeholder="Seleccionar ecommerce"
             disabled={loading || options.almacenes.length === 0}
           >
-
             {options.almacenes.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -135,39 +129,28 @@ export default function StockPedidoFilterCourier({
           </Selectx>
 
           {/* =======================
-              FILTROS EXCLUSIVOS
-          ======================= */}
-          <div>
-            <div className="text-sm font-medium text-gray-700 mb-2">
+    FILTROS EXCLUSIVOS
+======================= */}
+          <div className="min-w-0">
+            <div className="text-center font-medium text-gray-700 mb-2">
               Filtros exclusivos
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="h-10 flex items-center justify-center lg:justify-start gap-4">
               {/* Stock bajo */}
-              <label className="inline-flex items-center gap-2 text-gray-600">
+              <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
                 <input
                   type="checkbox"
                   checked={view.stockBajo}
                   onChange={(e) => set({ stockBajo: e.target.checked })}
                   disabled={loading}
+                  className="h-4 w-4 rounded-[3px] border border-gray-400 text-[#1A253D]"
                 />
                 <span>Stock bajo</span>
               </label>
 
               {/* Precio */}
-              <label className="inline-flex items-center gap-2 text-gray-600">
-                <input
-                  type="radio"
-                  name="precioOrden"
-                  checked={view.precioOrden === "asc"}
-                  onChange={() =>
-                    set({ precioOrden: view.precioOrden === "asc" ? "" : "asc" })
-                  }
-                />
-                <span>Precio ↑</span>
-              </label>
-
-              <label className="inline-flex items-center gap-2 text-gray-600">
+              <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
                 <input
                   type="radio"
                   name="precioOrden"
@@ -177,8 +160,26 @@ export default function StockPedidoFilterCourier({
                       precioOrden: view.precioOrden === "desc" ? "" : "desc",
                     })
                   }
+                  className="h-4 w-4"
+                  disabled={loading}
                 />
-                <span>Precio ↓</span>
+                <span>Precios bajos</span>
+              </label>
+
+              <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
+                <input
+                  type="radio"
+                  name="precioOrden"
+                  checked={view.precioOrden === "asc"}
+                  onChange={() =>
+                    set({
+                      precioOrden: view.precioOrden === "asc" ? "" : "asc",
+                    })
+                  }
+                  className="h-4 w-4"
+                  disabled={loading}
+                />
+                <span>Precios altos</span>
               </label>
             </div>
           </div>

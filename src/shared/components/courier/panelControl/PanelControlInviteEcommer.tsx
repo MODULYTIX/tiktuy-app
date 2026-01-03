@@ -229,7 +229,7 @@ export default function PanelControlInviteEcommer({
               type="url"
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              placeholder="https://chat.whatsapp.com/XXXXXXXXXXXXXXX"
+              placeholder="https://chat.whatsapp.com/"
               disabled={loading || saving || requesting}
               inputMode="url"
               autoComplete="off"
