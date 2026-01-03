@@ -1,5 +1,6 @@
 // src/shared/components/ecommerce/cuadreSaldo/CuadreSaldoTable.tsx
 import { useState, useMemo, useEffect } from "react";
+import { Icon } from "@iconify/react";
 import type { ResumenDia } from "@/services/ecommerce/cuadreSaldo/cuadreSaldoC.types";
 import TableActionx from "@/shared/common/TableActionx";
 
@@ -51,6 +52,82 @@ function netoVisual(r: any) {
 /** ✅ Solo NO se puede seleccionar cuando está "Validado" */
 function isSelectable(estado: ResumenDia["estado"]) {
   return estado !== "Validado";
+}
+
+/* ============================
+ * Mensajes sutiles (solo visual)
+ * ============================ */
+function HintChip({
+  icon,
+  label,
+}: {
+  icon: string;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] text-gray70">
+      <Icon icon={icon} className="text-[14px] text-gray60" />
+      <span className="leading-none">{label}</span>
+    </span>
+  );
+}
+
+function InlineEmptyMessage() {
+  return (
+    <div className="px-4 py-4">
+      <div className="flex items-start gap-3 rounded-md border border-gray-200 bg-gray-50 px-4 py-3">
+        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-gray-200">
+          <Icon
+            icon="mdi:database-search-outline"
+            className="text-[18px] text-gray60"
+          />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-gray90">
+            No hay registros con estos filtros
+          </div>
+          <div className="mt-0.5 text-xs text-gray60">
+            Prueba cambiando el courier o ampliando el rango de fechas.
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <HintChip icon="mdi:truck-outline" label="Cambiar courier" />
+            <HintChip icon="mdi:calendar-range" label="Ampliar fechas" />
+            <HintChip icon="mdi:filter-remove-outline" label="Limpiar filtros" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InlineLoadingMessage() {
+  return (
+    <div className="px-4 py-4" aria-live="polite" aria-busy="true">
+      <div className="flex items-start gap-3 rounded-md border border-gray-200 bg-white px-4 py-3">
+        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 border border-gray-200">
+          <Icon
+            icon="mdi:loading"
+            className="text-[18px] text-gray60 animate-spin"
+          />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-gray90">Cargando…</div>
+          <div className="mt-0.5 text-xs text-gray60">
+            Consultando el cuadre según el rango seleccionado.
+          </div>
+
+          {/* skeleton sutil (para que no se vea “pobre”) */}
+          <div className="mt-2 space-y-2">
+            <div className="h-2 w-[62%] rounded bg-gray-200/80 animate-pulse" />
+            <div className="h-2 w-[48%] rounded bg-gray-200/70 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function CuadreSaldoTable({
@@ -120,13 +197,9 @@ export default function CuadreSaldoTable({
 
   return (
     <div className="overflow-hidden rounded-md shadow-default bg-white">
-      {/* Mensajes */}
-      {loading && (
-        <div className="px-4 py-3 text-sm text-gray-500">Cargando...</div>
-      )}
-      {!loading && rows.length === 0 && (
-        <div className="px-4 py-3 text-sm text-gray-500">No hay datos.</div>
-      )}
+      {/* Mensajes (sutiles) */}
+      {loading && <InlineLoadingMessage />}
+      {!loading && rows.length === 0 && <InlineEmptyMessage />}
 
       {/* Tabla */}
       {!loading && rows.length > 0 && (

@@ -37,10 +37,7 @@ export default function CrearMovimientoModal({
   const [descripcion, setDescripcion] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* ======================================================
-     FETCH INICIAL
-  ====================================================== */
-    useEffect(() => {
+  useEffect(() => {
     if (!open || !token) return;
 
     fetchSedesConRepresentante(token)
@@ -51,12 +48,9 @@ export default function CrearMovimientoModal({
       })
       .catch(console.error);
 
-    // ✅ TRAER MUCHOS PRODUCTOS (NO SOLO 10)
     fetchProductos(token, { page: 1, perPage: 1000 })
       .then((rows: any) => {
-        const list: Producto[] = Array.isArray(rows?.data)
-          ? rows.data
-          : [];
+        const list: Producto[] = Array.isArray(rows?.data) ? rows.data : [];
         setProductos(list);
       })
       .catch(console.error);
@@ -67,23 +61,15 @@ export default function CrearMovimientoModal({
     setAlmacenOrigen("");
   }, [open, token]);
 
-  /* ======================================================
-     PRODUCTOS SELECCIONADOS (AHORA SÍ TODOS)
-  ====================================================== */
   const productosSeleccionados = useMemo(() => {
     if (!selectedProducts.length) return [];
     const set = new Set(selectedProducts);
     return productos.filter((p) => set.has(p.uuid));
   }, [productos, selectedProducts]);
 
-  /* ======================================================
-     ORIGEN INFERIDO
-  ====================================================== */
   const origenInferido = useMemo(() => {
     const ids = productosSeleccionados
-      .map((p) =>
-        p.almacenamiento_id != null ? String(p.almacenamiento_id) : ""
-      )
+      .map((p) => (p.almacenamiento_id != null ? String(p.almacenamiento_id) : ""))
       .filter(Boolean);
 
     if (!ids.length) return "";
@@ -98,9 +84,6 @@ export default function CrearMovimientoModal({
     }
   }, [origenInferido]);
 
-  /* ======================================================
-     DESTINOS
-  ====================================================== */
   const esSedeAsociada = (s: Almacenamiento) =>
     s?.entidad?.tipo === "courier" || !!s?.courier_id;
 
@@ -112,41 +95,25 @@ export default function CrearMovimientoModal({
   const destinosFiltrados = useMemo(() => {
     if (!destinosBase.length) return [];
     if (!almacenOrigen) return destinosBase;
-    return destinosBase.filter(
-      (s) => String(s.id) !== String(almacenOrigen)
-    );
+    return destinosBase.filter((s) => String(s.id) !== String(almacenOrigen));
   }, [destinosBase, almacenOrigen]);
 
-  /* ======================================================
-     CANTIDADES
-  ====================================================== */
   const handleCantidadChange = (uuid: string, value: number, stock: number) => {
     const safe = Math.min(Math.max(0, Math.trunc(value || 0)), stock);
     setCantidades((prev) => ({ ...prev, [uuid]: safe }));
   };
 
-  /* ======================================================
-     VALIDACIÓN
-  ====================================================== */
   const validarAntesDeEnviar = () => {
     if (!origenInferido) {
-      notify(
-        "Todos los productos deben pertenecer a la misma sede de origen.",
-        "error"
-      );
+      notify("Todos los productos deben pertenecer a la misma sede de origen.", "error");
       return false;
     }
     if (!almacenOrigen || !almacenDestino || almacenOrigen === almacenDestino) {
-      notify(
-        "Selecciona sedes válidas (origen y destino distintos).",
-        "error"
-      );
+      notify("Selecciona sedes válidas (origen y destino distintos).", "error");
       return false;
     }
 
-    const prods = productosSeleccionados.filter(
-      (p) => (cantidades[p.uuid] ?? 0) > 0
-    );
+    const prods = productosSeleccionados.filter((p) => (cantidades[p.uuid] ?? 0) > 0);
     if (!prods.length) {
       notify("Debes ingresar al menos una cantidad válida.", "error");
       return false;
@@ -154,9 +121,6 @@ export default function CrearMovimientoModal({
     return true;
   };
 
-  /* ======================================================
-     SUBMIT
-  ====================================================== */
   const handleSubmit = async () => {
     if (!validarAntesDeEnviar()) return;
 
@@ -206,19 +170,22 @@ export default function CrearMovimientoModal({
 
   return (
     <div
-      className="h-full w-[700px] bg-white shadow-xl flex flex-col gap-5 px-5 py-5 overflow-x-hidden"
+      // ✅ clave: altura fija + NO scroll en el modal
+      className="h-[92vh] max-h-[92vh] w-[700px] bg-white shadow-xl flex flex-col px-5 py-5 overflow-hidden min-h-0 gap-4"
       onClick={(e) => e.stopPropagation()}
     >
-      <Tittlex
-        variant="modal"
-        icon="vaadin:stock"
-        title="REGISTRAR NUEVO MOVIMIENTO"
-        description="Selecciona productos y completa los datos para registrar un movimiento."
-      />
+      <div className="shrink-0">
+        <Tittlex
+          variant="modal"
+          icon="vaadin:stock"
+          title="REGISTRAR NUEVO MOVIMIENTO"
+          description="Selecciona productos y completa los datos para registrar un movimiento."
+        />
+      </div>
 
-      {/* Tabla  */}
-      <div className="rounded-md border border-gray-200 bg-white">
-        {/* Header fijo */}
+      {/* ✅ TABLA: ocupa TODO lo posible (flex-1) */}
+      <div className="flex-1 min-h-0 rounded-md border border-gray-200 bg-white flex flex-col overflow-hidden">
+        {/* header fijo */}
         <table className="min-w-full table-fixed text-[12px]">
           <colgroup>
             <col className="w-[18%]" />
@@ -226,8 +193,7 @@ export default function CrearMovimientoModal({
             <col className="w-[34%]" />
             <col className="w-[20%]" />
           </colgroup>
-
-          <thead className="bg-[#E5E7EB] sticky top-0 z-10">
+          <thead className="bg-[#E5E7EB]">
             <tr className="text-gray-700 font-roboto font-medium">
               <th className="px-4 py-3 text-left">Código</th>
               <th className="px-4 py-3 text-left">Producto</th>
@@ -237,8 +203,8 @@ export default function CrearMovimientoModal({
           </thead>
         </table>
 
-        {/*  BODY SCROLLEABLE */}
-        <div className="max-h-[420px] overflow-y-auto">
+        {/* ✅ SOLO aquí hay scroll */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <table className="min-w-full table-fixed text-[12px]">
             <colgroup>
               <col className="w-[18%]" />
@@ -246,7 +212,6 @@ export default function CrearMovimientoModal({
               <col className="w-[34%]" />
               <col className="w-[20%]" />
             </colgroup>
-
             <tbody className="divide-y divide-gray-100">
               {productosSeleccionados.map((p) => (
                 <tr key={p.uuid} className="hover:bg-gray-50 transition-colors">
@@ -268,17 +233,9 @@ export default function CrearMovimientoModal({
                         type="number"
                         min={0}
                         max={p.stock}
-                        value={
-                          Number.isFinite(cantidades[p.uuid])
-                            ? cantidades[p.uuid]
-                            : ""
-                        }
+                        value={Number.isFinite(cantidades[p.uuid]) ? cantidades[p.uuid] : ""}
                         onChange={(e) =>
-                          handleCantidadChange(
-                            p.uuid,
-                            Number(e.target.value),
-                            p.stock
-                          )
+                          handleCantidadChange(p.uuid, Number(e.target.value), p.stock)
                         }
                         className="w-[64px] h-9 rounded-lg border border-gray-300 px-2 text-center text-sm"
                       />
@@ -300,9 +257,8 @@ export default function CrearMovimientoModal({
         </div>
       </div>
 
-
-      {/* Datos adicionales */}
-      <div className="flex-1 flex flex-col gap-5 overflow-y-auto pr-1">
+      {/* ✅ SIEMPRE visibles: SIN scroll */}
+      <div className="shrink-0 flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-5">
           <Selectx
             label="Sede Origen"
@@ -352,13 +308,13 @@ export default function CrearMovimientoModal({
           onChange={(e) => setDescripcion(e.target.value)}
           placeholder="Motivo del movimiento..."
           autoResize
-          minRows={3}
-          maxRows={8}
+          minRows={2}   // ✅ más compacto para pantallas bajas
+          maxRows={6}
         />
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-gray-200 pt-4">
+      {/* Footer: SIEMPRE visible */}
+      <div className="shrink-0 border-t border-gray-200 pt-4">
         <div className="flex items-center gap-5">
           <Buttonx
             variant="quartery"
