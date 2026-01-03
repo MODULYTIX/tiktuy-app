@@ -30,18 +30,18 @@ const estadoChip = (estado?: string) => {
   const name = (estado || "").toLowerCase();
   if (name.includes("validado"))
     return (
-      <span className="rounded px-2 py-0.5 text-xs bg-green-100 text-green-700">
+      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100">
         Validado
       </span>
     );
   if (name.includes("observado"))
     return (
-      <span className="rounded px-2 py-0.5 text-xs bg-red-100 text-red-600">
+      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-100">
         Observado
       </span>
     );
   return (
-    <span className="rounded px-2 py-0.5 text-xs bg-amber-100 text-amber-700">
+    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-100">
       Proceso
     </span>
   );
@@ -174,113 +174,179 @@ export default function ValidarMovimientoCourierModal({
       className="fixed inset-0 z-50 flex justify-end bg-black/40"
       onClick={onClose}
     >
+      {/* ✅ Drawer (600px) */}
       <div
-        className="w-full max-w-[980px] h-full bg-white shadow-xl overflow-y-auto"
+        className="w-[600px] max-w-[95vw] h-full bg-white shadow-2xl border-l border-gray-200 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white">
-          <div className="flex items-start justify-between px-6 pt-5 pb-3">
-            <div className="flex items-center gap-2">
-              <Icon
-                icon="icon-park-outline:cycle-movement"
-                width="24"
-                height="24"
-                className="text-primary"
-              />
-              <h2 className="text-2xl font-extrabold tracking-tight text-primary">
-                VALIDAR MOVIMIENTO
-              </h2>
+        <div className="shrink-0 bg-slate-50 border-b border-gray-200">
+          <div className="flex items-start justify-between px-4 pt-4 pb-3">
+            <div className="min-w-0 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center shrink-0">
+                <Icon
+                  icon="icon-park-outline:cycle-movement"
+                  width="22"
+                  height="22"
+                  className="text-primary"
+                />
+              </div>
+
+              <div className="min-w-0">
+                <h2 className="text-[15px] sm:text-base font-extrabold tracking-tight text-primary uppercase leading-5">
+                  Validar movimiento
+                </h2>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-700">
+                    <span className="text-slate-500 font-semibold">Código:</span>
+                    <span className="font-bold tabular-nums">{codigo}</span>
+                  </span>
+
+                  <span className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-700">
+                    <span className="text-slate-500 font-semibold">Estado:</span>
+                    {estadoChip(detalle?.estado?.nombre)}
+                  </span>
+
+                  {loading && (
+                    <span className="inline-flex items-center gap-2 rounded-full bg-white border border-gray-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700">
+                      <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
+                      Cargando…
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
+
             <button
               aria-label="Cerrar"
               onClick={onClose}
-              className="p-2 rounded hover:bg-gray-100"
+              className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-100 text-slate-700 shrink-0"
+              title="Cerrar"
             >
               <HiX className="h-5 w-5" />
             </button>
           </div>
-
-          <div className="flex items-center justify-between px-6 pb-3">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-slate-500 font-semibold">Código :</span>
-              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
-                {codigo}
-              </span>
-            </div>
-            <div className="text-sm flex items-center gap-2">
-              <span className="text-slate-500 font-semibold">Estado :</span>
-              {estadoChip(detalle?.estado?.nombre)}
-            </div>
-          </div>
         </div>
 
-        {/* Body */}
-        <div className="px-6 pb-6">
+        {/* Body (scroll) */}
+        <div className="flex-1 min-h-0 overflow-y-auto bg-white px-4 pb-4">
           {/* Descripción */}
-          <div className="mt-4">
-            <div className="text-slate-800 font-semibold">Descripción</div>
-            <p className="text-slate-600 mt-1">
+          <div className="mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm p-4">
+            <div className="text-sm font-bold text-slate-900">Descripción</div>
+            <p className="text-[13px] text-slate-600 mt-1 leading-relaxed">
               {detalle?.descripcion ||
                 "Movimiento para reabastecer stock en destino."}
             </p>
           </div>
 
           {/* Tabla editable */}
-          <div className="mt-4 rounded-md overflow-hidden shadow-default">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 text-gray-700">
-                <tr>
-                  <th className="p-3 text-left font-semibold">Código</th>
-                  <th className="p-3 text-left font-semibold">Producto</th>
-                  <th className="p-3 text-left font-semibold">Descripción</th>
-                  <th className="p-3 text-right font-semibold">Cantidad</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {detalle?.productos?.map((dp) => {
-                  const max = dp.cantidad_validada ?? dp.cantidad ?? 0;
-                  const val = cantidades[dp.producto.id] ?? max;
+          <div className="mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-bold text-slate-900">Productos</div>
+                <div className="text-xs text-slate-500">
+                  Ajusta cantidades (máximo según registro)
+                </div>
+              </div>
 
-                  return (
-                    <tr key={dp.id} className="hover:bg-gray-50">
-                      <td className="p-3">
-                        {dp.producto?.codigo_identificacion}
-                      </td>
-                      <td className="p-3">{dp.producto?.nombre_producto}</td>
-                      <td className="p-3 text-slate-600">
-                        {dp.producto?.descripcion || "—"}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex justify-end items-center gap-2">
-                          <input
-                            type="number"
-                            min={0}
-                            max={max}
-                            step={1}
-                            disabled={!canValidate}
-                            value={val}
-                            onChange={(e) =>
-                              handleCantidadChange(
-                                dp.producto.id,
-                                Number(e.target.value),
-                                max
-                              )
-                            }
-                            className="w-[72px] h-8 border rounded px-2 text-right text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-gray-100"
-                          />
-                          <span className="text-xs text-gray-500">/ {max}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              <span className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+                {detalle?.productos?.length ?? 0} ítems
+              </span>
+            </div>
+
+            {/* ✅ IMPORTANTE: sin scroll horizontal; truncamos producto */}
+            <div className="max-h-[42vh] overflow-y-auto overflow-x-hidden">
+              <table className="w-full text-sm table-fixed">
+                {/* ✅ fija columnas para que Cantidad nunca se salga */}
+                <colgroup>
+                  <col className="w-[96px]" />   {/* Código */}
+                  <col />                        {/* Producto */}
+                  <col className="w-[124px]" />  {/* Cantidad */}
+                </colgroup>
+
+                <thead className="bg-slate-50 text-slate-600">
+                  <tr className="text-left">
+                    <th className="px-4 py-3 text-[11px] font-semibold">
+                      Código
+                    </th>
+                    <th className="px-4 py-3 text-[11px] font-semibold">
+                      Producto
+                    </th>
+                    <th className="px-4 py-3 text-[11px] font-semibold text-center">
+                      Cantidad
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-gray-100">
+                  {detalle?.productos?.map((dp) => {
+                    const max = dp.cantidad_validada ?? dp.cantidad ?? 0;
+                    const val = cantidades[dp.producto.id] ?? max;
+
+                    return (
+                      <tr key={dp.id} className="hover:bg-slate-50/60">
+                        <td className="px-4 py-3 align-top">
+                          <div
+                            className="text-[12px] font-semibold text-slate-800 truncate"
+                            title={dp.producto?.codigo_identificacion || "—"}
+                          >
+                            {dp.producto?.codigo_identificacion || "—"}
+                          </div>
+                        </td>
+
+                        {/* ✅ aquí aplicamos “…” real */}
+                        <td className="px-4 py-3 align-top min-w-0">
+                          <div className="min-w-0 pr-2">
+                            <div
+                              className="font-semibold text-slate-900 truncate"
+                              title={dp.producto?.nombre_producto || "—"}
+                            >
+                              {dp.producto?.nombre_producto || "—"}
+                            </div>
+
+                            <div
+                              className="mt-0.5 text-[12px] text-slate-500 line-clamp-2"
+                              title={dp.producto?.descripcion || "—"}
+                            >
+                              {dp.producto?.descripcion || "—"}
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex justify-end items-center gap-2 whitespace-nowrap">
+                            <input
+                              type="number"
+                              min={0}
+                              max={max}
+                              step={1}
+                              disabled={!canValidate}
+                              value={val}
+                              onChange={(e) =>
+                                handleCantidadChange(
+                                  dp.producto.id,
+                                  Number(e.target.value),
+                                  max
+                                )
+                              }
+                              className="w-[74px] h-9 border border-gray-200 rounded-xl px-2 text-right text-[13px] font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/40 disabled:bg-gray-100"
+                            />
+                            <span className="text-[11px] text-slate-500 tabular-nums">
+                              / {max}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Observaciones */}
-          <div className="mt-5 mb-5">
+          <div className="mt-4">
             <InputxTextarea
               label="Observaciones"
               value={observaciones}
@@ -293,29 +359,31 @@ export default function ValidarMovimientoCourierModal({
           </div>
 
           {/* Evidencia */}
-          <ImageUploadx
-            label="Seleccione un archivo, arrástrelo o suéltelo."
-            value={file}
-            onChange={setFile}
-            maxSizeMB={5}
-            accept="image/*,.pdf"
-            disabled={!canValidate}
-          />
+          <div className="mt-4">
+            <ImageUploadx
+              label="Seleccione un archivo, arrástrelo o suéltelo."
+              value={file}
+              onChange={setFile}
+              maxSizeMB={5}
+              accept="image/*,.pdf"
+              disabled={!canValidate}
+            />
+          </div>
 
           {/* Footer */}
-          <div className="pt-6 pb-4 flex items-center gap-3">
+          <div className="mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm px-4 py-3 flex items-center gap-3">
             <Buttonx
               label={loading ? "Validando…" : "Validar"}
               variant="secondary"
               onClick={handleValidate}
               disabled={!canValidate || loading}
+              icon={loading ? "mdi:reload" : undefined}
+              className={loading ? "[&>span>svg]:animate-spin" : ""}
             />
-            <Buttonx
-            label="Cancelar"
-            variant="outlinedw"
-            onClick={onClose}
-            />
-            <div className="ml-auto text-xs text-gray-400">
+
+            <Buttonx label="Cancelar" variant="outlinedw" onClick={onClose} />
+
+            <div className="ml-auto text-[11px] text-slate-500">
               {detalle?.fecha_movimiento && (
                 <>Fec. generación: {fmtFecha(detalle.fecha_movimiento)}</>
               )}
