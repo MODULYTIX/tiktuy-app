@@ -22,6 +22,7 @@ import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import Badgex from "@/shared/common/Badgex";
 import TableActionx from "@/shared/common/TableActionx";
+import Tittlex from "@/shared/common/Tittlex";
 
 const formatPEN = (v: number) =>
   `S/. ${Number(v || 0).toLocaleString("es-PE", {
@@ -481,7 +482,10 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     <div className="flex flex-col gap-5">
       {/* Barra superior */}
       <div className="flex items-center justify-between">
-        <div className="text-lg font-semibold">Ecommerce</div>
+        <Tittlex
+          title="Ecommerce"
+          variant="section"
+        />
         <Buttonx
           icon="iconoir:new-tab"
           label="Abonar Ecommerce"
@@ -614,7 +618,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                   <th className="px-4 py-3 text-left">Cobrado</th>
                   <th className="px-4 py-3 text-left">Servicio total</th>
                   <th className="px-4 py-3 text-left">Neto</th>
-                  <th className="px-4 py-3 text-left">Estado</th>
+                  <th className="px-4 py-3 text-center">Estado</th>
                   <th className="px-4 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
