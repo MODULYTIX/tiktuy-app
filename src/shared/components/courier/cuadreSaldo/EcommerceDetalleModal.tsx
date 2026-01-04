@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import type { PedidoDiaItem } from "@/services/courier/cuadre_saldo/cuadreSaldoE.types";
 import Buttonx from "@/shared/common/Buttonx";
+import TableActionx from "@/shared/common/TableActionx";
 
 type Props = {
   open: boolean;
@@ -32,7 +33,9 @@ const toDMY = (ymd: string) => {
 
 // ✅ DIRECTO_ECOMMERCE => monto visual 0 (solo UI)
 function montoVisual(it: PedidoDiaItem): number {
-  const mp = String((it as any)?.metodoPago ?? "").trim().toUpperCase();
+  const mp = String((it as any)?.metodoPago ?? "")
+    .trim()
+    .toUpperCase();
   if (mp === "DIRECTO_ECOMMERCE") return 0;
   return Number((it as any)?.monto ?? 0);
 }
@@ -76,7 +79,8 @@ const EcommerceDetalleModal: React.FC<Props> = ({
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const totalServicioCourierDia = useMemo(
-    () => items.reduce((acc, it: any) => acc + Number(it?.servicioCourier ?? 0), 0),
+    () =>
+      items.reduce((acc, it: any) => acc + Number(it?.servicioCourier ?? 0), 0),
     [items]
   );
 
@@ -142,7 +146,9 @@ const EcommerceDetalleModal: React.FC<Props> = ({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center shrink-0">
-                  <span className="text-slate-700 text-lg leading-none">🧾</span>
+                  <span className="text-slate-700 text-lg leading-none">
+                    🧾
+                  </span>
                 </div>
 
                 <div className="min-w-0">
@@ -152,13 +158,21 @@ const EcommerceDetalleModal: React.FC<Props> = ({
 
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-700">
-                      <span className="text-slate-500 font-semibold">Fecha:</span>
-                      <span className="font-bold tabular-nums">{toDMY(fecha)}</span>
+                      <span className="text-slate-500 font-semibold">
+                        Fecha:
+                      </span>
+                      <span className="font-bold tabular-nums">
+                        {toDMY(fecha)}
+                      </span>
                     </span>
 
                     <span className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-700 max-w-[520px]">
-                      <span className="text-slate-500 font-semibold">Ecommerce:</span>
-                      <span className="font-bold truncate">{ecommerceNombre}</span>
+                      <span className="text-slate-500 font-semibold">
+                        Ecommerce:
+                      </span>
+                      <span className="font-bold truncate">
+                        {ecommerceNombre}
+                      </span>
                     </span>
 
                     <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-[11px] font-semibold text-emerald-800">
@@ -189,8 +203,12 @@ const EcommerceDetalleModal: React.FC<Props> = ({
               <div className="px-4 sm:px-5 py-3.5 border-b border-gray-100">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-bold text-slate-900">Resumen</div>
-                    <div className="text-xs text-slate-500">Totales del día</div>
+                    <div className="text-sm font-bold text-slate-900">
+                      Resumen
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Totales del día
+                    </div>
                   </div>
 
                   <Buttonx
@@ -207,14 +225,18 @@ const EcommerceDetalleModal: React.FC<Props> = ({
               <div className="p-4 sm:p-5">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5">
-                    <div className="text-xs font-semibold text-slate-500">Pedidos</div>
+                    <div className="text-xs font-semibold text-slate-500">
+                      Pedidos
+                    </div>
                     <div className="mt-1 text-lg font-extrabold tabular-nums text-slate-900">
                       {String(items.length).padStart(2, "0")}
                     </div>
                   </div>
 
                   <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5">
-                    <div className="text-xs font-semibold text-slate-500">Servicio total</div>
+                    <div className="text-xs font-semibold text-slate-500">
+                      Servicio total
+                    </div>
                     <div className="mt-1 text-lg font-extrabold tabular-nums text-slate-900">
                       {formatPEN(totalServicioCourierDia)}
                     </div>
@@ -224,7 +246,9 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                   </div>
 
                   <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3.5">
-                    <div className="text-xs font-semibold text-emerald-800">Estado</div>
+                    <div className="text-xs font-semibold text-emerald-800">
+                      Estado
+                    </div>
                     <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white border border-emerald-200 px-3 py-2 text-[11px] font-bold text-emerald-900">
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       Listo para revisión
@@ -260,7 +284,9 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                         <th className="px-4 py-3 text-left">Cliente</th>
                         <th className="px-4 py-3 text-left">Método</th>
                         <th className="px-4 py-3 text-left">Monto</th>
-                        <th className="px-4 py-3 text-left">Servicio courier</th>
+                        <th className="px-4 py-3 text-left">
+                          Servicio courier
+                        </th>
                         <th className="px-4 py-3 text-left">Motivo</th>
                         <th className="px-4 py-3 text-left">Evidencia</th>
                         <th className="px-4 py-3 text-left">Abono</th>
@@ -270,7 +296,10 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                     <tbody className="divide-y divide-gray20">
                       {items.length === 0 ? (
                         <tr className="hover:bg-transparent">
-                          <td colSpan={7} className="px-4 py-8 text-center text-gray70 italic">
+                          <td
+                            colSpan={7}
+                            className="px-4 py-8 text-center text-gray70 italic"
+                          >
                             Sin pedidos
                           </td>
                         </tr>
@@ -290,24 +319,35 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                             null;
 
                           return (
-                            <tr key={it.id} className="hover:bg-gray10 transition-colors">
+                            <tr
+                              key={it.id}
+                              className="hover:bg-gray10 transition-colors"
+                            >
                               <td className="px-4 py-3 text-gray70">
-                                <div className="font-medium text-gray80">{it.cliente}</div>
+                                <div className="font-medium text-gray80">
+                                  {it.cliente}
+                                </div>
                                 <div className="mt-0.5 text-[11px] text-gray-500">
                                   Pedido #{it.id}
                                 </div>
                               </td>
 
-                              <td className="px-4 py-3 text-gray70">{it.metodoPago ?? "-"}</td>
+                              <td className="px-4 py-3 text-gray70">
+                                {it.metodoPago ?? "-"}
+                              </td>
 
-                              <td className="px-4 py-3 text-gray70">{formatPEN(montoVisual(it))}</td>
+                              <td className="px-4 py-3 text-gray70">
+                                {formatPEN(montoVisual(it))}
+                              </td>
 
                               <td className="px-4 py-3 text-gray70">
                                 {formatPEN(Number(it.servicioCourier ?? 0))}
                               </td>
 
                               <td className="px-4 py-3 text-gray70">
-                                <div className="line-clamp-2">{motivo || "-"}</div>
+                                <div className="line-clamp-2">
+                                  {motivo || "-"}
+                                </div>
                               </td>
 
                               {/* ✅ Evidencia: SOLO "Ver" con Buttonx */}
@@ -316,16 +356,14 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                                   <span className="text-gray-400">—</span>
                                 ) : (
                                   <div className="flex items-center gap-2">
-                                    <Buttonx
-                                      variant="outlined"
-                                      label="Ver"
-                                      icon="mdi:eye-outline"
+                                    <TableActionx
+                                      variant="view"
+                                      title="Ver evidencia"
                                       onClick={() => {
                                         setDownloadError(null);
                                         setPreviewUrl(String(evidenciaUrl));
                                       }}
-                                      className="!h-7 !px-2 !text-[11px]"
-                                      title="Ver evidencia"
+                                      size="sm"
                                     />
                                   </div>
                                 )}
@@ -335,7 +373,9 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                                 <span
                                   className={[
                                     "inline-flex rounded-full px-3 py-1 text-[11px] font-semibold",
-                                    it.abonado ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-900",
+                                    it.abonado
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-gray-200 text-gray-900",
                                   ].join(" ")}
                                 >
                                   {it.abonado ? "Abonado" : "Sin abonar"}
@@ -369,7 +409,9 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                 <div className="text-sm font-bold text-slate-900 truncate">
                   Vista previa de evidencia
                 </div>
-                <div className="text-xs text-slate-500 truncate">{previewUrl}</div>
+                <div className="text-xs text-slate-500 truncate">
+                  {previewUrl}
+                </div>
               </div>
 
               <button
@@ -405,7 +447,9 @@ const EcommerceDetalleModal: React.FC<Props> = ({
               <Buttonx
                 variant="secondary"
                 label={downloading ? "Descargando..." : "Descargar"}
-                icon={downloading ? "line-md:loading-twotone-loop" : "mdi:download"}
+                icon={
+                  downloading ? "line-md:loading-twotone-loop" : "mdi:download"
+                }
                 onClick={handleDownloadEvidence}
                 disabled={downloading}
                 className={downloading ? "[&_svg]:animate-spin" : ""}

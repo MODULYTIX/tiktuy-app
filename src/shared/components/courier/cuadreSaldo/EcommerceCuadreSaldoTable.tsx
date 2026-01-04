@@ -619,7 +619,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                   <th className="px-4 py-3 text-left">Servicio total</th>
                   <th className="px-4 py-3 text-left">Neto</th>
                   <th className="px-4 py-3 text-center">Estado</th>
-                  <th className="px-4 py-3 text-right">Acciones</th>
+                  <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
 
@@ -674,19 +674,17 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
                         <td className="px-4 py-3 text-gray70">{formatPEN(r.neto)}</td>
 
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-center">
                           <Badgex className={pillCls}>{estado}</Badgex>
                         </td>
 
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end">
+                        <td className="px-4 py-3 text-center items-center justify-center">
                             <TableActionx
                               variant="view"
                               title="Ver pedidos del día"
                               onClick={() => openDia(r.fecha)}
                               size="sm"
                             />
-                          </div>
                         </td>
                       </tr>
                     );
