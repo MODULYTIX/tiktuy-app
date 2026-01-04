@@ -55,7 +55,19 @@ const normMetodoPago = (v: unknown) =>
     .replace(/\s+/g, "_");
 
 /** solo contar efectivo */
-const isEfectivo = (metodoPago: unknown) => normMetodoPago(metodoPago) === "EFECTIVO";
+const isEfectivo = (metodoPago: unknown) =>
+  normMetodoPago(metodoPago) === "EFECTIVO";
+
+/** ✅ Etiqueta visual para método de pago (NO afecta lógica) */
+const metodoPagoLabel = (metodoPago: unknown) => {
+  const m = normMetodoPago(metodoPago);
+  if (!m) return "-";
+  if (m === "DIRECTO_ECOMMERCE") return "Pago digital a ecommerce";
+  if (m === "BILLETERA") return "Pago digital a courier";
+  // para no romper lo existente: si viene EFECTIVO u otro, se muestra tal cual "normalizado"
+  // si prefieres mostrar el original exacto, dime y lo ajusto.
+  return String(metodoPago ?? "-");
+};
 
 /* ============== Modal Confirmar Abono ============== */
 type ConfirmAbonoModalProps = {
@@ -135,7 +147,9 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
               checked={checked}
               onChange={(e) => setChecked(e.target.checked)}
             />
-            <span>Confirmo que verifiqué los pedidos y realicé la transferencia</span>
+            <span>
+              Confirmo que verifiqué los pedidos y realicé la transferencia
+            </span>
           </label>
         </div>
 
@@ -204,7 +218,9 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   useEffect(() => {
     if (open && pedido) {
       setMontoRep(
-        String((pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0)
+        String(
+          (pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0
+        )
       );
       setMotivo((pedido as any).motivo ?? "");
       setMontoCour(
@@ -222,8 +238,10 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   const onGuardar = async () => {
     const valRep = Number(montoRep);
     const valCour = Number(montoCour);
-    if (Number.isNaN(valRep) || valRep < 0) return alert("Servicio del motorizado inválido.");
-    if (Number.isNaN(valCour) || valCour < 0) return alert("Servicio courier inválido.");
+    if (Number.isNaN(valRep) || valRep < 0)
+      return alert("Servicio del motorizado inválido.");
+    if (Number.isNaN(valCour) || valCour < 0)
+      return alert("Servicio courier inválido.");
 
     try {
       const chg: EditModalChange = { id: pedido.id };
@@ -293,7 +311,9 @@ const EditServicioModal: React.FC<EditModalProps> = ({
                 value={montoRep}
                 onChange={(e) => setMontoRep(e.target.value)}
               />
-              <p className="text-[11px] text-gray-500">Sugerido: {formatPEN(sugeridoRep)}</p>
+              <p className="text-[11px] text-gray-500">
+                Sugerido: {formatPEN(sugeridoRep)}
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -306,7 +326,9 @@ const EditServicioModal: React.FC<EditModalProps> = ({
                 onChange={(e) => setMontoCour(e.target.value)}
               />
               {baseCour != null && (
-                <p className="text-[11px] text-gray-500">Base: {formatPEN(Number(baseCour))}</p>
+                <p className="text-[11px] text-gray-500">
+                  Base: {formatPEN(Number(baseCour))}
+                </p>
               )}
             </div>
           </div>
@@ -392,7 +414,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [detalleFecha, setDetalleFecha] = useState<string>("");
   const [detallePedidoId, setDetallePedidoId] = useState<number | null>(null);
-  const [detalleItems, setDetalleItems] = useState<DetalleServicioPedidoItem[]>([]);
+  const [detalleItems, setDetalleItems] = useState<
+    DetalleServicioPedidoItem[]
+  >([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -437,7 +461,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
         if (chg.servicioRepartidor !== undefined) {
           next.servicioRepartidor = chg.servicioRepartidor;
-          next.servicioEfectivo = chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
+          next.servicioEfectivo =
+            chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
         }
         if (chg.motivo !== undefined) {
           next.motivo = chg.motivo ?? null;
@@ -445,7 +470,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
         if (chg.servicioCourier !== undefined) {
           next.servicioCourier = chg.servicioCourier;
           if ("servicioCourierEfectivo" in next) {
-            next.servicioCourierEfectivo = chg.servicioCourier ?? next.servicioCourierEfectivo ?? 0;
+            next.servicioCourierEfectivo =
+              chg.servicioCourier ?? next.servicioCourierEfectivo ?? 0;
           }
         }
         return next;
@@ -495,16 +521,20 @@ const CuadreSaldoTable: React.FC<Props> = ({
     [selectedRows]
   );
 
-// ✅ Total courier: (total cobrado efectivo) - (servicio motorizado)
-const totalCourier = useMemo(() => {
-  return totalCobrado - totalServicioMotorizado;
-}, [totalCobrado, totalServicioMotorizado]);
+  // ✅ Total courier: (total cobrado efectivo) - (servicio motorizado)
+  const totalCourier = useMemo(() => {
+    return totalCobrado - totalServicioMotorizado;
+  }, [totalCobrado, totalServicioMotorizado]);
 
   const toggleAbono = useCallback(
     async (row: any) => {
       try {
         const next = !row.abonado;
-        await abonarPedidos(token, { pedidoIds: [row.id], abonado: next, sedeId });
+        await abonarPedidos(token, {
+          pedidoIds: [row.id],
+          abonado: next,
+          sedeId,
+        });
         setRows((prev) =>
           prev.map((r: any) => (r.id === row.id ? { ...r, abonado: next } : r))
         );
@@ -531,7 +561,9 @@ const totalCourier = useMemo(() => {
         sedeId,
       });
       setRows((prev) =>
-        prev.map((r: any) => (selectedIds.includes(r.id) ? { ...r, abonado: true } : r))
+        prev.map((r: any) =>
+          selectedIds.includes(r.id) ? { ...r, abonado: true } : r
+        )
       );
       setSelectedIds([]);
       setOpenConfirm(false);
@@ -645,7 +677,10 @@ const totalCourier = useMemo(() => {
               <tbody className="divide-y divide-gray20">
                 {rows.length === 0 ? (
                   <tr className="hover:bg-transparent">
-                    <td colSpan={10} className="px-4 py-8 text-center italic text-gray70">
+                    <td
+                      colSpan={10}
+                      className="px-4 py-8 text-center italic text-gray70"
+                    >
                       Sin resultados para el filtro seleccionado.
                     </td>
                   </tr>
@@ -655,7 +690,10 @@ const totalCourier = useMemo(() => {
                     const disableCheck = r.abonado;
 
                     return (
-                      <tr key={r.id} className="transition-colors hover:bg-gray10">
+                      <tr
+                        key={r.id}
+                        className="transition-colors hover:bg-gray10"
+                      >
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
@@ -667,11 +705,22 @@ const totalCourier = useMemo(() => {
                           />
                         </td>
 
-                        <td className="px-4 py-3 text-gray70">{toDMY(r.fechaEntrega)}</td>
+                        <td className="px-4 py-3 text-gray70">
+                          {toDMY(r.fechaEntrega)}
+                        </td>
                         <td className="px-4 py-3 text-gray70">{r.cliente}</td>
-                        <td className="px-4 py-3 text-gray70">{r.distrito ?? "-"}</td>
-                        <td className="px-4 py-3 text-gray70">{r.metodoPago ?? "-"}</td>
-                        <td className="px-4 py-3 text-gray70">{formatPEN(r.monto)}</td>
+                        <td className="px-4 py-3 text-gray70">
+                          {r.distrito ?? "-"}
+                        </td>
+
+                        {/* ✅ AQUÍ el cambio: método de pago amigable */}
+                        <td className="px-4 py-3 text-gray70">
+                          {metodoPagoLabel(r.metodoPago)}
+                        </td>
+
+                        <td className="px-4 py-3 text-gray70">
+                          {formatPEN(r.monto)}
+                        </td>
 
                         {/* Servicio motorizado */}
                         <td className="px-4 py-3">
@@ -692,7 +741,11 @@ const totalCourier = useMemo(() => {
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray80">
                               {formatPEN(
-                                Number(r.servicioCourierEfectivo ?? r.servicioCourier ?? 0)
+                                Number(
+                                  r.servicioCourierEfectivo ??
+                                    r.servicioCourier ??
+                                    0
+                                )
                               )}
                             </span>
                             {r.servicioCourier != null && (

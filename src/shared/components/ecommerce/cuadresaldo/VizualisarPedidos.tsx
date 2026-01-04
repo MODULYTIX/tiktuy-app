@@ -61,10 +61,25 @@ const formatDMY = (ymd?: string) => {
 function metodoPagoDe(p: any): string | null {
   return (p?.metodoPago ?? p?.metodo_pago ?? null) as any;
 }
-function isDirectEcommerce(p: any): boolean {
-  const mp = String(metodoPagoDe(p) ?? "")
+
+/** normaliza método de pago para comparaciones / UI */
+const normMetodoPago = (v: unknown) =>
+  String(v ?? "")
     .trim()
-    .toUpperCase();
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+
+/** ✅ Etiqueta visual (NO toca lógica) */
+const metodoPagoLabel = (metodoPago: unknown) => {
+  const m = normMetodoPago(metodoPago);
+  if (!m) return "-";
+  if (m === "DIRECTO_ECOMMERCE") return "Pago digital a ecommerce";
+  if (m === "BILLETERA") return "Pago digital a courier";
+  return String(metodoPago ?? "-");
+};
+
+function isDirectEcommerce(p: any): boolean {
+  const mp = normMetodoPago(metodoPagoDe(p));
   return mp === "DIRECTO_ECOMMERCE";
 }
 function montoVisual(p: any): number {
@@ -302,8 +317,9 @@ export default function VizualisarPedidos({
                             </div>
                           </td>
 
+                          {/* ✅ AQUÍ: etiqueta visual como pediste */}
                           <td className="px-4 py-3 text-slate-700">
-                            {mp ?? "-"}
+                            {metodoPagoLabel(mp)}
                           </td>
 
                           {/* ✅ DIRECTO_ECOMMERCE => 0 (solo visual) */}

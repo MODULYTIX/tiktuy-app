@@ -469,12 +469,6 @@ export default function ModalEntregaRepartidor({
                   activeColor="blue"
                 />
               </div>
-
-              <div className="mt-3 text-xs text-gray-500 text-center">
-                IDs configurados: EFECTIVO={String(metodoIdMap.EFECTIVO)} · BILLETERA=
-                {String(metodoIdMap.BILLETERA)} · DIRECTO_ECOMMERCE=
-                {String(metodoIdMap.DIRECTO_ECOMMERCE)}
-              </div>
             </section>
           )}
 

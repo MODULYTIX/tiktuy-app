@@ -52,6 +52,22 @@ const toDMY = (ymd: string) => {
   });
 };
 
+/** normaliza método de pago para comparaciones */
+const normMetodoPago = (v: unknown) =>
+  String(v ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+
+/** ✅ Etiqueta visual (NO toca lógica) */
+const metodoPagoLabel = (metodoPago: unknown) => {
+  const m = normMetodoPago(metodoPago);
+  if (!m) return "-";
+  if (m === "DIRECTO_ECOMMERCE") return "Pago digital a ecommerce";
+  if (m === "BILLETERA") return "Pago digital a courier";
+  return String(metodoPago ?? "-");
+};
+
 // ✅ soporta url absoluta y relativa
 const isProbablyImageUrl = (url: string) => {
   const clean = String(url || "").trim();
@@ -304,7 +320,7 @@ export default function DetalleServiciosDiaModal({
 
                   <span className="text-[12px] text-gray60">
                     {pedido?.metodoPago
-                      ? `Pago: ${pedido.metodoPago}`
+                      ? `Pago: ${metodoPagoLabel(pedido.metodoPago)}`
                       : "Pago: —"}
                   </span>
                 </div>
@@ -328,7 +344,7 @@ export default function DetalleServiciosDiaModal({
                         Método de pago
                       </div>
                       <div className="mt-1 text-[13px] font-semibold text-gray90 truncate">
-                        {pedido?.metodoPago ?? "-"}
+                        {metodoPagoLabel(pedido?.metodoPago)}
                       </div>
                     </div>
                   </div>
@@ -412,9 +428,7 @@ export default function DetalleServiciosDiaModal({
                   </div>
 
                   {!hasEvidencia ? (
-                    <span className="text-[12px] text-gray60">
-                      No registrada
-                    </span>
+                    <span className="text-[12px] text-gray60">No registrada</span>
                   ) : (
                     <span className="text-[12px] font-semibold text-emerald-700">
                       Registrada
@@ -445,7 +459,7 @@ export default function DetalleServiciosDiaModal({
                     </div>
                   ) : (
                     <div className="rounded-xl border border-gray20 bg-white p-3">
-                      {/*  tu componente en modo VER */}
+                      {/* tu componente en modo VER */}
                       <ImageUploadx
                         label="Evidencia"
                         mode="view"
@@ -453,10 +467,7 @@ export default function DetalleServiciosDiaModal({
                         accept="image/*,.pdf"
                         helperText={isPdfUrl(evidenciaUrl) ? "PDF" : "JPG, PNG"}
                         onView={handleViewEvidence}
-                        // opcional, por si quieres ocultar acciones:
-                        // showActions
                       />
-                      
                     </div>
                   )}
                 </div>
@@ -471,16 +482,12 @@ export default function DetalleServiciosDiaModal({
         {/* FOOTER sticky */}
         <div className="sticky bottom-0 z-10 bg-white border-t border-gray20 px-5 py-4">
           <div className="flex items-center justify-start gap-3">
-            <Buttonx
-              variant="outlined"
-              label="Cerrar"
-              onClick={onClose}
-            />
+            <Buttonx variant="outlined" label="Cerrar" onClick={onClose} />
           </div>
         </div>
       </aside>
 
-      {/*  Preview SOLO para imágenes con tu ImagePreviewModalx */}
+      {/* Preview SOLO para imágenes con tu ImagePreviewModalx */}
       <ImagePreviewModalx
         open={Boolean(previewUrl)}
         onClose={() => setPreviewUrl(null)}

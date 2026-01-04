@@ -74,6 +74,14 @@ function toHoraPE(isoLike: string | Date | null | undefined) {
   });
 }
 
+/* ✅ Mapeo visual del método de pago */
+function metodoPagoLabel(m?: string | null) {
+  if (!m) return "-";
+  if (m === "DIRECTO_ECOMMERCE") return "Pago digital a ecommerce";
+  if (m === "BILLETERA") return "Pago digital a courier";
+  return m;
+}
+
 const EstadoPill: React.FC<{ estado: Estado }> = ({ estado }) => {
   const ok = estado === "Validado";
   return (
@@ -769,9 +777,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
                         <td className="h-12 px-4 py-3 text-gray70">
                           {p.cliente}
                         </td>
+
+                        {/* ✅ AQUÍ el cambio: etiqueta amigable */}
                         <td className="h-12 px-4 py-3 text-gray70">
-                          {p.metodoPago ?? "-"}
+                          {metodoPagoLabel(p.metodoPago)}
                         </td>
+
                         <td className="h-12 px-4 py-3 text-gray70">
                           {p.distrito}
                         </td>
