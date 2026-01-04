@@ -25,6 +25,7 @@ import Buttonx from "@/shared/common/Buttonx";
 import { SearchInputx } from "@/shared/common/SearchInputx";
 import Tittlex from "@/shared/common/Tittlex";
 import TableActionx from "@/shared/common/TableActionx";
+import Badgex from "@/shared/common/Badgex"; // ✅ NUEVO
 
 type View = "asignados" | "pendientes" | "terminados";
 
@@ -59,8 +60,6 @@ function normalizeRange(desde?: string, hasta?: string) {
     ...(h ? { hasta: h } : {}),
   };
 }
-
-
 
 /* ✅ NUEVO: HOY en Perú como YYYY-MM-DD (para que el backend filtre hoy por defecto) */
 function getTodayPEYYYYMMDD() {
@@ -126,10 +125,8 @@ export default function TablePedidoCourier({
     setFiltroDistrito("");
     setFiltroCantidad("");
     setSearchProducto("");
-    setFiltroMotorizado(""); // ✅
+    setFiltroMotorizado("");
 
-    // IMPORTANTE: al cambiar de vista, volvemos a HOY por defecto
-    // Si NO quieres resetear fechas al cambiar vista, elimina estas 2 líneas.
     setDesde(getTodayPEYYYYMMDD());
     setHasta("");
   }, [view]);
@@ -148,7 +145,6 @@ export default function TablePedidoCourier({
     }),
     [page, perPage, desde, hasta]
   );
-
 
   const qEstado: ListByEstadoQuery = useMemo(
     () => ({
@@ -238,7 +234,7 @@ export default function TablePedidoCourier({
       arr = arr.filter((x) => x.cliente?.distrito === filtroDistrito);
     }
 
-    // 2) ✅ Pendientes + Terminados: filtrar por motorizado | Asignados: filtrar por cantidad
+    // 2) Pendientes/Terminados: filtrar por motorizado | Asignados: filtrar por cantidad
     if (view === "pendientes" || view === "terminados") {
       if (filtroMotorizado) {
         const id = Number(filtroMotorizado);
@@ -370,9 +366,9 @@ export default function TablePedidoCourier({
     setReprogOpen(true);
   };
 
-  // Confirmar reprogramación (ALINEADO)
+  // Confirmar reprogramación
   const handleConfirmReprogramar = async (payload: {
-    fecha_entrega_programada: string; // YYYY-MM-DD
+    fecha_entrega_programada: string;
     observacion?: string;
   }) => {
     if (!pedidoReprog) return;
@@ -400,29 +396,31 @@ export default function TablePedidoCourier({
   const handleClearFilters = () => {
     setFiltroDistrito("");
     setFiltroCantidad("");
-    setFiltroMotorizado(""); // ✅
+    setFiltroMotorizado("");
     setSearchProducto("");
 
     setDesde(getTodayPEYYYYMMDD());
     setHasta("");
   };
 
+  // ✅ REEMPLAZO: Estado con Badgex (shape normal, NO pill)
   const getEstadoPill = (estado: string) => {
-    const base =
-      "inline-flex items-center px-2 py-[2px] rounded text-[11px] font-medium border";
-
     const lower = (estado || "").toLowerCase();
 
-    const classes =
+    const cls =
       lower === "pendiente"
-        ? "bg-amber-50 text-amber-700 border-amber-200"
+        ? "bg-amber-50 text-amber-700 border border-amber-200"
         : lower === "entregado"
-          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-          : "bg-gray-50 text-gray-600 border-gray-200";
+        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+        : "bg-amber-50 text-amber-700 border border-amber-200"; // antes gris → ahora amarillo suave
 
-    const label = lower === "pendiente" ? "Pendiente" : estado;
+    const label = lower === "pendiente" ? "Pendiente" : estado || "—";
 
-    return <span className={`${base} ${classes}`}>{label}</span>;
+    return (
+      <Badgex className={`inline-flex items-center ${cls}`} size="xs" shape="soft" title={label}>
+        {label}
+      </Badgex>
+    );
   };
 
   return (
@@ -435,15 +433,15 @@ export default function TablePedidoCourier({
             view === "asignados"
               ? "Pedidos Asignados"
               : view === "pendientes"
-                ? "Pedidos Pendientes"
-                : "Pedidos Terminados"
+              ? "Pedidos Pendientes"
+              : "Pedidos Terminados"
           }
           description={
             view === "asignados"
               ? "Selecciona y asigna pedidos a un repartidor."
               : view === "pendientes"
-                ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
-                : "Pedidos completados o cerrados."
+              ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
+              : "Pedidos completados o cerrados."
           }
         />
 
@@ -454,11 +452,7 @@ export default function TablePedidoCourier({
             icon="mdi:account-arrow-right-outline"
             onClick={() => onAsignar?.(selectedIds)}
             disabled={!selectedIds.length || loading}
-            title={
-              !selectedIds.length
-                ? "Selecciona al menos un pedido"
-                : "Asignar Repartidor"
-            }
+            title={!selectedIds.length ? "Selecciona al menos un pedido" : "Asignar Repartidor"}
           />
         )}
       </div>
@@ -468,23 +462,9 @@ export default function TablePedidoCourier({
         <div className="grid gap-4">
           {/* ===== Fila 1 ===== */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-            {/* Fecha inicio (HOY por defecto) */}
-            <SelectxDate
-              label="Fecha Inicio"
-              value={desde}
-              onChange={(e) => setDesde(e.target.value)}
-              disabled={loading}
-            />
+            <SelectxDate label="Fecha Inicio" value={desde} onChange={(e) => setDesde(e.target.value)} disabled={loading} />
+            <SelectxDate label="Fecha Fin" value={hasta} onChange={(e) => setHasta(e.target.value)} disabled={loading} />
 
-            {/* Fecha fin (vacía hasta que elijas) */}
-            <SelectxDate
-              label="Fecha Fin"
-              value={hasta}
-              onChange={(e) => setHasta(e.target.value)}
-              disabled={loading}
-            />
-
-            {/* Distrito */}
             <Selectx
               label="Distrito"
               name="filtro_distrito"
@@ -500,7 +480,6 @@ export default function TablePedidoCourier({
               ))}
             </Selectx>
 
-            {/* Pendientes/Terminados => Motorizado | Asignados => Cantidad */}
             {view === "pendientes" || view === "terminados" ? (
               <Selectx
                 label="Motorizado"
@@ -555,12 +534,8 @@ export default function TablePedidoCourier({
       </div>
 
       {/* Estados */}
-      {loading && (
-        <div className="py-10 text-center text-gray-500">Cargando...</div>
-      )}
-      {!loading && error && (
-        <div className="py-10 text-center text-red-600">{error}</div>
-      )}
+      {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
+      {!loading && error && <div className="py-10 text-center text-red-600">{error}</div>}
 
       {/* Tabla */}
       {!loading && !error && (
@@ -569,7 +544,8 @@ export default function TablePedidoCourier({
             <table
               key={view}
               className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md"
-            >              <colgroup>
+            >
+              <colgroup>
                 <col className="w-[5%]" />
                 <col className="w-[12%]" />
                 <col className="w-[12%]" />
@@ -593,13 +569,9 @@ export default function TablePedidoCourier({
                       onChange={(e) => {
                         if (view !== "asignados") return;
                         if (e.target.checked) {
-                          setSelectedIds((prev) =>
-                            Array.from(new Set([...prev, ...pageIds]))
-                          );
+                          setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
                         } else {
-                          setSelectedIds((prev) =>
-                            prev.filter((id) => !pageIds.includes(id))
-                          );
+                          setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
                         }
                       }}
                       disabled={view !== "asignados"}
@@ -613,9 +585,11 @@ export default function TablePedidoCourier({
                   <th className="px-4 py-3 text-left">Dirección de Entrega</th>
                   <th className="px-4 py-3 text-center">Cant. de productos</th>
                   <th className="px-4 py-3 text-left">Monto</th>
+
                   {(view === "pendientes" || view === "terminados") && (
                     <th className="px-4 py-3 text-center">Estado</th>
                   )}
+
                   <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
@@ -623,7 +597,6 @@ export default function TablePedidoCourier({
               <tbody className="divide-y divide-gray20">
                 {itemsFiltrados.map((p) => {
                   const fecha = p.fecha_entrega_programada;
-
 
                   const cantidad =
                     p.items_total_cantidad ??
@@ -634,10 +607,7 @@ export default function TablePedidoCourier({
                   const montoNumber = Number(p.monto_recaudar || 0);
 
                   return (
-                    <tr
-                      key={p.id}
-                      className="hover:bg-gray10 transition-colors"
-                    >
+                    <tr key={p.id} className="hover:bg-gray10 transition-colors">
                       <td className="h-12 px-4 py-3">
                         <input
                           type="checkbox"
@@ -646,19 +616,14 @@ export default function TablePedidoCourier({
                           onChange={(e) => {
                             if (view !== "asignados") return;
                             setSelectedIds((prev) =>
-                              e.target.checked
-                                ? [...prev, p.id]
-                                : prev.filter((x) => x !== p.id)
+                              e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id)
                             );
                           }}
                           disabled={view !== "asignados"}
                         />
                       </td>
 
-                      <td className="h-12 px-4 py-3 text-gray70">
-                        {fecha ?? "—"}
-                      </td>
-
+                      <td className="h-12 px-4 py-3 text-gray70">{fecha ?? "—"}</td>
 
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
                         {p.cliente?.distrito ?? "—"}
@@ -672,20 +637,14 @@ export default function TablePedidoCourier({
                         {p.cliente?.nombre ?? "—"}
                       </td>
 
-                      <td
-                        className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]"
-                        title={direccion}
-                      >
+                      <td className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]" title={direccion}>
                         {direccion || "—"}
                       </td>
 
-                      <td className="h-12 px-4 py-3 text-center text-gray70">
-                        {two(cantidad)}
-                      </td>
+                      <td className="h-12 px-4 py-3 text-center text-gray70">{two(cantidad)}</td>
 
-                      <td className="h-12 px-4 py-3 text-gray70">
-                        {PEN.format(montoNumber)}
-                      </td>
+                      <td className="h-12 px-4 py-3 text-gray70">{PEN.format(montoNumber)}</td>
+
                       {(view === "pendientes" || view === "terminados") && (
                         <td className="px-4 py-3 text-center">
                           {getEstadoPill(p.estado_nombre ?? "—")}
@@ -717,7 +676,7 @@ export default function TablePedidoCourier({
                               variant="custom"
                               title={`Reasignar ${p.id}`}
                               icon="mdi:swap-horizontal"
-                              colorClassName="bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300 hover:bg-indigo-200 hover:ring-indigo-400 focus-visible:ring-indi go-500"
+                              colorClassName="bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300 hover:bg-indigo-200 hover:ring-indigo-400 focus-visible:ring-indigo-500"
                               onClick={() => handleReasignar(p)}
                               size="sm"
                             />
@@ -730,12 +689,8 @@ export default function TablePedidoCourier({
 
                 {!itemsFiltrados.length && (
                   <tr className="hover:bg-transparent">
-                    <td
-                      colSpan={9} // ✅ antes 8
-                      className="px-4 py-8 text-center text-gray70 italic"
-                    >
-                      No hay pedidos para esta etapa con los filtros
-                      seleccionados.
+                    <td colSpan={9} className="px-4 py-8 text-center text-gray70 italic">
+                      No hay pedidos para esta etapa con los filtros seleccionados.
                     </td>
                   </tr>
                 )}
@@ -766,9 +721,7 @@ export default function TablePedidoCourier({
                     aria-current={page === p ? "page" : undefined}
                     className={[
                       "w-8 h-8 flex items-center justify-center rounded",
-                      page === p
-                        ? "bg-gray90 text-white"
-                        : "bg-gray10 text-gray70 hover:bg-gray20",
+                      page === p ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
                     ].join(" ")}
                     disabled={loading}
                   >
@@ -797,7 +750,7 @@ export default function TablePedidoCourier({
         detalle={detalle}
       />
 
-      {/* ✅ Modal Reprogramar */}
+      {/* Modal Reprogramar */}
       <ReprogramarPedidoModal
         open={reprogOpen}
         loading={reprogLoading}

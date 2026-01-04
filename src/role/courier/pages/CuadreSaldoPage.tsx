@@ -21,7 +21,8 @@ const getToken = () => localStorage.getItem("token") ?? "";
 /** Normaliza cualquier shape raro a array de motorizados */
 function normalizeMotorizados(input: any): MotorizadoItem[] {
   if (Array.isArray(input)) return input as MotorizadoItem[];
-  if (input && Array.isArray(input.items)) return input.items as MotorizadoItem[];
+  if (input && Array.isArray(input.items))
+    return input.items as MotorizadoItem[];
   if (input && Array.isArray(input.data)) return input.data as MotorizadoItem[]; // por si tu wrapper usa data
   return [];
 }
@@ -84,7 +85,7 @@ const CuadreSaldoPage: React.FC = () => {
   return (
     <div className="flex flex-col gap-5 pt-8">
       {/* Header */}
-      <div className="mb-5 flex items-end justify-between pb-5 border-b border-gray30">
+      <div className="flex items-end justify-between pb-5 border-b border-gray30">
         <Tittlex
           title="Cuadre de Saldo"
           description="Monitorea lo recaudado en el día"
@@ -116,8 +117,7 @@ const CuadreSaldoPage: React.FC = () => {
         <>
           {/* Título + botón alineado a la derecha */}
           <div className="mb-5 flex items-center justify-between">
-            <div className="text-lg font-semibold">Repartidor</div>
-
+            <Tittlex title="Repartidor" variant="section" />
             <Buttonx
               icon="iconoir:new-tab"
               label="Abonar seleccionados"
@@ -141,7 +141,6 @@ const CuadreSaldoPage: React.FC = () => {
               placeholder={
                 loadingMotorizados ? "Cargando..." : "Seleccionar motorizado"
               }
-              className="w-full"
             >
               <option value="">— Seleccionar motorizado —</option>
 
@@ -158,7 +157,6 @@ const CuadreSaldoPage: React.FC = () => {
               value={repDesde}
               onChange={(e) => setRepDesde(e.target.value)}
               placeholder="dd/mm/aaaa"
-              className="w-full"
             />
 
             <SelectxDate
@@ -167,7 +165,6 @@ const CuadreSaldoPage: React.FC = () => {
               value={repHasta}
               onChange={(e) => setRepHasta(e.target.value)}
               placeholder="dd/mm/aaaa"
-              className="w-full"
             />
 
             <Buttonx
