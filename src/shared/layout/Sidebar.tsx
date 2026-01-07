@@ -3,12 +3,11 @@ import { Icon } from "@iconify/react";
 import { useAuth } from "@/auth/context/useAuth";
 import {
   FaSignOutAlt,
-  FaUsersCog,
   FaCashRegister,
   FaBoxes,
 } from "react-icons/fa";
-import { MdDashboard, MdSettings } from "react-icons/md";
-import { RiMoneyDollarCircleLine, RiFileChartLine } from "react-icons/ri";
+import { MdDashboard } from "react-icons/md";
+// import { RiMoneyDollarCircleLine, RiFileChartLine } from "react-icons/ri";
 import { useEffect, useState } from "react";
 
 import LOGOTIKTUY from "@/assets/logos/LOGO-TIKTUY-SIDEBAR.svg";

@@ -65,17 +65,6 @@ export default function ModalConfirmAsociar({
                 <p className="text-sm text-gray-700 mb-3">
                   Enlace de activación generado. Compártelo con el courier:
                 </p>
-                <div className="flex items-center gap-2 bg-gray-50 border rounded px-3 py-2 text-left">
-                  <span className="text-xs break-all select-all">{passwordSetupUrl}</span>
-                  <button
-                    onClick={onCopy}
-                    className="ml-auto p-1 rounded hover:bg-gray-100"
-                    title="Copiar"
-                  >
-                    <Icon icon="mdi:content-copy" width={18} />
-                  </button>
-                </div>
-
                 <div className="flex items-center justify-center gap-3 mt-5">
                   <button
                     onClick={onClose}
