@@ -1,7 +1,6 @@
 // src/shared/components/ecommerce/movimientos/CrearMovimientoModal.tsx
 import { useEffect, useMemo, useState } from "react";
 import { registrarMovimiento, fetchAlmacenesEcommerCourier } from "@/services/ecommerce/almacenamiento/almacenamiento.api";
-import { fetchProductos } from "@/services/ecommerce/producto/producto.api";
 import { useAuth } from "@/auth/context";
 import type { Almacenamiento } from "@/services/ecommerce/almacenamiento/almacenamiento.types";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
