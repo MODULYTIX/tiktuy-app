@@ -1,8 +1,14 @@
 // src/shared/components/ecommerce/movimientos/MovimientoValidacionTable.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/context";
-import { fetchMovimientos } from "@/services/ecommerce/almacenamiento/almacenamiento.api";
-import type { MovimientoAlmacen } from "@/services/ecommerce/almacenamiento/almacenamiento.types";
+import {
+  fetchMovimientos,
+  fetchAlmacenesEcommerCourier,
+} from "@/services/ecommerce/almacenamiento/almacenamiento.api";
+import type {
+  MovimientoAlmacen,
+  Almacenamiento,
+} from "@/services/ecommerce/almacenamiento/almacenamiento.types";
 import VerMovimientoRealizadoModal from "./VerMovimientoRealizadoModal";
 import { useNotification } from "@/shared/context/notificacionesDeskop/useNotification";
 import ValidarMovimientoModal from "./modal/MovimientoValidacionModal";
@@ -23,6 +29,10 @@ export default function MovimientoValidacionTable({ filters }: Props) {
 
   const [movimientos, setMovimientos] = useState<MovimientoAlmacen[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Diccionarios para saber qué almacén es mío (Ecommerce) y cuál es Courier
+  const [idsEcommerce, setIdsEcommerce] = useState<Set<number>>(new Set());
+  const [idsCourier, setIdsCourier] = useState<Set<number>>(new Set());
 
   // modal "ver" (NO TOCAR)
   const [verOpen, setVerOpen] = useState(false);
@@ -52,16 +62,30 @@ export default function MovimientoValidacionTable({ filters }: Props) {
     (async () => {
       try {
         setLoading(true);
-        const resp = await fetchMovimientos(token);
+
+        const [respMovs, respAlms] = await Promise.all([
+          fetchMovimientos(token),
+          fetchAlmacenesEcommerCourier(token).catch(() => null),
+        ]);
+
         if (!alive || ac.signal.aborted) return;
 
-        const list = Array.isArray(resp)
-          ? resp
-          : Array.isArray((resp as any)?.data)
-          ? (resp as any).data
-          : [];
-
+        // 1. Movimientos
+        const list = Array.isArray(respMovs)
+          ? respMovs
+          : Array.isArray((respMovs as any)?.data)
+            ? (respMovs as any).data
+            : [];
         setMovimientos(list);
+
+        // 2. Almacenes -> Roles
+        if (respAlms) {
+          const ecomIds = new Set(respAlms.ecommerce.map((a: Almacenamiento) => a.id));
+          const courIds = new Set(respAlms.courier.map((a: Almacenamiento) => a.id));
+          setIdsEcommerce(ecomIds);
+          setIdsCourier(courIds);
+        }
+
       } catch (err) {
         console.error(err);
         notify("No se pudieron cargar los movimientos.", "error");
@@ -105,10 +129,10 @@ export default function MovimientoValidacionTable({ filters }: Props) {
   const fmtFecha = (iso?: string) =>
     iso
       ? new Intl.DateTimeFormat("es-PE", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        }).format(new Date(iso))
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(new Date(iso))
       : "-";
 
   const handleVerClick = (mov: MovimientoAlmacen) => {
@@ -163,7 +187,7 @@ export default function MovimientoValidacionTable({ filters }: Props) {
     () =>
       [...filtrados].sort((a, b) =>
         new Date(a.fecha_movimiento ?? "").getTime() <
-        new Date(b.fecha_movimiento ?? "").getTime()
+          new Date(b.fecha_movimiento ?? "").getTime()
           ? 1
           : -1
       ),
@@ -245,8 +269,20 @@ export default function MovimientoValidacionTable({ filters }: Props) {
                 const estadoNorm = normalizeEstado(
                   m.estado?.nombre
                 ).toLowerCase();
+
+                // Regla de negocio mejorada (via IDs):
+                const idOrigen = m.almacen_origen.id;
+                const idDestino = m.almacen_destino.id;
+
+                // Es Ecommerce -> Courier si origen es MIO (Ecommerce) y destino es MIO (Courier asociado)
+                const isOrigenMyEcom = idsEcommerce.has(idOrigen);
+                const isDestinoMyCourier = idsCourier.has(idDestino);
+
+                const esEnvioACourier = isOrigenMyEcom && isDestinoMyCourier;
+
                 const puedeValidar =
-                  estadoNorm === "proceso" || estadoNorm === "en proceso";
+                  (estadoNorm === "proceso" || estadoNorm === "en proceso") &&
+                  !esEnvioACourier;
 
                 return (
                   <tr

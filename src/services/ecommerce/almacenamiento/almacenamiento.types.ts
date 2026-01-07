@@ -80,11 +80,17 @@ export interface MovimientoAlmacen {
   almacen_origen: {
     id: number;
     nombre_almacen: string;
+    entidad?: {
+      tipo: 'ecommerce' | 'courier';
+    };
   };
 
   almacen_destino: {
     id: number;
     nombre_almacen: string;
+    entidad?: {
+      tipo: 'ecommerce' | 'courier';
+    };
   };
 
   productos: {
