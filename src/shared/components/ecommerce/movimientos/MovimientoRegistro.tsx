@@ -24,7 +24,7 @@ export default function MovimientoRegistro() {
   // Puedes dejar este estado si lo usarás luego, pero NO lo pases al modal (el modal no lo acepta)
   const [, setModalMode] = useState<'crear' | 'ver'>('crear');
 
-  const [selectedProductsUuids, setSelectedProductsUuids] = useState<string[]>([]);
+  const [, setSelectedProductsUuids] = useState<string[]>([]);
   const [productosSeleccionados, setProductosSeleccionados] = useState<Producto[]>([]);
 
   const handleNuevoMovimientoClick = () => {
