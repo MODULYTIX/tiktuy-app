@@ -54,6 +54,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       { to: "/", label: "Panel de Control", icon: <MdDashboard /> },
       { to: "/usuarios", label: "Ventas", icon: <FaCashRegister /> },
       { to: "/reportes", label: "Stock / Sede", icon: <FaBoxes /> },
+      /*
       {
         to: "/saldos",
         label: "Cuadre de Saldos",
@@ -62,6 +63,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       { to: "/perfiles", label: "Perfiles", icon: <FaUsersCog /> },
       { to: "/reportes", label: "Reportes", icon: <RiFileChartLine /> },
       { to: "/configuracion", label: "Configuración", icon: <MdSettings /> },
+       */
     ],
     ecommerce: [
       {
