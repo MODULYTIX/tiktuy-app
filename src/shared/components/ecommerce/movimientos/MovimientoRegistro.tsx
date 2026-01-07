@@ -85,7 +85,7 @@ export default function MovimientoRegistro() {
       <CrearMovimientoModal
         open={showModal}
         onClose={() => setShowModal(false)}
-        selectedProducts={selectedProductsUuids}
+        productos={productosSeleccionados}
       />
     </div>
   );

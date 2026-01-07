@@ -55,6 +55,7 @@ export async function fetchProductos(
     stock_bajo: params.stock_bajo,
     precio_bajo: params.precio_bajo,
     precio_alto: params.precio_alto,
+    only_with_stock: params.only_with_stock,
   };
 
   const url = buildURL(BASE, query);

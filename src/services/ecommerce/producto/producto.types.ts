@@ -79,6 +79,7 @@ export type ProductoListQuery = {
   precio_alto?: boolean;
 
   order?: 'new_first' | 'price_asc' | 'price_desc';
+  only_with_stock?: boolean;
 
   // paginación
   page?: number;     // default 1

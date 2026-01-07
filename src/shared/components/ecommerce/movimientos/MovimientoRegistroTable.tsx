@@ -55,9 +55,9 @@ const buildQuery = (
   stock_bajo: filters.stock_bajo || undefined,
   precio_bajo: filters.precio_bajo || undefined,
   precio_alto: filters.precio_alto || undefined,
+
+  only_with_stock: true,
 });
-
-
 
 export default function MovimientoRegistroTable({
   filters,
@@ -75,42 +75,21 @@ export default function MovimientoRegistroTable({
     if (!token) return;
 
     setLoading(true);
-
     try {
-      const hayBusqueda = !!filters.search?.trim();
+      const resp = await fetchProductos(
+        token,
+        buildQuery(filters, pageToLoad)
+      );
 
-      let visibles: Producto[] = [];
-      let currentPage = pageToLoad;
-      let totalPagesFromApi = 1;
-
-      while (visibles.length < PAGE_SIZE) {
-        const resp = await fetchProductos(
-          token,
-          buildQuery(filters, currentPage)
-        );
-
-        const list = Array.isArray(resp?.data) ? resp.data : [];
-        totalPagesFromApi = resp?.pagination?.totalPages ?? 1;
-
-        const conStock = list.filter((p) => Number(p.stock) > 0);
-
-        visibles.push(...conStock);
-
-        if (hayBusqueda) break;
-
-        if (currentPage >= totalPagesFromApi) break;
-
-        currentPage++;
-      }
-
-      setProductos(visibles.slice(0, PAGE_SIZE));
-      setTotalPages(totalPagesFromApi);
+      setProductos(resp?.data ?? []);
+      setTotalPages(resp?.pagination?.totalPages ?? 1);
     } catch (err) {
       console.error("Error cargando productos:", err);
     } finally {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     setPage(1);
@@ -122,24 +101,20 @@ export default function MovimientoRegistroTable({
   }, [page]);
 
 
-  const productosVisibles = useMemo(
-    () => productos.filter((p) => Number(p.stock) > 0),
-    [productos]
-  );
-
 
   useEffect(() => {
     onSelectProducts({
-      pageProducts: productosVisibles,
+      pageProducts: productos,
       selectedIds,
     });
-  }, [productosVisibles, selectedIds, onSelectProducts]);
+  }, [productos, selectedIds, onSelectProducts]);
 
 
   const pageIds = useMemo(
-    () => productosVisibles.map((p) => p.uuid),
-    [productosVisibles]
+    () => productos.map((p) => p.uuid),
+    [productos]
   );
+
 
   const allPageSelected =
     pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
@@ -292,7 +267,7 @@ export default function MovimientoRegistroTable({
           </thead>
 
           <tbody className="divide-y divide-gray20">
-            {productosVisibles.map((prod) => (
+            {productos.map((prod) => (
               <tr key={prod.uuid} className="hover:bg-gray10 transition-colors">
                 <td className="h-12 px-4 py-3">
                   <input
