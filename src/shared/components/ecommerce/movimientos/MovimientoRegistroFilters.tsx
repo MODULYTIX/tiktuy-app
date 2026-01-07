@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchCategorias } from "@/services/ecommerce/categoria/categoria.api";
-import { fetchAlmacenes } from "@/services/ecommerce/almacenamiento/almacenamiento.api";
+import { fetchAlmacenesEcommerCourier } from "@/services/ecommerce/almacenamiento/almacenamiento.api";
 import { useAuth } from "@/auth/context";
 import type { Categoria } from "@/services/ecommerce/categoria/categoria.types";
 import type { Almacenamiento } from "@/services/ecommerce/almacenamiento/almacenamiento.types";
@@ -46,9 +46,20 @@ export default function MovimientoRegistroFilters({
 
   useEffect(() => {
     if (!token) return;
+
     fetchCategorias(token).then(setCategorias).catch(console.error);
-    fetchAlmacenes(token).then(setAlmacenes).catch(console.error);
+
+    fetchAlmacenesEcommerCourier(token)
+      .then((resp) => {
+        const all = [
+          ...(resp.ecommerce ?? []),
+          ...(resp.courier ?? []),
+        ];
+        setAlmacenes(all);
+      })
+      .catch(console.error);
   }, [token]);
+
 
   useEffect(() => {
     onFilterChange?.(filters);
@@ -115,8 +126,10 @@ export default function MovimientoRegistroFilters({
           {almacenes.map((a) => (
             <option key={a.id} value={String(a.id)}>
               {a.nombre_almacen}
+              {a.courier_id ? " [COURIER]" : " [ECOM]"}
             </option>
           ))}
+
         </Selectx>
 
         {/* Categorías */}

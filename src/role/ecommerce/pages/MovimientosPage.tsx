@@ -191,8 +191,9 @@ export default function RegistroMovimientoPage() {
             <CrearMovimientoModal
               open={modalOpen}
               onClose={closeCrear}
-              selectedProducts={selectedProducts.map((p) => p.uuid)}
+              productos={selectedProducts}
             />
+
           </ModalSlideRight>
 
           {/* Modal VER */}

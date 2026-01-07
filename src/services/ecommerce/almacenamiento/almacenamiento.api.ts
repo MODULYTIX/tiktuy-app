@@ -11,6 +11,7 @@ import type {
   ReenviarInvitacionResponse,
   EntidadesConAlmacenResponse,
   SedeConRepresentante,
+  AlmacenesEcommerceCourierResponse,
 } from './almacenamiento.types';
 
 const BASE_URL = `${import.meta.env.VITE_API_URL}/almacenamiento`;
@@ -111,11 +112,14 @@ export async function fetchAlmacenes(token: string): Promise<Almacenamiento[]> {
   return dataPrimera.concat(...rest);
 }
 
-export async function fetchAlmacenesEcommerCourier(token: string): Promise<Almacenamiento[]> {
-  const res = await fetch(`${BASE_URL}/ecommer-courier`, { headers: buildHeaders(token) });
-  return handleJson<Almacenamiento[]>(res);
+export async function fetchAlmacenesEcommerCourier(
+  token: string
+): Promise<AlmacenesEcommerceCourierResponse> {
+  const res = await fetch(`${BASE_URL}/ecommer-courier`, {
+    headers: buildHeaders(token),
+  });
+  return handleJson<AlmacenesEcommerceCourierResponse>(res);
 }
-
 export async function fetchEntidadesConAlmacen(token: string): Promise<EntidadesConAlmacenResponse> {
   const res = await fetch(`${BASE_URL}/entidades-con-almacen`, { headers: buildHeaders(token) });
   return handleJson<EntidadesConAlmacenResponse>(res);

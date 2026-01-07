@@ -219,3 +219,8 @@ export interface SedeConRepresentanteConEntidad
 
 /** Respuesta típica del listado combinado */
 export type SedesConRepresentanteResponse = SedeConRepresentanteConEntidad[];
+
+export interface AlmacenesEcommerceCourierResponse {
+  ecommerce: Almacenamiento[];
+  courier: Almacenamiento[];
+}

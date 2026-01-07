@@ -1,9 +1,6 @@
 // src/shared/components/ecommerce/movimientos/CrearMovimientoModal.tsx
 import { useEffect, useMemo, useState } from "react";
-import {
-  fetchSedesConRepresentante,
-  registrarMovimiento,
-} from "@/services/ecommerce/almacenamiento/almacenamiento.api";
+import { registrarMovimiento, fetchAlmacenesEcommerCourier } from "@/services/ecommerce/almacenamiento/almacenamiento.api";
 import { fetchProductos } from "@/services/ecommerce/producto/producto.api";
 import { useAuth } from "@/auth/context";
 import type { Almacenamiento } from "@/services/ecommerce/almacenamiento/almacenamiento.types";
@@ -17,20 +14,24 @@ import { InputxTextarea } from "@/shared/common/Inputx";
 interface Props {
   open: boolean;
   onClose: () => void;
-  selectedProducts?: string[]; // uuids
+  productos: Producto[]; 
 }
 
 export default function CrearMovimientoModal({
   open,
   onClose,
-  selectedProducts = [],
+  productos,
 }: Props) {
   const { token } = useAuth();
   const { notify } = useNotification();
+  const [almacenes, setAlmacenes] = useState<{
+    ecommerce: Almacenamiento[];
+    courier: Almacenamiento[];
+  }>({
+    ecommerce: [],
+    courier: [],
+  });
 
-  const [sedesOrigen, setSedesOrigen] = useState<Almacenamiento[]>([]);
-  const [sedesDestino, setSedesDestino] = useState<Almacenamiento[]>([]);
-  const [productos, setProductos] = useState<Producto[]>([]);
   const [cantidades, setCantidades] = useState<Record<string, number>>({});
   const [almacenOrigen, setAlmacenOrigen] = useState("");
   const [almacenDestino, setAlmacenDestino] = useState("");
@@ -40,19 +41,8 @@ export default function CrearMovimientoModal({
   useEffect(() => {
     if (!open || !token) return;
 
-    fetchSedesConRepresentante(token)
-      .then((data) => {
-        const list = Array.isArray(data) ? data : [];
-        setSedesOrigen(list);
-        setSedesDestino(list);
-      })
-      .catch(console.error);
-
-    fetchProductos(token, { page: 1, perPage: 1000 })
-      .then((rows: any) => {
-        const list: Producto[] = Array.isArray(rows?.data) ? rows.data : [];
-        setProductos(list);
-      })
+    fetchAlmacenesEcommerCourier(token)
+      .then(setAlmacenes)
       .catch(console.error);
 
     setCantidades({});
@@ -61,11 +51,9 @@ export default function CrearMovimientoModal({
     setAlmacenOrigen("");
   }, [open, token]);
 
-  const productosSeleccionados = useMemo(() => {
-    if (!selectedProducts.length) return [];
-    const set = new Set(selectedProducts);
-    return productos.filter((p) => set.has(p.uuid));
-  }, [productos, selectedProducts]);
+  
+const productosSeleccionados = productos;
+
 
   const origenInferido = useMemo(() => {
     const ids = productosSeleccionados
@@ -84,19 +72,35 @@ export default function CrearMovimientoModal({
     }
   }, [origenInferido]);
 
-  const esSedeAsociada = (s: Almacenamiento) =>
-    s?.entidad?.tipo === "courier" || !!s?.courier_id;
+  const sedesOrigen = useMemo(() => {
+    return [...almacenes.ecommerce, ...almacenes.courier];
+  }, [almacenes]);
 
-  const destinosBase = useMemo(() => {
-    const base = sedesDestino.length ? sedesDestino : sedesOrigen;
-    return base.filter(esSedeAsociada);
-  }, [sedesDestino, sedesOrigen]);
+  const sedeOrigenObj = useMemo(() => {
+    return sedesOrigen.find(
+      (s) => String(s.id) === String(almacenOrigen)
+    );
+  }, [sedesOrigen, almacenOrigen]);
 
-  const destinosFiltrados = useMemo(() => {
-    if (!destinosBase.length) return [];
-    if (!almacenOrigen) return destinosBase;
-    return destinosBase.filter((s) => String(s.id) !== String(almacenOrigen));
-  }, [destinosBase, almacenOrigen]);
+  const sedesDestino = useMemo(() => {
+    if (!sedeOrigenObj) return [];
+
+    // Origen courier → destino ecommerce
+    if (sedeOrigenObj.courier_id) {
+      return almacenes.ecommerce;
+    }
+
+    // Origen ecommerce → destino courier
+    if (sedeOrigenObj.ecommerce_id) {
+      return almacenes.courier;
+    }
+
+    return [];
+  }, [sedeOrigenObj, almacenes]);
+
+  useEffect(() => {
+    setAlmacenDestino("");
+  }, [almacenOrigen]);
 
   const handleCantidadChange = (uuid: string, value: number, stock: number) => {
     const safe = Math.min(Math.max(0, Math.trunc(value || 0)), stock);
@@ -161,8 +165,8 @@ export default function CrearMovimientoModal({
       s.entidad?.tipo === "ecommerce"
         ? " [ECOM]"
         : s.entidad?.tipo === "courier"
-        ? " [COURIER]"
-        : "";
+          ? " [COURIER]"
+          : "";
     return `${s.nombre_almacen}${rep}${tag}`;
   };
 
@@ -285,14 +289,14 @@ export default function CrearMovimientoModal({
             placeholder="Seleccionar sede"
           >
             <option value="">Seleccionar sede</option>
-            {destinosFiltrados.length === 0 ? (
+            {sedesDestino.length === 0 ? (
               <option value="" disabled>
                 {almacenOrigen
                   ? "No hay sedes asociadas del courier distintas del origen."
                   : "No hay sedes asociadas disponibles."}
               </option>
             ) : (
-              destinosFiltrados.map((s) => (
+              sedesDestino.map((s) => (
                 <option key={s.id} value={String(s.id)}>
                   {renderSedeLabel(s)}
                 </option>
