@@ -21,7 +21,6 @@ export default function CrearMovimientoModal({
   open,
   onClose,
   productos,
-  selectedProducts,
 }: Props) {
   const { token } = useAuth();
   const { notify } = useNotification();
