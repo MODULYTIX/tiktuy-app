@@ -14,7 +14,6 @@ export default function ModalConfirmAsociar({
   open,
   loading = false,
   passwordSetupUrl,
-  onCopy,
   onConfirm,
   onClose,
 }: Props) {
