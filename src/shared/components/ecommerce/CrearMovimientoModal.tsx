@@ -1,6 +1,9 @@
 // src/shared/components/ecommerce/movimientos/CrearMovimientoModal.tsx
 import { useEffect, useMemo, useState } from "react";
-import { registrarMovimiento, fetchAlmacenesEcommerCourier } from "@/services/ecommerce/almacenamiento/almacenamiento.api";
+import {
+  registrarMovimiento,
+  fetchAlmacenesEcommerCourier,
+} from "@/services/ecommerce/almacenamiento/almacenamiento.api";
 import { useAuth } from "@/auth/context";
 import type { Almacenamiento } from "@/services/ecommerce/almacenamiento/almacenamiento.types";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
@@ -13,7 +16,7 @@ import { InputxTextarea } from "@/shared/common/Inputx";
 interface Props {
   open: boolean;
   onClose: () => void;
-  productos: Producto[]; 
+  productos: Producto[];
   selectedProducts?: string[];
 }
 
@@ -41,9 +44,7 @@ export default function CrearMovimientoModal({
   useEffect(() => {
     if (!open || !token) return;
 
-    fetchAlmacenesEcommerCourier(token)
-      .then(setAlmacenes)
-      .catch(console.error);
+    fetchAlmacenesEcommerCourier(token).then(setAlmacenes).catch(console.error);
 
     setCantidades({});
     setDescripcion("");
@@ -51,13 +52,13 @@ export default function CrearMovimientoModal({
     setAlmacenOrigen("");
   }, [open, token]);
 
-  
-const productosSeleccionados = productos;
-
+  const productosSeleccionados = productos;
 
   const origenInferido = useMemo(() => {
     const ids = productosSeleccionados
-      .map((p) => (p.almacenamiento_id != null ? String(p.almacenamiento_id) : ""))
+      .map((p) =>
+        p.almacenamiento_id != null ? String(p.almacenamiento_id) : ""
+      )
       .filter(Boolean);
 
     if (!ids.length) return "";
@@ -77,9 +78,7 @@ const productosSeleccionados = productos;
   }, [almacenes]);
 
   const sedeOrigenObj = useMemo(() => {
-    return sedesOrigen.find(
-      (s) => String(s.id) === String(almacenOrigen)
-    );
+    return sedesOrigen.find((s) => String(s.id) === String(almacenOrigen));
   }, [sedesOrigen, almacenOrigen]);
 
   const sedesDestino = useMemo(() => {
@@ -109,7 +108,10 @@ const productosSeleccionados = productos;
 
   const validarAntesDeEnviar = () => {
     if (!origenInferido) {
-      notify("Todos los productos deben pertenecer a la misma sede de origen.", "error");
+      notify(
+        "Todos los productos deben pertenecer a la misma sede de origen.",
+        "error"
+      );
       return false;
     }
     if (!almacenOrigen || !almacenDestino || almacenOrigen === almacenDestino) {
@@ -117,7 +119,9 @@ const productosSeleccionados = productos;
       return false;
     }
 
-    const prods = productosSeleccionados.filter((p) => (cantidades[p.uuid] ?? 0) > 0);
+    const prods = productosSeleccionados.filter(
+      (p) => (cantidades[p.uuid] ?? 0) > 0
+    );
     if (!prods.length) {
       notify("Debes ingresar al menos una cantidad válida.", "error");
       return false;
@@ -165,8 +169,8 @@ const productosSeleccionados = productos;
       s.entidad?.tipo === "ecommerce"
         ? " [ECOM]"
         : s.entidad?.tipo === "courier"
-          ? " [COURIER]"
-          : "";
+        ? " [COURIER]"
+        : "";
     return `${s.nombre_almacen}${rep}${tag}`;
   };
 
@@ -174,8 +178,8 @@ const productosSeleccionados = productos;
 
   return (
     <div
-      // ✅ clave: altura fija + NO scroll en el modal
-      className="h-[92vh] max-h-[92vh] w-[700px] bg-white shadow-xl flex flex-col px-5 py-5 overflow-hidden min-h-0 gap-4"
+      // ✅ ahora sí: full alto pantalla (sin huecos raros)
+      className="h-[100dvh] max-h-[100dvh] w-[700px] max-w-[95vw] bg-white shadow-xl flex flex-col p-5 overflow-hidden min-h-0 gap-4"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="shrink-0">
@@ -187,82 +191,97 @@ const productosSeleccionados = productos;
         />
       </div>
 
-      {/* ✅ TABLA: ocupa TODO lo posible (flex-1) */}
-      <div className="flex-1 min-h-0 rounded-md border border-gray-200 bg-white flex flex-col overflow-hidden">
-        {/* header fijo */}
-        <table className="min-w-full table-fixed text-[12px]">
-          <colgroup>
-            <col className="w-[18%]" />
-            <col className="w-[28%]" />
-            <col className="w-[34%]" />
-            <col className="w-[20%]" />
-          </colgroup>
-          <thead className="bg-[#E5E7EB]">
-            <tr className="text-gray-700 font-roboto font-medium">
-              <th className="px-4 py-3 text-left">Código</th>
-              <th className="px-4 py-3 text-left">Producto</th>
-              <th className="px-4 py-3 text-left">Descripción</th>
-              <th className="px-4 py-3 text-center">Cantidad</th>
-            </tr>
-          </thead>
-        </table>
+      {/* ✅ CONTENIDO: el espacio extra (si existe) se reparte aquí, no dentro de la tabla */}
+      <div className="flex-1 min-h-0 flex flex-col gap-4">
+        {/* ✅ TABLA: ya NO se estira si hay pocas filas */}
+        <div className="rounded-md border border-gray-200 bg-white overflow-hidden">
+          {/* ✅ scroll solo si crece (sin “bloque vacío” gigante) */}
+          <div className="max-h-[46vh] overflow-y-auto">
+            <table className="min-w-full table-fixed text-[12px]">
+              <colgroup>
+                <col className="w-[18%]" />
+                <col className="w-[28%]" />
+                <col className="w-[34%]" />
+                <col className="w-[20%]" />
+              </colgroup>
 
-        {/* ✅ SOLO aquí hay scroll */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <table className="min-w-full table-fixed text-[12px]">
-            <colgroup>
-              <col className="w-[18%]" />
-              <col className="w-[28%]" />
-              <col className="w-[34%]" />
-              <col className="w-[20%]" />
-            </colgroup>
-            <tbody className="divide-y divide-gray-100">
-              {productosSeleccionados.map((p) => (
-                <tr key={p.uuid} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-4 text-gray-900 whitespace-nowrap">
-                    {p.codigo_identificacion}
-                  </td>
-
-                  <td className="px-4 py-4 text-gray-900">
-                    <span className="line-clamp-1">{p.nombre_producto ?? "—"}</span>
-                  </td>
-
-                  <td className="px-4 py-4 text-gray-700">
-                    <span className="line-clamp-1">{p.descripcion ?? "—"}</span>
-                  </td>
-
-                  <td className="px-4 py-4">
-                    <div className="flex justify-center items-center gap-2">
-                      <input
-                        type="number"
-                        min={0}
-                        max={p.stock}
-                        value={Number.isFinite(cantidades[p.uuid]) ? cantidades[p.uuid] : ""}
-                        onChange={(e) =>
-                          handleCantidadChange(p.uuid, Number(e.target.value), p.stock)
-                        }
-                        className="w-[64px] h-9 rounded-lg border border-gray-300 px-2 text-center text-sm"
-                      />
-                      <span className="text-sm text-gray-600">/ {p.stock}</span>
-                    </div>
-                  </td>
+              <thead className="bg-[#E5E7EB] sticky top-0 z-10">
+                <tr className="text-gray-700 font-roboto font-medium">
+                  <th className="px-4 py-3 text-left">Código</th>
+                  <th className="px-4 py-3 text-left">Producto</th>
+                  <th className="px-4 py-3 text-left">Descripción</th>
+                  <th className="px-4 py-3 text-center">Cantidad</th>
                 </tr>
-              ))}
+              </thead>
 
-              {productosSeleccionados.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-gray-500 italic">
-                    No hay productos seleccionados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              <tbody className="divide-y divide-gray-100">
+                {productosSeleccionados.map((p) => (
+                  <tr
+                    key={p.uuid}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-4 py-4 text-gray-900 whitespace-nowrap">
+                      {p.codigo_identificacion}
+                    </td>
+
+                    {/* ✅ evita que el nombre empuje la columna Cantidad */}
+                    <td className="px-4 py-4 text-gray-900 min-w-0">
+                      <div
+                        className="truncate font-medium"
+                        title={p.nombre_producto ?? ""}
+                      >
+                        {p.nombre_producto ?? "—"}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-4 text-gray-700 min-w-0">
+                      <div className="truncate" title={p.descripcion ?? ""}>
+                        {p.descripcion ?? "—"}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-4">
+                      <div className="flex justify-center items-center gap-2 whitespace-nowrap">
+                        <input
+                          type="number"
+                          min={0}
+                          max={p.stock}
+                          value={
+                            Number.isFinite(cantidades[p.uuid])
+                              ? cantidades[p.uuid]
+                              : ""
+                          }
+                          onChange={(e) =>
+                            handleCantidadChange(
+                              p.uuid,
+                              Number(e.target.value),
+                              p.stock
+                            )
+                          }
+                          className="w-[64px] h-9 rounded-lg border border-gray-300 px-2 text-center text-sm"
+                        />
+                        <span className="text-sm text-gray-600">/ {p.stock}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {productosSeleccionados.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-4 py-6 text-center text-gray-500 italic"
+                    >
+                      No hay productos seleccionados.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      {/* ✅ SIEMPRE visibles: SIN scroll */}
-      <div className="shrink-0 flex flex-col gap-4">
+        {/* ✅ Campos (quedan más compactos y ordenados) */}
         <div className="grid grid-cols-2 gap-5">
           <Selectx
             label="Sede Origen"
@@ -312,7 +331,7 @@ const productosSeleccionados = productos;
           onChange={(e) => setDescripcion(e.target.value)}
           placeholder="Motivo del movimiento..."
           autoResize
-          minRows={2}   // ✅ más compacto para pantallas bajas
+          minRows={2}
           maxRows={6}
         />
       </div>
