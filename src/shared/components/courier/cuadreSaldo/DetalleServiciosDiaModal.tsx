@@ -18,11 +18,28 @@ export type DetalleServicioPedidoItem = {
 
   monto: number;
 
+  // (pueden venir 0 aunque haya default en otros campos)
   servicioRepartidor: number;
   servicioCourier: number;
   motivo?: string | null;
 
   pagoEvidenciaUrl?: string | null;
+
+  // ✅ compat posibles (no rompen si no existen)
+  servicioSugerido?: number | null;
+  servicioEfectivo?: number | null;
+  servicioCourierEfectivo?: number | null;
+
+  servicio_repartidor?: number | null;
+  servicio_courier?: number | null;
+  servicio_sugerido?: number | null;
+  servicio_efectivo?: number | null;
+  servicio_courier_efectivo?: number | null;
+
+  estado?: string | null;
+  estadoPedido?: string | null;
+  estado_pedido?: string | null;
+  status?: string | null;
 };
 
 type Props = {
@@ -67,6 +84,99 @@ const metodoPagoLabel = (metodoPago: unknown) => {
   if (m === "BILLETERA") return "Pago digital a courier";
   return String(metodoPago ?? "-");
 };
+
+/* ===================== ✅ FIX SERVICIOS (default vs editado + rechazado) ===================== */
+
+const normEstado = (v: unknown) =>
+  String(v ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+
+const isMetodoPagoNullOEmpty = (p: any) => {
+  // ✅ regla pedida: si no hay método de pago, se asume RECHAZADO
+  const raw = p?.metodoPago ?? p?.metodo_pago ?? null;
+  return raw === null || String(raw).trim() === "";
+};
+
+const isRechazado = (p: any) => {
+  // 1) ✅ tu nueva condición: metodoPago null => rechazado
+  if (isMetodoPagoNullOEmpty(p)) return true;
+
+  // 2) (compat) si tienes algún campo de estado, también cuenta
+  const raw =
+    p?.estado ??
+    p?.estadoPedido ??
+    p?.estado_pedido ??
+    p?.status ??
+    p?.pedidoEstado ??
+    p?.pedido_estado ??
+    "";
+  const e = normEstado(raw);
+  return e.includes("RECHAZADO");
+};
+
+const numOrNull = (v: any): number | null => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+const numOr0 = (v: any): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+// editado motorizado: servicioRepartidor (o snake)
+const getRepEdit = (p: any) =>
+  numOrNull(p?.servicioRepartidor ?? p?.servicio_repartidor ?? null);
+
+// default motorizado: servicioEfectivo -> servicioSugerido (o variantes)
+const getRepDefault = (p: any) =>
+  numOr0(
+    p?.servicioEfectivo ??
+      p?.servicio_efectivo ??
+      p?.servicioSugerido ??
+      p?.servicio_sugerido ??
+      0
+  );
+
+// editado courier: servicioCourier (o snake)
+const getCourEdit = (p: any) =>
+  numOrNull(p?.servicioCourier ?? p?.servicio_courier ?? null);
+
+// default courier: servicioCourierEfectivo (o variantes)
+const getCourDefault = (p: any) =>
+  numOr0(p?.servicioCourierEfectivo ?? p?.servicio_courier_efectivo ?? 0);
+
+/**
+ * Regla final:
+ * - Si pedido RECHAZADO (incluye metodoPago null):
+ *    - SIEMPRE visualiza 0 por defecto
+ *    - y si lo editan, muestra lo editado
+ * - Si NO rechazado:
+ *    - si editado => editado
+ *    - si no => default establecido
+ */
+function calcServicioRep(p: any): { value: number; edited: boolean } {
+  const edit = getRepEdit(p);
+  const rejected = isRechazado(p);
+
+  if (rejected) return { value: edit ?? 0, edited: edit != null };
+  if (edit != null) return { value: edit, edited: true };
+  return { value: getRepDefault(p), edited: false };
+}
+
+function calcServicioCour(p: any): { value: number; edited: boolean } {
+  const edit = getCourEdit(p);
+  const rejected = isRechazado(p);
+
+  if (rejected) return { value: edit ?? 0, edited: edit != null };
+  if (edit != null) return { value: edit, edited: true };
+  return { value: getCourDefault(p), edited: false };
+}
+
+/* ===================== evidencia helpers ===================== */
 
 // ✅ soporta url absoluta y relativa
 const isProbablyImageUrl = (url: string) => {
@@ -132,12 +242,14 @@ function MetricCard({
   icon,
   tone = "neutral",
   subtitle,
+  badge,
 }: {
   title: string;
   value: string;
   icon: string;
   subtitle?: string;
   tone?: "neutral" | "soft";
+  badge?: string | null;
 }) {
   return (
     <div
@@ -149,8 +261,13 @@ function MetricCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[12px] text-gray60">{title}</div>
-          <div className="mt-1 text-[18px] font-semibold text-gray90">
-            {value}
+          <div className="mt-1 flex items-center gap-2">
+            <div className="text-[18px] font-semibold text-gray90">{value}</div>
+            {badge ? (
+              <span className="rounded-full bg-gray20 px-2 py-0.5 text-[11px] font-semibold text-gray80">
+                {badge}
+              </span>
+            ) : null}
           </div>
           {subtitle ? (
             <div className="mt-1 text-[12px] text-gray60">{subtitle}</div>
@@ -186,11 +303,18 @@ export default function DetalleServiciosDiaModal({
     return items.find((x) => x.id === pedidoId) ?? null;
   }, [items, pedidoId]);
 
+  const servicios = useMemo(() => {
+    const rep = calcServicioRep(pedido);
+    const cour = calcServicioCour(pedido);
+    return { rep, cour };
+  }, [pedido]);
+
   const totals = useMemo(() => {
-    const monto = Number(pedido?.monto ?? 0);
-    const rep = Number(pedido?.servicioRepartidor ?? 0);
-    const cour = Number(pedido?.servicioCourier ?? 0);
+    const monto = numOr0((pedido as any)?.monto ?? 0);
+    const rep = servicios.rep.value;
+    const cour = servicios.cour.value;
     const servTotal = rep + cour;
+
     return {
       monto,
       servicioRepartidor: rep,
@@ -198,15 +322,15 @@ export default function DetalleServiciosDiaModal({
       servicioTotal: servTotal,
       neto: monto - servTotal,
     };
-  }, [pedido]);
+  }, [pedido, servicios]);
 
   if (!open) return null;
 
   const title = "DETALLE DEL CUADRE";
   const subTitle = `Detalle del pedido • ${toDMY(fecha)}`;
 
-  const hasEvidencia = Boolean(pedido?.pagoEvidenciaUrl);
-  const evidenciaUrl = (pedido?.pagoEvidenciaUrl ?? "").trim();
+  const hasEvidencia = Boolean((pedido as any)?.pagoEvidenciaUrl);
+  const evidenciaUrl = String((pedido as any)?.pagoEvidenciaUrl ?? "").trim();
 
   const netoTone =
     totals.neto < 0
@@ -218,8 +342,6 @@ export default function DetalleServiciosDiaModal({
   const handleViewEvidence = (url: string) => {
     const clean = String(url || "").trim();
     if (!clean) return;
-
-    // ✅ tu preview modal es para imágenes; PDFs se abren aparte
     if (isProbablyImageUrl(clean)) setPreviewUrl(clean);
     else window.open(clean, "_blank", "noopener,noreferrer");
   };
@@ -233,7 +355,7 @@ export default function DetalleServiciosDiaModal({
         aria-hidden="true"
       />
 
-      {/* ✅ Drawer full-height + width 460 */}
+      {/* Drawer */}
       <aside
         className={[
           "absolute right-0 top-0 h-full w-[460px] max-w-[95vw]",
@@ -243,7 +365,7 @@ export default function DetalleServiciosDiaModal({
         aria-modal="true"
         role="dialog"
       >
-        {/* HEADER sticky */}
+        {/* HEADER */}
         <div className="sticky top-0 z-10 bg-white border-b border-gray20">
           <div className="px-5 pt-5 pb-4">
             <div className="flex items-start justify-between gap-3">
@@ -284,7 +406,7 @@ export default function DetalleServiciosDiaModal({
           </div>
         </div>
 
-        {/* BODY scroll */}
+        {/* BODY */}
         <div className="relative flex-1 overflow-y-auto px-5 py-5">
           {loading && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 text-[12px] text-gray70">
@@ -319,8 +441,8 @@ export default function DetalleServiciosDiaModal({
                   </div>
 
                   <span className="text-[12px] text-gray60">
-                    {pedido?.metodoPago
-                      ? `Pago: ${metodoPagoLabel(pedido.metodoPago)}`
+                    {(pedido as any)?.metodoPago
+                      ? `Pago: ${metodoPagoLabel((pedido as any).metodoPago)}`
                       : "Pago: —"}
                   </span>
                 </div>
@@ -328,14 +450,14 @@ export default function DetalleServiciosDiaModal({
                 <div className="p-4">
                   <div className="text-[12px] text-gray60">Cliente</div>
                   <div className="mt-0.5 text-[16px] font-semibold text-gray90 truncate">
-                    {pedido?.cliente ?? "-"}
+                    {(pedido as any)?.cliente ?? "-"}
                   </div>
 
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div className="rounded-xl border border-gray20 bg-white p-3">
                       <div className="text-[12px] text-gray60">Distrito</div>
                       <div className="mt-1 text-[13px] font-semibold text-gray90 truncate">
-                        {pedido?.distrito ?? "-"}
+                        {(pedido as any)?.distrito ?? "-"}
                       </div>
                     </div>
 
@@ -344,7 +466,7 @@ export default function DetalleServiciosDiaModal({
                         Método de pago
                       </div>
                       <div className="mt-1 text-[13px] font-semibold text-gray90 truncate">
-                        {metodoPagoLabel(pedido?.metodoPago)}
+                        {metodoPagoLabel((pedido as any)?.metodoPago)}
                       </div>
                     </div>
                   </div>
@@ -366,17 +488,20 @@ export default function DetalleServiciosDiaModal({
                   subtitle="Fecha de cuadre / entrega"
                   tone="soft"
                 />
+
                 <MetricCard
                   title="Servicio Motorizado"
                   value={formatPEN(totals.servicioRepartidor)}
                   icon="mdi:motorbike"
                   tone="neutral"
+                  badge={servicios.rep.edited ? "editado" : null}
                 />
                 <MetricCard
                   title="Servicio Courier"
                   value={formatPEN(totals.servicioCourier)}
                   icon="mdi:truck-outline"
                   tone="neutral"
+                  badge={servicios.cour.edited ? "editado" : null}
                 />
               </div>
 
@@ -409,7 +534,7 @@ export default function DetalleServiciosDiaModal({
                   <div className="mt-4 rounded-xl border border-gray20 bg-gray10 p-3">
                     <div className="text-[12px] text-gray60">Motivo</div>
                     <div className="mt-1 text-[13px] font-medium text-gray90">
-                      {pedido?.motivo ? pedido.motivo : "—"}
+                      {(pedido as any)?.motivo ? (pedido as any).motivo : "—"}
                     </div>
                   </div>
                 </div>
@@ -459,7 +584,6 @@ export default function DetalleServiciosDiaModal({
                     </div>
                   ) : (
                     <div className="rounded-xl border border-gray20 bg-white p-3">
-                      {/* tu componente en modo VER */}
                       <ImageUploadx
                         label="Evidencia"
                         mode="view"
@@ -473,13 +597,12 @@ export default function DetalleServiciosDiaModal({
                 </div>
               </div>
 
-              {/* espacio para no chocar con footer */}
               <div className="h-3" />
             </>
           )}
         </div>
 
-        {/* FOOTER sticky */}
+        {/* FOOTER */}
         <div className="sticky bottom-0 z-10 bg-white border-t border-gray20 px-5 py-4">
           <div className="flex items-center justify-start gap-3">
             <Buttonx variant="outlined" label="Cerrar" onClick={onClose} />
@@ -487,7 +610,7 @@ export default function DetalleServiciosDiaModal({
         </div>
       </aside>
 
-      {/* Preview SOLO para imágenes con tu ImagePreviewModalx */}
+      {/* Preview SOLO para imágenes */}
       <ImagePreviewModalx
         open={Boolean(previewUrl)}
         onClose={() => setPreviewUrl(null)}

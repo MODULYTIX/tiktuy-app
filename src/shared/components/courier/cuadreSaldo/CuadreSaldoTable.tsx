@@ -69,6 +69,36 @@ const metodoPagoLabel = (metodoPago: unknown) => {
   return String(metodoPago ?? "-");
 };
 
+/* ==================== NUEVO: Rechazado => servicios 0 (solo UI) ==================== */
+/** Rechazado = metodoPago null/vacío (regla pedida) */
+const isRechazadoByMetodoPago = (metodoPago: unknown) =>
+  metodoPago == null || String(metodoPago).trim() === "";
+
+/** Servicio motorizado visual:
+ * - si rechazado: 0, salvo que esté editado (servicioRepartidor != null)
+ * - si no rechazado: usa servicioEfectivo (tu default) o el editado ya se refleja ahí por onSavedServicio
+ */
+const servicioMotorizadoVisual = (r: any) => {
+  const rechazado = isRechazadoByMetodoPago(r.metodoPago);
+  if (rechazado) {
+    return r.servicioRepartidor != null ? Number(r.servicioRepartidor) : 0;
+  }
+  return Number(r.servicioEfectivo ?? 0);
+};
+
+/** Servicio courier visual:
+ * - si rechazado: 0, salvo que esté editado (servicioCourier != null)
+ * - si no rechazado: usa servicioCourierEfectivo o servicioCourier o 0
+ */
+const servicioCourierVisual = (r: any) => {
+  const rechazado = isRechazadoByMetodoPago(r.metodoPago);
+  if (rechazado) {
+    return r.servicioCourier != null ? Number(r.servicioCourier) : 0;
+  }
+  return Number(r.servicioCourierEfectivo ?? r.servicioCourier ?? 0);
+};
+/* ================================================================================ */
+
 /* ============== Modal Confirmar Abono ============== */
 type ConfirmAbonoModalProps = {
   open: boolean;
@@ -218,9 +248,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   useEffect(() => {
     if (open && pedido) {
       setMontoRep(
-        String(
-          (pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0
-        )
+        String((pedido as any).servicioRepartidor ?? pedido.servicioSugerido ?? 0)
       );
       setMotivo((pedido as any).motivo ?? "");
       setMontoCour(
@@ -414,9 +442,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [detalleFecha, setDetalleFecha] = useState<string>("");
   const [detallePedidoId, setDetallePedidoId] = useState<number | null>(null);
-  const [detalleItems, setDetalleItems] = useState<
-    DetalleServicioPedidoItem[]
-  >([]);
+  const [detalleItems, setDetalleItems] = useState<DetalleServicioPedidoItem[]>(
+    []
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -461,8 +489,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
         if (chg.servicioRepartidor !== undefined) {
           next.servicioRepartidor = chg.servicioRepartidor;
-          next.servicioEfectivo =
-            chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
+          next.servicioEfectivo = chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
         }
         if (chg.motivo !== undefined) {
           next.motivo = chg.motivo ?? null;
@@ -530,11 +557,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     async (row: any) => {
       try {
         const next = !row.abonado;
-        await abonarPedidos(token, {
-          pedidoIds: [row.id],
-          abonado: next,
-          sedeId,
-        });
+        await abonarPedidos(token, { pedidoIds: [row.id], abonado: next, sedeId });
         setRows((prev) =>
           prev.map((r: any) => (r.id === row.id ? { ...r, abonado: next } : r))
         );
@@ -677,10 +700,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
               <tbody className="divide-y divide-gray20">
                 {rows.length === 0 ? (
                   <tr className="hover:bg-transparent">
-                    <td
-                      colSpan={10}
-                      className="px-4 py-8 text-center italic text-gray70"
-                    >
+                    <td colSpan={10} className="px-4 py-8 text-center italic text-gray70">
                       Sin resultados para el filtro seleccionado.
                     </td>
                   </tr>
@@ -690,10 +710,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                     const disableCheck = r.abonado;
 
                     return (
-                      <tr
-                        key={r.id}
-                        className="transition-colors hover:bg-gray10"
-                      >
+                      <tr key={r.id} className="transition-colors hover:bg-gray10">
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
@@ -705,28 +722,22 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           />
                         </td>
 
-                        <td className="px-4 py-3 text-gray70">
-                          {toDMY(r.fechaEntrega)}
-                        </td>
+                        <td className="px-4 py-3 text-gray70">{toDMY(r.fechaEntrega)}</td>
                         <td className="px-4 py-3 text-gray70">{r.cliente}</td>
-                        <td className="px-4 py-3 text-gray70">
-                          {r.distrito ?? "-"}
-                        </td>
+                        <td className="px-4 py-3 text-gray70">{r.distrito ?? "-"}</td>
 
-                        {/* ✅ AQUÍ el cambio: método de pago amigable */}
+                        {/* ✅ método de pago amigable */}
                         <td className="px-4 py-3 text-gray70">
                           {metodoPagoLabel(r.metodoPago)}
                         </td>
 
-                        <td className="px-4 py-3 text-gray70">
-                          {formatPEN(r.monto)}
-                        </td>
+                        <td className="px-4 py-3 text-gray70">{formatPEN(r.monto)}</td>
 
-                        {/* Servicio motorizado */}
+                        {/* ✅ Servicio motorizado (rechazado => 0 salvo editado) */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray80">
-                              {formatPEN(Number(r.servicioEfectivo ?? 0))}
+                              {formatPEN(servicioMotorizadoVisual(r))}
                             </span>
                             {r.servicioRepartidor != null && (
                               <span className="rounded-full bg-gray20 px-2 py-0.5 text-[11px] text-gray80">
@@ -736,17 +747,11 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           </div>
                         </td>
 
-                        {/* Servicio courier */}
+                        {/* ✅ Servicio courier (rechazado => 0 salvo editado) */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray80">
-                              {formatPEN(
-                                Number(
-                                  r.servicioCourierEfectivo ??
-                                    r.servicioCourier ??
-                                    0
-                                )
-                              )}
+                              {formatPEN(servicioCourierVisual(r))}
                             </span>
                             {r.servicioCourier != null && (
                               <span className="rounded-full bg-gray20 px-2 py-0.5 text-[11px] text-gray80">
