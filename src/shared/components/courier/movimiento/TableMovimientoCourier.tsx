@@ -3,11 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/context/useAuth";
 
 import { fetchCourierMovimientos } from "@/services/courier/movimiento/movimientoCourier.api";
+import { fetchAlmacenesCourier } from "@/services/courier/almacen/almacenCourier.api";
 
 import type {
   CourierMovimientoItem,
   CourierMovimientosResponse,
 } from "@/services/courier/movimiento/movimientoCourier.type";
+import type { AlmacenamientoCourier } from "@/services/courier/almacen/almacenCourier.type";
 
 import type { MovimientoCourierFilters } from "../../movimiento/MovimientoFilterCourier";
 
@@ -27,6 +29,9 @@ export default function TableMovimientoCourier({ filters }: Props) {
   const [items, setItems] = useState<CourierMovimientoItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Para saber si soy DESTINO (puedo validar)
+  const [myWarehouseIds, setMyWarehouseIds] = useState<Set<number>>(new Set());
+
   // paginación local
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
@@ -41,9 +46,16 @@ export default function TableMovimientoCourier({ filters }: Props) {
     setLoading(true);
     setError(null);
 
-    fetchCourierMovimientos(token, { page: 1, limit: 500 })
-      .then((res: CourierMovimientosResponse) => {
-        setItems(res.items || []);
+    Promise.all([
+      fetchCourierMovimientos(token, { page: 1, limit: 500 }),
+      fetchAlmacenesCourier(token).catch(() => []),
+    ])
+      .then(([resMovs, resAlms]) => {
+        setItems(resMovs.items || []);
+
+        if (Array.isArray(resAlms)) {
+          setMyWarehouseIds(new Set(resAlms.map((a: AlmacenamientoCourier) => a.id)));
+        }
       })
       .catch((e) => setError(e?.message || "Error al obtener movimientos"))
       .finally(() => setLoading(false));
@@ -232,17 +244,24 @@ export default function TableMovimientoCourier({ filters }: Props) {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-3">
-                          {(mov.estado?.nombre || "").toLowerCase() ===
-                            "proceso" && (
-                            <TableActionx
-                              variant="custom"
-                              title={`Validar ${codigoFromUuid(mov.uuid)}`}
-                              icon="ci:check-big"
-                              colorClassName="bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-200 hover:ring-emerald-400 focus-visible:ring-emerald-500"
-                              onClick={() => openValidate(mov.uuid)}
-                              size="sm"
-                            />
-                          )}
+                          {(() => {
+                            const st = (mov.estado?.nombre || "").toLowerCase();
+                            const isProceso = st === "proceso" || st === "en proceso";
+
+                            // Regla: Solo valido recibos (donde yo soy destino)
+                            const isDestinoMe = myWarehouseIds.has(mov.almacen_destino?.id);
+
+                            return isProceso && isDestinoMe ? (
+                              <TableActionx
+                                variant="custom"
+                                title={`Validar ${codigoFromUuid(mov.uuid)}`}
+                                icon="ci:check-big"
+                                colorClassName="bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-200 hover:ring-emerald-400 focus-visible:ring-emerald-500"
+                                onClick={() => openValidate(mov.uuid)}
+                                size="sm"
+                              />
+                            ) : null;
+                          })()}
                           <TableActionx
                             variant="view"
                             title={`Ver ${codigoFromUuid(mov.uuid)}`}

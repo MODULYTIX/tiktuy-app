@@ -72,6 +72,15 @@ const clampName = (s: string, fallback: string) => {
   return t.length ? t : fallback;
 };
 
+function nombreArchivoDesdeUrl(url: string) {
+  try {
+    const last = url.split("/").pop() ?? "";
+    return last.split("?")[0];
+  } catch {
+    return "archivo_adjunto";
+  }
+}
+
 /* ---------------- componente ---------------- */
 export default function DetallesMovimientoCourierModal({
   open,
@@ -130,7 +139,7 @@ export default function DetallesMovimientoCourierModal({
 
   const descripcion = toText(
     (data as any)?.descripcion ||
-      "Movimiento hecho para reabastecer el stock en el almacén destino."
+    "Movimiento hecho para reabastecer el stock en el almacén destino."
   );
 
   const fechaGeneracion = fechaLegible((data as any)?.fecha_movimiento);
@@ -147,8 +156,8 @@ export default function DetallesMovimientoCourierModal({
         (data as any)?.fecha_validacion
           ? new Date((data as any).fecha_validacion)
           : (data as any)?.meta?.fecha_validacion
-          ? new Date((data as any).meta.fecha_validacion)
-          : null;
+            ? new Date((data as any).meta.fecha_validacion)
+            : null;
 
       if (g && v && !isNaN(g.getTime()) && !isNaN(v.getTime())) {
         const diff = Math.max(
@@ -193,7 +202,7 @@ export default function DetallesMovimientoCourierModal({
     try {
       await navigator.clipboard?.writeText(codigo);
       notify("Código copiado.", "success");
-    } catch {}
+    } catch { }
   };
 
   const handleValidate = async () => {
@@ -318,10 +327,10 @@ export default function DetallesMovimientoCourierModal({
                         estadoLabel === "Validado"
                           ? "bg-emerald-500"
                           : estadoLabel === "Proceso"
-                          ? "bg-amber-500"
-                          : estadoLabel === "Observado"
-                          ? "bg-rose-500"
-                          : "bg-slate-400",
+                            ? "bg-amber-500"
+                            : estadoLabel === "Observado"
+                              ? "bg-rose-500"
+                              : "bg-slate-400",
                       ].join(" ")}
                     />
                     {estadoLabel}
@@ -375,7 +384,7 @@ export default function DetallesMovimientoCourierModal({
                 </div>
               </div>
             ) : (
-              // ✅ NO forzar h-full en mobile (solo en lg)
+              //  NO forzar h-full en mobile (solo en lg)
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch lg:h-full min-h-0">
                 {/* LEFT */}
                 <div className="lg:col-span-6 lg:h-full min-h-0">
@@ -408,16 +417,15 @@ export default function DetallesMovimientoCourierModal({
                           </span>
                           <span className="text-xs font-bold tabular-nums text-slate-800">
                             {diasTranscurridos
-                              ? `${diasTranscurridos} día${
-                                  diasTranscurridos === "01" ? "" : "s"
-                                }`
+                              ? `${diasTranscurridos} día${diasTranscurridos === "01" ? "" : "s"
+                              }`
                               : "—"}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* ✅ FIX: scroll interno para que SIEMPRE se vean los 3 bloques en laptops */}
+                    {/*  FIX: scroll interno para que SIEMPRE se vean los 3 bloques en laptops */}
                     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 pr-2 flex flex-col gap-4 lg:gap-5">
                       {/* DESDE */}
                       <div className="shrink-0 rounded-2xl bg-slate-50 border border-slate-200 p-4">
@@ -539,7 +547,7 @@ export default function DetallesMovimientoCourierModal({
                 </div>
 
                 {/* RIGHT */}
-                {/* ✅ 50/50 real: flex-col + ambos cards flex-1 */}
+                {/*  50/50 real: flex-col + ambos cards flex-1 */}
                 <div className="lg:col-span-6 lg:h-full min-h-0 flex flex-col gap-4">
                   {/* TABLA */}
                   <div className="flex-1 min-h-0 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col">
@@ -689,7 +697,7 @@ export default function DetallesMovimientoCourierModal({
                       </div>
                     </div>
 
-                    {/* ✅ body con scroll interno para respetar 50/50 */}
+                    {/*  body con scroll interno para respetar 50/50 */}
                     <div className="flex-1 min-h-0 p-5 overflow-y-auto">
                       {canValidate ? (
                         <div className="space-y-4">
@@ -759,21 +767,64 @@ export default function DetallesMovimientoCourierModal({
                           </div>
                         </div>
                       ) : (
-                        <div className="h-full rounded-xl bg-slate-50 border border-slate-200 p-6 text-center flex flex-col items-center justify-center">
-                          <div className="mx-auto w-12 h-12 rounded-2xl bg-white border border-gray-200 shadow-sm flex items-center justify-center">
-                            <Icon
-                              icon="mdi:inbox-outline"
-                              width="22"
-                              height="22"
-                              className="text-slate-600"
-                            />
-                          </div>
-                          <div className="mt-3 text-sm font-semibold text-slate-800">
-                            Sin datos que mostrar
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            No hay descripción adicional ni archivo adjuntado.
-                          </div>
+                        <div className="h-full rounded-xl bg-slate-50 border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
+                          {(() => {
+                            const evidenciaUrl = (data as any)?.evidencia_url;
+                            return evidenciaUrl ? (
+                              <div className="w-full rounded-xl bg-white border border-gray-200 p-4 flex items-center justify-between gap-3 shadow-sm">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-gray-200 flex items-center justify-center shrink-0">
+                                    <Icon
+                                      icon="mdi:file-outline"
+                                      width="20"
+                                      height="20"
+                                      className="text-slate-600"
+                                    />
+                                  </div>
+                                  <div className="min-w-0 text-left">
+                                    <div className="text-sm font-semibold text-slate-800 truncate">
+                                      Evidencia del movimiento
+                                    </div>
+                                    <div className="text-xs text-slate-500 truncate">
+                                      {nombreArchivoDesdeUrl(evidenciaUrl)}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <a
+                                  href={evidenciaUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shrink-0"
+                                  title="Abrir evidencia"
+                                >
+                                  <Icon
+                                    icon="mdi:open-in-new"
+                                    width="16"
+                                    height="16"
+                                  />
+                                  Abrir
+                                </a>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="mx-auto w-12 h-12 rounded-2xl bg-white border border-gray-200 shadow-sm flex items-center justify-center">
+                                  <Icon
+                                    icon="mdi:inbox-outline"
+                                    width="22"
+                                    height="22"
+                                    className="text-slate-600"
+                                  />
+                                </div>
+                                <div className="mt-3 text-sm font-semibold text-slate-800">
+                                  Sin datos que mostrar
+                                </div>
+                                <div className="mt-1 text-xs text-slate-500">
+                                  No hay descripción adicional ni archivo adjuntado.
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>

@@ -38,5 +38,6 @@ export interface CourierMovimientoDetalle {
   estado: { id: number; nombre: string }; // 'Proceso' | 'Observado' | 'Validado'
   almacen_origen: { id: number; nombre_almacen: string } | null;
   almacen_destino: { id: number; nombre_almacen: string } | null;
+  evidencia_url?: string | null;
   productos: CourierMovimientoProductoDet[];
 }
