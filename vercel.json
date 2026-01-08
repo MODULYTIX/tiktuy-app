@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/auth/:path*",
+      "destination": "https://tiktuy-app-backend-production.up.railway.app/auth/:path*"
+    },
+    {
       "source": "/((?!\\.well-known).*)",
       "destination": "/"
     }
