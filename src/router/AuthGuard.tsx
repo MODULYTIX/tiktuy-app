@@ -40,7 +40,7 @@ export default function AuthGuard({ children }: Props) {
       role === 'representante_courier'         // nuevo → /courier
     ) {
       const roleForPath =
-        role === 'representante' ? 'ecommerce' : role; // mapear legacy a ecommerce
+        role === 'representante' ? 'ecommerce' : role; 
 
       const target = roleDefaultPaths[roleForPath as keyof typeof roleDefaultPaths];
 

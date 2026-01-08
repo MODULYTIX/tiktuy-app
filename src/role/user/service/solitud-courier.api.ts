@@ -28,7 +28,14 @@ export async function registrarSolicitudCourier(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Error al registrar la solicitud');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = errorData.error || 'Error al registrar la solicitud';
+    if (errorMessage.includes('http') || errorMessage.includes('fetch')) {
+      throw new Error('Error de conexión con el servidor');
+    }
+    throw new Error(errorMessage);
+  }
   return res.json();
 }
 
@@ -39,7 +46,9 @@ export async function fetchSolicitudesCourier(token: string): Promise<SolicitudC
   const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/solicitudes/couriers`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw new Error('Error al obtener solicitudes');
+  if (!res.ok) {
+    throw new Error('Error al obtener solicitudes');
+  }
   return res.json();
 }
 
@@ -62,7 +71,14 @@ export async function cambiarEstadoCourier(
       body: JSON.stringify({ accion }),
     }
   );
-  if (!res.ok) throw new Error('Error al cambiar el estado del courier');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = errorData.error || 'Error al cambiar el estado del courier';
+    if (errorMessage.includes('http') || errorMessage.includes('fetch')) {
+      throw new Error('Error de conexión con el servidor');
+    }
+    throw new Error(errorMessage);
+  }
   return res.json();
 }
 
@@ -82,7 +98,14 @@ export async function registrarSolicitudEcommerce(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Error al registrar la solicitud de ecommerce');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = errorData.error || 'Error al registrar la solicitud de ecommerce';
+    if (errorMessage.includes('http') || errorMessage.includes('fetch')) {
+      throw new Error('Error de conexión con el servidor');
+    }
+    throw new Error(errorMessage);
+  }
   return res.json();
 }
 
@@ -94,7 +117,9 @@ export async function fetchSolicitudesEcommerce(token: string): Promise<Solicitu
   const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/solicitudes/ecommerces`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw new Error('Error al obtener solicitudes de ecommerce');
+  if (!res.ok) {
+    throw new Error('Error al obtener solicitudes de ecommerce');
+  }
   return res.json();
 }
 
@@ -118,7 +143,14 @@ export async function cambiarEstadoEcommerce(
       body: JSON.stringify({ accion }),
     }
   );
-  if (!res.ok) throw new Error('Error al cambiar el estado del ecommerce');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = errorData.error || 'Error al cambiar el estado del ecommerce';
+    if (errorMessage.includes('http') || errorMessage.includes('fetch')) {
+      throw new Error('Error de conexión con el servidor');
+    }
+    throw new Error(errorMessage);
+  }
   return res.json();
 }
 
@@ -139,7 +171,14 @@ export async function confirmarPasswordEcommerce(params: {
       body: JSON.stringify(params),
     }
   );
-  if (!res.ok) throw new Error('Error al confirmar la contraseña del ecommerce');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = errorData.error || 'Error al confirmar la contraseña del ecommerce';
+    if (errorMessage.includes('http') || errorMessage.includes('fetch')) {
+      throw new Error('Error de conexión con el servidor');
+    }
+    throw new Error(errorMessage);
+  }
   return res.json();
 }
 
@@ -156,6 +195,8 @@ export async function fetchSolicitudesCourierCompleto(
       headers: { Authorization: `Bearer ${token}` },
     }
   );
-  if (!res.ok) throw new Error('Error al obtener solicitudes completas de courier');
+  if (!res.ok) {
+    throw new Error('Error al obtener solicitudes completas de courier');
+  }
   return res.json();
 }

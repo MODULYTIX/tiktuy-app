@@ -90,8 +90,13 @@ export async function loginRequest(
   });
 
   if (!res.ok) {
-    const { error } = await res.json().catch(() => ({}));
-    throw new Error(error || 'Error al iniciar sesión');
+    const errorData = await res.json().catch(() => ({}));
+    // Si el mensaje de error contiene una URL o parece un error de sistema, mostramos un mensaje genérico.
+    const errorMessage = errorData.error || 'Error al iniciar sesión';
+    if (errorMessage.includes('http') || errorMessage.includes('fetch') || errorMessage.length > 200) {
+      throw new Error('Error de conexión con el servidor');
+    }
+    throw new Error(errorMessage);
   }
 
   return await res.json();
@@ -120,8 +125,12 @@ export async function registerRequest(
   });
 
   if (!res.ok) {
-    const { error } = await res.json().catch(() => ({}));
-    throw new Error(error || 'Error al registrar usuario');
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = errorData.error || 'Error al registrar usuario';
+    if (errorMessage.includes('http') || errorMessage.includes('fetch') || errorMessage.length > 200) {
+      throw new Error('Error al conectar con el servidor');
+    }
+    throw new Error(errorMessage);
   }
 
   return await res.json();
@@ -155,8 +164,12 @@ export async function recoverPasswordRequest(
   });
 
   if (!res.ok) {
-    const { error } = await res.json().catch(() => ({}));
-    throw new Error(error || 'Error al solicitar recuperación');
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = errorData.error || 'Error al solicitar recuperación';
+    if (errorMessage.includes('http') || errorMessage.includes('fetch')) {
+      throw new Error('Error de conexión con el servidor');
+    }
+    throw new Error(errorMessage);
   }
 
   return await res.json();
@@ -177,8 +190,12 @@ export async function confirmRecoverPasswordRequest(
   });
 
   if (!res.ok) {
-    const { error } = await res.json().catch(() => ({}));
-    throw new Error(error || 'Error al confirmar recuperación');
+    const errorData = await res.json().catch(() => ({}));
+    const errorMessage = errorData.error || 'Error al confirmar recuperación';
+    if (errorMessage.includes('http') || errorMessage.includes('fetch')) {
+      throw new Error('Error de conexión con el servidor');
+    }
+    throw new Error(errorMessage);
   }
 
   return await res.json();
