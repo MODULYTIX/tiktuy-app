@@ -7,7 +7,6 @@ import { fetchAlmacenesCourier } from "@/services/courier/almacen/almacenCourier
 
 import type {
   CourierMovimientoItem,
-  CourierMovimientosResponse,
 } from "@/services/courier/movimiento/movimientoCourier.type";
 import type { AlmacenamientoCourier } from "@/services/courier/almacen/almacenCourier.type";
 
