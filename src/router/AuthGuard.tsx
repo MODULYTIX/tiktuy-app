@@ -45,6 +45,16 @@ export default function AuthGuard({ children }: Props) {
       const target = roleDefaultPaths[roleForPath as keyof typeof roleDefaultPaths];
 
       if (target) {
+        // Override para courier: mandar a /pedidos
+        if (
+          (role === 'courier' || role === 'representante_courier') &&
+          target === '/courier'
+        ) {
+          navigate('/courier/pedidos', { replace: true });
+          setRedirected(true);
+          return;
+        }
+
         navigate(target, { replace: true });
         setRedirected(true);
         return;

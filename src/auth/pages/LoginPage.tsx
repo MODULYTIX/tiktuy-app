@@ -70,7 +70,13 @@ export default function LoginPage() {
       // - representante_ecommerce → '/ecommerce'
       // - representante_courier → '/courier'
       const targetPath = roleDefaultPaths[roleName];
-      const normTarget = targetPath.replace(/\/+$/, '') || '/';
+      let normTarget = targetPath.replace(/\/+$/, '') || '/';
+
+      // Override para Courier: redirigir a /pedidos al iniciar sesión
+      if (roleName === 'courier' && normTarget === '/courier') {
+        normTarget = '/courier/pedidos';
+      }
+
       if (currentPath !== normTarget) {
         navigate(normTarget, { replace: true });
       }
