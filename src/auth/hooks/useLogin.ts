@@ -50,10 +50,10 @@ export function useLogin() {
       }, 0);
     } catch (err: unknown) {
       if (err instanceof Error) {
-        console.error('Error en login:', err);
+        // console.error('Error en login:', err); // Suppressed
         setError(err.message || 'Error al iniciar sesión');
       } else {
-        console.error('Error inesperado:', err);
+        // console.error('Error inesperado:', err); // Suppressed
         setError('Error desconocido al iniciar sesión');
       }
     } finally {
