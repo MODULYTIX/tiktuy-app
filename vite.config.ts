@@ -15,6 +15,17 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: true,
     port: 5173,
+    strictPort: true,
+    proxy: {
+      '/auth': {
+        target: 'https://tiktuy-app-backend-production.up.railway.app',
+        changeOrigin: true,
+        secure: true,
+      },
+      // si luego quieres más rutas:
+      // '/pedido': { target: 'https://...', changeOrigin: true },
+      // '/producto': { target: 'https://...', changeOrigin: true },
+    },
   },
   build: {
     //  Solo genera source maps en desarrollo
