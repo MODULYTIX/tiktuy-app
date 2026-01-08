@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Buttonx from "@/shared/common/Buttonx";
 import { Inputx } from "@/shared/common/Inputx";
-import { Selectx } from "@/shared/common/Selectx";
+
 
 interface Props {
   values: {
@@ -16,7 +16,7 @@ interface Props {
   onNext: () => void;
 }
 
-const CITIES = ["Arequipa", "Lima", "Cusco", "Tacna", "Moquegua"];
+
 
 export default function StepInformacionComercial({
   values,
@@ -30,8 +30,8 @@ export default function StepInformacionComercial({
 
   const set =
     (k: keyof Props["values"]) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      onChange({ [k]: e.target.value });
+      (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+        onChange({ [k]: e.target.value });
 
   const handleRucChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const soloDigitos = e.target.value.replace(/\D/g, "").slice(0, 11);
@@ -68,7 +68,7 @@ export default function StepInformacionComercial({
       setSuccessMsg(null);
       setErrorMsg(
         "Por favor revisa los siguientes campos antes de continuar:\n" +
-          errs.join("\n")
+        errs.join("\n")
       );
       return;
     }
@@ -134,21 +134,13 @@ export default function StepInformacionComercial({
         {/* Fila 2 */}
         <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="w-full">
-            <Selectx
+            <Inputx
               label="Ciudad"
-              labelVariant="left"
+              placeholder="Ejem. Arequipa"
               value={values.ciudad}
               onChange={set("ciudad")}
-              placeholder="Seleccionar ciudad"
               required
-            >
-              <option value="">Seleccionar ciudad</option>
-              {CITIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </Selectx>
+            />
           </div>
           <div className="w-full">
             <Inputx
