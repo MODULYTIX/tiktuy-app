@@ -372,7 +372,7 @@ export default function CrearPedidoModal({
 
             <div className="w-54">
               <InputxNumber
-                label={`Cant. (Stock ${form.stock_max || 0})`}
+                label={`Stock ${form.stock_max || 0}`}
                 name="cantidad"
                 value={form.cantidad}
                 onChange={handleChange}

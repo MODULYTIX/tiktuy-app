@@ -28,6 +28,19 @@ export default function ImportExcelFlow({
   const [almacenOptions, setAlmacenOptions] = useState<Option[] | null>(null);
   const [categoriaOptions, setCategoriaOptions] = useState<Option[] | null>(null);
 
+  const DEFAULT_CATEGORIES = [
+    "Tecnología",
+    "Hogar",
+    "Moda",
+    "Calzado",
+    "Belleza",
+    "Electrodomésticos",
+    "Alimentos y bebidas",
+    "Juguetes",
+    "Deportes y fitness",
+    "Libros/entretenimiento",
+  ];
+
   /**
    * Transforma una lista de objetos en opciones únicas usando la clave `key`.
    * - No requiere index signature en T.
@@ -73,7 +86,17 @@ export default function ImportExcelFlow({
 
         // Opciones únicas precargadas
         const optsAlm = toOptions<Almacenamiento>(almacenes as Almacenamiento[], 'nombre_almacen');
-        const optsCat = toOptions<Categoria>(categorias as Categoria[], 'nombre');
+
+        let optsCat: Option[] = [];
+        const catsArr = categorias as Categoria[];
+
+        if (!catsArr || catsArr.length === 0) {
+          // Si no hay categorías en BD, usamos las defaults
+          optsCat = DEFAULT_CATEGORIES.map(c => ({ label: c, value: c }));
+        } else {
+          optsCat = toOptions<Categoria>(catsArr, 'nombre');
+        }
+
         setAlmacenOptions(optsAlm);
         setCategoriaOptions(optsCat);
 
