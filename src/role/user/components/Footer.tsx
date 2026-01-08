@@ -22,10 +22,10 @@ export default function Footer() {
         {/* Encabezado del footer: logo tipográfico + tagline */}
         <div className="border-b border-white/10 py-10">
           <img
-              src={Logo}
-              alt="Panel de control TIKTUY"
-              className=""
-            />
+            src={Logo}
+            alt="Panel de control TIKTUY"
+            className=""
+          />
           <p className="mt-1 text-sm text-gray-300">
             la plataforma que potencia tu logística
           </p>
@@ -225,7 +225,7 @@ export default function Footer() {
         {/* Barra inferior */}
         <div className="flex flex-col items-start gap-4 border-t border-white/10 py-6 md:flex-row md:items-center md:justify-between">
           <p className="text-xs text-gray-400">
-            © 2026 TIKTUY. Todos los derechos reservados.
+            © {new Date().getFullYear()} TIKTUY. Todos los derechos reservados.
           </p>
 
           <nav
