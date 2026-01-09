@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaEye } from "react-icons/fa";
-import { Icon } from "@iconify/react";
 import type {
   Paginated,
   PedidoListItem,
@@ -37,12 +35,7 @@ const PEN = new Intl.NumberFormat("es-PE", {
 });
 const two = (n: number) => String(n).padStart(2, "0");
 
-/**
- * ✅ FIX TZ (solo render):
- * Si viene ISO tipo "2025-12-12T00:00:00.000Z", NO usar new Date()
- * porque en Perú lo corre al día anterior.
- * Mostramos siempre el YYYY-MM-DD como dd/mm/yyyy.
- */
+
 function formatDateOnlyFromIso(isoOrYmd?: string | null): string {
   if (!isoOrYmd) return "—";
 
