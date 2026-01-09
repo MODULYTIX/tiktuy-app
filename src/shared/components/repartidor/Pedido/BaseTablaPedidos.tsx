@@ -7,10 +7,13 @@ import type {
   ListPedidosHoyQuery,
   ListByEstadoQuery,
 } from "@/services/repartidor/pedidos/pedidos.types";
+
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import Buttonx from "@/shared/common/Buttonx";
 import { SearchInputx } from "@/shared/common/SearchInputx";
 import Tittlex from "@/shared/common/Tittlex";
+import TableActionx from "@/shared/common/TableActionx";
+import Badgex from "@/shared/common/Badgex";
 
 type ViewKind = "hoy" | "pendientes" | "terminados";
 type PropsBase = {
@@ -64,6 +67,7 @@ function isoToYMD(iso?: string | null): string {
   if (!iso) return "";
   return String(iso).slice(0, 10);
 }
+
 /**
  * ✅ Normaliza value de input date a YYYY-MM-DD (sin TZ).
  * Acepta:
@@ -90,6 +94,27 @@ function normalizeToYMD(v: string): string {
 
   // fallback: no inventamos
   return s;
+}
+
+/* ================== BADGE ESTADO (Badgex) ================== */
+function EstadoBadge({ estado }: { estado?: string | null }) {
+  const raw = String(estado ?? "").trim();
+  const s = raw.toLowerCase();
+
+  // ✅ colores: verde / amarillo / rojo
+  const cls = s.includes("entregado")
+    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+    : s.includes("rechaz") || s.includes("cancel") || s.includes("devuelt")
+    ? "bg-red-50 text-red-700 border border-red-200"
+    : s.includes("no responde") || s.includes("equivoc")
+    ? "bg-amber-50 text-amber-800 border border-amber-200"
+    : "bg-amber-50 text-amber-800 border border-amber-200"; // default amarillo (evitamos gris)
+
+  return (
+    <Badgex className={cls} title={raw} shape="soft" size="sm">
+      {raw || "—"}
+    </Badgex>
+  );
 }
 
 export default function BaseTablaPedidos({
@@ -123,8 +148,7 @@ export default function BaseTablaPedidos({
     setHasta("");
   }, [view]);
 
-  //  si cambias filtros, vuelve a page 1
-  // ✅ REEMPLAZO CORRECTO
+  // si cambias filtros, vuelve a page 1
   useEffect(() => {
     if (page !== 1) {
       setPage(1);
@@ -169,7 +193,6 @@ export default function BaseTablaPedidos({
       try {
         const query = view === "hoy" ? qHoy : qEstado;
         const resp = await fetcher(token, query, { signal: ac.signal });
-
         setData(resp);
       } catch (e) {
         if ((e as Error).name !== "AbortError") {
@@ -214,12 +237,12 @@ export default function BaseTablaPedidos({
       });
     }
 
-    // --- Distrito ---
+    // Distrito
     if (filtroDistrito) {
       arr = arr.filter((x) => x.cliente.distrito === filtroDistrito);
     }
 
-    // --- Cantidad ---
+    // Cantidad
     if (filtroCantidad) {
       const cant = Number(filtroCantidad);
       const byCount = (x: PedidoListItem) =>
@@ -229,7 +252,7 @@ export default function BaseTablaPedidos({
       arr = arr.filter((x) => byCount(x) === cant);
     }
 
-    // --- Buscar producto ---
+    // Buscar producto
     if (searchProducto.trim()) {
       const q = searchProducto.trim().toLowerCase();
       arr = arr.filter((x) =>
@@ -309,7 +332,9 @@ export default function BaseTablaPedidos({
                     value={desde}
                     onChange={(value) => {
                       const ymd = normalizeToYMD(
-                        typeof value === "string" ? value : value?.target?.value
+                        typeof value === "string"
+                          ? value
+                          : (value as any)?.target?.value
                       );
                       setDesde(ymd);
                     }}
@@ -323,7 +348,9 @@ export default function BaseTablaPedidos({
                     value={hasta}
                     onChange={(value) => {
                       const ymd = normalizeToYMD(
-                        typeof value === "string" ? value : value?.target?.value
+                        typeof value === "string"
+                          ? value
+                          : (value as any)?.target?.value
                       );
                       setHasta(ymd);
                     }}
@@ -451,7 +478,6 @@ export default function BaseTablaPedidos({
                       className="group hover:bg-gray10 transition-colors"
                     >
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
-                        {/* ✅ FIX TZ SOLO AQUÍ */}
                         {formatDateOnlyFromIso(fecha)}
                       </td>
                       <td className="h-12 px-4 py-3 text-gray70">
@@ -472,8 +498,10 @@ export default function BaseTablaPedidos({
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
                         {PEN.format(Number(p.monto_recaudar || 0))}
                       </td>
-                      <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
-                        {p.estado_nombre}
+
+                      {/* ✅ ESTADO con Badgex */}
+                      <td className="h-12 px-4 py-3 whitespace-nowrap">
+                        <EstadoBadge estado={p.estado_nombre as any} />
                       </td>
 
                       <td
@@ -487,23 +515,22 @@ export default function BaseTablaPedidos({
                         "
                       >
                         <div className="flex items-center justify-center gap-3">
-                          <button
-                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                          <TableActionx
+                            variant="view"
+                            title="Ver detalle"
                             onClick={() => onVerDetalle?.(p.id)}
-                          >
-                            <FaEye />
-                          </button>
+                            size="sm"
+                          />
 
                           {(view === "hoy" || view === "pendientes") && (
-                            <button
-                              className="text-amber-600 hover:text-amber-800 transition-colors"
+                            <TableActionx
+                              variant="custom"
+                              title="Cambiar estado"
+                              icon="mdi:swap-horizontal"
+                              colorClassName="bg-amber-100 text-amber-700 ring-1 ring-amber-300 hover:bg-amber-200 hover:ring-amber-400 focus-visible:ring-amber-500"
                               onClick={() => onCambiarEstado?.(p)}
-                            >
-                              <Icon
-                                icon="mdi:swap-horizontal"
-                                className="text-lg"
-                              />
-                            </button>
+                              size="sm"
+                            />
                           )}
                         </div>
                       </td>

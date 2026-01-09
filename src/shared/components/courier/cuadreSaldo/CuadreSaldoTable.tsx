@@ -55,8 +55,7 @@ const normMetodoPago = (v: unknown) =>
     .replace(/\s+/g, "_");
 
 /** solo contar efectivo */
-const isEfectivo = (metodoPago: unknown) =>
-  normMetodoPago(metodoPago) === "EFECTIVO";
+const isEfectivo = (metodoPago: unknown) => normMetodoPago(metodoPago) === "EFECTIVO";
 
 /** ✅ Etiqueta visual para método de pago (NO afecta lógica) */
 const metodoPagoLabel = (metodoPago: unknown) => {
@@ -64,8 +63,6 @@ const metodoPagoLabel = (metodoPago: unknown) => {
   if (!m) return "-";
   if (m === "DIRECTO_ECOMMERCE") return "Pago digital a ecommerce";
   if (m === "BILLETERA") return "Pago digital a courier";
-  // para no romper lo existente: si viene EFECTIVO u otro, se muestra tal cual "normalizado"
-  // si prefieres mostrar el original exacto, dime y lo ajusto.
   return String(metodoPago ?? "-");
 };
 
@@ -177,9 +174,7 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
               checked={checked}
               onChange={(e) => setChecked(e.target.checked)}
             />
-            <span>
-              Confirmo que verifiqué los pedidos y realicé la transferencia
-            </span>
+            <span>Confirmo que verifiqué los pedidos y realicé la transferencia</span>
           </label>
         </div>
 
@@ -236,14 +231,8 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   const [motivo, setMotivo] = useState<string>("");
   const [montoCour, setMontoCour] = useState<string>("");
 
-  const sugeridoRep = useMemo(
-    () => pedido?.servicioSugerido ?? 0,
-    [pedido?.servicioSugerido]
-  );
-  const baseCour = useMemo(
-    () => (pedido as any)?.servicioCourierEfectivo ?? null,
-    [pedido]
-  );
+  const sugeridoRep = useMemo(() => pedido?.servicioSugerido ?? 0, [pedido?.servicioSugerido]);
+  const baseCour = useMemo(() => (pedido as any)?.servicioCourierEfectivo ?? null, [pedido]);
 
   useEffect(() => {
     if (open && pedido) {
@@ -266,10 +255,8 @@ const EditServicioModal: React.FC<EditModalProps> = ({
   const onGuardar = async () => {
     const valRep = Number(montoRep);
     const valCour = Number(montoCour);
-    if (Number.isNaN(valRep) || valRep < 0)
-      return alert("Servicio del motorizado inválido.");
-    if (Number.isNaN(valCour) || valCour < 0)
-      return alert("Servicio courier inválido.");
+    if (Number.isNaN(valRep) || valRep < 0) return alert("Servicio del motorizado inválido.");
+    if (Number.isNaN(valCour) || valCour < 0) return alert("Servicio courier inválido.");
 
     try {
       const chg: EditModalChange = { id: pedido.id };
@@ -339,9 +326,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
                 value={montoRep}
                 onChange={(e) => setMontoRep(e.target.value)}
               />
-              <p className="text-[11px] text-gray-500">
-                Sugerido: {formatPEN(sugeridoRep)}
-              </p>
+              <p className="text-[11px] text-gray-500">Sugerido: {formatPEN(sugeridoRep)}</p>
             </div>
 
             <div className="space-y-1.5">
@@ -354,9 +339,7 @@ const EditServicioModal: React.FC<EditModalProps> = ({
                 onChange={(e) => setMontoCour(e.target.value)}
               />
               {baseCour != null && (
-                <p className="text-[11px] text-gray-500">
-                  Base: {formatPEN(Number(baseCour))}
-                </p>
+                <p className="text-[11px] text-gray-500">Base: {formatPEN(Number(baseCour))}</p>
               )}
             </div>
           </div>
@@ -442,11 +425,23 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [detalleFecha, setDetalleFecha] = useState<string>("");
   const [detallePedidoId, setDetallePedidoId] = useState<number | null>(null);
-  const [detalleItems, setDetalleItems] = useState<DetalleServicioPedidoItem[]>(
-    []
-  );
+  const [detalleItems, setDetalleItems] = useState<DetalleServicioPedidoItem[]>([]);
+
+  // ✅ IMPORTANTE:
+  // No mostrar datos hasta que el usuario seleccione un filtro "mínimo".
+  // En tu caso: no consultar si NO hay motorizado seleccionado.
+  const canFetch = Boolean(motorizadoId);
 
   const load = useCallback(async () => {
+    // ✅ Si aún no hay filtros, NO llames al API
+    if (!canFetch) {
+      setRows([]);
+      setTotal(0);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -470,7 +465,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     } finally {
       setLoading(false);
     }
-  }, [token, motorizadoId, sedeId, desde, hasta, page, pageSize]);
+  }, [token, motorizadoId, sedeId, desde, hasta, page, pageSize, canFetch]);
 
   useEffect(() => {
     setPage(1);
@@ -478,8 +473,16 @@ const CuadreSaldoTable: React.FC<Props> = ({
   }, [motorizadoId, sedeId, desde, hasta, pageSize]);
 
   useEffect(() => {
+    // ✅ Solo cargar si ya hay filtro mínimo
+    if (!canFetch) {
+      setRows([]);
+      setTotal(0);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     void load();
-  }, [load]);
+  }, [load, canFetch]);
 
   const onSavedServicio = useCallback((chg: EditModalChange) => {
     setRows((prev) =>
@@ -489,7 +492,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
         if (chg.servicioRepartidor !== undefined) {
           next.servicioRepartidor = chg.servicioRepartidor;
-          next.servicioEfectivo = chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
+          next.servicioEfectivo =
+            chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
         }
         if (chg.motivo !== undefined) {
           next.motivo = chg.motivo ?? null;
@@ -700,7 +704,10 @@ const CuadreSaldoTable: React.FC<Props> = ({
               <tbody className="divide-y divide-gray20">
                 {rows.length === 0 ? (
                   <tr className="hover:bg-transparent">
-                    <td colSpan={10} className="px-4 py-8 text-center italic text-gray70">
+                    <td
+                      colSpan={10}
+                      className="px-4 py-8 text-center italic text-gray70"
+                    >
                       Sin resultados para el filtro seleccionado.
                     </td>
                   </tr>

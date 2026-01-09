@@ -66,11 +66,14 @@ export default function Header() {
 
               {config && (
                 <span
-                  className={`mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-md ${config.bg} ${config.text}`}
-                >
-                  {config.icon}
-                  {config.label}
-                </span>
+  className={`mt-1 inline-flex w-fit flex-none items-center gap-1.5 whitespace-nowrap
+    text-[11px] font-medium px-2 py-0.5 rounded-md
+    justify-self-start
+    ${config.bg} ${config.text}`}
+>
+  {config.icon}
+  {config.label}
+</span>
               )}
             </div>
           </div>

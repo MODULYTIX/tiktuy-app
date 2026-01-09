@@ -37,7 +37,7 @@ export default function Badgex({
         " whitespace-nowrap select-none font-medium",
         ...sizeCls,
         // radios por variante (solo si el padre no manda su propio rounded-)
-        !hasRounded && (shape === "pill" ? "rounded-full" : "rounded-[6px]"),
+        !hasRounded && (shape === "pill" ? "rounded-full" : "rounded-md"),
         // colores por defecto (si el padre no los pasa)
         !hasBg && "bg-gray90",
         !hasTextCol && "text-white",

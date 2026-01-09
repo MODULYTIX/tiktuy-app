@@ -116,7 +116,7 @@ const CuadreSaldoPage: React.FC = () => {
       ) : (
         <>
           {/* Título + botón alineado a la derecha */}
-          <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <Tittlex title="Repartidor" variant="section" />
             <Buttonx
               icon="iconoir:new-tab"
