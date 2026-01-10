@@ -167,4 +167,10 @@ export interface ReprogramarPedidoResponse {
   creado_por_id: number;
 }
 
+export interface ExportPedidosAsignadosPdfPayload {
+  pedidoIds: number[];
+  sedeId?: number;
+}
+
+export type ExportPedidosAsignadosPdfResponse = Blob;
 
