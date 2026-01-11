@@ -181,3 +181,8 @@ export interface MensajeResponse {
 export interface LinkResponse {
   link: string; // p.ej.: https://tiktuy.app/registro-invitacion?token=abc123
 }
+
+export interface TipoVehiculoCatalogo {
+  id: number;
+  descripcion: string;
+}

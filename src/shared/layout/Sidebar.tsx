@@ -51,7 +51,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
   > = {
     admin: [
       { to: "/", label: "Panel de Control", icon: <MdDashboard /> },
-      { to: "/usuarios", label: "Ventas", icon: <FaCashRegister /> },
+      { to: "/ventas", label: "Ventas", icon: <FaCashRegister /> },
       { to: "/reportes", label: "Stock / Sede", icon: <FaBoxes /> },
       /*
       {
