@@ -90,12 +90,18 @@ export default function ImportExcelFlow({
         let optsCat: Option[] = [];
         const catsArr = categorias as Categoria[];
 
-        if (!catsArr || catsArr.length === 0) {
-          // Si no hay categorías en BD, usamos las defaults
-          optsCat = DEFAULT_CATEGORIES.map(c => ({ label: c, value: c }));
-        } else {
-          optsCat = toOptions<Categoria>(catsArr, 'nombre');
-        }
+        // 1. Defaults
+        const defaultOpts = DEFAULT_CATEGORIES.map((c) => ({ label: c, value: c }));
+
+        // 2. DB Categories
+        const dbOpts = toOptions<Categoria>(catsArr, 'nombre');
+
+        // 3. Merge: Default + DB (avoid duplicates)
+        // Filter out DB options that are already in defaults
+        const existingValues = new Set(defaultOpts.map((o) => String(o.value).toLowerCase()));
+        const uniqueDbOpts = dbOpts.filter((o) => !existingValues.has(String(o.value).toLowerCase()));
+
+        optsCat = [...defaultOpts, ...uniqueDbOpts];
 
         setAlmacenOptions(optsAlm);
         setCategoriaOptions(optsCat);
