@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Icon } from "@iconify/react"; // Added import
 
 import CuadreSaldoTable from "@/shared/components/ecommerce/cuadresaldo/CuadreSaldoTable";
 import VizualisarPedidos from "@/shared/components/ecommerce/cuadresaldo/VizualisarPedidos";
@@ -41,6 +40,7 @@ const montoPedido = (p: any) =>
   Number(p?.monto ?? p?.monto_recaudar ?? p?.montoRecaudar ?? 0);
 
 type ResumenRowUI = ResumenDia & {
+  // 👇 SOLO FRONTEND para visualizar cobrado/neto excluyendo DIRECTO_ECOMMERCE
   directoEcommerceMonto?: number;
 };
 
@@ -170,6 +170,7 @@ const CuadreSaldoPage: React.FC = () => {
     }
   };
 
+  // ✅ Totales para el modal VALIDAR (COBRADO VISIBLE = cobrado - directoEcommerceMonto)
   //    Servicios NO se tocan.
   const totals = useMemo(() => {
     const set = new Set(selected);
@@ -221,151 +222,81 @@ const CuadreSaldoPage: React.FC = () => {
     setSelected([]);
   };
 
-  /* ====== Stats Calculation used for Live Summary ====== */
-  // Use 'totals' if something is selected, otherwise calculate based on all displayed rows.
-  const displayTotals = useMemo(() => {
-    if (selected.length > 0) return totals;
-
-    // Fallback: Calculate for ALL rows currently visible (if nothing selected)
-    let cobVisible = 0;
-    let serv = 0;
-    rows.forEach((r) => {
-      const directo = Number((r as any).directoEcommerceMonto ?? 0);
-      const cobradoReal = Number(r.cobrado ?? 0);
-      cobVisible += Math.max(0, cobradoReal - directo);
-      serv += Number(r.servicio ?? 0);
-    });
-    return { cobrado: cobVisible, servicio: serv };
-  }, [selected.length, totals, rows]);
-
-
   return (
-    <div className="mt-8 flex flex-col gap-6 font-sans text-slate-600">
-
-      {/* Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div className="mt-8 flex flex-col gap-5">
+      {/* Header */}
+      <div className="flex justify-between items-end">
         <Tittlex
           title="Cuadre de Saldo"
-          description="Gestión y monitoreo de recaudación diaria"
+          description="Monitorea lo recaudado en el día"
         />
 
-        <div className="flex gap-3">
-          {/* Action Buttons could go here */}
-          <Buttonx
-            label={`Validar (${selected.length})`}
-            icon="iconoir:check-circle"
-            variant="primary" // Changed to primary for better focus
-            className={`${selected.length === 0 ? 'opacity-50' : 'shadow-lg shadow-indigo-200'}`}
-            onClick={() => setOpenValidar(true)}
-            disabled={selected.length === 0}
-          />
-        </div>
-      </div>
-
-      {/* Live Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
-            <Icon icon="mdi:cash-multiple" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Cobrado {selected.length > 0 ? '(Selec.)' : '(Total)'}</p>
-            <p className="text-xl font-bold text-slate-800">
-              S/ {displayTotals.cobrado.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
-            <Icon icon="mdi:hand-coin-outline" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Servicio {selected.length > 0 ? '(Selec.)' : '(Total)'}</p>
-            <p className="text-xl font-bold text-slate-800">
-              S/ {displayTotals.servicio.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-        </div>
-
-        {/* Placeholder for future stat or info */}
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 border-dashed flex items-center justify-center text-slate-400 text-sm">
-          <span className="flex items-center gap-2">
-            <Icon icon="mdi:information-outline" />
-            Selecciona fechas para validar
-          </span>
-        </div>
-      </div>
-
-
-      {/* Filter Bar (Clean Glass Style) */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-4 overflow-x-auto">
-        <div className="flex-1 min-w-[200px]">
-          <Selectx
-            id="f-courier"
-            label="Courier"
-            value={courierId === "" ? "" : String(courierId)}
-            onChange={(e) =>
-              setCourierId(e.target.value === "" ? "" : Number(e.target.value))
-            }
-            placeholder="Seleccionar courier"
-            className="w-full"
-          >
-            <option value="">— Seleccionar courier —</option>
-            {couriers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </Selectx>
-        </div>
-
-        <div className="w-full md:w-auto min-w-[150px]">
-          <SelectxDate
-            id="f-fecha-inicio"
-            label="Desde"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-            placeholder="dd/mm/aaaa"
-            className="w-full"
-          />
-        </div>
-
-        <div className="w-full md:w-auto min-w-[150px]">
-          <SelectxDate
-            id="f-fecha-fin"
-            label="Hasta"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-            placeholder="dd/mm/aaaa"
-            className="w-full"
-          />
-        </div>
-
-        <div className="pb-0.5">
-          <Buttonx
-            label="Limpiar"
-            icon="mynaui:delete"
-            variant="outlined"
-            onClick={limpiarFiltros}
-            disabled={!courierId && !rows.length}
-            className="border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700 hover:bg-slate-50"
-          />
-        </div>
-      </div>
-
-      {/* Table Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-        <CuadreSaldoTable
-          rows={rows as any}
-          loading={loading}
-          selected={selected}
-          onToggle={toggleFecha}
-          onView={verPedidos}
+        <Buttonx
+          label={`Validar (${selected.length})`}
+          icon="iconoir:new-tab"
+          variant="secondary"
+          onClick={() => setOpenValidar(true)}
+          disabled={selected.length === 0}
         />
       </div>
 
-      {/* Modals */}
+      {/* Filtros */}
+      <div className="bg-white p-5 rounded shadow-default border-b-4 border-gray90 flex items-end gap-4">
+        <Selectx
+          id="f-courier"
+          label="Courier"
+          value={courierId === "" ? "" : String(courierId)}
+          onChange={(e) =>
+            setCourierId(e.target.value === "" ? "" : Number(e.target.value))
+          }
+          placeholder="Seleccionar courier"
+          className="w-full"
+        >
+          <option value="">— Seleccionar courier —</option>
+          {couriers.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre}
+            </option>
+          ))}
+        </Selectx>
+
+        <SelectxDate
+          id="f-fecha-inicio"
+          label="Fecha Inicio"
+          value={desde}
+          onChange={(e) => setDesde(e.target.value)}
+          placeholder="dd/mm/aaaa"
+          className="w-full"
+        />
+
+        <SelectxDate
+          id="f-fecha-fin"
+          label="Fecha Fin"
+          value={hasta}
+          onChange={(e) => setHasta(e.target.value)}
+          placeholder="dd/mm/aaaa"
+          className="w-full"
+        />
+
+        <Buttonx
+          label="Limpiar Filtros"
+          icon="mynaui:delete"
+          variant="outlined"
+          onClick={limpiarFiltros}
+          disabled={false}
+        />
+      </div>
+
+      {/* Tabla (rows ahora incluyen directoEcommerceMonto) */}
+      <CuadreSaldoTable
+        rows={rows as any}
+        loading={loading}
+        selected={selected}
+        onToggle={toggleFecha}
+        onView={verPedidos}
+      />
+
+      {/* Modal ver pedidos */}
       <VizualisarPedidos
         open={openVer}
         onClose={() => setOpenVer(false)}
@@ -374,11 +305,12 @@ const CuadreSaldoPage: React.FC = () => {
         loading={verLoading}
       />
 
+      {/* Modal validar */}
       <ValidarAbonoModal
         open={openValidar}
         onClose={() => setOpenValidar(false)}
         fechas={selected}
-        totalCobrado={totals.cobrado}
+        totalCobrado={totals.cobrado}  
         totalServicio={totals.servicio}
         courierNombre={
           couriers.find((c) => c.id === Number(courierId))?.nombre ?? undefined
