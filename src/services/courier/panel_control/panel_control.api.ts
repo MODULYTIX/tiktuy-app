@@ -274,7 +274,7 @@ export async function listarMotorizadosAsociados(
  * Lista catálogo de tipos de vehículo.
  */
 export async function listarTiposVehiculo(
-  token: string
+  token?: string
 ): Promise<ApiResult<import("./panel_control.types").TipoVehiculoCatalogo[]>> {
   const res = await fetch(`${BASE_URL}/motorizado/tipos-vehiculo`, {
     method: "GET",

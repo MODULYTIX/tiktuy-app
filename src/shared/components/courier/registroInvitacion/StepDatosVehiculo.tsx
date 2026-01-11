@@ -1,12 +1,13 @@
 // src/shared/components/courier/registroInvitacion/StepDatosVehiculo.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Buttonx from "@/shared/common/Buttonx";
 import { Inputx } from "@/shared/common/Inputx";
 import { Selectx } from "@/shared/common/Selectx";
 import {
-  TIPOS_VEHICULO,
   type TipoVehiculo,
+  type TipoVehiculoCatalogo,
 } from "@/services/courier/panel_control/panel_control.types";
+import { listarTiposVehiculo } from "@/services/courier/panel_control/panel_control.api";
 
 type Values = {
   licencia: string;
@@ -30,6 +31,16 @@ export default function StepDatosVehiculo({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [tiposVehiculo, setTiposVehiculo] = useState<TipoVehiculoCatalogo[]>([]);
+
+  useEffect(() => {
+    // Cargar catálogo de tipos (sin token o con el que haya en sesión pública si aplica)
+    listarTiposVehiculo()
+      .then((res) => {
+        if (res.ok) setTiposVehiculo(res.data);
+      })
+      .catch(console.error);
+  }, []);
 
   const handleLicenciaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Normalizamos a mayúsculas y sin espacios extremos
@@ -78,7 +89,7 @@ export default function StepDatosVehiculo({
       setSuccessMsg(null);
       setErrorMsg(
         "Por favor revisa los siguientes campos antes de continuar:\n" +
-          errs.join("\n")
+        errs.join("\n")
       );
       return;
     }
@@ -125,13 +136,13 @@ export default function StepDatosVehiculo({
               labelVariant="left"
               value={values.tipo_vehiculo ?? ""}
               onChange={handleTipoVehiculoChange}
-              placeholder="Seleccione..."
+              placeholder={tiposVehiculo.length ? "Seleccione..." : "Cargando..."}
               required
             >
               <option value="">Seleccione…</option>
-              {TIPOS_VEHICULO.map((tv) => (
-                <option key={tv} value={tv}>
-                  {tv}
+              {tiposVehiculo.map((tv) => (
+                <option key={tv.id} value={tv.descripcion}>
+                  {tv.descripcion}
                 </option>
               ))}
             </Selectx>
