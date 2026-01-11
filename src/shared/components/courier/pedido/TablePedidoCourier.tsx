@@ -62,7 +62,7 @@ function normalizeRange(desde?: string, hasta?: string) {
   };
 }
 
-/* ✅ NUEVO: HOY en Perú como YYYY-MM-DD (para que el backend filtre hoy por defecto) */
+/*  NUEVO: HOY en Perú como YYYY-MM-DD (para que el backend filtre hoy por defecto) */
 function getTodayPEYYYYMMDD() {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Lima",
@@ -714,7 +714,6 @@ export default function TablePedidoCourier({
                           className="cursor-pointer"
                           checked={selectedIds.includes(p.id)}
                           onChange={(e) => {
-                            // ✅ SOLO en asignados + pendientes (PDF)
                             if (view !== "asignados" && view !== "pendientes")
                               return;
 
