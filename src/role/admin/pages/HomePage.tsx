@@ -10,7 +10,7 @@ import type { SolicitudCourier, SolicitudCourierCompleto } from '@/role/user/ser
 import {
   cambiarEstadoCourier,
   fetchSolicitudesCourier,
-  fetchSolicitudesCourierCompleto, 
+  fetchSolicitudesCourierCompleto,
 } from '@/role/user/service/solitud-courier.api';
 
 // Ecommerce
@@ -46,8 +46,8 @@ export default function AdminHomePage() {
         const data = await fetchSolicitudesCourier(token);
         setRowsCourier(data);
 
-        const dataCompleto = await fetchSolicitudesCourierCompleto(token); 
-        setRowsCourierCompleto(dataCompleto);                             
+        const dataCompleto = await fetchSolicitudesCourierCompleto(token);
+        setRowsCourierCompleto(dataCompleto);
 
       } else {
         const data = await fetchSolicitudesEcommerce(token);
@@ -60,6 +60,14 @@ export default function AdminHomePage() {
 
   useEffect(() => {
     load();
+
+    // Auto-update when window regains focus (e.g. returning from an external process/popup)
+    const onFocus = () => load();
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+    };
   }, [load]);
 
   // handlers filtros
@@ -206,7 +214,7 @@ export default function AdminHomePage() {
           <TablePanelAdmin
             loading={loading}
             data={filteredCourier}
-            dataCompleta={rowsCourierCompleto}  
+            dataCompleta={rowsCourierCompleto}
             onAssociate={onAssociate}
             onDesassociate={onDesassociate}
           />
