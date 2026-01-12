@@ -145,7 +145,7 @@ export interface RegistroManualMotorizadoPayload {
   telefono: string;
   licencia: string;
   /** Debe pertenecer al catálogo TIPOS_VEHICULO */
-  tipo_vehiculo: TipoVehiculo;
+  tipo_vehiculo: string;
   placa: string;
 }
 
@@ -168,7 +168,7 @@ export interface RegistroInvitacionMotorizadoPayload {
   dni_ci: string;
   licencia: string;
   /** Debe pertenecer al catálogo TIPOS_VEHICULO */
-  tipo_vehiculo: TipoVehiculo;
+  tipo_vehiculo: string;
   placa: string;
 }
 
