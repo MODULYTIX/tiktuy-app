@@ -27,18 +27,6 @@ const num = (v: any) => {
   return Number.isFinite(x) ? x : 0;
 };
 
-function getMontoDirectoEcommerce(r: any) {
-  return num(
-    r?.montoDirectoEcommerce ??
-    r?.monto_directo_ecommerce ??
-    r?.directoEcommerceMonto ??
-    r?.directo_ecommerce_monto ??
-    r?.cobradoDirectoEcommerce ??
-    r?.cobrado_directo_ecommerce ??
-    0
-  );
-}
-
 
 /**  Solo NO se puede seleccionar cuando está "Validado" */
 function isSelectable(estado: ResumenDia["estado"]) {
