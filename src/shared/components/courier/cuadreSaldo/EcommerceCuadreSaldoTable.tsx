@@ -60,10 +60,40 @@ const servicioDe = (i: any) =>
   );
 
 /* ===========================
-   ✅ regla DIRECTO_ECOMMERCE
-   - solo afecta "Cobrado" (monto)
-   - NO toca servicios
+   ✅ reglas de cobrado / rechazados
+   - DIRECTO_ECOMMERCE => cobrado 0
+   - SIN método de pago => "Pedido rechazado" => cobrado 0
+   - Rechazados SOLO se muestran cuando it.abonado === true (courier -> repartidor)
 =========================== */
+
+/** Normaliza método de pago para comparaciones */
+const normMetodoPago = (v: unknown) =>
+  String(v ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+
+/** Detecta "Pedido rechazado"
+ *  ✅ Si backend manda estadoNombre/estado_nombre úsalo
+ *  ✅ Si NO hay método de pago => lo tratamos como rechazado (tu regla de UI)
+ */
+const isRejectedPedido = (it: any): boolean => {
+  const st = String(it?.estadoNombre ?? it?.estado_nombre ?? "")
+    .trim()
+    .toLowerCase();
+  if (st === "pedido rechazado") return true;
+
+  const mp =
+    it?.metodoPago ??
+    it?.metodo_pago ??
+    it?.metodo_pago_nombre ??
+    it?.metodoPagoNombre ??
+    null;
+
+  // ✅ tu regla: si no hay método => "Pedido rechazado"
+  return !normMetodoPago(mp);
+};
+
 function isDirectEcommerce(i: any): boolean {
   const raw =
     i?.metodoPago ??
@@ -71,12 +101,15 @@ function isDirectEcommerce(i: any): boolean {
     i?.metodo_pago_nombre ??
     i?.metodoPagoNombre ??
     "";
-  const mp = String(raw).trim().toUpperCase();
+  const mp = normMetodoPago(raw);
   return mp === "DIRECTO_ECOMMERCE";
 }
 
-// ✅ Cobrado visual: si DIRECTO_ECOMMERCE => 0
-const cobradoDe = (i: any) => (isDirectEcommerce(i) ? 0 : montoDe(i));
+// ✅ Cobrado visual:
+// - si DIRECTO_ECOMMERCE => 0
+// - si Pedido rechazado (sin método) => 0
+const cobradoDe = (i: any) =>
+  isRejectedPedido(i) ? 0 : isDirectEcommerce(i) ? 0 : montoDe(i);
 
 // ✅ Pequeño limitador de concurrencia para no reventar el backend
 async function mapLimit<T, R>(
@@ -267,9 +300,11 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
       const baseRows: ResumenRow[] = (data ?? []) as ResumenRow[];
 
-      // ✅ Recalcular COBRADO/NETO usando el detalle (DIRECTO_ECOMMERCE => 0)
-      // ✅ Servicio total ecommerce = SOLO courier
-      const fixedRows = await mapLimit(baseRows, 5, async (r) => {
+      // ✅ Recalcular COBRADO/NETO usando el detalle
+      // ✅ y REGRA CLAVE:
+      //    - "Pedido rechazado" solo cuenta/lista si it.abonado === true
+      //    - si después de filtrar NO queda ningún item, NO mostramos ese día (no se crea fila)
+      const fixedRowsMaybe = await mapLimit(baseRows, 5, async (r) => {
         try {
           const arr = await getEcommercePedidosDia(
             token,
@@ -277,7 +312,15 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
             r.fecha,
             sedeIdNumber
           );
-          const list = Array.isArray(arr) ? arr : (arr as any)?.items ?? [];
+          const listRaw = Array.isArray(arr) ? arr : (arr as any)?.items ?? [];
+
+          const list = listRaw.filter((it: any) => {
+            if (!isRejectedPedido(it)) return true;
+            return Boolean(it?.abonado); // ✅ solo mostrar rechazados si ya fue abonado al repartidor
+          });
+
+          // ✅ si NO hay pedidos válidos (p. ej. solo rechazados sin abonar), no mostrar el día
+          if (list.length === 0) return null as any;
 
           const cobrado = list.reduce(
             (acc: number, it: any) => acc + cobradoDe(it),
@@ -290,17 +333,27 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
           const neto = cobrado - servicio;
 
-          return { ...r, cobrado, servicio, neto };
+          return {
+            ...r,
+            cobrado,
+            servicioCourier: servicio, // ✅ tu tabla pinta r.servicioCourier
+            neto,
+          } as ResumenRow;
         } catch {
+          // si falla el detalle, por seguridad NO filtramos el día (dejamos lo que vino)
           return r;
         }
       });
+
+      const fixedRows: ResumenRow[] = (fixedRowsMaybe ?? []).filter(
+        Boolean
+      ) as ResumenRow[];
 
       setRows(fixedRows);
 
       // ✅ si ya habían seleccionado fechas y ahora cambiaron de estado, las sacamos
       setSelectedFechas((prev) =>
-        prev.filter((f) => selectableFechas.includes(f))
+        prev.filter((f) => fixedRows.some((x) => x.fecha === f && isSelectableEstado(x.estado)))
       );
     } catch (e: any) {
       setError(e?.message ?? "Error al cargar el resumen");
@@ -345,7 +398,14 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         fecha,
         sedeIdNumber
       );
-      const list = Array.isArray(arr) ? arr : (arr as any)?.items ?? [];
+      const listRaw = Array.isArray(arr) ? arr : (arr as any)?.items ?? [];
+
+      // ✅ misma regla en el modal: rechazados solo si ya fueron abonados al repartidor
+      const list = listRaw.filter((it: any) => {
+        if (!isRejectedPedido(it)) return true;
+        return Boolean(it?.abonado);
+      });
+
       setDetalleItems(list as any[]);
     } catch (e: any) {
       alert(e?.message ?? "No se pudo cargar el detalle");
@@ -368,7 +428,14 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       const porFecha = await Promise.all(
         fechasOk.map(async (f) => {
           const r = await getEcommercePedidosDia(token, ecoId, f, sedeIdNumber);
-          return (Array.isArray(r) ? r : (r as any)?.items ?? []) as any[];
+          const listRaw = (Array.isArray(r) ? r : (r as any)?.items ?? []) as any[];
+
+          // ✅ por consistencia: rechazados solo si abonado (si no, ni deberían existir como fila,
+          // pero esto evita totals raros)
+          return listRaw.filter((it: any) => {
+            if (!isRejectedPedido(it)) return true;
+            return Boolean(it?.abonado);
+          });
         })
       );
       const todos = porFecha.flat();
@@ -418,7 +485,9 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         return;
       }
       // ✅ seguridad: solo "Sin Validar"
-      const fechasOk = confirmFechas.filter((f) => selectableFechas.includes(f));
+      const fechasOk = confirmFechas.filter((f) =>
+        selectableFechas.includes(f)
+      );
       if (fechasOk.length === 0) return;
 
       if (!voucherFile) {
@@ -448,7 +517,9 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       );
 
       // ✅ limpia selección de las fechas que ya quedaron por validar
-      setSelectedFechas((prev) => prev.filter((f) => !fechasMarcadas.includes(f)));
+      setSelectedFechas((prev) =>
+        prev.filter((f) => !fechasMarcadas.includes(f))
+      );
 
       setOpenConfirm(false);
       setConfirmFechas([]);
@@ -482,10 +553,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     <div className="flex flex-col gap-5">
       {/* Barra superior */}
       <div className="flex items-center justify-between">
-        <Tittlex
-          title="Ecommerce"
-          variant="section"
-        />
+        <Tittlex title="Ecommerce" variant="section" />
         <Buttonx
           icon="iconoir:new-tab"
           label="Abonar Ecommerce"
@@ -637,7 +705,8 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                   pagedRows.map((r) => {
                     const estado = (r.estado ?? "Por Validar") as AbonoEstado;
                     const selectable = isSelectableEstado(estado);
-                    const checked = selectable && selectedFechas.includes(r.fecha);
+                    const checked =
+                      selectable && selectedFechas.includes(r.fecha);
 
                     const pillCls =
                       estado === "Validado"
@@ -647,7 +716,10 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                         : "bg-blue-100 text-blue-900";
 
                     return (
-                      <tr key={r.fecha} className="hover:bg-gray10 transition-colors">
+                      <tr
+                        key={r.fecha}
+                        className="hover:bg-gray10 transition-colors"
+                      >
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
@@ -664,27 +736,38 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                           />
                         </td>
 
-                        <td className="px-4 py-3 text-gray70">{toDMY(r.fecha)}</td>
+                        <td className="px-4 py-3 text-gray70">
+                          {toDMY(r.fecha)}
+                        </td>
 
-                        {/* ✅ Ya viene recalculado (DIRECTO_ECOMMERCE => 0) */}
-                        <td className="px-4 py-3 text-gray70">{formatPEN(r.cobrado)}</td>
+                        {/* ✅ Ya viene recalculado:
+                            - DIRECTO_ECOMMERCE => 0
+                            - Pedido rechazado (sin método) => 0
+                            - Rechazados solo si abonado */}
+                        <td className="px-4 py-3 text-gray70">
+                          {formatPEN(r.cobrado)}
+                        </td>
 
                         {/* ✅ Servicio total (Ecommerce) = SOLO courier */}
-                        <td className="px-4 py-3 text-gray70">{formatPEN(r.servicioCourier)}</td>
+                        <td className="px-4 py-3 text-gray70">
+                          {formatPEN(r.servicioCourier)}
+                        </td>
 
-                        <td className="px-4 py-3 text-gray70">{formatPEN(r.neto)}</td>
+                        <td className="px-4 py-3 text-gray70">
+                          {formatPEN(r.neto)}
+                        </td>
 
                         <td className="px-4 py-3 text-center">
                           <Badgex className={pillCls}>{estado}</Badgex>
                         </td>
 
                         <td className="px-4 py-3 text-center items-center justify-center">
-                            <TableActionx
-                              variant="view"
-                              title="Ver pedidos del día"
-                              onClick={() => openDia(r.fecha)}
-                              size="sm"
-                            />
+                          <TableActionx
+                            variant="view"
+                            title="Ver pedidos del día"
+                            onClick={() => openDia(r.fecha)}
+                            size="sm"
+                          />
                         </td>
                       </tr>
                     );

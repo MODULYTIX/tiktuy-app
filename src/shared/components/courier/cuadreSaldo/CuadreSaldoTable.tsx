@@ -60,41 +60,38 @@ const isEfectivo = (metodoPago: unknown) => normMetodoPago(metodoPago) === "EFEC
 /** ✅ Etiqueta visual para método de pago (NO afecta lógica) */
 const metodoPagoLabel = (metodoPago: unknown) => {
   const m = normMetodoPago(metodoPago);
-  if (!m) return "-";
-  if (m === "DIRECTO_ECOMMERCE") return "Pago digital a ecommerce";
-  if (m === "BILLETERA") return "Pago digital a courier";
-  return String(metodoPago ?? "-");
+
+  // ✅ si no hay método => Pedido rechazado
+  if (!m) return "Pedido rechazado";
+
+  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
+  if (m === "BILLETERA") return "Pago Digital al Courier";
+  if (m === "EFECTIVO") return "Efectivo";
+
+  // fallback (si llega un nuevo método)
+  return String(metodoPago ?? "Pedido rechazado");
 };
 
-/* ==================== NUEVO: Rechazado => servicios 0 (solo UI) ==================== */
+
+/* ==================== Rechazado = metodoPago vacío (solo UI) ==================== */
 /** Rechazado = metodoPago null/vacío (regla pedida) */
 const isRechazadoByMetodoPago = (metodoPago: unknown) =>
   metodoPago == null || String(metodoPago).trim() === "";
 
-/** Servicio motorizado visual:
- * - si rechazado: 0, salvo que esté editado (servicioRepartidor != null)
- * - si no rechazado: usa servicioEfectivo (tu default) o el editado ya se refleja ahí por onSavedServicio
+/**
+ * ✅ Servicios SIEMPRE se muestran normal (aunque el pedido sea rechazado).
+ * - Motorizado: usa servicioEfectivo (que ya incluye editado por onSavedServicio).
+ * - Courier: usa servicioCourierEfectivo o servicioCourier.
  */
 const servicioMotorizadoVisual = (r: any) => {
-  const rechazado = isRechazadoByMetodoPago(r.metodoPago);
-  if (rechazado) {
-    return r.servicioRepartidor != null ? Number(r.servicioRepartidor) : 0;
-  }
   return Number(r.servicioEfectivo ?? 0);
 };
 
-/** Servicio courier visual:
- * - si rechazado: 0, salvo que esté editado (servicioCourier != null)
- * - si no rechazado: usa servicioCourierEfectivo o servicioCourier o 0
- */
 const servicioCourierVisual = (r: any) => {
-  const rechazado = isRechazadoByMetodoPago(r.metodoPago);
-  if (rechazado) {
-    return r.servicioCourier != null ? Number(r.servicioCourier) : 0;
-  }
   return Number(r.servicioCourierEfectivo ?? r.servicioCourier ?? 0);
 };
 /* ================================================================================ */
+
 
 /* ============== Modal Confirmar Abono ============== */
 type ConfirmAbonoModalProps = {
@@ -243,8 +240,8 @@ const EditServicioModal: React.FC<EditModalProps> = ({
       setMontoCour(
         String(
           (pedido as any).servicioCourier ??
-            (pedido as any).servicioCourierEfectivo ??
-            0
+          (pedido as any).servicioCourierEfectivo ??
+          0
         )
       );
     }
@@ -692,7 +689,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                   <th className="px-4 py-3 text-left">Fec. Entrega</th>
                   <th className="px-4 py-3 text-left">Cliente</th>
                   <th className="px-4 py-3 text-left">Distrito</th>
-                  <th className="px-4 py-3 text-left">Método de pago</th>
+                  <th className="px-4 py-3 text-left">Método de pago / Estado</th>
                   <th className="px-4 py-3 text-left">Monto</th>
                   <th className="px-4 py-3 text-left">Servicio motorizado</th>
                   <th className="px-4 py-3 text-left">Servicio courier</th>
@@ -738,7 +735,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           {metodoPagoLabel(r.metodoPago)}
                         </td>
 
-                        <td className="px-4 py-3 text-gray70">{formatPEN(r.monto)}</td>
+                        <td className="px-4 py-3 text-gray70">
+                          {formatPEN(isRechazadoByMetodoPago(r.metodoPago) ? 0 : Number(r.monto ?? 0))}
+                        </td>
 
                         {/* ✅ Servicio motorizado (rechazado => 0 salvo editado) */}
                         <td className="px-4 py-3">

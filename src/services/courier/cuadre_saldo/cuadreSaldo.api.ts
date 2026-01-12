@@ -75,6 +75,57 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
   }
 }
 
+/* ================== ✅ Normalizers (NO cambian lógica, solo compat de campos) ================== */
+
+/**
+ * Normaliza un item de pedido para soportar:
+ * - observacion_estado (snake_case) -> observacionEstado (camelCase)
+ * - alias opcional motivoRechazo = observacionEstado (si lo quieres pintar en UI)
+ *
+ * Si el backend ya manda camelCase, no rompe.
+ */
+type AnyObj = Record<string, unknown>;
+
+function isObj(v: unknown): v is AnyObj {
+  return v !== null && typeof v === "object";
+}
+
+/**
+ * Normaliza un item para compat:
+ * - observacion_estado -> observacionEstado
+ * - motivoRechazo (alias opcional) = observacionEstado
+ */
+function normalizePedidoItem<T>(it: T): T {
+  if (!isObj(it)) return it;
+
+  // mutamos el objeto pero sin usar "any"
+  const obj = it as AnyObj;
+
+  if (obj["observacionEstado"] == null && obj["observacion_estado"] != null) {
+    obj["observacionEstado"] = obj["observacion_estado"];
+  }
+
+  if (obj["motivoRechazo"] == null && obj["observacionEstado"] != null) {
+    obj["motivoRechazo"] = obj["observacionEstado"];
+  }
+
+  return it;
+}
+
+function normalizeListPedidosResp(data: ListPedidosResp): ListPedidosResp {
+  return {
+    ...data,
+    items: Array.isArray(data.items) ? data.items.map(normalizePedidoItem) : [],
+  };
+}
+
+function normalizeDetalleServiciosResp(data: DetalleServiciosDiaResp): DetalleServiciosDiaResp {
+  return {
+    ...data,
+    items: Array.isArray(data.items) ? data.items.map(normalizePedidoItem) : [],
+  };
+}
+
 /* ================== API Calls ================== */
 
 /** GET /courier/cuadre-saldo/pedidos */
@@ -90,7 +141,8 @@ export async function listPedidos(token: string, params: ListPedidosParams): Pro
     pageSize: params.pageSize ?? 10,
   });
 
-  return request<ListPedidosResp>(url, { headers: authHeaders(token) });
+  const data = await request<ListPedidosResp>(url, { headers: authHeaders(token) });
+  return normalizeListPedidosResp(data);
 }
 
 /** (alias) GET /courier/cuadre-saldo */
@@ -109,7 +161,8 @@ export async function listPedidosAlias(
     pageSize: params.pageSize ?? 10,
   });
 
-  return request<ListPedidosResp>(url, { headers: authHeaders(token) });
+  const data = await request<ListPedidosResp>(url, { headers: authHeaders(token) });
+  return normalizeListPedidosResp(data);
 }
 
 /** PUT /courier/cuadre-saldo/pedidos/:id/servicio  (servicio REPARTIDOR) */
@@ -117,17 +170,19 @@ export async function updateServicio(
   token: string,
   pedidoId: number,
   payload: UpdateServicioPayload
-): Promise<{ id: number; servicio: number | null; motivo?: string | null }> {
+): Promise<{ id: number; servicio: number | null; motivo?: string | null; observacionEstado?: string | null; motivoRechazo?: string | null }> {
   if (!token) throw new Error("Token vacío: no se envió Authorization.");
   if (!Number.isFinite(pedidoId) || pedidoId <= 0) throw new Error("pedidoId es requerido.");
 
   const url = `${BASE_URL}/courier/cuadre-saldo/pedidos/${pedidoId}/servicio`;
 
-  return request(url, {
+  const data = await request<any>(url, {
     method: "PUT",
     headers: authHeaders(token, "json"),
     body: JSON.stringify(payload),
   });
+
+  return normalizePedidoItem(data);
 }
 
 /** PUT /courier/cuadre-saldo/pedidos/:id/servicio-courier  (servicio COURIER) */
@@ -211,5 +266,6 @@ export async function getDetalleServiciosDia(
     motorizadoId: params.motorizadoId,
   });
 
-  return request<DetalleServiciosDiaResp>(url, { headers: authHeaders(token) });
+  const data = await request<DetalleServiciosDiaResp>(url, { headers: authHeaders(token) });
+  return normalizeDetalleServiciosResp(data);
 }

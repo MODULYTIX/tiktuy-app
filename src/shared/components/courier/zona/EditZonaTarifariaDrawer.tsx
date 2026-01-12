@@ -198,7 +198,7 @@ export default function EditZonaTarifariaDrawer({
           variant="modal"
           icon="solar:point-on-map-broken"
           title={titulo}
-          description="Actualiza el distrito, su zona, la tarifa al cliente y el pago al motorizado según la política de tu servicio."
+          description="Actualiza el distrito, su zona, la tarifa del courier y el pago al motorizado según la política de tu servicio."
         />
 
         {err && (
@@ -243,7 +243,7 @@ export default function EditZonaTarifariaDrawer({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <InputxNumber
               name="tarifa_cliente"
-              label="Tarifa Cliente"
+              label="Tarifa de Courier"
               value={form.tarifa_cliente}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleChange("tarifa_cliente", e.target.value)

@@ -79,41 +79,22 @@ const normMetodoPago = (v: unknown) =>
 /** ✅ Etiqueta visual (NO toca lógica) */
 const metodoPagoLabel = (metodoPago: unknown) => {
   const m = normMetodoPago(metodoPago);
-  if (!m) return "-";
-  if (m === "DIRECTO_ECOMMERCE") return "Pago digital a ecommerce";
-  if (m === "BILLETERA") return "Pago digital a courier";
-  return String(metodoPago ?? "-");
+
+  // ✅ si no hay método => Pedido rechazado
+  if (!m) return "Pedido rechazado";
+
+  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
+  if (m === "BILLETERA") return "Pago Digital al Courier";
+  if (m === "EFECTIVO") return "Efectivo";
+
+  return String(metodoPago ?? "Pedido rechazado");
 };
 
-/* ===================== ✅ FIX SERVICIOS (default vs editado + rechazado) ===================== */
-
-const normEstado = (v: unknown) =>
-  String(v ?? "")
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, "_");
+/* ===================== ✅ FIX SERVICIOS (igual que CuadreSaldoTable) ===================== */
 
 const isMetodoPagoNullOEmpty = (p: any) => {
-  // ✅ regla pedida: si no hay método de pago, se asume RECHAZADO
   const raw = p?.metodoPago ?? p?.metodo_pago ?? null;
   return raw === null || String(raw).trim() === "";
-};
-
-const isRechazado = (p: any) => {
-  // 1) ✅ tu nueva condición: metodoPago null => rechazado
-  if (isMetodoPagoNullOEmpty(p)) return true;
-
-  // 2) (compat) si tienes algún campo de estado, también cuenta
-  const raw =
-    p?.estado ??
-    p?.estadoPedido ??
-    p?.estado_pedido ??
-    p?.status ??
-    p?.pedidoEstado ??
-    p?.pedido_estado ??
-    "";
-  const e = normEstado(raw);
-  return e.includes("RECHAZADO");
 };
 
 const numOrNull = (v: any): number | null => {
@@ -127,54 +108,51 @@ const numOr0 = (v: any): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-// editado motorizado: servicioRepartidor (o snake)
+/**
+ * ✅ En detalle: mostrar servicios NORMAL siempre (aunque sea rechazado)
+ * - Motorizado: servicioEfectivo -> servicioSugerido -> 0
+ * - Courier: servicioCourierEfectivo -> servicioCourier -> 0
+ * - "editado" se marca si viene servicioRepartidor/servicioCourier (camel o snake) no-null
+ */
 const getRepEdit = (p: any) =>
   numOrNull(p?.servicioRepartidor ?? p?.servicio_repartidor ?? null);
 
-// default motorizado: servicioEfectivo -> servicioSugerido (o variantes)
-const getRepDefault = (p: any) =>
+const getRepValueNormal = (p: any) =>
   numOr0(
     p?.servicioEfectivo ??
-      p?.servicio_efectivo ??
-      p?.servicioSugerido ??
-      p?.servicio_sugerido ??
-      0
+    p?.servicio_efectivo ??
+    p?.servicioSugerido ??
+    p?.servicio_sugerido ??
+    0
   );
 
-// editado courier: servicioCourier (o snake)
 const getCourEdit = (p: any) =>
   numOrNull(p?.servicioCourier ?? p?.servicio_courier ?? null);
 
-// default courier: servicioCourierEfectivo (o variantes)
-const getCourDefault = (p: any) =>
-  numOr0(p?.servicioCourierEfectivo ?? p?.servicio_courier_efectivo ?? 0);
+const getCourValueNormal = (p: any) =>
+  numOr0(
+    p?.servicioCourierEfectivo ??
+    p?.servicio_courier_efectivo ??
+    p?.servicioCourier ??
+    p?.servicio_courier ??
+    0
+  );
 
-/**
- * Regla final:
- * - Si pedido RECHAZADO (incluye metodoPago null):
- *    - SIEMPRE visualiza 0 por defecto
- *    - y si lo editan, muestra lo editado
- * - Si NO rechazado:
- *    - si editado => editado
- *    - si no => default establecido
- */
 function calcServicioRep(p: any): { value: number; edited: boolean } {
-  const edit = getRepEdit(p);
-  const rejected = isRechazado(p);
-
-  if (rejected) return { value: edit ?? 0, edited: edit != null };
-  if (edit != null) return { value: edit, edited: true };
-  return { value: getRepDefault(p), edited: false };
+  const editedVal = getRepEdit(p);
+  // ✅ si hay editado, muestro editado; si no, muestro el normal (sin forzar 0 por rechazado)
+  if (editedVal != null) return { value: editedVal, edited: true };
+  return { value: getRepValueNormal(p), edited: false };
 }
 
 function calcServicioCour(p: any): { value: number; edited: boolean } {
-  const edit = getCourEdit(p);
-  const rejected = isRechazado(p);
-
-  if (rejected) return { value: edit ?? 0, edited: edit != null };
-  if (edit != null) return { value: edit, edited: true };
-  return { value: getCourDefault(p), edited: false };
+  const editedVal = getCourEdit(p);
+  if (editedVal != null) return { value: editedVal, edited: true };
+  return { value: getCourValueNormal(p), edited: false };
 }
+
+/** ✅ Monto visual: si no hay método de pago => 0 */
+const montoVisual = (p: any) => (isMetodoPagoNullOEmpty(p) ? 0 : numOr0(p?.monto ?? 0));
 
 /* ===================== evidencia helpers ===================== */
 
@@ -310,7 +288,7 @@ export default function DetalleServiciosDiaModal({
   }, [pedido]);
 
   const totals = useMemo(() => {
-    const monto = numOr0((pedido as any)?.monto ?? 0);
+    const monto = montoVisual(pedido);
     const rep = servicios.rep.value;
     const cour = servicios.cour.value;
     const servTotal = rep + cour;
@@ -336,8 +314,8 @@ export default function DetalleServiciosDiaModal({
     totals.neto < 0
       ? "text-red-600"
       : totals.neto === 0
-      ? "text-gray70"
-      : "text-gray90";
+        ? "text-gray70"
+        : "text-gray90";
 
   const handleViewEvidence = (url: string) => {
     const clean = String(url || "").trim();
@@ -441,10 +419,9 @@ export default function DetalleServiciosDiaModal({
                   </div>
 
                   <span className="text-[12px] text-gray60">
-                    {(pedido as any)?.metodoPago
-                      ? `Pago: ${metodoPagoLabel((pedido as any).metodoPago)}`
-                      : "Pago: —"}
+                    {`Pago: ${metodoPagoLabel((pedido as any)?.metodoPago)}`}
                   </span>
+
                 </div>
 
                 <div className="p-4">

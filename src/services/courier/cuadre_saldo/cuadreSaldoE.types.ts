@@ -81,7 +81,16 @@ export type PedidoDiaItem = {
   /** ✅ nuevo: evidencia registrada por el repartidor (pago_evidencia_url) */
   pagoEvidenciaUrl?: string | null;
 
+   // ✅ NUEVO: observación que deja el repartidor (solo la mostrarás si es rechazado)
+  observacionEstado?: string | null;
+
+  // (opcional) si el endpoint también manda el nombre del estado
+  estadoNombre?: string | null;
+
   abonado: boolean;
+
+  // ✅ NUEVO: estado de abono ecommerce por pedido (para bloquear selección)
+  abonoEcomEstado?: AbonoEstado; // "Sin Validar" | "Por Validar" | "Validado"
 };
 
 /* ========= Abono por FECHAS (Ecommerce) ========= */

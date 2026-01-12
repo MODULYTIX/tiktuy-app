@@ -77,8 +77,8 @@ function toHoraPE(isoLike: string | Date | null | undefined) {
 /* ✅ Mapeo visual del método de pago */
 function metodoPagoLabel(m?: string | null) {
   if (!m) return "-";
-  if (m === "DIRECTO_ECOMMERCE") return "Pago digital a ecommerce";
-  if (m === "BILLETERA") return "Pago digital a courier";
+  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
+  if (m === "BILLETERA") return "Pago Digital al Courier";
   return m;
 }
 
