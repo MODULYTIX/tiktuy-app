@@ -263,6 +263,38 @@ export default function TablePedidoCourier({
       );
     }
 
+    // 4) Filtro por estado según vista
+    if (view === "pendientes") {
+      const allowed = [
+        "pendiente",
+        "recepcionará entrega hoy",
+      ];
+
+      arr = arr.filter((x) =>
+        allowed.includes((x.estado_nombre ?? "").toLowerCase())
+      );
+    }
+    if (view === "asignados") {
+      arr = arr.filter((p: any) => {
+        const estado = (p.estado_nombre ?? "").toLowerCase();
+        return (
+          estado === "asignado" ||
+          estado === "no responde / número equivocado"
+        );
+      });
+    }
+
+    if (view === "terminados") {
+      arr = arr.filter((x) => {
+        const estado = (x.estado_nombre ?? "").toLowerCase();
+
+        return (
+          estado !== "no responde / número equivocado"
+        );
+      });
+    }
+
+
     return arr;
   }, [
     itemsBase,
@@ -272,6 +304,25 @@ export default function TablePedidoCourier({
     searchProducto,
     view,
   ]);
+
+  // ✅ Determina si un pedido puede seleccionarse según la vista
+  const puedeSeleccionar = (p: PedidoListItem) => {
+    const estado = (p.estado_nombre ?? "").toLowerCase();
+
+    if (view === "pendientes") {
+      return estado === "recepcionará entrega hoy";
+    }
+
+    if (view === "asignados") {
+      return (
+        estado === "asignado" ||
+        estado === "no responde / número equivocado"
+      );
+    }
+
+    return false;
+  };
+
 
   //  selección de items visibles (para checkbox header)
   const pageIds = itemsFiltrados.map((p) => p.id);
@@ -652,24 +703,24 @@ export default function TablePedidoCourier({
                       type="checkbox"
                       className="cursor-pointer"
                       checked={allSelected}
+                      disabled={loading}
                       onChange={(e) => {
-                        //  selección SOLO en asignados y pendientes (para PDF)
-                        if (view !== "asignados" && view !== "pendientes") return;
+                        const elegibles = itemsFiltrados
+                          .filter((p) => puedeSeleccionar(p))
+                          .map((p) => p.id);
 
                         if (e.target.checked) {
                           setSelectedIds((prev) =>
-                            Array.from(new Set([...prev, ...pageIds]))
+                            Array.from(new Set([...prev, ...elegibles]))
                           );
                         } else {
                           setSelectedIds((prev) =>
-                            prev.filter((id) => !pageIds.includes(id))
+                            prev.filter((id) => !elegibles.includes(id))
                           );
                         }
                       }}
-                      disabled={view !== "asignados" && view !== "pendientes"}
                     />
                   </th>
-
                   <th className="px-4 py-3 text-left">Fec. Entrega</th>
                   <th className="px-4 py-3 text-left">Distrito</th>
                   <th className="px-4 py-3 text-left">Ecommerce</th>
@@ -713,20 +764,16 @@ export default function TablePedidoCourier({
                           type="checkbox"
                           className="cursor-pointer"
                           checked={selectedIds.includes(p.id)}
+                          disabled={!puedeSeleccionar(p)}
                           onChange={(e) => {
-                            if (view !== "asignados" && view !== "pendientes")
-                              return;
-
                             setSelectedIds((prev) =>
                               e.target.checked
                                 ? [...prev, p.id]
                                 : prev.filter((x) => x !== p.id)
                             );
                           }}
-                          disabled={view !== "asignados" && view !== "pendientes"}
                         />
                       </td>
-
                       <td className="h-12 px-4 py-3 text-gray70">
                         {fecha ?? "-"}
                       </td>
