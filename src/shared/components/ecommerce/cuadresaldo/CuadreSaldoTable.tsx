@@ -39,17 +39,8 @@ function getMontoDirectoEcommerce(r: any) {
   );
 }
 
-function cobradoVisual(r: any) {
-  const cobrado = num(r?.cobrado);
-  const directo = getMontoDirectoEcommerce(r);
-  return Math.max(0, cobrado - directo);
-}
 
-function netoVisual(r: any) {
-  return cobradoVisual(r) - num(r?.servicio);
-}
-
-/** ✅ Solo NO se puede seleccionar cuando está "Validado" */
+/**  Solo NO se puede seleccionar cuando está "Validado" */
 function isSelectable(estado: ResumenDia["estado"]) {
   return estado !== "Validado";
 }
@@ -202,7 +193,6 @@ export default function CuadreSaldoTable({
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
 
   /**
-   * ✅ Limpieza automática:
    * si una fecha en `selected` ahora está Validado, la removemos.
    */
   useEffect(() => {
@@ -262,9 +252,6 @@ export default function CuadreSaldoTable({
                       ? "bg-gray-100 text-gray-700 border border-gray-200"
                       : "bg-blue-100 text-blue-900 border border-blue-200";
 
-                const cobradoV = cobradoVisual(r as any);
-                const netoV = netoVisual(r as any);
-
                 return (
                   <tr key={r.fecha} className="border-t">
                     <td className="p-3">
@@ -272,7 +259,7 @@ export default function CuadreSaldoTable({
                         type="checkbox"
                         checked={checked}
                         onChange={() => onToggle(r.fecha)}
-                        disabled={!selectable} // ✅ solo Validado
+                        disabled={!selectable}
                         className="h-4 w-4 accent-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
                         title={
                           selectable
