@@ -1,16 +1,15 @@
 // src/shared/components/ecommerce/movimientos/ValidarMovimientoModal.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@iconify/react";
-import { HiX } from "react-icons/hi";
 
 import { useAuth } from "@/auth/context";
 import { useNotification } from "@/shared/context/notificacionesDeskop/useNotification";
 import { validarMovimiento } from "@/services/ecommerce/almacenamiento/almacenamiento.api";
 import type { MovimientoAlmacen } from "@/services/ecommerce/almacenamiento/almacenamiento.types";
 
+import Tittlex from "@/shared/common/Tittlex";
 import Buttonx from "@/shared/common/Buttonx";
 import { InputxTextarea } from "@/shared/common/Inputx";
-import ImageUploadx from "@/shared/common/ImageUploadx";
 
 type Props = {
   open: boolean;
@@ -18,40 +17,6 @@ type Props = {
   movimiento: MovimientoAlmacen | null;
   onValidated?: (mov: MovimientoAlmacen) => void;
 };
-
-/* ===== helpers UI (solo estilo) ===== */
-const estadoChipNode = (estado?: string) => {
-  const name = (estado || "").toLowerCase();
-
-  if (name.includes("valid")) {
-    return (
-      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100">
-        Validado
-      </span>
-    );
-  }
-  if (name.includes("observ")) {
-    return (
-      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-100">
-        Observado
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-100">
-      Proceso
-    </span>
-  );
-};
-
-const fmtFecha = (iso?: string) =>
-  iso
-    ? new Intl.DateTimeFormat("es-PE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).format(new Date(iso))
-    : "—";
 
 export default function ValidarMovimientoModal({
   open,
@@ -137,7 +102,6 @@ export default function ValidarMovimientoModal({
       );
 
       onValidated?.(actualizado);
-      onClose();
     } catch (err) {
       console.error(err);
       notify("No se pudo validar el movimiento.", "error");
@@ -147,131 +111,113 @@ export default function ValidarMovimientoModal({
   };
 
   const estadoRaw = movimiento.estado?.nombre || "-";
-  const codigo = movimiento.uuid.slice(0, 10).toUpperCase();
+  const headerEstado = estadoRaw.charAt(0).toUpperCase() + estadoRaw.slice(1);
+  const estadoLower = estadoRaw.toLowerCase();
 
-  const fechaGen =
-    (movimiento as any)?.fecha_movimiento ||
-    (movimiento as any)?.fecha_generacion ||
-    (movimiento as any)?.created_at ||
-    (movimiento as any)?.fecha ||
-    "";
+  const estadoChip =
+    estadoLower.includes("valid")
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      : enProceso
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : "bg-rose-50 text-rose-700 border-rose-200";
+
+  const codeShort = movimiento.uuid.slice(0, 12).toUpperCase();
+  const descriptionText = `Código: ${codeShort} • Estado: ${headerEstado || "-"}`;
 
   return (
-    // ✅ IMPORTANTE: este componente ya NO pinta overlay negro.
-    // Se asume que el "contenedor modal/drawer" lo maneja el padre.
     <div
-      className="w-[600px] max-w-[95vw] h-[100dvh] bg-white shadow-2xl border-l border-gray-200 flex flex-col"
+      // ✅ FULL ALTO PANTALLA
+      className="w-[700px] h-[100dvh] max-h-[100dvh] bg-white shadow-xl flex flex-col overflow-hidden"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Header */}
-      <div className="shrink-0 bg-slate-50 border-b border-gray-200">
-        <div className="flex items-start justify-between px-4 pt-4 pb-3">
-          <div className="min-w-0 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center shrink-0">
-              <Icon
-                icon="solar:check-square-linear"
-                width="22"
-                height="22"
-                className="text-primary"
-              />
-            </div>
+      {/* =========================
+          HEADER FIJO (sin scroll)
+         ========================= */}
+      <div className="px-5 pt-5 pb-4 flex flex-col gap-4 border-b border-gray-100">
+        <Tittlex
+          variant="modal"
+          icon="solar:check-square-linear"
+          title="VALIDAR MOVIMIENTO"
+          description={descriptionText}
+        />
 
-            <div className="min-w-0">
-              <h2 className="text-[15px] sm:text-base font-extrabold tracking-tight text-primary uppercase leading-5">
-                Validar movimiento
-              </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700">
+            <Icon icon="mdi:barcode-scan" className="text-base" />
+            <span className="font-semibold">{codeShort}</span>
+          </span>
 
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-700">
-                  <span className="text-slate-500 font-semibold">Código:</span>
-                  <span className="font-bold tabular-nums">{codigo}</span>
-                </span>
-
-                <span className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-[12px] text-slate-700">
-                  <span className="text-slate-500 font-semibold">Estado:</span>
-                  {estadoChipNode(estadoRaw)}
-                </span>
-
-                {loading && (
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white border border-gray-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700">
-                    <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
-                    Procesando…
-                  </span>
-                )}
-
-                {!enProceso && (
-                  <span className="text-[11px] text-slate-500">
-                    Este movimiento ya no está en proceso.
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <button
-            aria-label="Cerrar"
-            onClick={onClose}
-            className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-100 text-slate-700 shrink-0"
-            title="Cerrar"
-            disabled={loading}
+          <span
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs ${estadoChip}`}
           >
-            <HiX className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
+            <span className="h-2 w-2 rounded-full bg-current opacity-70" />
+            <span className="font-semibold">{headerEstado || "-"}</span>
+          </span>
 
-      {/* Body (scroll) */}
-      <div className="flex-1 min-h-0 overflow-y-auto bg-white px-4 pb-4">
-        {/* Descripción */}
-        <div className="mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm p-4">
-          <div className="flex items-start justify-between gap-3">
+          {!enProceso && (
+            <span className="text-xs text-gray-500">
+              Este movimiento ya no está en proceso.
+            </span>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="text-sm font-bold text-slate-900">Descripción</div>
-              <p className="text-[13px] text-slate-600 mt-1 leading-relaxed break-words">
+              <p className="text-sm font-semibold text-gray-900">Descripción</p>
+              <p className="mt-1 text-sm text-gray-700 break-words">
                 {movimiento.descripcion || "—"}
               </p>
             </div>
 
-            <div className="hidden sm:flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 shrink-0">
-              <Icon icon="mdi:information-outline" className="text-slate-700" />
-              <p className="text-xs text-slate-700">
+            <div className="hidden sm:flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
+              <Icon icon="mdi:information-outline" className="text-gray-700" />
+              <p className="text-xs text-gray-700">
                 Ajusta cantidades si hay diferencias y deja una observación.
               </p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Tabla productos */}
-        <div className="mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-slate-900">Productos</div>
-              <div className="text-xs text-slate-500">
-                Ajusta cantidades (máximo según registro)
-              </div>
-            </div>
-
-            <span className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+      {/* ==================================================
+          ✅ BODY SCROLLEABLE si el contenido se desborda
+         ================================================== */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 flex flex-col gap-5">
+        {/* TABLA: alto fijo + scroll interno */}
+        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden flex-none">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <p className="text-sm font-semibold text-gray-900">
+              Productos del movimiento
+            </p>
+            <p className="text-xs text-gray-500">
               {movimiento.productos.length} ítem(s)
-            </span>
+            </p>
           </div>
 
-          <div className="max-h-[42vh] overflow-y-auto overflow-x-hidden">
-            <table className="w-full text-sm table-fixed">
+          {/* ✅ ALTO FIJO (más grande) + SCROLL INTERNO */}
+          <div className="relative h-[400px] overflow-y-auto overscroll-contain">
+            <table className="w-full table-fixed text-sm">
               <colgroup>
-                <col className="w-[96px]" />
-                <col />
-                <col />
-                <col className="w-[148px]" />
+                <col className="w-[16%]" />
+                <col className="w-[34%]" />
+                <col className="w-[26%]" />
+                <col className="w-[24%]" />
               </colgroup>
 
-              <thead className="bg-slate-50 text-slate-600">
-                <tr className="text-left">
-                  <th className="px-4 py-3 text-[11px] font-semibold">CÓDIGO</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold">PRODUCTO</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold">DESCRIPCIÓN</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold text-center">
-                    CANTIDAD
+              <thead className="sticky top-0 z-10 bg-gray-50 text-gray-700 border-b border-gray-200">
+                <tr className="h-11">
+                  <th className="px-4 text-left font-semibold text-xs uppercase tracking-wide">
+                    Código
+                  </th>
+                  <th className="px-4 text-left font-semibold text-xs uppercase tracking-wide">
+                    Producto
+                  </th>
+                  <th className="px-4 text-left font-semibold text-xs uppercase tracking-wide">
+                    Descripción
+                  </th>
+                  <th className="px-4 text-center font-semibold text-xs uppercase tracking-wide">
+                    Cantidad
                   </th>
                 </tr>
               </thead>
@@ -282,36 +228,34 @@ export default function ValidarMovimientoModal({
                   const val = cantidades[det.producto.id] ?? max;
 
                   return (
-                    <tr key={det.id} className="hover:bg-slate-50/60">
-                      <td className="px-4 py-3 align-top">
-                        <div
-                          className="text-[12px] font-semibold text-slate-800 truncate"
-                          title={det.producto?.codigo_identificacion || "—"}
-                        >
-                          {det.producto?.codigo_identificacion ?? "—"}
-                        </div>
+                    <tr
+                      key={det.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-4 whitespace-nowrap text-gray-900">
+                        {det.producto?.codigo_identificacion ?? "—"}
                       </td>
 
-                      <td className="px-4 py-3 align-top min-w-0">
+                      <td className="px-4 py-4 text-gray-900">
                         <div
-                          className="font-semibold text-slate-900 truncate"
-                          title={det.producto?.nombre_producto || "—"}
+                          className="truncate"
+                          title={det.producto?.nombre_producto || ""}
                         >
                           {det.producto?.nombre_producto || "—"}
                         </div>
                       </td>
 
-                      <td className="px-4 py-3 align-top min-w-0">
+                      <td className="px-4 py-4 text-gray-700">
                         <div
-                          className="text-[12px] text-slate-600 line-clamp-2"
-                          title={(det.producto as any)?.descripcion || "—"}
+                          className="truncate"
+                          title={(det.producto as any)?.descripcion || ""}
                         >
                           {(det.producto as any)?.descripcion || "—"}
                         </div>
                       </td>
 
-                      <td className="px-4 py-3 align-top">
-                        <div className="flex justify-end items-center gap-2 whitespace-nowrap">
+                      <td className="px-4 py-4">
+                        <div className="flex justify-center items-center gap-2">
                           <input
                             type="number"
                             inputMode="numeric"
@@ -326,12 +270,15 @@ export default function ValidarMovimientoModal({
                                 max
                               )
                             }
-                            disabled={!enProceso || loading}
-                            className="w-[74px] h-9 border border-gray-200 rounded-xl px-2 text-right text-[13px] font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/40 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            disabled={!enProceso}
+                            className={[
+                              "w-[60px] h-9 rounded-lg border px-1 text-center text-sm",
+                              "bg-white text-gray-900 shadow-sm",
+                              "focus:outline-none focus:ring-2 focus:ring-[#1b1b77]/30 focus:border-[#1b1b77]/40",
+                              "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
+                            ].join(" ")}
                           />
-                          <span className="text-[11px] text-slate-500 tabular-nums">
-                            / {max}
-                          </span>
+                          <span className="text-sm text-gray-500">/ {max}</span>
                         </div>
                       </td>
                     </tr>
@@ -342,7 +289,7 @@ export default function ValidarMovimientoModal({
                   <tr>
                     <td
                       colSpan={4}
-                      className="px-4 py-8 text-center text-slate-500 italic"
+                      className="px-4 py-8 text-center text-gray-500 italic"
                     >
                       No hay productos para validar.
                     </td>
@@ -354,53 +301,66 @@ export default function ValidarMovimientoModal({
         </div>
 
         {/* Observaciones */}
-        <div className="mt-4">
-          <InputxTextarea
-            label="Observaciones"
-            name="observaciones"
-            value={observaciones}
-            onChange={(e) => setObservaciones(e.target.value)}
-            placeholder="Ejem. Algunos productos vinieron con pequeños golpes."
-            disabled={!enProceso || loading}
-            minRows={3}
-            maxRows={6}
-            autoResize
-          />
-        </div>
+        <InputxTextarea
+          label="Observaciones"
+          name="observaciones"
+          value={observaciones}
+          onChange={(e) => setObservaciones(e.target.value)}
+          placeholder="Ejem. Algunos productos vinieron con pequeños golpes."
+          autoResize
+          minRows={3}
+          maxRows={6}
+          disabled={!enProceso}
+        />
 
         {/* Evidencia */}
-        <div className="mt-4">
-          <ImageUploadx
-            label="Seleccione un archivo, arrástrelo o suéltelo."
-            value={archivo}
-            onChange={setArchivo}
-            maxSizeMB={5}
-            accept="image/*,.pdf"
-            disabled={!enProceso || loading}
-          />
-        </div>
+        <div className="flex-none">
+          <p className="text-sm font-medium text-gray-800 mb-2">
+            Adjuntar evidencia
+          </p>
 
-        {/* Footer */}
-        <div className="mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm px-4 py-3 flex items-center gap-3">
+          <div className="border border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-between gap-3">
+            <div className="text-sm text-gray-600 min-w-0">
+              {archivo ? (
+                <span className="font-medium break-words">{archivo.name}</span>
+              ) : (
+                <>Seleccione un archivo (JPG, PNG o PDF)</>
+              )}
+            </div>
+
+            <label className="shrink-0 inline-flex items-center gap-2 px-3 py-2 border rounded-md text-sm cursor-pointer hover:bg-gray-50">
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                className="hidden"
+                onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+                disabled={!enProceso}
+              />
+              <span>Seleccionar archivo</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer fijo */}
+      <div className="border-t border-gray-200 bg-white px-5 py-4">
+        <div className="flex items-center justify-start gap-4">
           <Buttonx
-            label={loading ? "Validando…" : "Validar"}
-            variant="secondary"
+            variant="quartery"
             onClick={handleValidar}
             disabled={!puedeValidar || loading}
-            icon={loading ? "mdi:reload" : undefined}
-            className={loading ? "[&>span>svg]:animate-spin" : ""}
+            label={loading ? "Validando..." : "Validar"}
+            icon={loading ? "line-md:loading-twotone-loop" : undefined}
+            className={`px-4 text-sm ${loading ? "[&_svg]:animate-spin" : ""}`}
           />
 
           <Buttonx
-            label="Cancelar"
             variant="outlinedw"
             onClick={onClose}
+            label="Cancelar"
+            className="px-4 text-sm border"
             disabled={loading}
           />
-
-          <div className="ml-auto text-[11px] text-slate-500">
-            {fechaGen ? <>Fec. generación: {fmtFecha(fechaGen)}</> : null}
-          </div>
         </div>
       </div>
     </div>

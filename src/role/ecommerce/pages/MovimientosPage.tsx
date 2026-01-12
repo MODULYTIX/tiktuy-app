@@ -182,8 +182,6 @@ export default function RegistroMovimientoPage() {
               onSelectProducts={handleSelectProducts}
               onViewProduct={handleViewProduct}
             />
-
-
           </div>
 
           {/* Modal CREAR */}
@@ -193,7 +191,6 @@ export default function RegistroMovimientoPage() {
               onClose={closeCrear}
               productos={selectedProducts}
             />
-
           </ModalSlideRight>
 
           {/* Modal VER */}
