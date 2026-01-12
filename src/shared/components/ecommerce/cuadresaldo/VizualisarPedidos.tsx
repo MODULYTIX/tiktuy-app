@@ -302,7 +302,7 @@ export default function VizualisarPedidos({
                       Cliente
                     </th>
                     <th className="px-4 py-3 border-b border-gray-200">
-                      Método de pago
+                      Método de pago / Estado
                     </th>
                     <th className="px-4 py-3 border-b border-gray-200">
                       Monto

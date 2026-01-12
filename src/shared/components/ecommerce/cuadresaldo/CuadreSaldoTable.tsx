@@ -30,12 +30,12 @@ const num = (v: any) => {
 function getMontoDirectoEcommerce(r: any) {
   return num(
     r?.montoDirectoEcommerce ??
-      r?.monto_directo_ecommerce ??
-      r?.directoEcommerceMonto ??
-      r?.directo_ecommerce_monto ??
-      r?.cobradoDirectoEcommerce ??
-      r?.cobrado_directo_ecommerce ??
-      0
+    r?.monto_directo_ecommerce ??
+    r?.directoEcommerceMonto ??
+    r?.directo_ecommerce_monto ??
+    r?.cobradoDirectoEcommerce ??
+    r?.cobrado_directo_ecommerce ??
+    0
   );
 }
 
@@ -53,6 +53,29 @@ function netoVisual(r: any) {
 function isSelectable(estado: ResumenDia["estado"]) {
   return estado !== "Validado";
 }
+/* =========================
+ * Nuevo helper: monto filtrado por método de pago
+ * ========================= */
+function getMontoFiltrado(r: any) {
+  // r.pedidosDetalle?: PedidoDiaItem[]
+  if (!Array.isArray(r.pedidosDetalle)) return num(r.cobrado);
+
+  const validPaymentMethods = ["Efectivo", "Digital Courier", "Digital Ecommerce"];
+  return r.pedidosDetalle
+    .filter((p: any) => validPaymentMethods.includes(p.metodoPago))
+    .reduce((acc: number, p: any) => acc + num(p.monto), 0);
+}
+
+/* =========================
+ * Nuevo helper: neto correcto
+ * ========================= */
+function getNeto(r: any) {
+  const monto = getMontoFiltrado(r);
+  const servicio = num(r.servicio); // servicio total = courier + repartidor
+  return monto - servicio;
+}
+
+
 
 /* ============================
  * Mensajes sutiles (solo visual)
@@ -236,8 +259,8 @@ export default function CuadreSaldoTable({
                   r.estado === "Validado"
                     ? "bg-gray-900 text-white"
                     : r.estado === "Sin Validar"
-                    ? "bg-gray-100 text-gray-700 border border-gray-200"
-                    : "bg-blue-100 text-blue-900 border border-blue-200";
+                      ? "bg-gray-100 text-gray-700 border border-gray-200"
+                      : "bg-blue-100 text-blue-900 border border-blue-200";
 
                 const cobradoV = cobradoVisual(r as any);
                 const netoV = netoVisual(r as any);
@@ -265,9 +288,10 @@ export default function CuadreSaldoTable({
                       )}
                     </td>
 
-                    <td className="p-3">{money(cobradoV)}</td>
+                    <td className="p-3">{money(getMontoFiltrado(r))}</td>
                     <td className="p-3">{money(num((r as any).servicio))}</td>
-                    <td className="p-3">{money(netoV)}</td>
+                    <td className="p-3">{money(getNeto(r))}</td>
+
 
                     <td className="p-3">
                       <span className={`px-3 py-1 text-xs rounded-full ${pill}`}>

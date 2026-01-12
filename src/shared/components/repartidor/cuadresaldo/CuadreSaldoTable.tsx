@@ -74,12 +74,68 @@ function toHoraPE(isoLike: string | Date | null | undefined) {
   });
 }
 
+const normMetodoPago = (v: unknown) =>
+  String(v ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+
 /* ✅ Mapeo visual del método de pago */
-function metodoPagoLabel(m?: string | null) {
-  if (!m) return "-";
+function metodoPagoLabel(metodoPago: unknown) {
+  const m = normMetodoPago(metodoPago);
+
+  // ❌ Sin método → pedido rechazado
+  if (!m) return "Pedido rechazado";
+
   if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
   if (m === "BILLETERA") return "Pago Digital al Courier";
-  return m;
+  if (m === "EFECTIVO") return "Efectivo";
+
+  return String(metodoPago ?? "Pedido rechazado");
+}
+
+function isRejectedPedido(p: any): boolean {
+  const estado = String(
+    p?.estadoNombre ??
+    p?.estado_nombre ??
+    ""
+  ).toLowerCase().trim();
+
+  const metodo = normMetodoPago(p?.metodoPago);
+
+  // Estados que equivalen a rechazo
+  const estadosRechazados = [
+    "pedido rechazado",
+    "rechazado",
+    "no hizo el pedido",
+  ];
+
+  // 1️⃣ Rechazado por estado
+  if (estadosRechazados.includes(estado)) return true;
+
+  // 2️⃣ Sin método de pago → rechazo
+  if (!metodo) return true;
+
+  return false;
+}
+
+
+function montoVisualPedido(p: any): number {
+  if (isRejectedPedido(p)) return 0;
+
+  const metodo = normMetodoPago(p?.metodoPago);
+  if (metodo === "DIRECTO_ECOMMERCE") return 0;
+
+  return Number(p?.monto ?? 0);
+}
+
+function montoRecaudadoEfectivo(p: any): number {
+  if (isRejectedPedido(p)) return 0;
+
+  const metodo = normMetodoPago(p?.metodoPago);
+  if (metodo !== "EFECTIVO") return 0;
+
+  return Number(p?.monto ?? 0);
 }
 
 const EstadoPill: React.FC<{ estado: Estado }> = ({ estado }) => {
@@ -487,6 +543,16 @@ const CuadreSaldoTable: React.FC<Props> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [triggerValidate]);
 
+  const totalRecaudadoEfectivo = useMemo(() => {
+    if (!detail?.pedidos) return 0;
+
+    return detail.pedidos.reduce(
+      (acc: number, p: any) => acc + montoRecaudadoEfectivo(p),
+      0
+    );
+  }, [detail]);
+
+
   const pagerItems = useMemo(() => {
     const maxButtons = 5;
     const pages: (number | string)[] = [];
@@ -585,6 +651,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 const ymd = normalizeToYMD(row.fecha);
                 const isValidated = !!row.validado;
                 const estado: Estado = isValidated ? "Validado" : "Por Validar";
+
 
                 return (
                   <tr
@@ -735,11 +802,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
         )}
 
         {detail && (
+
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Total Recaudado: </span>
-                <strong>{formatPEN(detail.totalRecaudado)}</strong>
+                <strong>{formatPEN(totalRecaudadoEfectivo)}</strong>
               </div>
               <div>
                 <span className="text-gray-500">Total Servicio: </span>
@@ -755,7 +823,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                       <th className="px-4 py-3 text-left">Hora</th>
                       <th className="px-4 py-3 text-left">Código</th>
                       <th className="px-4 py-3 text-left">Cliente</th>
-                      <th className="px-4 py-3 text-left">Método</th>
+                      <th className="px-4 py-3 text-left">Método de Pago / Estado</th>
                       <th className="px-4 py-3 text-left">Distrito</th>
                       <th className="px-4 py-3 text-right">Monto</th>
                       <th className="px-4 py-3 text-right">Servicio</th>
@@ -787,8 +855,9 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           {p.distrito}
                         </td>
                         <td className="h-12 px-4 py-3 text-right text-gray70">
-                          {formatPEN(p.monto ?? 0)}
+                          {formatPEN(montoVisualPedido(p))}
                         </td>
+
                         <td className="h-12 px-4 py-3 text-right text-gray70">
                           {p.servicioCourier != null
                             ? formatPEN(p.servicioCourier)
