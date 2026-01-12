@@ -9,8 +9,19 @@ type Props = {
   loading?: boolean;
   selected: string[]; // YYYY-MM-DD[]
   onToggle(date: string): void; // check/uncheck una fecha
-  onView(date: string, estado: ResumenDia["estado"]): void; // click en ojito (con estado)
+
+  // ✅ actualizamos para recibir los montos del modal
+  onView(
+    date: string,
+    estado: ResumenDia["estado"],
+    montos?: {
+      totalCobrado: number;
+      totalDirectoEcommerce?: number;
+      totalServicio: number;
+    }
+  ): void;
 };
+
 
 const money = (n: number) =>
   new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(
@@ -28,6 +39,7 @@ const num = (v: any) => {
 };
 
 
+/** ✅ Solo NO se puede seleccionar cuando está "Validado" */
 /**  Solo NO se puede seleccionar cuando está "Validado" */
 function isSelectable(estado: ResumenDia["estado"]) {
   return estado !== "Validado";
@@ -53,8 +65,6 @@ function getNeto(r: any) {
   const servicio = num(r.servicio); // servicio total = courier + repartidor
   return monto - servicio;
 }
-
-
 
 /* ============================
  * Mensajes sutiles (solo visual)
@@ -273,15 +283,20 @@ export default function CuadreSaldoTable({
                         {r.estado}
                       </span>
                     </td>
-
                     <td className="p-3 text-right">
                       <TableActionx
                         variant="view"
                         title="Ver pedidos del día"
-                        onClick={() => onView(r.fecha, r.estado)}
+                        onClick={() =>
+                          onView(r.fecha, r.estado, {
+                            totalCobrado: getMontoFiltrado(r), // suma de los métodos filtrados
+                            totalServicio: num(r.servicio),
+                          })
+                        }
                         size="sm"
                       />
                     </td>
+
                   </tr>
                 );
               })}

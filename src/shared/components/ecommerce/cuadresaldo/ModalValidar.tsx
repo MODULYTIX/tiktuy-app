@@ -8,13 +8,7 @@ type Props = {
   totalCobrado: number;
   totalServicio: number;
 
-  /**
-   * ✅ SOLO VISUAL:
-   * Monto acumulado del día (o rango) que fue pagado como DIRECTO_ECOMMERCE
-   * (esto es lo que se debe “ver como 0” en cobrado).
-   *
-   * Si no lo envías, el modal se comporta igual que antes.
-   */
+  // Monto que fue pagado directo a ecommerce (digital)
   totalDirectoEcommerce?: number;
 
   courierNombre?: string;
@@ -49,22 +43,23 @@ export default function ValidarAbonoModal({
   const [agree, setAgree] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // ✅ Cobrado visible: si es DIRECTO_ECOMMERCE, ese monto “se ve como 0”
+  // Cobrado visible = totalCobrado - totalDirectoEcommerce
   const cobradoVisible = useMemo(
     () => clamp0(Number(totalCobrado) - Number(totalDirectoEcommerce)),
     [totalCobrado, totalDirectoEcommerce]
   );
 
-  // ✅ Neto visible = cobrado visible - servicio (SERVICIOS NO SE TOCAN)
+  // Neto visible = todos los pagos (incluye directo) - servicio
   const netoVisible = useMemo(
-    () => Number(cobradoVisible) - Number(totalServicio),
-    [cobradoVisible, totalServicio]
+    () => clamp0(Number(totalCobrado) - Number(totalServicio)),
+    [totalCobrado, totalServicio]
   );
+
 
   if (!open) return null;
 
   const handleClose = () => {
-    if (saving) return; // UX: evita cierre accidental durante validación
+    if (saving) return;
     setAgree(false);
     onClose();
   };
@@ -124,31 +119,27 @@ export default function ValidarAbonoModal({
           </p>
         </div>
 
-        {/* Resumen (más escaneable y sutil) */}
+        {/* Resumen */}
         <div className="px-6 mt-4">
           <div className="rounded-xl border border-gray-200 bg-white">
-            {/* mini header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <div className="text-sm font-semibold text-gray90">
                 Resumen del ingreso
               </div>
-
               <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-900 border border-blue-100">
                 Por validar
               </span>
             </div>
 
-            {/* contenido */}
             <div className="px-4 py-4">
-              {/* Neto protagonista */}
               <div className="text-[12px] text-gray60">Neto a registrar</div>
               <div className="mt-0.5 text-2xl font-bold text-gray90 tabular-nums">
                 {money(netoVisible)}
               </div>
 
-              {/* desglose */}
+              {/* Desglose */}
               <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-                <div className="text-gray60">Cobrado (sin directo)</div>
+                <div className="text-gray60">Cobrado total</div>
                 <div className="text-right font-medium text-gray80 tabular-nums">
                   {money(cobradoVisible)}
                 </div>
@@ -168,7 +159,7 @@ export default function ValidarAbonoModal({
                 </div>
               </div>
 
-              {/* meta info */}
+              {/* Info extra */}
               <div className="mt-4 pt-3 border-t border-gray-100">
                 <div className="grid grid-cols-2 gap-2 text-xs text-gray60">
                   <div className="truncate">
@@ -194,7 +185,7 @@ export default function ValidarAbonoModal({
           </div>
         </div>
 
-        {/* Confirmación (área clickeable grande + helper) */}
+        {/* Confirmación */}
         <div className="px-6 mt-4">
           <label className="flex gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 cursor-pointer select-none">
             <input
