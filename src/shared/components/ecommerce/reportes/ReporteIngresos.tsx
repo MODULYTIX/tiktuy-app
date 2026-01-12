@@ -86,41 +86,57 @@ export default function ReporteIngresos() {
   }, [data]);
 
   return (
-    <div className="mt-6 flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       {/* ================= FILTROS ================= */}
-      <Cardx className="flex flex-wrap gap-4 items-center">
-        <div className="flex gap-2">
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-4">
+        {/* Selector de Vista (Diario/Mensual/Anual) */}
+        <div className="flex bg-slate-50 p-1 rounded-lg">
           {(["diario", "mensual", "anual"] as VistaReporte[]).map((v) => (
-            <Buttonx
+            <button
               key={v}
-              label={v.charAt(0).toUpperCase() + v.slice(1)}
-              variant={vista === v ? "secondary" : "tertiary"}
               onClick={() => setVista(v)}
-            />
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${vista === v
+                ? "bg-white text-gray-800 shadow-sm border border-gray-100"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              {v.charAt(0).toUpperCase() + v.slice(1)}
+            </button>
           ))}
         </div>
 
+        {/* Fechas (Solo diario) */}
         {vista === "diario" && (
-          <div className="flex gap-3 items-end">
-            <SelectxDate
-              label="Fecha Inicio"
-              value={desde}
-              onChange={(e) => setDesde(e.target.value)}
-            />
-            <SelectxDate
-              label="Fecha Fin"
-              value={hasta}
-              onChange={(e) => setHasta(e.target.value)}
-            />
-            <Buttonx
-              label="Filtrar"
-              icon="mdi:filter"
-              variant="secondary"
-              onClick={fetchData}
-            />
-          </div>
+          <>
+            <div className="w-full md:w-auto min-w-[150px]">
+              <SelectxDate
+                label="Desde"
+                value={desde}
+                onChange={(e) => setDesde(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="w-full md:w-auto min-w-[150px]">
+              <SelectxDate
+                label="Hasta"
+                value={hasta}
+                onChange={(e) => setHasta(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            <div className="pb-0.5">
+              <Buttonx
+                label="Filtrar"
+                icon="mdi:filter-outline"
+                variant="outlined"
+                onClick={fetchData}
+                className="border-slate-200 text-slate-600 hover:bg-slate-50"
+              />
+            </div>
+          </>
         )}
-      </Cardx>
+      </div>
 
       {/* ================= KPIs ================= */}
       {data && (
