@@ -21,6 +21,7 @@ export interface PreviewProductoDTO {
   cantidad: number;             // stock actual (>= 0)
   stock_minimo: number;         // >= 0
   peso: number;                 // >= 0
+  sugerencias?: string[];       // Nombres sugeridos si hay coincidencia parcial
 }
 
 /** Respuesta del endpoint /import/excel/v1/productos/preview */

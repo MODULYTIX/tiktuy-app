@@ -17,6 +17,7 @@ interface Props {
     selectedIds: string[];
   }) => void;
   onViewProduct?: (producto: Producto) => void;
+  refreshTrigger?: number;
 }
 
 const PAGE_SIZE = 6;
@@ -63,6 +64,7 @@ export default function MovimientoRegistroTable({
   filters,
   onSelectProducts,
   onViewProduct,
+  refreshTrigger = 0,
 }: Props) {
   const { token } = useAuth();
 
@@ -94,7 +96,7 @@ export default function MovimientoRegistroTable({
   useEffect(() => {
     setPage(1);
     cargarProductos(1);
-  }, [filters]);
+  }, [filters, refreshTrigger]);
 
   useEffect(() => {
     cargarProductos(page);

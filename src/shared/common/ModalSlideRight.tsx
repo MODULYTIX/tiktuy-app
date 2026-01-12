@@ -94,7 +94,7 @@ export default function ModalSlideRight({
           "transform-gpu transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
           show ? "translate-x-0" : "translate-x-full",
           "flex flex-col",
-          panelClassName, // ✅ si quieres pasar clases extra
+          panelClassName,
         ].join(" ")}
         onClick={(e) => e.stopPropagation()}
       >

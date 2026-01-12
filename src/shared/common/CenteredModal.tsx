@@ -8,16 +8,12 @@ interface CenteredModalProps {
   onClose: () => void;
   /** Ej.: "max-w-7xl", "max-w-[1200px]" */
   widthClass?: string;
-  /** Oculta el botón X si no quieres cierre manual */
   hideCloseButton?: boolean;
 
-  /** ✅ Nuevo: oculta todo el header (título + línea + X del componente) */
   hideHeader?: boolean;
 
-  /** ✅ Nuevo: para controlar padding/scroll desde el modal que lo usa */
   bodyClassName?: string;
 
-  /** ✅ Nuevo: para ajustar el panel */
   panelClassName?: string;
 }
 

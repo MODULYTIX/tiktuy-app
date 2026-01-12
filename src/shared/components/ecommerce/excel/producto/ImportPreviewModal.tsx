@@ -10,16 +10,72 @@ import { importProductosDesdePreview } from "@/services/ecommerce/importExcelPro
 import { Icon } from "@iconify/react/dist/iconify.js";
 import Buttonx from "@/shared/common/Buttonx";
 
-type Props = {
-  open: boolean;
-  onClose: () => void;
-  token: string;
-  data: PreviewProductosResponseDTO;
-  onImported: () => void;
-  preloadedAlmacenOptions?: Option[];
-  preloadedCategoriaOptions?: Option[];
-};
+// -------------- UTILS: Fuzzy Match --------------
+function levenshtein(a: string, b: string): number {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
 
+function getSuggestion(input: string, candidates: string[]): string | null {
+  const normalize = (s: string) => s.trim().toLowerCase();
+  const target = normalize(input);
+  if (!target) return null;
+
+  // 1. Exact match (ignore)
+  if (candidates.some(c => normalize(c) === target)) return null;
+
+  let bestMatch: string | null = null;
+  let minDistance = Infinity;
+
+  for (const candidate of candidates) {
+    const cNorm = normalize(candidate);
+
+    // 2. Contains (strong hint)
+    if (cNorm.includes(target) || target.includes(cNorm)) {
+      // Prefer the one that is closer in length
+      const dist = Math.abs(cNorm.length - target.length);
+      if (dist < minDistance) {
+        minDistance = dist;
+        bestMatch = candidate;
+      }
+      continue;
+    }
+
+    // 3. Levenshtein for typos
+    // Only verify if length is somewhat close
+    if (Math.abs(cNorm.length - target.length) > 5) continue;
+
+    const dist = levenshtein(target, cNorm);
+    // Threshold: allowing ~3 edits max for reasonable words
+    if (dist <= 3 && dist < minDistance) {
+      minDistance = dist;
+      bestMatch = candidate;
+    }
+  }
+
+  return bestMatch;
+}
+// ------------------------------------------------
 // Normaliza un valor a T[]
 function toArray<T>(val: unknown): T[] {
   if (Array.isArray(val)) return val as T[];
@@ -30,6 +86,18 @@ function toArray<T>(val: unknown): T[] {
   }
   return [];
 }
+// ------------------------------------------------
+
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  token: string;
+  data: PreviewProductosResponseDTO;
+  onImported: () => void;
+  preloadedAlmacenOptions?: Option[];
+  preloadedCategoriaOptions?: Option[];
+  existingProductNames?: string[];
+};
 
 export default function ImportProductosPreviewModal({
   open,
@@ -38,6 +106,7 @@ export default function ImportProductosPreviewModal({
   data,
   onImported,
   preloadedCategoriaOptions = [],
+  existingProductNames = [],
 }: Props) {
   // ----------------- STATE -----------------
   const initialPreview: PreviewProductoDTO[] = toArray<PreviewProductoDTO>(
@@ -57,6 +126,21 @@ export default function ImportProductosPreviewModal({
       toArray<Option>(preloadedCategoriaOptions as unknown).map((o) => o.label),
     [preloadedCategoriaOptions]
   );
+
+  // ----------------- SUGGESTIONS -----------------
+  const suggestionsMap = useMemo(() => {
+    const map: Record<number, string | null> = {};
+    if (!existingProductNames.length) return map;
+
+    groups.forEach((g, idx) => {
+      map[idx] = getSuggestion(g.nombre_producto, existingProductNames);
+    });
+    return map;
+  }, [groups, existingProductNames]);
+
+  const applySuggestion = (idx: number, suggestion: string) => {
+    patchGroup(idx, { nombre_producto: suggestion, sugerencias: [] });
+  };
 
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const allSelected = groups.length > 0 && groups.every((_, i) => selected[i]);
@@ -240,11 +324,11 @@ export default function ImportProductosPreviewModal({
   return (
     <CenteredModal
       title=""
-  onClose={onClose}
-  widthClass="max-w-[1360px] w-[95vw]"
-  hideCloseButton
-  hideHeader
-  bodyClassName="p-4 sm:p-5 md:p-6 bg-white max-h-[80vh] overflow-auto"
+      onClose={onClose}
+      widthClass="max-w-[1360px] w-[95vw]"
+      hideCloseButton
+      hideHeader
+      bodyClassName="p-4 sm:p-5 md:p-6 bg-white max-h-[80vh] overflow-auto"
     >
       {/* ✅ Esto “tapa” el header default del CenteredModal (X solita + línea) */}
       <div className="relative -mt-14 sm:-mt-16">
@@ -523,6 +607,15 @@ export default function ImportProductosPreviewModal({
                               inv.nombre_producto ? "bg-rose-50" : "",
                             ].join(" ")}
                           />
+                          {suggestionsMap[gi] && (
+                            <div
+                              className="mt-1 flex items-center gap-1 text-[11px] text-amber-600 bg-amber-50 px-2 py-1 rounded cursor-pointer hover:bg-amber-100 transition-colors border border-amber-200"
+                              onClick={() => applySuggestion(gi, suggestionsMap[gi]!)}
+                              title="Click para usar este nombre"
+                            >
+                              <span>Productos parecidos: <strong>{suggestionsMap[gi]}</strong></span>
+                            </div>
+                          )}
                         </td>
 
                         {/* Descripción */}
@@ -571,7 +664,7 @@ export default function ImportProductosPreviewModal({
                               baseInput,
                               "text-right",
                               !Number.isFinite(toNumber(g.precio)) ||
-                              toNumber(g.precio) < 0
+                                toNumber(g.precio) < 0
                                 ? "bg-rose-50"
                                 : "",
                             ].join(" ")}
@@ -595,7 +688,7 @@ export default function ImportProductosPreviewModal({
                               baseInput,
                               "text-right",
                               !Number.isInteger(toInt(g.cantidad)) ||
-                              toInt(g.cantidad) < 0
+                                toInt(g.cantidad) < 0
                                 ? "bg-rose-50"
                                 : "",
                             ].join(" ")}
@@ -619,7 +712,7 @@ export default function ImportProductosPreviewModal({
                               baseInput,
                               "text-right",
                               !Number.isInteger(toInt(g.stock_minimo)) ||
-                              toInt(g.stock_minimo) < 0
+                                toInt(g.stock_minimo) < 0
                                 ? "bg-rose-50"
                                 : "",
                             ].join(" ")}
@@ -645,7 +738,7 @@ export default function ImportProductosPreviewModal({
                               baseInput,
                               "text-right",
                               !Number.isFinite(parsePeso(g.peso)) ||
-                              parsePeso(g.peso) < 0
+                                parsePeso(g.peso) < 0
                                 ? "bg-rose-50"
                                 : "",
                             ].join(" ")}
