@@ -38,19 +38,9 @@ const num = (v: any) => {
   return Number.isFinite(x) ? x : 0;
 };
 
-function getMontoDirectoEcommerce(r: any) {
-  return num(
-    r?.montoDirectoEcommerce ??
-    r?.monto_directo_ecommerce ??
-    r?.directoEcommerceMonto ??
-    r?.directo_ecommerce_monto ??
-    r?.cobradoDirectoEcommerce ??
-    r?.cobrado_directo_ecommerce ??
-    0
-  );
-}
 
 /** ✅ Solo NO se puede seleccionar cuando está "Validado" */
+/**  Solo NO se puede seleccionar cuando está "Validado" */
 function isSelectable(estado: ResumenDia["estado"]) {
   return estado !== "Validado";
 }
@@ -201,7 +191,6 @@ export default function CuadreSaldoTable({
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
 
   /**
-   * ✅ Limpieza automática:
    * si una fecha en `selected` ahora está Validado, la removemos.
    */
   useEffect(() => {
@@ -268,7 +257,7 @@ export default function CuadreSaldoTable({
                         type="checkbox"
                         checked={checked}
                         onChange={() => onToggle(r.fecha)}
-                        disabled={!selectable} // ✅ solo Validado
+                        disabled={!selectable}
                         className="h-4 w-4 accent-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
                         title={
                           selectable
@@ -294,22 +283,20 @@ export default function CuadreSaldoTable({
                         {r.estado}
                       </span>
                     </td>
-
                     <td className="p-3 text-right">
                       <TableActionx
                         variant="view"
                         title="Ver pedidos del día"
                         onClick={() =>
                           onView(r.fecha, r.estado, {
-                            totalCobrado: getMontoFiltrado(r), // suma de Efectivo + Digital Courier + Digital Ecommerce
-                            totalDirectoEcommerce: getMontoDirectoEcommerce(r), // solo Directo Ecommerce
+                            totalCobrado: getMontoFiltrado(r), // suma de los métodos filtrados
                             totalServicio: num(r.servicio),
                           })
                         }
                         size="sm"
                       />
-
                     </td>
+
                   </tr>
                 );
               })}
