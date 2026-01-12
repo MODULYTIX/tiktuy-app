@@ -9,8 +9,19 @@ type Props = {
   loading?: boolean;
   selected: string[]; // YYYY-MM-DD[]
   onToggle(date: string): void; // check/uncheck una fecha
-  onView(date: string, estado: ResumenDia["estado"]): void; // click en ojito (con estado)
+
+  // ✅ actualizamos para recibir los montos del modal
+  onView(
+    date: string,
+    estado: ResumenDia["estado"],
+    montos?: {
+      totalCobrado: number;
+      totalDirectoEcommerce?: number;
+      totalServicio: number;
+    }
+  ): void;
 };
+
 
 const money = (n: number) =>
   new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(
@@ -39,16 +50,6 @@ function getMontoDirectoEcommerce(r: any) {
   );
 }
 
-function cobradoVisual(r: any) {
-  const cobrado = num(r?.cobrado);
-  const directo = getMontoDirectoEcommerce(r);
-  return Math.max(0, cobrado - directo);
-}
-
-function netoVisual(r: any) {
-  return cobradoVisual(r) - num(r?.servicio);
-}
-
 /** ✅ Solo NO se puede seleccionar cuando está "Validado" */
 function isSelectable(estado: ResumenDia["estado"]) {
   return estado !== "Validado";
@@ -74,8 +75,6 @@ function getNeto(r: any) {
   const servicio = num(r.servicio); // servicio total = courier + repartidor
   return monto - servicio;
 }
-
-
 
 /* ============================
  * Mensajes sutiles (solo visual)
@@ -262,9 +261,6 @@ export default function CuadreSaldoTable({
                       ? "bg-gray-100 text-gray-700 border border-gray-200"
                       : "bg-blue-100 text-blue-900 border border-blue-200";
 
-                const cobradoV = cobradoVisual(r as any);
-                const netoV = netoVisual(r as any);
-
                 return (
                   <tr key={r.fecha} className="border-t">
                     <td className="p-3">
@@ -303,9 +299,16 @@ export default function CuadreSaldoTable({
                       <TableActionx
                         variant="view"
                         title="Ver pedidos del día"
-                        onClick={() => onView(r.fecha, r.estado)}
+                        onClick={() =>
+                          onView(r.fecha, r.estado, {
+                            totalCobrado: getMontoFiltrado(r), // suma de Efectivo + Digital Courier + Digital Ecommerce
+                            totalDirectoEcommerce: getMontoDirectoEcommerce(r), // solo Directo Ecommerce
+                            totalServicio: num(r.servicio),
+                          })
+                        }
                         size="sm"
                       />
+
                     </td>
                   </tr>
                 );
