@@ -58,6 +58,15 @@ export default function RegistroMovimientoPage() {
   const [verOpen, setVerOpen] = useState(false);
   const [verData, setVerData] = useState<Producto | null>(null);
 
+  // Refresh trigger (contador simple para forzar recarga)
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleRefresh = useCallback(() => {
+    setTimeout(() => {
+      setRefreshTrigger((prev) => prev + 1);
+    }, 10);
+  }, []);
+
   const closeCrear = () => setModalOpen(false);
 
   const closeVer = () => {
@@ -178,9 +187,11 @@ export default function RegistroMovimientoPage() {
             />
 
             <MovimientoRegistroTable
+              key={`registro-${refreshTrigger}`}
               filters={filters}
               onSelectProducts={handleSelectProducts}
               onViewProduct={handleViewProduct}
+              refreshTrigger={refreshTrigger}
             />
           </div>
 
@@ -190,6 +201,7 @@ export default function RegistroMovimientoPage() {
               open={modalOpen}
               onClose={closeCrear}
               productos={selectedProducts}
+              onSuccess={handleRefresh}
             />
           </ModalSlideRight>
 
@@ -218,7 +230,11 @@ export default function RegistroMovimientoPage() {
             }
           />
 
-          <MovimientoValidacionTable filters={filtersValidacion} />
+          <MovimientoValidacionTable
+            key={`validacion-${refreshTrigger}`}
+            filters={filtersValidacion}
+            refreshTrigger={refreshTrigger}
+          />
         </>
       )}
     </section>

@@ -9,8 +9,19 @@ type Props = {
   loading?: boolean;
   selected: string[]; // YYYY-MM-DD[]
   onToggle(date: string): void; // check/uncheck una fecha
-  onView(date: string, estado: ResumenDia["estado"]): void; // click en ojito (con estado)
+
+  // ✅ actualizamos para recibir los montos del modal
+  onView(
+    date: string,
+    estado: ResumenDia["estado"],
+    montos?: {
+      totalCobrado: number;
+      totalDirectoEcommerce?: number;
+      totalServicio: number;
+    }
+  ): void;
 };
+
 
 const money = (n: number) =>
   new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(
@@ -27,31 +38,32 @@ const num = (v: any) => {
   return Number.isFinite(x) ? x : 0;
 };
 
-function getMontoDirectoEcommerce(r: any) {
-  return num(
-    r?.montoDirectoEcommerce ??
-      r?.monto_directo_ecommerce ??
-      r?.directoEcommerceMonto ??
-      r?.directo_ecommerce_monto ??
-      r?.cobradoDirectoEcommerce ??
-      r?.cobrado_directo_ecommerce ??
-      0
-  );
-}
-
-function cobradoVisual(r: any) {
-  const cobrado = num(r?.cobrado);
-  const directo = getMontoDirectoEcommerce(r);
-  return Math.max(0, cobrado - directo);
-}
-
-function netoVisual(r: any) {
-  return cobradoVisual(r) - num(r?.servicio);
-}
 
 /** ✅ Solo NO se puede seleccionar cuando está "Validado" */
+/**  Solo NO se puede seleccionar cuando está "Validado" */
 function isSelectable(estado: ResumenDia["estado"]) {
   return estado !== "Validado";
+}
+/* =========================
+ * Nuevo helper: monto filtrado por método de pago
+ * ========================= */
+function getMontoFiltrado(r: any) {
+  // r.pedidosDetalle?: PedidoDiaItem[]
+  if (!Array.isArray(r.pedidosDetalle)) return num(r.cobrado);
+
+  const validPaymentMethods = ["Efectivo", "Digital Courier", "Digital Ecommerce"];
+  return r.pedidosDetalle
+    .filter((p: any) => validPaymentMethods.includes(p.metodoPago))
+    .reduce((acc: number, p: any) => acc + num(p.monto), 0);
+}
+
+/* =========================
+ * Nuevo helper: neto correcto
+ * ========================= */
+function getNeto(r: any) {
+  const monto = getMontoFiltrado(r);
+  const servicio = num(r.servicio); // servicio total = courier + repartidor
+  return monto - servicio;
 }
 
 /* ============================
@@ -179,7 +191,6 @@ export default function CuadreSaldoTable({
   const emptyRows = Math.max(0, PAGE_SIZE - currentData.length);
 
   /**
-   * ✅ Limpieza automática:
    * si una fecha en `selected` ahora está Validado, la removemos.
    */
   useEffect(() => {
@@ -236,11 +247,8 @@ export default function CuadreSaldoTable({
                   r.estado === "Validado"
                     ? "bg-gray-900 text-white"
                     : r.estado === "Sin Validar"
-                    ? "bg-gray-100 text-gray-700 border border-gray-200"
-                    : "bg-blue-100 text-blue-900 border border-blue-200";
-
-                const cobradoV = cobradoVisual(r as any);
-                const netoV = netoVisual(r as any);
+                      ? "bg-gray-100 text-gray-700 border border-gray-200"
+                      : "bg-blue-100 text-blue-900 border border-blue-200";
 
                 return (
                   <tr key={r.fecha} className="border-t">
@@ -249,7 +257,7 @@ export default function CuadreSaldoTable({
                         type="checkbox"
                         checked={checked}
                         onChange={() => onToggle(r.fecha)}
-                        disabled={!selectable} // ✅ solo Validado
+                        disabled={!selectable}
                         className="h-4 w-4 accent-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
                         title={
                           selectable
@@ -265,24 +273,30 @@ export default function CuadreSaldoTable({
                       )}
                     </td>
 
-                    <td className="p-3">{money(cobradoV)}</td>
+                    <td className="p-3">{money(getMontoFiltrado(r))}</td>
                     <td className="p-3">{money(num((r as any).servicio))}</td>
-                    <td className="p-3">{money(netoV)}</td>
+                    <td className="p-3">{money(getNeto(r))}</td>
+
 
                     <td className="p-3">
                       <span className={`px-3 py-1 text-xs rounded-full ${pill}`}>
                         {r.estado}
                       </span>
                     </td>
-
                     <td className="p-3 text-right">
                       <TableActionx
                         variant="view"
                         title="Ver pedidos del día"
-                        onClick={() => onView(r.fecha, r.estado)}
+                        onClick={() =>
+                          onView(r.fecha, r.estado, {
+                            totalCobrado: getMontoFiltrado(r), // suma de los métodos filtrados
+                            totalServicio: num(r.servicio),
+                          })
+                        }
                         size="sm"
                       />
                     </td>
+
                   </tr>
                 );
               })}

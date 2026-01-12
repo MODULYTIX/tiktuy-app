@@ -9,7 +9,6 @@ type Props = {
   items: PedidoDiaItem[];
   loading: boolean;
   onClose: () => void;
-  onAbonarDia: () => void;
   totalServicio: number;
 };
 
@@ -37,22 +36,82 @@ const normMetodoPago = (v: unknown) =>
     .toUpperCase()
     .replace(/\s+/g, "_");
 
-/** ✅ Etiqueta visual para método de pago (NO afecta lógica) */
+/** Etiqueta visual para método de pago (NO afecta lógica) */
 const metodoPagoLabel = (metodoPago: unknown) => {
   const m = normMetodoPago(metodoPago);
-  if (!m) return "-";
-  if (m === "DIRECTO_ECOMMERCE") return "Pago digital a ecommerce";
-  if (m === "BILLETERA") return "Pago digital a courier";
-  return String(metodoPago ?? "-");
+
+  // si no hay método => Pedido rechazado
+  if (!m) return "Pedido rechazado";
+
+  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
+  if (m === "BILLETERA") return "Pago Digital al Courier";
+  if (m === "EFECTIVO") return "Efectivo";
+
+  return String(metodoPago ?? "Pedido rechazado");
 };
 
-// ✅ DIRECTO_ECOMMERCE => monto visual 0 (solo UI)
-function montoVisual(it: PedidoDiaItem): number {
-  const mp = normMetodoPago((it as any)?.metodoPago);
+/** Detecta si el pedido está rechazado (según nombre de estado del BE) */
+const isRejected = (it: any) => {
+  const estado = String(
+    it?.estadoNombre ??
+    it?.estado_nombre ??
+    it?.estado ??
+    ""
+  ).toLowerCase();
+
+  return estado.includes("rechaz");
+};
+
+
+// monto visual:
+// - DIRECTO_ECOMMERCE => 0 (solo UI)
+// - Pedido rechazado => 0
+function montoVisual(it: any): number {
+  const mp = normMetodoPago(it?.metodoPago ?? it?.metodo_pago);
+
+  // Caso 1: método vacío → Pedido rechazado visual
+  if (!mp) return 0;
+
+  // Caso 2: pago directo ecommerce
   if (mp === "DIRECTO_ECOMMERCE") return 0;
-  return Number((it as any)?.monto ?? 0);
+
+  // Caso 3: estado rechazado explícito (por si acaso)
+  if (isRejected(it)) return 0;
+
+  return Number(it?.monto ?? 0);
 }
 
+
+/**
+ * Rechazados: solo listar cuando el courier ya editó o abonó al repartidor.
+ */
+function canShowRejected(it: any): boolean {
+  if (!isRejected(it)) return true;
+
+  const abonado = Boolean(it?.abonado);
+  const servicioRepartidor =
+    it?.servicioRepartidor ?? it?.servicio_repartidor ?? null;
+
+  const motivo =
+    it?.motivo ??
+    it?.servicioRepartidorMotivo ??
+    it?.servicio_repartidor_motivo ??
+    null;
+
+  return (
+    abonado ||
+    servicioRepartidor != null ||
+    (typeof motivo === "string" && motivo.trim() !== "")
+  );
+}
+
+/**
+ * Determina el estado del abono ecommerce por pedido
+ * Reglas:
+ * - Si viene el nombre del estado desde BE: usarlo
+ * - Si no viene, fallback: si hay evidencia de abono => asumimos Por Validar/Validado
+ * - Si no hay evidencia => Sin Validar
+ */
 const isProbablyImageUrl = (url: string) => {
   try {
     const u = new URL(url);
@@ -67,7 +126,6 @@ const fileNameFromUrl = (url: string) => {
   try {
     const u = new URL(url);
     const base = u.pathname.split("/").pop() || "evidencia";
-    // limpia query/hash
     const clean = base.split("?")[0].split("#")[0];
     return clean || "evidencia";
   } catch {
@@ -83,18 +141,29 @@ const EcommerceDetalleModal: React.FC<Props> = ({
   items,
   loading,
   onClose,
-  onAbonarDia,
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // ✅ descarga real
+
+
+  // descarga real
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
+  // Filtrado final: rechazados solo si courier ya editó o abonó
+  const visibleItems = useMemo(
+    () => items.filter((it: any) => canShowRejected(it)),
+    [items]
+  );
+
+
   const totalServicioCourierDia = useMemo(
     () =>
-      items.reduce((acc, it: any) => acc + Number(it?.servicioCourier ?? 0), 0),
-    [items]
+      visibleItems.reduce(
+        (acc, it: any) => acc + Number(it?.servicioCourier ?? 0),
+        0
+      ),
+    [visibleItems]
   );
 
   const closeAll = () => {
@@ -117,12 +186,8 @@ const EcommerceDetalleModal: React.FC<Props> = ({
     setDownloadError(null);
 
     try {
-      // ✅ Blob download (no abre nueva pestaña)
       const res = await fetch(previewUrl, { mode: "cors" });
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
@@ -135,7 +200,6 @@ const EcommerceDetalleModal: React.FC<Props> = ({
       a.click();
       a.remove();
 
-      // cleanup
       setTimeout(() => URL.revokeObjectURL(blobUrl), 800);
     } catch (e) {
       console.error("No se pudo descargar evidencia:", e);
@@ -146,7 +210,6 @@ const EcommerceDetalleModal: React.FC<Props> = ({
       setDownloading(false);
     }
   };
-
   if (!open) return null;
 
   return (
@@ -194,7 +257,7 @@ const EcommerceDetalleModal: React.FC<Props> = ({
               </div>
             </div>
 
-            {/* icon close lo dejo normal para no romper (Buttonx suele ser para acciones) */}
+            {/* close */}
             <button
               onClick={closeAll}
               className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-50 text-slate-700 shrink-0"
@@ -221,15 +284,6 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                       Totales del día
                     </div>
                   </div>
-
-                  <Buttonx
-                    variant="secondary"
-                    label="Abonar día completo"
-                    icon="mdi:credit-card-outline"
-                    disabled={loading}
-                    onClick={onAbonarDia}
-                    title="Abonar todo el día (Por Validar)"
-                  />
                 </div>
               </div>
 
@@ -237,10 +291,10 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5">
                     <div className="text-xs font-semibold text-slate-500">
-                      Pedidos
+                      Pedidos (visibles)
                     </div>
                     <div className="mt-1 text-lg font-extrabold tabular-nums text-slate-900">
-                      {String(items.length).padStart(2, "0")}
+                      {String(visibleItems.length).padStart(2, "0")}
                     </div>
                   </div>
 
@@ -269,7 +323,7 @@ const EcommerceDetalleModal: React.FC<Props> = ({
               </div>
             </div>
 
-            {/* Tabla (no toco estilos internos, solo el contenedor ya está rounded-2xl) */}
+            {/* Tabla */}
             <div className="mt-1 bg-white rounded-2xl overflow-hidden shadow-default border border-gray30 relative">
               {loading && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 text-sm">
@@ -281,39 +335,39 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                 <div className="overflow-x-auto bg-white">
                   <table className="min-w-full table-fixed text-[12px] bg-white border-b border-gray30 rounded-t-md">
                     <colgroup>
-                      <col className="w-[22%]" />
-                      <col className="w-[12%]" />
-                      <col className="w-[12%]" />
-                      <col className="w-[12%]" />
-                      <col className="w-[18%]" />
-                      <col className="w-[12%]" />
-                      <col className="w-[12%]" />
+                      <col className="w-[26%]" /> {/* Cliente */}
+                      <col className="w-[16%]" /> {/* Método */}
+                      <col className="w-[14%]" /> {/* Monto */}
+                      <col className="w-[14%]" /> {/* Servicio courier */}
+                      <col className="w-[20%]" /> {/* Motivo */}
+                      <col className="w-[10%]" /> {/* Evidencia */}
                     </colgroup>
+
 
                     <thead className="bg-[#E5E7EB]">
                       <tr className="text-gray70 font-roboto font-medium">
                         <th className="px-4 py-3 text-left">Cliente</th>
-                        <th className="px-4 py-3 text-left">Método</th>
+                        <th className="px-4 py-3 text-left">Método de Pago / Estado</th>
                         <th className="px-4 py-3 text-left">Monto</th>
                         <th className="px-4 py-3 text-left">Servicio courier</th>
                         <th className="px-4 py-3 text-left">Motivo</th>
                         <th className="px-4 py-3 text-left">Evidencia</th>
-                        <th className="px-4 py-3 text-left">Abono</th>
+
                       </tr>
                     </thead>
 
                     <tbody className="divide-y divide-gray20">
-                      {items.length === 0 ? (
+                      {visibleItems.length === 0 ? (
                         <tr className="hover:bg-transparent">
                           <td
-                            colSpan={7}
+                            colSpan={6}
                             className="px-4 py-8 text-center text-gray70 italic"
                           >
                             Sin pedidos
                           </td>
                         </tr>
                       ) : (
-                        items.map((it: any) => {
+                        visibleItems.map((it: any) => {
                           const motivo =
                             it?.motivo ??
                             it?.servicioRepartidorMotivo ??
@@ -341,14 +395,16 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                                 </div>
                               </td>
 
-                              {/* ✅ AQUÍ: etiqueta visual como pediste */}
+                              {/* método con label */}
                               <td className="px-4 py-3 text-gray70">
                                 {metodoPagoLabel(it.metodoPago)}
                               </td>
 
-                              <td className="px-4 py-3 text-gray70">
+                              {/* monto 0 si rechazado o DIRECTO_ECOMMERCE */}
+                              <td className={`px-4 py-3 ${isRejected(it) ? "text-gray-400 italic" : "text-gray70"}`}>
                                 {formatPEN(montoVisual(it))}
                               </td>
+
 
                               <td className="px-4 py-3 text-gray70">
                                 {formatPEN(Number(it.servicioCourier ?? 0))}
@@ -360,7 +416,6 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                                 </div>
                               </td>
 
-                              {/* ✅ Evidencia: SOLO "Ver" con Buttonx */}
                               <td className="px-4 py-3">
                                 {!evidenciaUrl ? (
                                   <span className="text-gray-400">—</span>
@@ -379,19 +434,6 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                                     />
                                   </div>
                                 )}
-                              </td>
-
-                              <td className="px-4 py-3">
-                                <span
-                                  className={[
-                                    "inline-flex rounded-full px-3 py-1 text-[11px] font-semibold",
-                                    it.abonado
-                                      ? "bg-emerald-600 text-white"
-                                      : "bg-gray-200 text-gray-900",
-                                  ].join(" ")}
-                                >
-                                  {it.abonado ? "Abonado" : "Sin abonar"}
-                                </span>
                               </td>
                             </tr>
                           );
@@ -421,7 +463,9 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                 <div className="text-sm font-bold text-slate-900 truncate">
                   Vista previa de evidencia
                 </div>
-                <div className="text-xs text-slate-500 truncate">{previewUrl}</div>
+                <div className="text-xs text-slate-500 truncate">
+                  {previewUrl}
+                </div>
               </div>
 
               <button
@@ -453,7 +497,6 @@ const EcommerceDetalleModal: React.FC<Props> = ({
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2 px-5 py-4 bg-white border-t border-gray-200">
-              {/* ✅ Descargar real */}
               <Buttonx
                 variant="secondary"
                 label={downloading ? "Descargando..." : "Descargar"}

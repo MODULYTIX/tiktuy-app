@@ -59,7 +59,6 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
     } catch {
       if (text) msg = text;
     }
-    // mejora: si backend ya devuelve "No encontrado: GET ..." lo respetamos
     throw new Error(msg);
   }
 
@@ -80,7 +79,10 @@ export async function listCouriersMine(token: string): Promise<CourierItem[]> {
 }
 
 /** GET /ecommerce/cuadre-saldo/resumen */
-export async function getResumen(token: string, q: ResumenQuery): Promise<ResumenDia[]> {
+export async function getResumen(
+  token: string,
+  q: ResumenQuery
+): Promise<ResumenDia[]> {
   const url = withQuery("/ecommerce/cuadre-saldo/resumen", {
     courierId: q.courierId,
     desde: q.desde,
@@ -102,7 +104,9 @@ export async function getResumen(token: string, q: ResumenQuery): Promise<Resume
   >(url, { headers: authHeaders(token) });
 
   return raw.map((r) => {
-    const iso = typeof r.fecha === "string" ? r.fecha : new Date(r.fecha).toISOString();
+    const iso =
+      typeof r.fecha === "string" ? r.fecha : new Date(r.fecha).toISOString();
+
     return {
       fecha: iso.slice(0, 10),
       pedidos: Number(r.totalPedidos ?? 0),
@@ -110,20 +114,19 @@ export async function getResumen(token: string, q: ResumenQuery): Promise<Resume
       servicio: Number(r.totalServicioCourier ?? 0),
       neto: Number(r.totalNeto ?? 0),
       estado: ((r.abonoEstado ?? "Sin Validar") as AbonoEstado) ?? "Sin Validar",
-      // si tu type ResumenDia NO tiene evidencia, esto no rompe: TS lo marcaría -> ajusta type si lo necesitas
       evidencia: r.evidencia ?? null,
-    } as any;
+    };
   });
 }
 
 /**
- * GET /ecommerce/cuadre-saldo/:courierId/dia/:fecha/pedidos?soloPorValidar=true|false
+ * GET /ecommerce/cuadre-saldo/courier/:courierId/dia/:fecha/pedidos?soloPorValidar=true|false
  * ✅ Ruta alineada con tu controller actual
  *
- * Nota:
- * - el método de pago puede venir como "metodoPago" o "metodo_pago"
- * - agregamos: motivoRepartidor y evidenciaRepartidor
- * - "evidencia" es voucher del abono (abono_evidencia_url) si tu BE lo manda por pedido
+ * ✅ Incluye:
+ * - evidenciaRepartidor (pago_evidencia_url)
+ * - motivoRepartidor (servicio_repartidor_motivo)
+ * - observadoEstado (Pedido.observacion_estado) para rechazados
  */
 export async function getPedidosDia(
   token: string,
@@ -131,9 +134,10 @@ export async function getPedidosDia(
   fecha: string, // YYYY-MM-DD
   soloPorValidar?: boolean
 ): Promise<PedidoDiaItem[]> {
-  const url = withQuery(`/ecommerce/cuadre-saldo/courier/${courierId}/dia/${fecha}/pedidos`, {
-    soloPorValidar,
-  });
+  const url = withQuery(
+    `/ecommerce/cuadre-saldo/courier/${courierId}/dia/${fecha}/pedidos`,
+    { soloPorValidar }
+  );
 
   const raw = await request<
     Array<{
@@ -148,38 +152,52 @@ export async function getPedidosDia(
       servicioRepartidor: number;
       abonado: boolean;
 
-      // voucher del abono (abono_evidencia_url) si lo incluyes en el BE
+      // voucher del abono (abono_evidencia_url) si lo mandas por pedido
       evidencia?: string | null;
 
-      // ✅ NUEVO: datos del repartidor
+      // ✅ Repartidor
       evidenciaRepartidor?: string | null; // pago_evidencia_url
       motivoRepartidor?: string | null; // servicio_repartidor_motivo
+
+      // ✅ Observación de estado (rechazado)
+      // Recomendado desde BE:
+      observadoEstado?: string | null; // camelCase
+      // Compat si tu BE lo mandara en snake_case (opcional):
+      observacion_estado?: string | null;
     }>
   >(url, { headers: authHeaders(token) });
 
   return raw.map((r: any) => {
     const metodoPago: string | null = r.metodoPago ?? r.metodo_pago ?? null;
 
+    // ✅ toma observado: camelCase primero; si no, snake_case compat
+    const observadoEstado: string | null =
+      (r.observadoEstado ?? r.observacion_estado ?? null) as any;
+
+    const servicioCourier = Number(r.servicioCourier ?? 0);
+    const servicioRepartidor = Number(r.servicioRepartidor ?? 0);
+
     return {
       id: r.id,
       cliente: r.cliente,
 
-      // ⚠️ Compat: tu type antiguo usaba "metodo_pago".
-      // Si ya migraste a "metodoPago", deja SOLO "metodoPago".
       metodoPago,
+      // compat: por si algún componente viejo lee metodo_pago
       metodo_pago: metodoPago,
 
       monto: Number(r.monto ?? 0),
-      servicioCourier: Number(r.servicioCourier ?? 0),
-      servicioRepartidor: Number(r.servicioRepartidor ?? 0),
-      servicioTotal: Number(r.servicioCourier ?? 0) + Number(r.servicioRepartidor ?? 0),
+      servicioCourier,
+      servicioRepartidor,
+      servicioTotal: servicioCourier + servicioRepartidor,
       abonado: Boolean(r.abonado),
 
       evidencia: r.evidencia ?? null,
 
-      // ✅ NUEVO (para las 2 columnas)
-      motivoRepartidor: r.motivoRepartidor ?? null,
       evidenciaRepartidor: r.evidenciaRepartidor ?? null,
+      motivoRepartidor: r.motivoRepartidor ?? null,
+
+      // ✅ NUEVO
+      observadoEstado,
     } as any;
   });
 }
@@ -190,6 +208,7 @@ export async function validarFechas(
   payload: ValidarFechasPayload
 ): Promise<ValidarFechasResp> {
   const url = `${BASE_URL}/ecommerce/cuadre-saldo/validar`;
+
   const body: ValidarFechasPayload = {
     courierId: payload.courierId,
     ...(payload.fechas?.length

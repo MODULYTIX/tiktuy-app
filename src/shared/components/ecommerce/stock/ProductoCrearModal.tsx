@@ -26,6 +26,25 @@ import ImageUploadx from "@/shared/common/ImageUploadx";
 import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
 
 // ========================
+// Constantes
+// ========================
+const DEFAULT_CATEGORIES = [
+  "Tecnología",
+  "Hogar",
+  "Moda",
+  "Calzado",
+  "Belleza",
+  "Electrodomésticos",
+  "Alimentos y bebidas",
+  "Juguetes",
+  "Deportes y fitness",
+  "Libros/entretenimiento",
+];
+
+// Prefijo para IDs temporales de categorias por defecto que no estan en BD
+const DEFAULT_PREFIX = "DEFAULT_";
+
+// ========================
 // Tipos
 // ========================
 type Props = {
@@ -59,24 +78,24 @@ type BasePayload = {
 
 type CreateProductoPayload =
   | ({
-      categoria_id: number;
-      categoria?: undefined;
-    } & BasePayload)
+    categoria_id: number;
+    categoria?: undefined;
+  } & BasePayload)
   | ({
-      categoria?: {
-        nombre: string;
-        descripcion?: string | null;
-        es_global: true;
-      };
-      categoria_id?: undefined;
-    } & BasePayload);
+    categoria?: {
+      nombre: string;
+      descripcion?: string | null;
+      es_global: true;
+    };
+    categoria_id?: undefined;
+  } & BasePayload);
 
 function generarCodigoConFecha(): string {
   const now = new Date();
   const hora = String(now.getHours()).padStart(2, "0");
   const minutos = String(now.getMinutes()).padStart(2, "0");
   const year = String(now.getFullYear()).slice(2);
-  const meses = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+  const meses = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
   const mesAbrev = meses[now.getMonth()];
   const charset = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789";
   const aleatorio = charset[Math.floor(Math.random() * charset.length)];
@@ -189,14 +208,36 @@ export default function ProductoCrearModal({
     onClose();
   };
 
-  const catOptions: CreatableOption[] = useMemo(
-    () =>
-      categorias
-        .slice()
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }))
-        .map((c) => ({ id: c.id, label: c.nombre })),
-    [categorias]
-  );
+  const catOptions: CreatableOption[] = useMemo(() => {
+    const result: CreatableOption[] = [];
+    const usedNames = new Set<string>();
+
+    // 1. Agregar defaults
+    for (const defName of DEFAULT_CATEGORIES) {
+      const dbMatch = categorias.find(c => canonical(c.nombre) === canonical(defName));
+      if (dbMatch) {
+        // Existe en DB -> Usar ID real
+        result.push({ id: dbMatch.id, label: dbMatch.nombre });
+        usedNames.add(canonical(dbMatch.nombre));
+      } else {
+        // No existe -> Usar ID fake pero mostrarlo
+        // Usamos el nombre como label, y un ID prefijado para saber que es "nuevo"
+        result.push({ id: `${DEFAULT_PREFIX}${defName}`, label: defName });
+        usedNames.add(canonical(defName));
+      }
+    }
+
+    // 2. Agregar el resto que esté en BD
+    for (const cat of categorias) {
+      if (!usedNames.has(canonical(cat.nombre))) {
+        result.push({ id: cat.id, label: cat.nombre });
+        usedNames.add(canonical(cat.nombre));
+      }
+    }
+
+    // 3. Ordenar alfabéticamente
+    return result.sort((a, b) => a.label.localeCompare(b.label, "es", { sensitivity: "base" }));
+  }, [categorias]);
 
   function onCategoriaInputChange(v: string) {
     setForm((p) => {
@@ -241,7 +282,10 @@ export default function ProductoCrearModal({
 
     let payload: CreateProductoPayload & { file?: File };
 
-    if (form.categoriaSelectedId) {
+    // Validar si es una categoría existente real o una "Default" (nueva)
+    const isRealCategory = form.categoriaSelectedId && !form.categoriaSelectedId.startsWith(DEFAULT_PREFIX);
+
+    if (isRealCategory) {
       payload = {
         categoria_id: Number(form.categoriaSelectedId),
         ...(almacenamiento_id ? { almacenamiento_id } : {}),

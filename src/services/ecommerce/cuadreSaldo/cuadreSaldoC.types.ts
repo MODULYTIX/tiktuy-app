@@ -71,6 +71,8 @@ export type PedidoDiaItem = {
   /** ✅ voucher del abono (abono_evidencia_url) */
   evidencia?: string | null;
 
+  observadoEstado?: string | null;
+
   /** ✅ evidencia registrada por el repartidor (pago_evidencia_url) */
   evidenciaRepartidor?: string | null;
 

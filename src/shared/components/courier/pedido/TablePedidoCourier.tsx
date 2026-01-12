@@ -15,6 +15,7 @@ import {
   fetchPedidoDetalle,
   reassignPedido,
   reprogramarPedido,
+  exportPedidosAsignadosPdf,
 } from "@/services/courier/pedidos/pedidos.api";
 
 import DetallePedidoDrawer from "./DetallePedidoDrawer";
@@ -25,7 +26,7 @@ import Buttonx from "@/shared/common/Buttonx";
 import { SearchInputx } from "@/shared/common/SearchInputx";
 import Tittlex from "@/shared/common/Tittlex";
 import TableActionx from "@/shared/common/TableActionx";
-import Badgex from "@/shared/common/Badgex"; // ✅ NUEVO
+import Badgex from "@/shared/common/Badgex";
 
 type View = "asignados" | "pendientes" | "terminados";
 
@@ -61,7 +62,7 @@ function normalizeRange(desde?: string, hasta?: string) {
   };
 }
 
-/* ✅ NUEVO: HOY en Perú como YYYY-MM-DD (para que el backend filtre hoy por defecto) */
+/*  NUEVO: HOY en Perú como YYYY-MM-DD (para que el backend filtre hoy por defecto) */
 function getTodayPEYYYYMMDD() {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Lima",
@@ -95,7 +96,7 @@ export default function TablePedidoCourier({
   const [filtroCantidad, setFiltroCantidad] = useState("");
   const [searchProducto, setSearchProducto] = useState("");
 
-  // ✅ PARA PENDIENTES + TERMINADOS: filtro por motorizado
+  //  PARA PENDIENTES + TERMINADOS: filtro por motorizado
   const [filtroMotorizado, setFiltroMotorizado] = useState("");
 
   /* data */
@@ -103,8 +104,11 @@ export default function TablePedidoCourier({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  /* selección (solo vista "asignados") */
+  /* selección */
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  /*  NUEVO: estado descarga PDF (pendientes) */
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   /* detalle */
   const [detalle, setDetalle] = useState<PedidoDetalle | null>(null);
@@ -209,7 +213,7 @@ export default function TablePedidoCourier({
     [itemsBase]
   );
 
-  // ✅ PARA PENDIENTES + TERMINADOS: motorizados únicos para el filtro
+  //  PARA PENDIENTES + TERMINADOS: motorizados únicos para el filtro
   const motorizados = useMemo(() => {
     const map = new Map<number, string>();
     for (const p of itemsBase) {
@@ -259,6 +263,38 @@ export default function TablePedidoCourier({
       );
     }
 
+    // 4) Filtro por estado según vista
+    if (view === "pendientes") {
+      const allowed = [
+        "pendiente",
+        "recepcionará entrega hoy",
+      ];
+
+      arr = arr.filter((x) =>
+        allowed.includes((x.estado_nombre ?? "").toLowerCase())
+      );
+    }
+    if (view === "asignados") {
+      arr = arr.filter((p: any) => {
+        const estado = (p.estado_nombre ?? "").toLowerCase();
+        return (
+          estado === "asignado" ||
+          estado === "no responde / número equivocado"
+        );
+      });
+    }
+
+    if (view === "terminados") {
+      arr = arr.filter((x) => {
+        const estado = (x.estado_nombre ?? "").toLowerCase();
+
+        return (
+          estado !== "no responde / número equivocado"
+        );
+      });
+    }
+
+
     return arr;
   }, [
     itemsBase,
@@ -269,7 +305,26 @@ export default function TablePedidoCourier({
     view,
   ]);
 
-  // selección de items visibles
+  // ✅ Determina si un pedido puede seleccionarse según la vista
+  const puedeSeleccionar = (p: PedidoListItem) => {
+    const estado = (p.estado_nombre ?? "").toLowerCase();
+
+    if (view === "pendientes") {
+      return estado === "recepcionará entrega hoy";
+    }
+
+    if (view === "asignados") {
+      return (
+        estado === "asignado" ||
+        estado === "no responde / número equivocado"
+      );
+    }
+
+    return false;
+  };
+
+
+  //  selección de items visibles (para checkbox header)
   const pageIds = itemsFiltrados.map((p) => p.id);
   const allSelected =
     pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
@@ -403,7 +458,39 @@ export default function TablePedidoCourier({
     setHasta("");
   };
 
-  // ✅ REEMPLAZO: Estado con Badgex (shape normal, NO pill)
+  //  NUEVO: descargar PDF SOLO para Pendientes
+  const handleDownloadPendientesPdf = async () => {
+    try {
+      if (view !== "pendientes") return;
+
+      if (!selectedIds.length) {
+        setError("Selecciona al menos un pedido para descargar.");
+        return;
+      }
+
+      setPdfLoading(true);
+      setError("");
+
+      const blob = await exportPedidosAsignadosPdf(token, {
+        pedidoIds: selectedIds,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pedidos-pendientes-${getTodayPEYYYYMMDD()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setError(e?.message ?? "Error al descargar PDF");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  //  REEMPLAZO: Estado con Badgex (shape normal, NO pill)
   const getEstadoPill = (estado: string) => {
     const lower = (estado || "").toLowerCase();
 
@@ -411,50 +498,76 @@ export default function TablePedidoCourier({
       lower === "pendiente"
         ? "bg-amber-50 text-amber-700 border border-amber-200"
         : lower === "entregado"
-        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-        : "bg-amber-50 text-amber-700 border border-amber-200"; // antes gris → ahora amarillo suave
+          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+          : "bg-amber-50 text-amber-700 border border-amber-200"; // antes gris → ahora amarillo suave
 
     const label = lower === "pendiente" ? "Pendiente" : estado || "—";
 
     return (
-      <Badgex className={`inline-flex items-center ${cls}`} size="xs" shape="soft" title={label}>
+      <Badgex
+        className={`inline-flex items-center ${cls}`}
+        size="xs"
+        shape="soft"
+        title={label}
+      >
         {label}
       </Badgex>
     );
   };
 
+  const title =
+    view === "asignados"
+      ? "Pedidos Asignados"
+      : view === "pendientes"
+        ? "Pedidos Pendientes"
+        : "Pedidos Terminados";
+
+  const description =
+    view === "asignados"
+      ? "Selecciona y asigna pedidos a un repartidor."
+      : view === "pendientes"
+        ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
+        : "Pedidos completados o cerrados.";
+
   return (
     <div className="flex flex-col gap-5 w-full bg-transparent overflow-visible">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Tittlex
-          variant="section"
-          title={
-            view === "asignados"
-              ? "Pedidos Asignados"
-              : view === "pendientes"
-              ? "Pedidos Pendientes"
-              : "Pedidos Terminados"
-          }
-          description={
-            view === "asignados"
-              ? "Selecciona y asigna pedidos a un repartidor."
-              : view === "pendientes"
-              ? "Pedidos en gestión con el cliente (contacto, reprogramación, etc.)."
-              : "Pedidos completados o cerrados."
-          }
-        />
+        <Tittlex variant="section" title={title} description={description} />
 
-        {view === "asignados" && (
-          <Buttonx
-            label="Asignar Repartidor"
-            variant="secondary"
-            icon="mdi:account-arrow-right-outline"
-            onClick={() => onAsignar?.(selectedIds)}
-            disabled={!selectedIds.length || loading}
-            title={!selectedIds.length ? "Selecciona al menos un pedido" : "Asignar Repartidor"}
-          />
-        )}
+        {/*  BOTONES DERECHA: Asignados / Pendientes */}
+        <div className="flex items-center gap-2">
+          {view === "pendientes" && (
+            <Buttonx
+              label={pdfLoading ? "Generando PDF..." : "Descargar PDF"}
+              variant="secondary"
+              icon="mdi:file-pdf-box"
+              onClick={handleDownloadPendientesPdf}
+              //  SOLO se activa cuando hay selección
+              disabled={!selectedIds.length || loading || pdfLoading}
+              title={
+                !selectedIds.length
+                  ? "Selecciona pedidos para descargar"
+                  : "Descargar PDF"
+              }
+            />
+          )}
+
+          {view === "asignados" && (
+            <Buttonx
+              label="Asignar Repartidor"
+              variant="secondary"
+              icon="mdi:account-arrow-right-outline"
+              onClick={() => onAsignar?.(selectedIds)}
+              disabled={!selectedIds.length || loading}
+              title={
+                !selectedIds.length
+                  ? "Selecciona al menos un pedido"
+                  : "Asignar Repartidor"
+              }
+            />
+          )}
+        </div>
       </div>
 
       {/* Filtros */}
@@ -462,8 +575,18 @@ export default function TablePedidoCourier({
         <div className="grid gap-4">
           {/* ===== Fila 1 ===== */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-            <SelectxDate label="Fecha Inicio" value={desde} onChange={(e) => setDesde(e.target.value)} disabled={loading} />
-            <SelectxDate label="Fecha Fin" value={hasta} onChange={(e) => setHasta(e.target.value)} disabled={loading} />
+            <SelectxDate
+              label="Fecha Inicio"
+              value={desde}
+              onChange={(e) => setDesde(e.target.value)}
+              disabled={loading}
+            />
+            <SelectxDate
+              label="Fecha Fin"
+              value={hasta}
+              onChange={(e) => setHasta(e.target.value)}
+              disabled={loading}
+            />
 
             <Selectx
               label="Distrito"
@@ -534,8 +657,12 @@ export default function TablePedidoCourier({
       </div>
 
       {/* Estados */}
-      {loading && <div className="py-10 text-center text-gray-500">Cargando...</div>}
-      {!loading && error && <div className="py-10 text-center text-red-600">{error}</div>}
+      {loading && (
+        <div className="py-10 text-center text-gray-500">Cargando...</div>
+      )}
+      {!loading && error && (
+        <div className="py-10 text-center text-red-600">{error}</div>
+      )}
 
       {/* Tabla */}
       {!loading && !error && (
@@ -551,7 +678,17 @@ export default function TablePedidoCourier({
                 <col className="w-[12%]" />
                 <col className="w-[10%]" />
                 <col className="w-[10%]" />
-                <col className="w-[28%]" />
+
+                {/* Si es pendientes, compartimos ancho entre dirección y referencia */}
+                {view === 'pendientes' ? (
+                  <>
+                    <col className="w-[18%]" />
+                    <col className="w-[10%]" />
+                  </>
+                ) : (
+                  <col className="w-[28%]" />
+                )}
+
                 <col className="w-[8%]" />
                 <col className="w-[10%]" />
                 <col className="w-[10%]" />
@@ -566,24 +703,35 @@ export default function TablePedidoCourier({
                       type="checkbox"
                       className="cursor-pointer"
                       checked={allSelected}
+                      disabled={loading}
                       onChange={(e) => {
-                        if (view !== "asignados") return;
+                        const elegibles = itemsFiltrados
+                          .filter((p) => puedeSeleccionar(p))
+                          .map((p) => p.id);
+
                         if (e.target.checked) {
-                          setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+                          setSelectedIds((prev) =>
+                            Array.from(new Set([...prev, ...elegibles]))
+                          );
                         } else {
-                          setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+                          setSelectedIds((prev) =>
+                            prev.filter((id) => !elegibles.includes(id))
+                          );
                         }
                       }}
-                      disabled={view !== "asignados"}
                     />
                   </th>
-
                   <th className="px-4 py-3 text-left">Fec. Entrega</th>
                   <th className="px-4 py-3 text-left">Distrito</th>
                   <th className="px-4 py-3 text-left">Ecommerce</th>
                   <th className="px-4 py-3 text-left">Cliente</th>
                   <th className="px-4 py-3 text-left">Dirección de Entrega</th>
-                  <th className="px-4 py-3 text-center">Cant. de productos</th>
+                  {(view === "pendientes") && (
+                    <th className="px-4 py-3 text-left">Referencia</th>
+                  )}
+                  <th className="px-4 py-3 text-center">
+                    Cant. de productos
+                  </th>
                   <th className="px-4 py-3 text-left">Monto</th>
 
                   {(view === "pendientes" || view === "terminados") && (
@@ -607,43 +755,61 @@ export default function TablePedidoCourier({
                   const montoNumber = Number(p.monto_recaudar || 0);
 
                   return (
-                    <tr key={p.id} className="hover:bg-gray10 transition-colors">
+                    <tr
+                      key={p.id}
+                      className="hover:bg-gray10 transition-colors"
+                    >
                       <td className="h-12 px-4 py-3">
                         <input
                           type="checkbox"
                           className="cursor-pointer"
                           checked={selectedIds.includes(p.id)}
+                          disabled={!puedeSeleccionar(p)}
                           onChange={(e) => {
-                            if (view !== "asignados") return;
                             setSelectedIds((prev) =>
-                              e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id)
+                              e.target.checked
+                                ? [...prev, p.id]
+                                : prev.filter((x) => x !== p.id)
                             );
                           }}
-                          disabled={view !== "asignados"}
                         />
                       </td>
-
-                      <td className="h-12 px-4 py-3 text-gray70">{fecha ?? "—"}</td>
+                      <td className="h-12 px-4 py-3 text-gray70">
+                        {fecha ?? "-"}
+                      </td>
 
                       <td className="h-12 px-4 py-3 text-gray70 whitespace-nowrap">
-                        {p.cliente?.distrito ?? "—"}
+                        {p.cliente?.distrito ?? "-"}
                       </td>
 
                       <td className="h-12 px-4 py-3 text-gray70">
-                        {p.ecommerce?.nombre_comercial ?? "—"}
+                        {p.ecommerce?.nombre_comercial ?? "-"}
                       </td>
 
                       <td className="h-12 px-4 py-3 text-gray70">
-                        {p.cliente?.nombre ?? "—"}
+                        {p.cliente?.nombre ?? "-"}
                       </td>
 
-                      <td className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]" title={direccion}>
-                        {direccion || "—"}
+                      <td
+                        className="h-12 px-4 py-3 text-gray70 truncate max-w-[260px]"
+                        title={direccion}
+                      >
+                        {direccion || "-"}
                       </td>
 
-                      <td className="h-12 px-4 py-3 text-center text-gray70">{two(cantidad)}</td>
+                      {(view === "pendientes") && (
+                        <td className="h-12 px-4 py-3 text-gray70 truncate max-w-[200px]" title={p.cliente?.referencia || ""}>
+                          {p.cliente?.referencia || "-"}
+                        </td>
+                      )}
 
-                      <td className="h-12 px-4 py-3 text-gray70">{PEN.format(montoNumber)}</td>
+                      <td className="h-12 px-4 py-3 text-center text-gray70">
+                        {two(cantidad)}
+                      </td>
+
+                      <td className="h-12 px-4 py-3 text-gray70">
+                        {PEN.format(montoNumber)}
+                      </td>
 
                       {(view === "pendientes" || view === "terminados") && (
                         <td className="px-4 py-3 text-center">
@@ -689,8 +855,12 @@ export default function TablePedidoCourier({
 
                 {!itemsFiltrados.length && (
                   <tr className="hover:bg-transparent">
-                    <td colSpan={9} className="px-4 py-8 text-center text-gray70 italic">
-                      No hay pedidos para esta etapa con los filtros seleccionados.
+                    <td
+                      colSpan={12}
+                      className="px-4 py-8 text-center text-gray70 italic"
+                    >
+                      No hay pedidos para esta etapa con los filtros
+                      seleccionados.
                     </td>
                   </tr>
                 )}
@@ -721,7 +891,9 @@ export default function TablePedidoCourier({
                     aria-current={page === p ? "page" : undefined}
                     className={[
                       "w-8 h-8 flex items-center justify-center rounded",
-                      page === p ? "bg-gray90 text-white" : "bg-gray10 text-gray70 hover:bg-gray20",
+                      page === p
+                        ? "bg-gray90 text-white"
+                        : "bg-gray10 text-gray70 hover:bg-gray20",
                     ].join(" ")}
                     disabled={loading}
                   >

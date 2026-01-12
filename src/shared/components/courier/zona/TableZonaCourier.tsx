@@ -136,7 +136,7 @@ export default function TableZonaCourier({
           <tr>
             <th className="px-4 py-3">Distrito</th> {/* label UI, campo real = distrito */}
             <th className="px-4 py-3">Zona</th>
-            <th className="px-4 py-3">Tarifa Cliente</th>
+            <th className="px-4 py-3">Tarifa de Courier</th>
             <th className="px-4 py-3">Pago a Motorizado</th>
             <th className="px-4 py-3">Estado</th>
             <th className="px-4 py-3">Acciones</th>

@@ -11,6 +11,7 @@ import type {
   PedidoDetalle,
   ReprogramarPedidoPayload,
   ReprogramarPedidoResponse,
+  ExportPedidosAsignadosPdfPayload,
 } from "./pedidos.types";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -374,4 +375,51 @@ export async function fetchPedidoDetalle(
     signal: opts?.signal,
   });
   return handle<PedidoDetalle>(res, "Error al obtener detalle del pedido");
+}
+
+export async function exportPedidosAsignadosPdf(
+  token: string,
+  payload: ExportPedidosAsignadosPdfPayload,
+  opts?: { signal?: AbortSignal }
+): Promise<Blob> {
+  if (!payload?.pedidoIds?.length) {
+    throw new Error("pedidoIds es requerido");
+  }
+
+  const res = await fetch(`${BASE_URL}/export-asignados-pdf`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+      Accept: "application/pdf",
+    },
+    body: JSON.stringify({
+      pedidoIds: payload.pedidoIds,
+      sedeId: payload.sedeId,
+    }),
+    signal: opts?.signal,
+  });
+
+  if (!res.ok) {
+    // intenta leer error JSON (message), si no hay, fallback
+    let message = "Error al exportar PDF";
+    try {
+      const body: unknown = await res.json();
+      if (hasMessage(body)) message = body.message;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
+  }
+
+  // ✅ IMPORTANT: esto NO es JSON, es PDF
+  const blob = await res.blob();
+
+  // Validación ligera por si el backend respondió otra cosa
+  if (!blob.type.includes("pdf")) {
+    // Puede pasar si un proxy responde HTML
+    throw new Error("La respuesta no es un PDF válido.");
+  }
+
+  return blob;
 }

@@ -171,7 +171,7 @@ export default function NewZonaTarifariaDrawer({
           <div className="flex gap-5">
             <InputxNumber
               name="tarifa_cliente"
-              label="Tarifa Cliente"
+              label="Tarifa de Courier"
               value={form.tarifa_cliente}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleChange("tarifa_cliente", e.target.value)

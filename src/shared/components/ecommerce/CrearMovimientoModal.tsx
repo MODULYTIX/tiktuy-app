@@ -18,12 +18,14 @@ interface Props {
   onClose: () => void;
   productos: Producto[];
   selectedProducts?: string[];
+  onSuccess?: () => void;
 }
 
 export default function CrearMovimientoModal({
   open,
   onClose,
   productos,
+  onSuccess,
 }: Props) {
   const { token } = useAuth();
   const { notify } = useNotification();
@@ -152,6 +154,7 @@ export default function CrearMovimientoModal({
       );
 
       notify("Movimiento registrado correctamente.", "success");
+      onSuccess?.(); // Trigger refresh
       onClose();
     } catch (e) {
       console.error(e);
@@ -169,8 +172,8 @@ export default function CrearMovimientoModal({
       s.entidad?.tipo === "ecommerce"
         ? " [ECOM]"
         : s.entidad?.tipo === "courier"
-        ? " [COURIER]"
-        : "";
+          ? " [COURIER]"
+          : "";
     return `${s.nombre_almacen}${rep}${tag}`;
   };
 
@@ -178,7 +181,7 @@ export default function CrearMovimientoModal({
 
   return (
     <div
-      // ✅ ahora sí: full alto pantalla (sin huecos raros)
+      //  ahora sí: full alto pantalla (sin huecos raros)
       className="h-[100dvh] max-h-[100dvh] w-[700px] max-w-[95vw] bg-white shadow-xl flex flex-col p-5 overflow-hidden min-h-0 gap-4"
       onClick={(e) => e.stopPropagation()}
     >

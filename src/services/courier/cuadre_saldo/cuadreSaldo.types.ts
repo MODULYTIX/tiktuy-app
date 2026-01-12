@@ -15,7 +15,6 @@ export type PedidoListItem = {
   id: number;
   fechaEntrega: string | Date | null;
 
-  // (si lo usas en la tabla)
   ecommerce?: string;
 
   cliente: string;
@@ -24,17 +23,22 @@ export type PedidoListItem = {
   metodoPago: string | null;
   monto: number;
 
-  // Servicio para REPARTIDOR
-  servicioRepartidor: number | null; // editable
-  servicioSugerido: number | null;   // de ZonaTarifario
-  servicioEfectivo: number;          // COALESCE(editable, sugerido, 0)
+  servicioRepartidor: number | null;
+  servicioSugerido: number | null;
+  servicioEfectivo: number;
+
+  // ✅ motivo del ajuste de servicio (no es rechazo)
   motivo?: string | null;
 
-  // Servicio para COURIER
-  servicioCourier: number | null;          // editable
-  servicioCourierEfectivo: number;         // COALESCE(servicio_courier, tarifa, 0)
+  // ✅ NUEVO: observación/nota del estado (ej: motivo de rechazo)
+  observacionEstado?: string | null;
 
-  // ✅ (opcional) si tu back lo manda en este listado
+  // (opcional) alias para UI si quieres mostrarlo como “Motivo” cuando fue rechazo
+  motivoRechazo?: string | null;
+
+  servicioCourier: number | null;
+  servicioCourierEfectivo: number;
+
   pagoEvidenciaUrl?: string | null;
 
   abonado: boolean;
@@ -108,23 +112,27 @@ export type DetalleServicioPedidoItem = {
   distrito: string | null;
 
   metodoPago: string | null;
-
-  // monto del pedido (por si quieres mostrarlo en el detalle)
   monto: number;
 
-  // repartidor
   servicioSugerido: number | null;
   servicioRepartidor: number | null;
   servicioEfectivo: number;
+
+  // ✅ motivo del ajuste de servicio (no rechazo)
   motivo?: string | null;
 
-  // courier
+  // ✅ NUEVO: observación del estado (motivo del rechazo)
+  observacionEstado?: string | null;
+
+  // (opcional) alias UI
+  motivoRechazo?: string | null;
+
   servicioCourier: number | null;
   servicioCourierEfectivo: number;
 
-  // ✅ evidencia por pedido (imagen/url)
   pagoEvidenciaUrl: string | null;
 };
+
 
 export type DetalleServiciosDiaResp = {
   fecha: string; // YYYY-MM-DD

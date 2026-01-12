@@ -21,9 +21,10 @@ const PAGE_SIZE = 6;
 
 interface Props {
   filters: MovimientoEcommerceFilters;
+  refreshTrigger?: number;
 }
 
-export default function MovimientoValidacionTable({ filters }: Props) {
+export default function MovimientoValidacionTable({ filters, refreshTrigger = 0 }: Props) {
   const { token } = useAuth();
   const { notify } = useNotification();
 
@@ -99,7 +100,7 @@ export default function MovimientoValidacionTable({ filters }: Props) {
       alive = false;
       ac.abort();
     };
-  }, [token, notify]);
+  }, [token, notify, refreshTrigger]);
 
   // Alias: Activo → Proceso
   const normalizeEstado = (nombre?: string) => {

@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import ImportLoadingModal from './ImportLoadingModal';
 import type { PreviewProductosResponseDTO } from '@/services/ecommerce/importExcelProducto/importexcel.type';
 import { previewProductosExcel } from '@/services/ecommerce/importExcelProducto/importexcel.api';
+import { fetchProductos } from '@/services/ecommerce/producto/producto.api';
 import ImportProductosPreviewModal from './producto/ImportPreviewModal';
 import { fetchAlmacenes } from '@/services/ecommerce/almacenamiento/almacenamiento.api';
 import { fetchCategorias } from '@/services/ecommerce/categoria/categoria.api';
@@ -27,6 +28,7 @@ export default function ImportExcelFlow({
   // Opciones precargadas (evita 2º loader)
   const [almacenOptions, setAlmacenOptions] = useState<Option[] | null>(null);
   const [categoriaOptions, setCategoriaOptions] = useState<Option[] | null>(null);
+  const [existingProductNames, setExistingProductNames] = useState<string[]>([]);
 
   const DEFAULT_CATEGORIES = [
     "Tecnología",
@@ -41,10 +43,9 @@ export default function ImportExcelFlow({
     "Libros/entretenimiento",
   ];
 
-  /**
+  /*
    * Transforma una lista de objetos en opciones únicas usando la clave `key`.
-   * - No requiere index signature en T.
-   * - Conversión segura a string.
+   * - Ordedas alfabéticamente (case-insensitive).
    */
   const toOptions = <T, K extends keyof T = keyof T>(
     arr: T[] | null | undefined,
@@ -56,7 +57,9 @@ export default function ImportExcelFlow({
       const v = (raw == null ? '' : String(raw)).trim();
       if (v) names.add(v);
     }
-    return Array.from(names).map((n) => ({ value: n, label: n }));
+    return Array.from(names)
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'accent' }))
+      .map((n) => ({ value: n, label: n }));
   };
 
   const openPicker = useCallback(() => {
@@ -75,27 +78,48 @@ export default function ImportExcelFlow({
 
       try {
         console.debug('[IMPORT:PRODUCTOS] Iniciando previsualización desde Excel...');
-        const [preview, almacenes, categorias] = await Promise.all([
+        const [preview, almacenes, categorias, productosResp] = await Promise.all([
           previewProductosExcel(file, token),
           fetchAlmacenes(token),
           fetchCategorias(token),
+          fetchProductos(token, { perPage: 2000, only_with_stock: false }), // Fetch para sugerencias
         ]);
 
         // Set datos de preview
         setPreviewData(preview);
 
+        // Nombres de productos existentes para sugerencias
+        const allProductNames = (productosResp.data || []).map(p => p.nombre_producto);
+        setExistingProductNames(allProductNames);
+
         // Opciones únicas precargadas
         const optsAlm = toOptions<Almacenamiento>(almacenes as Almacenamiento[], 'nombre_almacen');
 
-        let optsCat: Option[] = [];
-        const catsArr = categorias as Categoria[];
+        const cats = categorias as Categoria[];
+        let finalCategoryNames: string[] = [];
 
-        if (!catsArr || catsArr.length === 0) {
-          // Si no hay categorías en BD, usamos las defaults
-          optsCat = DEFAULT_CATEGORIES.map(c => ({ label: c, value: c }));
+        if (cats && cats.length > 0) {
+          const addedNames = new Set<string>();
+
+          // A: Agregar DEFAULT_CATEGORIES (Orden Lógico)
+          DEFAULT_CATEGORIES.forEach(defCat => {
+            finalCategoryNames.push(defCat);
+            addedNames.add(defCat.toLowerCase());
+          });
+
+          // B: Agregar las de BD que NO estén en DEFAULT (Orden Alfabético para el resto)
+          const extraCats = cats
+            .map(c => c.nombre.trim())
+            .filter(name => !addedNames.has(name.toLowerCase()))
+            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'accent' }));
+
+          finalCategoryNames.push(...extraCats);
         } else {
-          optsCat = toOptions<Categoria>(catsArr, 'nombre');
+          // Fallback a solo defaults
+          finalCategoryNames = [...DEFAULT_CATEGORIES];
         }
+
+        const optsCat = finalCategoryNames.map(name => ({ value: name, label: name }));
 
         setAlmacenOptions(optsAlm);
         setCategoriaOptions(optsCat);
@@ -162,6 +186,7 @@ export default function ImportExcelFlow({
           }}
           preloadedAlmacenOptions={almacenOptions ?? []}
           preloadedCategoriaOptions={categoriaOptions ?? []}
+          existingProductNames={existingProductNames}
         />
       )}
 

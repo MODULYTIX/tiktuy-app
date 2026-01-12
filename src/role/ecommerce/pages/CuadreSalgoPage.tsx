@@ -174,20 +174,23 @@ const CuadreSaldoPage: React.FC = () => {
   //    Servicios NO se tocan.
   const totals = useMemo(() => {
     const set = new Set(selected);
-    let cobVisible = 0;
-    let serv = 0;
+    let cobradoTotal = 0;
+    let directoTotal = 0;
+    let servicioTotal = 0;
 
     rows.forEach((r) => {
       if (!set.has(r.fecha)) return;
 
-      const directo = Number((r as any).directoEcommerceMonto ?? 0);
-      const cobradoReal = Number(r.cobrado ?? 0);
-
-      cobVisible += Math.max(0, cobradoReal - directo);
-      serv += Number(r.servicio ?? 0);
+      cobradoTotal += Number(r.cobrado ?? 0); // todo el cobrado, incluye directo
+      directoTotal += Number(r.directoEcommerceMonto ?? 0); // solo directo ecommerce
+      servicioTotal += Number(r.servicio ?? 0); // servicio total
     });
 
-    return { cobrado: cobVisible, servicio: serv };
+    return {
+      totalCobrado: cobradoTotal,
+      totalDirectoEcommerce: directoTotal,
+      totalServicio: servicioTotal,
+    };
   }, [selected, rows]);
 
   const confirmarValidacion = async () => {
@@ -310,13 +313,15 @@ const CuadreSaldoPage: React.FC = () => {
         open={openValidar}
         onClose={() => setOpenValidar(false)}
         fechas={selected}
-        totalCobrado={totals.cobrado}   // ✅ YA EXCLUYE DIRECTO_ECOMMERCE (visual)
-        totalServicio={totals.servicio} // ✅ NO se toca
+        totalCobrado={totals.totalCobrado}
+        totalDirectoEcommerce={totals.totalDirectoEcommerce}
+        totalServicio={totals.totalServicio}
         courierNombre={
           couriers.find((c) => c.id === Number(courierId))?.nombre ?? undefined
         }
         onConfirm={confirmarValidacion}
       />
+
     </div>
   );
 };

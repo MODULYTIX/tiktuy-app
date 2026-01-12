@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import {
   registrarManualMotorizado,
   getAuthToken,
+  listarTiposVehiculo,
 } from "@/services/courier/panel_control/panel_control.api";
 import type {
   RegistroManualMotorizadoPayload,
   TipoVehiculo,
+  TipoVehiculoCatalogo,
 } from "@/services/courier/panel_control/panel_control.types";
-import { TIPOS_VEHICULO } from "@/services/courier/panel_control/panel_control.types";
 
-// 🧩 Tus componentes
 import Tittlex from "@/shared/common/Tittlex";
 import { Inputx, InputxPhone } from "@/shared/common/Inputx";
 import Buttonx from "@/shared/common/Buttonx";
@@ -60,10 +60,35 @@ export default function PanelControlRegistroRepartidor({
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Nuevo estado para tipos de vehiculo
+  const [tiposVehiculo, setTiposVehiculo] = useState<TipoVehiculoCatalogo[]>([]);
+
+  useEffect(() => {
+    // Cargar catálogo de tipos
+    const token = getAuthToken();
+    if (token) {
+      listarTiposVehiculo(token)
+        .then((res) => {
+          if (res.ok) setTiposVehiculo(res.data);
+        })
+        .catch(console.error);
+    }
+  }, []);
+
   const handleInput = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
-  const handlePhoneChange = (v: string) => setPhoneLocal(v.replace(/\D/g, ""));
+  const handlePhoneChange = (v: string) => {
+    const cleaned = v.replace(/\D/g, "").slice(0, 9);
+    setPhoneLocal(cleaned);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text");
+    const cleaned = pasted.replace(/\D/g, "").slice(0, 9);
+    setPhoneLocal(cleaned);
+  };
 
   const validate = (f: FormState, phone: string): Errors => {
     const e: Errors = {};
@@ -221,6 +246,7 @@ export default function PanelControlRegistroRepartidor({
               placeholder="Ejem. 987654321"
               value={phoneLocal}
               onChange={(e) => handlePhoneChange(e.target.value)}
+              onPaste={handlePaste}
               className={errors.telefono ? "border-red-400" : ""}
               required
             />
@@ -256,14 +282,14 @@ export default function PanelControlRegistroRepartidor({
               onChange={(e) =>
                 handleInput("tipo_vehiculo", e.target.value as TipoVehiculo | "")
               }
-              placeholder="Selecciona una opción"
+              placeholder={tiposVehiculo.length ? "Selecciona una opción" : "Cargando..."}
               className={errors.tipo_vehiculo ? "border-red-400" : ""}
               required
             >
               <option value="">Seleccionar opción</option>
-              {TIPOS_VEHICULO.map((tv) => (
-                <option key={tv} value={tv}>
-                  {tv}
+              {tiposVehiculo.map((tv) => (
+                <option key={tv.id} value={tv.descripcion}>
+                  {tv.descripcion}
                 </option>
               ))}
             </Selectx>

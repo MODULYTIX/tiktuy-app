@@ -296,25 +296,28 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
         </div>
 
         {/* CHECK */}
+        {/* CHECK */}
         <div className="mx-6 mt-5">
-          <label className="flex cursor-pointer select-none gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+          <label className="flex cursor-pointer select-none gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
             <input
               type="checkbox"
               checked={checked}
               onChange={(e) => setChecked(e.target.checked)}
               className="mt-0.5 h-4 w-4 accent-emerald-600"
             />
-            <div className="min-w-0">
-              <div className="text-sm text-gray80">
-                Confirmo que verifiqué e hice la transferencia
-              </div>
-              <div className="mt-1 text-xs text-gray60">
-                Requerido para habilitar{" "}
-                <span className="font-medium">Confirmar</span>.
-              </div>
+
+            <div className="min-w-0 text-sm text-gray80 leading-snug">
+              <span className="font-medium">
+                Confirmo que todos los pedidos seleccionados están abonados
+              </span>{" "}
+              y que ya realicé la transferencia correspondiente.
+              <span className="block mt-1 text-xs text-amber-800">
+                ⚠️ Esta acción es definitiva y no se puede deshacer.
+              </span>
             </div>
           </label>
         </div>
+
 
         {/* FOOTER */}
         <div className="mt-6 flex items-center justify-end gap-2 border-t border-gray-100 px-6 py-4">

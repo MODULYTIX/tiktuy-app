@@ -178,7 +178,7 @@ export default function TableZonaMine({
               <tr className="font-roboto font-medium text-gray70">
                 <th className="px-4 py-3 text-left">Distrito</th>
                 <th className="px-4 py-3 text-left">Zona</th>
-                <th className="px-4 py-3 text-left">Tarifa Cliente</th>
+                <th className="px-4 py-3 text-left">Tarifa de Courier</th>
                 <th className="px-4 py-3 text-left">Pago a Motorizado</th>
                 <th className="px-4 py-3 text-left">Estado</th>
                 <th className="px-4 py-3 text-left">Acciones</th>

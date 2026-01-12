@@ -30,10 +30,17 @@ function withQuery(
   basePath: string,
   params: Record<string, string | number | boolean | undefined | null>
 ) {
-  const url = new URL(basePath, BASE_URL);
+  const cleanBase = BASE_URL.replace(/\/$/, "");
+  const cleanPath = basePath.startsWith("/") ? basePath : `/${basePath}`;
+
+  const url = new URL(`${cleanBase}${cleanPath}`);
+
   Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
+    if (v !== undefined && v !== null && v !== "") {
+      url.searchParams.set(k, String(v));
+    }
   });
+
   return url.toString();
 }
 
@@ -77,6 +84,9 @@ const normalizeYMD = (v: string | Date) => {
   return iso.slice(0, 10);
 };
 
+const isRejectedEstadoNombre = (nombre?: string | null) =>
+  (nombre ?? "").trim().toLowerCase() === "pedido rechazado";
+
 /* ================== API Calls ================== */
 
 /** GET /courier/cuadre-saldo/ecommerces */
@@ -103,10 +113,6 @@ export async function listCourierSedesCuadre(token: string): Promise<SedesCuadre
  * Donde:
  * - totalServicioCourier = SOLO courier (NO courier + repartidor)
  * - totalNeto = totalCobrado - totalServicioCourier
- *
- * Front:
- * - ResumenDia.servicioCourier = totalServicioCourier
- * - (compat) ResumenDia.servicio = servicioCourier (si tu UI lo usa)
  */
 export async function getEcommerceResumen(
   token: string,
@@ -137,28 +143,31 @@ export async function getEcommerceResumen(
     return {
       fecha: normalizeYMD(r.fecha),
       pedidos: Number(r.totalPedidos ?? 0),
+
       cobrado,
       servicioCourier,
-      // ✅ compat (si tu UI todavía usa "servicio")
+
+      // compatibilidad con UI antigua
       servicio: servicioCourier,
-      neto: Number.isFinite(Number(r.totalNeto))
-        ? Number(r.totalNeto)
-        : cobrado - servicioCourier,
+
+      neto:
+        Number.isFinite(Number(r.totalNeto))
+          ? Number(r.totalNeto)
+          : cobrado - servicioCourier,
+
       estado: (r.abonoEstado ?? "Sin Validar") as AbonoEstado,
     };
+
   });
 }
 
 /**
- * ✅ NUEVA LÓGICA (Modal del día - Ecommerce)
+ * ✅ Modal del día (Ecommerce)
  * GET /courier/cuadre-saldo/ecommerce/:ecommerceId/dia/:fecha/pedidos
  *
- * Backend (actualizado) debería devolver además:
- * - motivo (servicio_repartidor_motivo)
- * - pagoEvidenciaUrl (pago_evidencia_url)
- *
- * El cuadre de ecommerce usa SOLO servicioCourier,
- * pero igual devolvemos servicioRepartidor para mostrarlo si quieres.
+ * ✅ Ajuste pedido:
+ * - mostrar observacionEstado SOLO si estado_nombre/estadoNombre == "Pedido rechazado"
+ * - soporta snake_case y camelCase del backend sin romper
  */
 export async function getEcommercePedidosDia(
   token: string,
@@ -175,10 +184,21 @@ export async function getEcommercePedidosDia(
       cliente: string;
       metodoPago: string | null;
       monto: number;
+
       servicioCourier: number;
       servicioRepartidor: number;
-      motivo?: string | null; // ✅ nuevo
-      pagoEvidenciaUrl?: string | null; // ✅ nuevo
+
+      // ya lo tenías
+      motivo?: string | null;
+      pagoEvidenciaUrl?: string | null;
+
+      // ✅ NUEVO (compat): estado + observación (pueden venir en snake o camel)
+      estadoNombre?: string | null;
+      estado_nombre?: string | null;
+
+      observacionEstado?: string | null;
+      observacion_estado?: string | null;
+
       abonado: boolean;
     }>
   >(url, { headers: authHeaders(token) });
@@ -187,30 +207,41 @@ export async function getEcommercePedidosDia(
     const servicioCourier = Number(r.servicioCourier ?? 0);
     const servicioRepartidor = Number(r.servicioRepartidor ?? 0);
 
+    const estadoNombre = (r.estadoNombre ?? r.estado_nombre ?? null) as string | null;
+    const observacionRaw = (r.observacionEstado ?? r.observacion_estado ?? null) as string | null;
+
+    // ✅ SOLO si es rechazado, exponemos observacionEstado
+    const observacionEstado = isRejectedEstadoNombre(estadoNombre) ? observacionRaw : null;
+
     return {
       id: r.id,
       cliente: r.cliente,
       metodoPago: r.metodoPago ?? null,
       monto: Number(r.monto ?? 0),
+
       servicioCourier,
       servicioRepartidor,
+
       // opcional visual (NO usarlo como "servicio" del cuadre ecommerce)
       servicioTotal: servicioCourier + servicioRepartidor,
+
+      // motivo del ajuste del repartidor (servicio_repartidor_motivo)
       motivo: r.motivo ?? null,
+
+      // evidencia del repartidor
       pagoEvidenciaUrl: r.pagoEvidenciaUrl ?? null,
+
+      // ✅ observación del estado (solo cuando es rechazado)
+      observacionEstado,
+
       abonado: Boolean(r.abonado),
-    };
+    } as PedidoDiaItem;
   });
 }
 
 /**
- * ✅ NUEVA LÓGICA (Abono Ecommerce)
+ * ✅ Abono Ecommerce
  * PUT /courier/cuadre-saldo/ecommerce/abonar
- *
- * Backend (actualizado) debería devolver:
- * - totalCobradoSeleccionado
- * - totalServicioCourierSeleccionado (SOLO courier)
- * - totalAbonoSeleccionado = totalCobradoSeleccionado - totalServicioCourierSeleccionado
  */
 export async function abonarEcommerceFechas(
   token: string,
@@ -252,8 +283,8 @@ export async function abonarEcommerceFechas(
     ...(jsonPayload.fechas?.length
       ? { fechas: jsonPayload.fechas }
       : jsonPayload.fecha
-      ? { fecha: jsonPayload.fecha }
-      : {}),
+        ? { fecha: jsonPayload.fecha }
+        : {}),
   };
 
   const data = await request<AbonarEcommerceFechasResp>(url, {

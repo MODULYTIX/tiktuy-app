@@ -10,6 +10,7 @@ import TableActionx from "@/shared/common/TableActionx";
  * - evidencia (voucher del abono)
  * - evidenciaRepartidor (pago_evidencia_url)
  * - motivoRepartidor (servicio_repartidor_motivo)
+ * - observado_estado / observacion_estado (pedido rechazado)
  */
 type Row = PedidoDiaItem & {
   metodoPago?: string | null;
@@ -17,9 +18,19 @@ type Row = PedidoDiaItem & {
 
   evidencia?: string | null; // voucher del abono (abono_evidencia_url)
 
-  // ✅ NUEVO (repartidor)
+  // ✅ (repartidor)
   evidenciaRepartidor?: string | null; // pago_evidencia_url
   motivoRepartidor?: string | null; // servicio_repartidor_motivo
+
+  // ✅ (rechazo)
+  observadoEstado?: string | null;
+  observado_estado?: string | null;
+  observacionEstado?: string | null;
+  observacion_estado: string | null;
+
+  // (por si el BE manda estado)
+  estadoNombre?: string | null;
+  estado_nombre?: string | null;
 };
 
 type Props = {
@@ -57,7 +68,8 @@ const formatDMY = (ymd?: string) => {
       });
 };
 
-/* ✅ DIRECTO_ECOMMERCE (solo visual) */
+/* ================= helpers ================= */
+
 function metodoPagoDe(p: any): string | null {
   return (p?.metodoPago ?? p?.metodo_pago ?? null) as any;
 }
@@ -69,24 +81,65 @@ const normMetodoPago = (v: unknown) =>
     .toUpperCase()
     .replace(/\s+/g, "_");
 
-/** ✅ Etiqueta visual (NO toca lógica) */
-const metodoPagoLabel = (metodoPago: unknown) => {
-  const m = normMetodoPago(metodoPago);
-  if (!m) return "-";
-  if (m === "DIRECTO_ECOMMERCE") return "Pago digital a ecommerce";
-  if (m === "BILLETERA") return "Pago digital a courier";
-  return String(metodoPago ?? "-");
+const isRejectedPedido = (p: any): boolean => {
+  const st = String(p?.estadoNombre ?? p?.estado_nombre ?? "")
+    .trim()
+    .toLowerCase();
+  if (st === "pedido rechazado") return true;
+
+  // regla UI: sin método => rechazado
+  return !normMetodoPago(metodoPagoDe(p));
 };
 
-function isDirectEcommerce(p: any): boolean {
-  const mp = normMetodoPago(metodoPagoDe(p));
-  return mp === "DIRECTO_ECOMMERCE";
-}
+const metodoPagoLabel = (metodoPago: unknown) => {
+  const m = normMetodoPago(metodoPago);
+
+  // ✅ si no hay método => Pedido rechazado
+  if (!m) return "Pedido rechazado";
+
+  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
+  if (m === "BILLETERA") return "Pago Digital al Courier";
+  if (m === "EFECTIVO") return "Efectivo";
+
+  return String(metodoPago ?? "Pedido rechazado");
+};
+
+/**
+ * ✅ Reglas de monto:
+ * - Pedido rechazado => 0
+ * - DIRECTO_ECOMMERCE => muestra monto real (no se fuerza a 0)
+ */
 function montoVisual(p: any): number {
-  return isDirectEcommerce(p) ? 0 : Number(p?.monto ?? 0);
+  if (isRejectedPedido(p)) return 0;
+  return Number(p?.monto ?? 0);
 }
 
-/* ================= Descarga REAL (no abre pestaña) ================= */
+/** ✅ Motivo de columna:
+ * - Si RECHAZADO => observado_estado / observacion_estado
+ * - Si TIENE método => motivoRepartidor (edición servicio)
+ */
+function motivoColumna(p: any): string {
+  const rejected = isRejectedPedido(p);
+
+  if (rejected) {
+    const obs =
+      p?.observadoEstado ??
+      p?.observado_estado ??
+      p?.observacionEstado ??
+      p?.observacion_estado ??
+      "";
+    return String(obs ?? "").trim();
+  }
+
+  // si tiene método de pago => motivo de edición del servicio
+  const mp = normMetodoPago(metodoPagoDe(p));
+  if (mp) return String(p?.motivoRepartidor ?? "").trim();
+
+  return "";
+}
+
+/* ================= Descarga REAL ================= */
+
 const filenameFromUrl = (url: string, fallback = "archivo") => {
   try {
     const u = new URL(url);
@@ -108,7 +161,6 @@ const cloudinaryAttachmentUrl = (url: string) => {
 async function downloadHard(url: string, filename?: string) {
   const name = filename || filenameFromUrl(url, "descarga");
 
-  // 1) Robusto: fetch -> blob -> download
   try {
     const res = await fetch(url, { mode: "cors" });
     if (!res.ok) throw new Error("HTTP no OK");
@@ -126,7 +178,6 @@ async function downloadHard(url: string, filename?: string) {
     URL.revokeObjectURL(objectUrl);
     return;
   } catch {
-    // 2) Fallback Cloudinary: fl_attachment
     const forced = cloudinaryAttachmentUrl(url);
     if (forced) {
       const a = document.createElement("a");
@@ -138,7 +189,6 @@ async function downloadHard(url: string, filename?: string) {
       return;
     }
 
-    // 3) Último fallback (puede depender del servidor)
     const a = document.createElement("a");
     a.href = url;
     a.download = name;
@@ -161,7 +211,6 @@ export default function VizualisarPedidos({
 
   const title = useMemo(() => `Pedidos del día ${formatDMY(fecha)}`, [fecha]);
 
-  // voucher del abono (general): primera evidencia no-nula encontrada
   const evidenciaGeneral = useMemo<string | null>(() => {
     for (const r of rows) {
       const ev = (r as any).evidencia ?? null;
@@ -170,7 +219,6 @@ export default function VizualisarPedidos({
     return null;
   }, [rows]);
 
-  // ✅ Servicio total (para ecommerce) = SOLO servicio courier
   const servicioTotalEcommerce = useMemo(() => {
     return rows.reduce(
       (acc, r: any) => acc + Number(r?.servicioCourier ?? 0),
@@ -229,7 +277,6 @@ export default function VizualisarPedidos({
 
         {/* Body */}
         <div className="flex-1 min-h-0 overflow-y-auto bg-white px-4 sm:px-6 py-4">
-          {/* ✅ Tabla con margen + contenedor redondeado (sin línea negra abajo) */}
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
             <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
               <div className="text-sm font-bold text-slate-900">Detalle</div>
@@ -255,7 +302,7 @@ export default function VizualisarPedidos({
                       Cliente
                     </th>
                     <th className="px-4 py-3 border-b border-gray-200">
-                      Método de pago
+                      Método de pago / Estado
                     </th>
                     <th className="px-4 py-3 border-b border-gray-200">
                       Monto
@@ -298,7 +345,8 @@ export default function VizualisarPedidos({
                   {!loading &&
                     rows.map((p: any) => {
                       const mp = metodoPagoDe(p);
-                      const motivo = String(p?.motivoRepartidor ?? "").trim();
+                      const motivo = motivoColumna(p);
+
                       const evidenciaRep = (p?.evidenciaRepartidor ?? null) as
                         | string
                         | null;
@@ -317,22 +365,21 @@ export default function VizualisarPedidos({
                             </div>
                           </td>
 
-                          {/* ✅ AQUÍ: etiqueta visual como pediste */}
                           <td className="px-4 py-3 text-slate-700">
                             {metodoPagoLabel(mp)}
                           </td>
 
-                          {/* ✅ DIRECTO_ECOMMERCE => 0 (solo visual) */}
                           <td className="px-4 py-3 text-slate-700 tabular-nums">
                             {money(montoVisual(p))}
                           </td>
 
-                          {/* ✅ SOLO courier */}
                           <td className="px-4 py-3 text-slate-700 tabular-nums">
                             {money(Number(p?.servicioCourier ?? 0))}
                           </td>
 
-                          {/* ✅ Motivo */}
+                          {/* ✅ Motivo:
+                              - Rechazado => observado_estado / observacion_estado
+                              - Con método => motivoRepartidor (edición servicio) */}
                           <td className="px-4 py-3 text-slate-700">
                             {motivo ? (
                               <span className="text-slate-700">{motivo}</span>
@@ -341,7 +388,6 @@ export default function VizualisarPedidos({
                             )}
                           </td>
 
-                          {/* ✅ Evidencia repartidor */}
                           <td className="px-4 py-3">
                             {!evidenciaRep ? (
                               <span className="text-slate-400">—</span>
@@ -440,7 +486,7 @@ export default function VizualisarPedidos({
         </div>
       </div>
 
-      {/* Lightbox (overlay más suave + descarga real) */}
+      {/* Lightbox */}
       {previewUrl && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur-[2px] p-4"

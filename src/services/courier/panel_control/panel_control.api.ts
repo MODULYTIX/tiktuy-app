@@ -269,6 +269,20 @@ export async function listarMotorizadosAsociados(
   return handle<Motorizado[]>(res);
 }
 
+/**
+ * GET /motorizado/tipos-vehiculo
+ * Lista catálogo de tipos de vehículo.
+ */
+export async function listarTiposVehiculo(
+  token?: string
+): Promise<ApiResult<import("./panel_control.types").TipoVehiculoCatalogo[]>> {
+  const res = await fetch(`${BASE_URL}/motorizado/tipos-vehiculo`, {
+    method: "GET",
+    headers: buildHeaders(token),
+  });
+  return handle<import("./panel_control.types").TipoVehiculoCatalogo[]>(res);
+}
+
 /* ---------------- Utilidades opcionales ---------------- */
 
 /** Helper para leer el token de auth desde localStorage (si lo usas) */

@@ -457,14 +457,14 @@ export default function ModalEntregaRepartidor({
                 <OpcionCard
                   active={metodo === "BILLETERA"}
                   icon="mdi:qrcode-scan"
-                  title="Pago por Billetera Digital"
+                  title="Pago Digital al Courier"
                   onClick={() => handleMetodo("BILLETERA")}
                   activeColor="yellow"
                 />
                 <OpcionCard
                   active={metodo === "DIRECTO_ECOMMERCE"}
                   icon="mdi:credit-card-outline"
-                  title="Pago directo al Ecommerce"
+                  title="Pago Digital al Ecommerce"
                   onClick={() => handleMetodo("DIRECTO_ECOMMERCE")}
                   activeColor="blue"
                 />

@@ -37,8 +37,8 @@ export default function StepDatosPersonales({
 
   const set =
     (k: keyof Values) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      onChange({ [k]: e.target.value });
+      (e: React.ChangeEvent<HTMLInputElement>) =>
+        onChange({ [k]: e.target.value });
 
   // 👉 Solo números y máximo 8 dígitos para DNI
   const handleDniChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,6 +49,13 @@ export default function StepDatosPersonales({
   // 👉 Solo números y máximo 9 dígitos para celular
   const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const soloDigitos = e.target.value.replace(/\D/g, "").slice(0, 9);
+    onChange({ telefono: soloDigitos } as Partial<Values>);
+  };
+
+  const handleTelefonoPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text");
+    const soloDigitos = pasted.replace(/\D/g, "").slice(0, 9);
     onChange({ telefono: soloDigitos } as Partial<Values>);
   };
 
@@ -83,7 +90,7 @@ export default function StepDatosPersonales({
       setSuccessMsg(null);
       setErrorMsg(
         "Por favor revisa los siguientes campos antes de continuar:\n" +
-          errs.join("\n")
+        errs.join("\n")
       );
       return;
     }
@@ -157,6 +164,7 @@ export default function StepDatosPersonales({
               placeholder="Ejem. 987654321 (9 dígitos)"
               value={values.telefono}
               onChange={handleTelefonoChange}
+              onPaste={handleTelefonoPaste}
               maxLength={9}
               required
             />
