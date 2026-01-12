@@ -49,18 +49,18 @@ const toDMY = (ymd: string) => {
 /** Normalizadores */
 const montoDe = (i: any) => Number(i?.monto ?? i?.monto_recaudar ?? 0);
 
-// ✅ servicio total (para ecommerce) = SOLO servicio courier
+// servicio total (para ecommerce) = SOLO servicio courier
 const servicioDe = (i: any) =>
   Number(
     i?.servicioCourier ??
-      i?.servicio_courier ??
-      i?.servicioCourierEfectivo ??
-      i?.servicio_courier_efectivo ??
-      0
+    i?.servicio_courier ??
+    i?.servicioCourierEfectivo ??
+    i?.servicio_courier_efectivo ??
+    0
   );
 
 /* ===========================
-   ✅ reglas de cobrado / rechazados
+   reglas de cobrado / rechazados
    - DIRECTO_ECOMMERCE => cobrado 0
    - SIN método de pago => "Pedido rechazado" => cobrado 0
    - Rechazados SOLO se muestran cuando it.abonado === true (courier -> repartidor)
@@ -74,8 +74,8 @@ const normMetodoPago = (v: unknown) =>
     .replace(/\s+/g, "_");
 
 /** Detecta "Pedido rechazado"
- *  ✅ Si backend manda estadoNombre/estado_nombre úsalo
- *  ✅ Si NO hay método de pago => lo tratamos como rechazado (tu regla de UI)
+ *  Si backend manda estadoNombre/estado_nombre úsalo
+ *  Si NO hay método de pago => lo tratamos como rechazado (tu regla de UI)
  */
 const isRejectedPedido = (it: any): boolean => {
   const st = String(it?.estadoNombre ?? it?.estado_nombre ?? "")
@@ -90,7 +90,7 @@ const isRejectedPedido = (it: any): boolean => {
     it?.metodoPagoNombre ??
     null;
 
-  // ✅ tu regla: si no hay método => "Pedido rechazado"
+  // tu regla: si no hay método => "Pedido rechazado"
   return !normMetodoPago(mp);
 };
 
@@ -105,13 +105,13 @@ function isDirectEcommerce(i: any): boolean {
   return mp === "DIRECTO_ECOMMERCE";
 }
 
-// ✅ Cobrado visual:
+// Cobrado visual:
 // - si DIRECTO_ECOMMERCE => 0
 // - si Pedido rechazado (sin método) => 0
 const cobradoDe = (i: any) =>
   isRejectedPedido(i) ? 0 : isDirectEcommerce(i) ? 0 : montoDe(i);
 
-// ✅ Pequeño limitador de concurrencia para no reventar el backend
+// Pequeño limitador de concurrencia para no reventar el backend
 async function mapLimit<T, R>(
   list: T[],
   limit: number,
@@ -139,7 +139,7 @@ type ResumenRow = ResumenDia & { estado?: AbonoEstado };
 
 const ITEMS_PER_PAGE = 8;
 
-// ✅ Helpers selección: NO permitir "Por Validar" ni "Validado"
+// Helpers selección: NO permitir "Por Validar" ni "Validado"
 const isSelectableEstado = (estado?: AbonoEstado) => {
   const st = (estado ?? "Sin Validar") as AbonoEstado;
   return st === "Sin Validar";
@@ -233,7 +233,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
   const sedeIdNumber = typeof sedeId === "number" ? sedeId : undefined;
 
-  // ✅ ids seleccionables (solo "Sin Validar")
+  // ids seleccionables (solo "Sin Validar")
   const selectableFechas = useMemo(
     () => rows.filter((r) => isSelectableEstado(r.estado)).map((r) => r.fecha),
     [rows]
@@ -300,8 +300,8 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
       const baseRows: ResumenRow[] = (data ?? []) as ResumenRow[];
 
-      // ✅ Recalcular COBRADO/NETO usando el detalle
-      // ✅ y REGRA CLAVE:
+      // Recalcular COBRADO/NETO usando el detalle
+      // y REGRA CLAVE:
       //    - "Pedido rechazado" solo cuenta/lista si it.abonado === true
       //    - si después de filtrar NO queda ningún item, NO mostramos ese día (no se crea fila)
       const fixedRowsMaybe = await mapLimit(baseRows, 5, async (r) => {
@@ -316,10 +316,10 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
           const list = listRaw.filter((it: any) => {
             if (!isRejectedPedido(it)) return true;
-            return Boolean(it?.abonado); // ✅ solo mostrar rechazados si ya fue abonado al repartidor
+            return Boolean(it?.abonado); // solo mostrar rechazados si ya fue abonado al repartidor
           });
 
-          // ✅ si NO hay pedidos válidos (p. ej. solo rechazados sin abonar), no mostrar el día
+          // si NO hay pedidos válidos (p. ej. solo rechazados sin abonar), no mostrar el día
           if (list.length === 0) return null as any;
 
           const cobrado = list.reduce(
@@ -336,7 +336,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
           return {
             ...r,
             cobrado,
-            servicioCourier: servicio, // ✅ tu tabla pinta r.servicioCourier
+            servicioCourier: servicio,  
             neto,
           } as ResumenRow;
         } catch {
@@ -351,7 +351,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
 
       setRows(fixedRows);
 
-      // ✅ si ya habían seleccionado fechas y ahora cambiaron de estado, las sacamos
+      // si ya habían seleccionado fechas y ahora cambiaron de estado, las sacamos
       setSelectedFechas((prev) =>
         prev.filter((f) => fixedRows.some((x) => x.fecha === f && isSelectableEstado(x.estado)))
       );
@@ -371,7 +371,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   }, [ecoId, desde, hasta, sedeIdNumber]);
 
   const toggleFecha = (fecha: string) => {
-    // ✅ no permitir seleccionar si no está en "Sin Validar"
+    // no permitir seleccionar si no está en "Sin Validar"
     const row = rows.find((x) => x.fecha === fecha);
     if (!row || !isSelectableEstado(row.estado)) return;
 
@@ -381,7 +381,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
   };
 
   const toggleAllFechas = () => {
-    // ✅ selecciona solo las "Sin Validar"
+    // selecciona solo las "Sin Validar"
     if (isAllSelected) setSelectedFechas([]);
     else setSelectedFechas(selectableFechas);
   };
@@ -400,7 +400,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       );
       const listRaw = Array.isArray(arr) ? arr : (arr as any)?.items ?? [];
 
-      // ✅ misma regla en el modal: rechazados solo si ya fueron abonados al repartidor
+      // misma regla en el modal: rechazados solo si ya fueron abonados al repartidor
       const list = listRaw.filter((it: any) => {
         if (!isRejectedPedido(it)) return true;
         return Boolean(it?.abonado);
@@ -419,7 +419,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     if (!ecoId || typeof ecoId !== "number" || selectedFechas.length === 0)
       return;
 
-    // ✅ seguridad extra: solo "Sin Validar"
+    // seguridad extra: solo "Sin Validar"
     const fechasOk = selectedFechas.filter((f) => selectableFechas.includes(f));
     if (fechasOk.length === 0) return;
 
@@ -430,7 +430,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
           const r = await getEcommercePedidosDia(token, ecoId, f, sedeIdNumber);
           const listRaw = (Array.isArray(r) ? r : (r as any)?.items ?? []) as any[];
 
-          // ✅ por consistencia: rechazados solo si abonado (si no, ni deberían existir como fila,
+          // por consistencia: rechazados solo si abonado (si no, ni deberían existir como fila,
           // pero esto evita totals raros)
           return listRaw.filter((it: any) => {
             if (!isRejectedPedido(it)) return true;
@@ -459,20 +459,20 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
     [detalleItems]
   );
 
-  const abrirConfirmDetalle = () => {
-    // ✅ si el día no es "Sin Validar", no permitir abonar desde el detalle
-    const row = rows.find((x) => x.fecha === detalleFecha);
-    if (row && !isSelectableEstado(row.estado)) return;
+  // const abrirConfirmDetalle = () => {
+  //   // si el día no es "Sin Validar", no permitir abonar desde el detalle
+  //   const row = rows.find((x) => x.fecha === detalleFecha);
+  //   if (row && !isSelectableEstado(row.estado)) return;
 
-    const todos = detalleItems;
+  //   const todos = detalleItems;
 
-    setConfirmFechas([detalleFecha]);
-    setConfirmCobrado(todos.reduce((acc, i) => acc + cobradoDe(i), 0));
-    setConfirmServicio(todos.reduce((acc, i) => acc + servicioDe(i), 0));
-    setConfirmCount(todos.length);
+  //   setConfirmFechas([detalleFecha]);
+  //   setConfirmCobrado(todos.reduce((acc, i) => acc + cobradoDe(i), 0));
+  //   setConfirmServicio(todos.reduce((acc, i) => acc + servicioDe(i), 0));
+  //   setConfirmCount(todos.length);
 
-    setOpenConfirm(true);
-  };
+  //   setOpenConfirm(true);
+  // };
 
   const confirmarAbono = async (voucherFile: File | null) => {
     try {
@@ -484,7 +484,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         alert("Debes seleccionar al menos una fecha para abonar.");
         return;
       }
-      // ✅ seguridad: solo "Sin Validar"
+      //  seguridad: solo "Sin Validar"
       const fechasOk = confirmFechas.filter((f) =>
         selectableFechas.includes(f)
       );
@@ -516,7 +516,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         )
       );
 
-      // ✅ limpia selección de las fechas que ya quedaron por validar
+      // limpia selección de las fechas que ya quedaron por validar
       setSelectedFechas((prev) =>
         prev.filter((f) => !fechasMarcadas.includes(f))
       );
@@ -527,7 +527,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       setConfirmServicio(0);
       setConfirmCount(0);
 
-      alert("✅ Abono enviado correctamente con voucher.");
+      alert("Abono enviado correctamente con voucher.");
       await loadResumen();
     } catch (e: any) {
       console.error("Error al confirmar abono:", e);
@@ -577,8 +577,8 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
             loadingSedes
               ? "Cargando sedes..."
               : canFilterBySede
-              ? "Todas las sedes"
-              : "Sede actual"
+                ? "Todas las sedes"
+                : "Sede actual"
           }
           className="w-full"
           disabled={loadingSedes || (!canFilterBySede && sedes.length <= 1)}
@@ -712,8 +712,8 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                       estado === "Validado"
                         ? "bg-gray90 text-white"
                         : estado === "Sin Validar"
-                        ? "bg-gray30 text-gray80"
-                        : "bg-blue-100 text-blue-900";
+                          ? "bg-gray30 text-gray80"
+                          : "bg-blue-100 text-blue-900";
 
                     return (
                       <tr
@@ -740,7 +740,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                           {toDMY(r.fecha)}
                         </td>
 
-                        {/* ✅ Ya viene recalculado:
+                        {/* Ya viene recalculado:
                             - DIRECTO_ECOMMERCE => 0
                             - Pedido rechazado (sin método) => 0
                             - Rechazados solo si abonado */}
@@ -748,7 +748,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
                           {formatPEN(r.cobrado)}
                         </td>
 
-                        {/* ✅ Servicio total (Ecommerce) = SOLO courier */}
+                        {/* Servicio total (Ecommerce) = SOLO courier */}
                         <td className="px-4 py-3 text-gray70">
                           {formatPEN(r.servicioCourier)}
                         </td>
@@ -827,8 +827,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         items={detalleItems}
         loading={detalleLoading}
         onClose={() => setOpenDetalle(false)}
-        onAbonarDia={abrirConfirmDetalle}
-        totalServicio={totalDetalleServicio} // ✅ solo courier
+        totalServicio={totalDetalleServicio}
       />
 
       <ConfirmAbonoModal
@@ -838,7 +837,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
         fechas={confirmFechas}
         pedidosCount={confirmCount}
         cobradoTotal={confirmCobrado}
-        servicioTotal={confirmServicio} // ✅ solo courier
+        servicioTotal={confirmServicio}
         onCancel={() => setOpenConfirm(false)}
         onConfirm={confirmarAbono}
       />

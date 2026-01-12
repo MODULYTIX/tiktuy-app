@@ -36,11 +36,11 @@ const normMetodoPago = (v: unknown) =>
     .toUpperCase()
     .replace(/\s+/g, "_");
 
-/** ✅ Etiqueta visual para método de pago (NO afecta lógica) */
+/** Etiqueta visual para método de pago (NO afecta lógica) */
 const metodoPagoLabel = (metodoPago: unknown) => {
   const m = normMetodoPago(metodoPago);
 
-  // ✅ si no hay método => Pedido rechazado
+  // si no hay método => Pedido rechazado
   if (!m) return "Pedido rechazado";
 
   if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
@@ -63,19 +63,19 @@ const isRejected = (it: any) => {
 };
 
 
-// ✅ monto visual:
+// monto visual:
 // - DIRECTO_ECOMMERCE => 0 (solo UI)
 // - Pedido rechazado => 0
 function montoVisual(it: any): number {
   const mp = normMetodoPago(it?.metodoPago ?? it?.metodo_pago);
 
-  // ✅ Caso 1: método vacío → Pedido rechazado visual
+  // Caso 1: método vacío → Pedido rechazado visual
   if (!mp) return 0;
 
-  // ✅ Caso 2: pago directo ecommerce
+  // Caso 2: pago directo ecommerce
   if (mp === "DIRECTO_ECOMMERCE") return 0;
 
-  // ✅ Caso 3: estado rechazado explícito (por si acaso)
+  // Caso 3: estado rechazado explícito (por si acaso)
   if (isRejected(it)) return 0;
 
   return Number(it?.monto ?? 0);
@@ -83,7 +83,7 @@ function montoVisual(it: any): number {
 
 
 /**
- * ✅ Rechazados: solo listar cuando el courier ya editó o abonó al repartidor.
+ * Rechazados: solo listar cuando el courier ya editó o abonó al repartidor.
  */
 function canShowRejected(it: any): boolean {
   if (!isRejected(it)) return true;
@@ -106,7 +106,7 @@ function canShowRejected(it: any): boolean {
 }
 
 /**
- * ✅ Determina el estado del abono ecommerce por pedido
+ * Determina el estado del abono ecommerce por pedido
  * Reglas:
  * - Si viene el nombre del estado desde BE: usarlo
  * - Si no viene, fallback: si hay evidencia de abono => asumimos Por Validar/Validado
@@ -146,23 +146,16 @@ const EcommerceDetalleModal: React.FC<Props> = ({
 
 
 
-  // ✅ descarga real
+  // descarga real
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  // ✅ Filtrado final: rechazados solo si courier ya editó o abonó
+  // Filtrado final: rechazados solo si courier ya editó o abonó
   const visibleItems = useMemo(
     () => items.filter((it: any) => canShowRejected(it)),
     [items]
   );
-  const totalMontoVisible = useMemo(
-    () =>
-      visibleItems.reduce(
-        (acc, it: any) => acc + montoVisual(it),
-        0
-      ),
-    [visibleItems]
-  );
+
 
   const totalServicioCourierDia = useMemo(
     () =>
@@ -402,12 +395,12 @@ const EcommerceDetalleModal: React.FC<Props> = ({
                                 </div>
                               </td>
 
-                              {/* ✅ método con label */}
+                              {/* método con label */}
                               <td className="px-4 py-3 text-gray70">
                                 {metodoPagoLabel(it.metodoPago)}
                               </td>
 
-                              {/* ✅ monto 0 si rechazado o DIRECTO_ECOMMERCE */}
+                              {/* monto 0 si rechazado o DIRECTO_ECOMMERCE */}
                               <td className={`px-4 py-3 ${isRejected(it) ? "text-gray-400 italic" : "text-gray70"}`}>
                                 {formatPEN(montoVisual(it))}
                               </td>
