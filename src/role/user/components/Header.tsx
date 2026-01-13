@@ -35,9 +35,9 @@ export default function Header() {
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.8)_0%,rgba(0,0,0,0)_100%)] z-0" />
 
         {/* Navbar */}
-        <nav className="w-full relative z-10 flex items-center justify-between px-10 py-10 backdrop-blur-md">
-          <div className="w-[280px] flex items-center">
-            <img src={logoTiktuy} alt="Tiktuy logo" className="h-8" />
+        <nav className="w-full relative z-10 flex items-center justify-between px-6 py-6 md:px-10 md:py-10 backdrop-blur-md">
+          <div className="flex items-center w-auto">
+            <img src={logoTiktuy} alt="Tiktuy logo" className="h-6 md:h-8" />
           </div>
 
           <ul className="hidden md:flex gap-10 text-lg text-gray-400">
@@ -48,10 +48,10 @@ export default function Header() {
             <li><a href="#solicitar" onClick={goTo("solicitar")} className={linkStyle}>Solicitar</a></li>
           </ul>
 
-          <div className="w-[280px] flex items-center justify-end gap-4">
+          <div className="flex items-center justify-end gap-4 w-auto">
             <Link
               to="/login"
-              className="bg-[#0070CE] hover:bg-[#005fae] text-white px-10 py-2 rounded-md text-lg transition"
+              className="bg-[#0070CE] hover:bg-[#005fae] text-white px-5 py-2 md:px-10 rounded-md text-sm md:text-lg transition"
             >
               Iniciar sesión
             </Link>
