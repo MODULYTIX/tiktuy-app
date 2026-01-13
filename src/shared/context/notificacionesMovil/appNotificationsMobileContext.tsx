@@ -48,6 +48,7 @@ export function AppNotificationsProvider({ children }: { children: React.ReactNo
     if (!token) return;
     const url = import.meta.env.VITE_API_URL as string;
     const s = socketClient(url, { auth: { token } });
+
     socketRef.current = s;
 
     s.on('notificacion:nueva', (n: Notificacion) => {
