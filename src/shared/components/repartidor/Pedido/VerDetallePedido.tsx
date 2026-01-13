@@ -237,6 +237,15 @@ export default function ModalPedidoDetalle({
       ? `https://wa.me/${String(telefono).replace(/\D/g, "")}`
       : undefined;
 
+  const referenciaHref =
+    referencia !== "—"
+      ? referencia.startsWith("http")
+        ? referencia
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          referencia
+        )}`
+      : undefined;
+
   const monto_total = new Intl.NumberFormat("es-PE", {
     style: "currency",
     currency: "PEN",
@@ -354,12 +363,19 @@ export default function ModalPedidoDetalle({
                   value={direccion}
                   multiline
                 />
-                <InfoRow
-                  icon="mdi:message-text-outline"
-                  label="Referencia"
-                  value={referencia}
-                  multiline
-                />
+                <a
+                  className={`block ${!referenciaHref ? "pointer-events-none" : ""}`}
+                  target="_blank"
+                  href={referenciaHref}
+                  rel="noreferrer"
+                >
+                  <InfoRow
+                    icon="mdi:message-text-outline"
+                    label="Referencia"
+                    value={referencia}
+                    multiline
+                  />
+                </a>
                 <InfoRow
                   icon="mdi:store-outline"
                   label="Ecommerce"
