@@ -18,17 +18,17 @@ import {
 function canalToIcon(canal?: Notificacion['canal']): string {
   switch (canal) {
     case 'WHATSAPP': return 'mdi:whatsapp';
-    case 'EMAIL':    return 'mdi:email-outline';
-    default:         return 'mdi:bell-outline';
+    case 'EMAIL': return 'mdi:email-outline';
+    default: return 'mdi:bell-outline';
   }
 }
 function tipoToType(tipo?: Notificacion['tipo']): AppNotification['type'] {
   switch (tipo) {
-    case 'PEDIDO':     return 'pedido';
-    case 'ALERTA':     return 'alerta';
+    case 'PEDIDO': return 'pedido';
+    case 'ALERTA': return 'alerta';
     case 'SISTEMA':
     case 'INVITACION':
-    default:           return 'sistema';
+    default: return 'sistema';
   }
 }
 function mapNotiToApp(n: Notificacion): AppNotification {
@@ -110,6 +110,7 @@ export function AppNotificationsMobileProvider({ children }: { children: React.R
     if (!token) return;
     const url = import.meta.env.VITE_API_URL as string;
     const s: Socket = socketClient(url, { auth: { token } });
+
     s.on('notificacion:nueva', (n: Notificacion) => {
       setItems((prev) => {
         const mapped = mapNotiToApp(n);

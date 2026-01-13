@@ -15,10 +15,11 @@ import {
 import { io, Socket } from 'socket.io-client';
 function getSocket(): Socket {
   const token = localStorage.getItem('token');
-  return io(import.meta.env.VITE_API_WS_URL, {
+  return io(import.meta.env.VITE_API_URL, {
     transports: ['websocket'],
     auth: { token },
   });
+
 }
 
 interface Props {
