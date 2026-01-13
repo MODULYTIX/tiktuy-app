@@ -62,10 +62,10 @@ const formatDMY = (ymd?: string) => {
   return isNaN(dt.getTime())
     ? ymd
     : dt.toLocaleDateString("es-PE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
 };
 
 /* ================= helpers ================= */
@@ -447,7 +447,7 @@ export default function VizualisarPedidos({
                       Archivo
                     </div>
                     <div className="mt-1 text-sm text-slate-800 truncate">
-                      {evidenciaGeneral}
+                      {filenameFromUrl(evidenciaGeneral)}
                     </div>
                   </div>
 
@@ -502,7 +502,7 @@ export default function VizualisarPedidos({
                   Vista previa
                 </div>
                 <div className="text-xs text-slate-500 truncate">
-                  {previewUrl}
+                  {filenameFromUrl(previewUrl)}
                 </div>
               </div>
 

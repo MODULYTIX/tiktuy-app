@@ -46,7 +46,7 @@ const PEN = new Intl.NumberFormat("es-PE", {
 });
 const two = (n: number) => String(n).padStart(2, "0");
 
-// 🔑 NORMALIZA cualquier fecha a YYYY-MM-DD
+//  NORMALIZA cualquier fecha a YYYY-MM-DD
 function normalizeDateOnly(v?: string) {
   if (!v) return undefined;
   return v.slice(0, 10); // evita timezone / ISO issues
@@ -378,7 +378,7 @@ export default function TablePedidoCourier({
     setPage(p);
   };
 
-  // 👁️ Ver detalle
+  //  Ver detalle
   const handleVerDetalle = async (pedidoId: number) => {
     try {
       const data = await fetchPedidoDetalle(token, pedidoId);
@@ -821,7 +821,7 @@ export default function TablePedidoCourier({
                         <div className="flex items-center justify-center gap-3">
                           <TableActionx
                             variant="view"
-                            title={`Ver ${p.id}`}
+                            title={`Ver `}
                             onClick={() => handleVerDetalle(p.id)}
                             size="sm"
                           />
@@ -829,7 +829,7 @@ export default function TablePedidoCourier({
                           {view === "asignados" && (
                             <TableActionx
                               variant="custom"
-                              title={`Reprogramar ${p.id}`}
+                              title={`Reprogramar`}
                               icon="mdi:calendar-edit"
                               colorClassName="bg-amber-100 text-amber-700 ring-1 ring-amber-300 hover:bg-amber-200 hover:ring-amber-400 focus-visible:ring-amber-500"
                               onClick={() => openReprogramar(p)}
@@ -840,7 +840,7 @@ export default function TablePedidoCourier({
                           {view === "pendientes" && (
                             <TableActionx
                               variant="custom"
-                              title={`Reasignar ${p.id}`}
+                              title={`Reasignar `}
                               icon="mdi:swap-horizontal"
                               colorClassName="bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300 hover:bg-indigo-200 hover:ring-indigo-400 focus-visible:ring-indigo-500"
                               onClick={() => handleReasignar(p)}
