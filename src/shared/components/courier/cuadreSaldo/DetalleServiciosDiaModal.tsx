@@ -498,14 +498,7 @@ export default function DetalleServiciosDiaModal({
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <div className="text-[12px] text-gray60">
-                        Servicio total
-                      </div>
-                      <div className="mt-1 text-[14px] font-semibold text-gray90">
-                        {formatPEN(totals.servicioTotal)}
-                      </div>
-                    </div>
+                   
                   </div>
 
                   <div className="mt-4 rounded-xl border border-gray20 bg-gray10 p-3">
