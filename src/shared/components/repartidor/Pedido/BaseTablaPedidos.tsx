@@ -431,7 +431,7 @@ export default function BaseTablaPedidos({
               <thead className="bg-[#E5E7EB]">
                 <tr className="text-gray70 font-roboto font-medium">
                   <th className="px-4 py-3 whitespace-nowrap">Fec. Entrega</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Ecommerce</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Distrito</th>
                   <th className="px-4 py-3 whitespace-nowrap">Cliente</th>
                   <th className="px-4 py-3 whitespace-nowrap">
                     Dirección de Entrega
@@ -476,7 +476,7 @@ export default function BaseTablaPedidos({
                         {formatDateOnlyFromIso(fecha)}
                       </td>
                       <td className="h-12 px-4 py-3 text-gray70">
-                        {p.ecommerce?.nombre_comercial ?? "—"}
+                        {p.cliente?.distrito ?? "—"}
                       </td>
                       <td className="h-12 px-4 py-3 text-gray70">
                         {p.cliente?.nombre ?? "—"}
