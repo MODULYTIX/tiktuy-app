@@ -69,14 +69,6 @@ export default function AdminHomePage() {
 
   useEffect(() => {
     load();
-
-    // Auto-update when window regains focus (e.g. returning from an external process/popup)
-    const onFocus = () => load();
-    window.addEventListener("focus", onFocus);
-
-    return () => {
-      window.removeEventListener("focus", onFocus);
-    };
   }, [load]);
 
   // handlers filtros

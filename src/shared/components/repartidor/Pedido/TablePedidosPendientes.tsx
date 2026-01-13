@@ -29,6 +29,7 @@ type Props = {
   token: string;
   onVerDetalle?: (pedidoId: number) => void;
   onCambiarEstado?: (pedido: PedidoListItem) => void;
+  refreshKey?: number;
 };
 
 export default function TablePedidosPendientes(props: Props) {
@@ -53,6 +54,7 @@ export default function TablePedidosPendientes(props: Props) {
       fetcher={fetcher}
       title="Pedidos Pendientes"
       subtitle="Pedidos en gestión."
+      refreshKey={props.refreshKey}
     />
   );
 }

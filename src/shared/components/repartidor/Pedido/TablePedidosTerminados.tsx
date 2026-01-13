@@ -8,6 +8,7 @@ type Props = {
   token: string;
   onVerDetalle?: (pedidoId: number) => void;
   onCambiarEstado?: (pedido: PedidoListItem) => void;
+  refreshKey?: number;
 };
 
 export default function TablePedidosTerminados(props: Props) {
@@ -26,6 +27,7 @@ export default function TablePedidosTerminados(props: Props) {
       fetcher={fetcher}
       title="Pedidos Terminados"
       subtitle="Pedidos completados o finalizados."
+      refreshKey={props.refreshKey}
     />
   );
 }

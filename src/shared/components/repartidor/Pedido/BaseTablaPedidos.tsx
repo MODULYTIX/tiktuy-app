@@ -26,6 +26,7 @@ type PropsBase = {
   ) => Promise<Paginated<PedidoListItem>>;
   title: string;
   subtitle: string;
+  refreshKey?: number;
 };
 
 const PEN = new Intl.NumberFormat("es-PE", {
@@ -98,10 +99,10 @@ function EstadoBadge({ estado }: { estado?: string | null }) {
   const cls = s.includes("entregado")
     ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
     : s.includes("rechaz") || s.includes("cancel") || s.includes("devuelt")
-    ? "bg-red-50 text-red-700 border border-red-200"
-    : s.includes("no responde") || s.includes("equivoc")
-    ? "bg-amber-50 text-amber-800 border border-amber-200"
-    : "bg-amber-50 text-amber-800 border border-amber-200"; // default amarillo (evitamos gris)
+      ? "bg-red-50 text-red-700 border border-red-200"
+      : s.includes("no responde") || s.includes("equivoc")
+        ? "bg-amber-50 text-amber-800 border border-amber-200"
+        : "bg-amber-50 text-amber-800 border border-amber-200"; // default amarillo (evitamos gris)
 
   return (
     <Badgex className={cls} title={raw} shape="soft" size="sm">
@@ -118,6 +119,7 @@ export default function BaseTablaPedidos({
   fetcher,
   title,
   subtitle,
+  refreshKey,
 }: PropsBase) {
   const [page, setPage] = useState(1);
   const [desde, setDesde] = useState("");
@@ -146,7 +148,7 @@ export default function BaseTablaPedidos({
     if (page !== 1) {
       setPage(1);
     }
-  }, [filtroDistrito, filtroCantidad, searchProducto, desde, hasta]);
+  }, [filtroDistrito, filtroCantidad, searchProducto, desde, hasta, refreshKey]);
 
   const qHoy: ListPedidosHoyQuery = useMemo(
     () => ({
@@ -197,7 +199,7 @@ export default function BaseTablaPedidos({
     })();
 
     return () => ac.abort();
-  }, [token, view, qHoy, qEstado, fetcher]);
+  }, [token, view, qHoy, qEstado, fetcher, refreshKey]);
 
   const itemsBase = data?.items ?? [];
   const distritos = useMemo(
@@ -318,40 +320,40 @@ export default function BaseTablaPedidos({
             {(view === "hoy" ||
               view === "pendientes" ||
               view === "terminados") && (
-              <>
-                <div className="min-w-0">
-                  <SelectxDate
-                    label="Fech. Inicio"
-                    value={desde}
-                    onChange={(value) => {
-                      const ymd = normalizeToYMD(
-                        typeof value === "string"
-                          ? value
-                          : (value as any)?.target?.value
-                      );
-                      setDesde(ymd);
-                    }}
-                    className="w-full"
-                  />
-                </div>
+                <>
+                  <div className="min-w-0">
+                    <SelectxDate
+                      label="Fech. Inicio"
+                      value={desde}
+                      onChange={(value) => {
+                        const ymd = normalizeToYMD(
+                          typeof value === "string"
+                            ? value
+                            : (value as any)?.target?.value
+                        );
+                        setDesde(ymd);
+                      }}
+                      className="w-full"
+                    />
+                  </div>
 
-                <div className="min-w-0">
-                  <SelectxDate
-                    label="Fech. Fin"
-                    value={hasta}
-                    onChange={(value) => {
-                      const ymd = normalizeToYMD(
-                        typeof value === "string"
-                          ? value
-                          : (value as any)?.target?.value
-                      );
-                      setHasta(ymd);
-                    }}
-                    className="w-full"
-                  />
-                </div>
-              </>
-            )}
+                  <div className="min-w-0">
+                    <SelectxDate
+                      label="Fech. Fin"
+                      value={hasta}
+                      onChange={(value) => {
+                        const ymd = normalizeToYMD(
+                          typeof value === "string"
+                            ? value
+                            : (value as any)?.target?.value
+                        );
+                        setHasta(ymd);
+                      }}
+                      className="w-full"
+                    />
+                  </div>
+                </>
+              )}
 
             {/* Distrito */}
             <div className="min-w-0">

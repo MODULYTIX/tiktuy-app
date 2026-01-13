@@ -29,17 +29,19 @@ const METODO_PAGO_IDS = {
 type ConfirmEntregaPayload =
   | { pedidoId: number; resultado: "RECHAZADO"; observacion?: string }
   | {
-      pedidoId: number;
-      resultado: "ENTREGADO";
-      metodo_pago_id: number;
-      observacion?: string;
-      evidenciaFile?: File;
-      fecha_entrega_real?: string;
-    };
+    pedidoId: number;
+    resultado: "ENTREGADO";
+    metodo_pago_id: number;
+    observacion?: string;
+    evidenciaFile?: File;
+    fecha_entrega_real?: string;
+  };
 
 export default function PedidosPage() {
   const auth = useContext(AuthContext);
   const token = auth?.token ?? "";
+
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [vista, setVista] = useState<VistaUI>(() => {
     const saved = localStorage.getItem("repartidor_vista_pedidos") as VistaUI | null;
@@ -100,6 +102,7 @@ export default function PedidosPage() {
       });
       setOpenModalCambio(false);
       setPedidoSeleccionado(null);
+      setRefreshKey((prev) => prev + 1);
     } catch (err) {
       console.error("Error al actualizar estado inicial:", err);
       alert((err as Error).message);
@@ -130,6 +133,7 @@ export default function PedidosPage() {
 
       setOpenModalEntrega(false);
       setPedidoEntrega(null);
+      setRefreshKey((prev) => prev + 1);
     } catch (err: any) {
       console.error("Error al guardar resultado final:", err);
       alert(String(err?.message || "Error al actualizar el resultado del pedido"));
@@ -199,6 +203,7 @@ export default function PedidosPage() {
             token={token}
             onVerDetalle={handleVerDetalle}
             onCambiarEstado={handleCambiarEstado}
+            refreshKey={refreshKey}
           />
         )}
 
@@ -207,6 +212,7 @@ export default function PedidosPage() {
             token={token}
             onVerDetalle={handleVerDetalle}
             onCambiarEstado={handleCambiarEstado}
+            refreshKey={refreshKey}
           />
         )}
 
@@ -215,6 +221,7 @@ export default function PedidosPage() {
             token={token}
             onVerDetalle={handleVerDetalle}
             onCambiarEstado={handleCambiarEstado}
+            refreshKey={refreshKey}
           />
         )}
       </div>

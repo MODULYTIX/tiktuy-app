@@ -33,6 +33,7 @@ type Props = {
   token: string;
   onVerDetalle?: (pedidoId: number) => void;
   onCambiarEstado?: (pedido: PedidoListItem) => void;
+  refreshKey?: number;
 };
 
 export default function TablePedidosHoy(props: Props) {
@@ -58,6 +59,7 @@ export default function TablePedidosHoy(props: Props) {
       fetcher={fetcher}
       title="Pedidos para Hoy"
       subtitle="Pedidos programados para hoy asignados a ti."
+      refreshKey={props.refreshKey}
     />
   );
 }
