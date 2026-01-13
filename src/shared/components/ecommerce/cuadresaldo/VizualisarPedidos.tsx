@@ -226,6 +226,39 @@ export default function VizualisarPedidos({
     );
   }, [rows]);
 
+  // ✅ Totales para cuadros
+  const montoTotalCobrado = useMemo(() => {
+    return rows.reduce((acc, r: any) => acc + montoVisual(r), 0);
+  }, [rows]);
+
+  const montoTotalServicio = useMemo(() => {
+    return rows.reduce(
+      (acc, r: any) => acc + Number(r?.servicioCourier ?? 0),
+      0
+    );
+  }, [rows]);
+
+  // ✅ NUEVO: monto depositado = (EFECTIVO + BILLETERA) - Total servicio
+  const montoEfectivo = useMemo(() => {
+    return rows.reduce((acc, r: any) => {
+      const mp = normMetodoPago(metodoPagoDe(r));
+      if (mp !== "EFECTIVO") return acc;
+      return acc + montoVisual(r);
+    }, 0);
+  }, [rows]);
+
+  const montoDigitalCourier = useMemo(() => {
+    return rows.reduce((acc, r: any) => {
+      const mp = normMetodoPago(metodoPagoDe(r));
+      if (mp !== "BILLETERA") return acc;
+      return acc + montoVisual(r);
+    }, 0);
+  }, [rows]);
+
+  const montoDepositado = useMemo(() => {
+    return montoEfectivo + montoDigitalCourier - servicioTotalEcommerce;
+  }, [montoEfectivo, montoDigitalCourier, servicioTotalEcommerce]);
+
   const handleClose = useCallback(() => {
     setPreviewUrl(null);
     onClose();
@@ -255,9 +288,9 @@ export default function VizualisarPedidos({
                     {title}
                   </h3>
                   <div className="mt-1 text-xs text-slate-600">
-                    Servicio total (courier):{" "}
+                    Monto depositado:{" "}
                     <b className="text-slate-900 tabular-nums">
-                      {money(servicioTotalEcommerce)}
+                      {money(montoDepositado)}
                     </b>
                   </div>
                 </div>
@@ -424,53 +457,96 @@ export default function VizualisarPedidos({
             </div>
           </div>
 
-          {/* Evidencia general (voucher del abono) */}
-          <div className="mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
-              <div className="text-sm font-bold text-slate-900">
-                Evidencia del abono
+          {/* ✅ Totales + Evidencia (orden: cobrado, servicio, evidencia) */}
+          <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+            {/* 1) Monto total cobrado */}
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
+              <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+                <div className="text-sm font-bold text-slate-900">
+                  Monto total cobrado
+                </div>
+                <div className="text-xs text-slate-500">
+                  Suma de montos (rechazados = 0)
+                </div>
               </div>
-              <div className="text-xs text-slate-500">
-                Voucher registrado para este día
+              <div className="flex-1 flex items-center justify-center p-4 sm:p-5">
+                <div className="text-4xl sm:text-5xl font-extrabold text-slate-900 tabular-nums text-center">
+                  {money(montoTotalCobrado)}
+                </div>
               </div>
             </div>
 
-            <div className="p-4 sm:p-5">
-              {!evidenciaGeneral ? (
-                <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-500">
-                  — No hay evidencia registrada para este día —
+            {/* 2) Monto total de servicio */}
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
+              <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+                <div className="text-sm font-bold text-slate-900">
+                  Monto total de servicio
                 </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
-                  <div className="min-w-0">
-                    <div className="text-xs text-slate-500 font-semibold">
-                      Archivo
-                    </div>
-                    <div className="mt-1 text-sm text-slate-800 truncate">
-                      {evidenciaGeneral}
-                    </div>
-                  </div>
+                <div className="text-xs text-slate-500">
+                  Total del courier del día
+                </div>
+              </div>
+              <div className="flex-1 flex items-center justify-center p-4 sm:p-5">
+                <div className="text-4xl sm:text-5xl font-extrabold text-slate-900 tabular-nums text-center">
+                  {money(montoTotalServicio)}
+                </div>
+              </div>
+            </div>
 
-                  <div className="flex items-center gap-2">
-                    <Buttonx
-                      variant="outlined"
-                      label="Ver"
-                      onClick={() => setPreviewUrl(evidenciaGeneral)}
-                    />
-                    <Buttonx
-                      variant="secondary"
-                      label="Descargar"
-                      icon="mdi:download"
-                      onClick={() =>
-                        handleDownload(
-                          evidenciaGeneral,
-                          `evidencia-abono-${fecha ?? "dia"}`
-                        )
-                      }
-                    />
-                  </div>
+            {/* 3) Evidencia del abono */}
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
+              <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+                <div className="text-sm font-bold text-slate-900">
+                  Evidencia del abono
                 </div>
-              )}
+                <div className="text-xs text-slate-500">
+                  Voucher registrado para este día
+                </div>
+              </div>
+
+              <div className="flex-1 p-4 sm:p-5">
+                {!evidenciaGeneral ? (
+                  <div className="h-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-500 flex items-center justify-center text-center">
+                    — No hay evidencia registrada para este día —
+                  </div>
+                ) : (
+                  <div className="h-full rounded-xl border border-gray-200 bg-white p-4 flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-slate-500 font-semibold">
+                        Archivo
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-slate-900">
+                        Voucher del abono
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Fecha:{" "}
+                        <span className="font-semibold text-slate-700">
+                          {formatDMY(fecha)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <Buttonx
+                        variant="outlined"
+                        label="Ver"
+                        onClick={() => setPreviewUrl(evidenciaGeneral)}
+                      />
+                      <Buttonx
+                        variant="secondary"
+                        label="Descargar"
+                        icon="mdi:download"
+                        onClick={() =>
+                          handleDownload(
+                            evidenciaGeneral,
+                            `evidencia-abono-${fecha ?? "dia"}`
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -501,9 +577,7 @@ export default function VizualisarPedidos({
                 <div className="text-sm font-extrabold text-slate-900 truncate">
                   Vista previa
                 </div>
-                <div className="text-xs text-slate-500 truncate">
-                  {previewUrl}
-                </div>
+                <div className="text-xs text-slate-500 truncate">{previewUrl}</div>
               </div>
 
               <button
