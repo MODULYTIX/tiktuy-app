@@ -62,10 +62,10 @@ const formatDMY = (ymd?: string) => {
   return isNaN(dt.getTime())
     ? ymd
     : dt.toLocaleDateString("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
 };
 
 /* ================= helpers ================= */
@@ -410,9 +410,6 @@ export default function VizualisarPedidos({
                             {money(Number(p?.servicioCourier ?? 0))}
                           </td>
 
-                          {/* ✅ Motivo:
-                              - Rechazado => observado_estado / observacion_estado
-                              - Con método => motivoRepartidor (edición servicio) */}
                           <td className="px-4 py-3 text-slate-700">
                             {motivo ? (
                               <span className="text-slate-700">{motivo}</span>
@@ -457,11 +454,11 @@ export default function VizualisarPedidos({
             </div>
           </div>
 
-          {/* ✅ Totales + Evidencia (orden: cobrado, servicio, evidencia) */}
-          <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
-            {/* 1) Monto total cobrado */}
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
-              <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+          {/* ✅ Layout: evidencia más ancha (para horizontal), totales más compactos, menor altura */}
+          <div className="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+            {/* 1) Monto total cobrado (más angosto) */}
+            <div className="lg:col-span-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
+              <div className="px-4 sm:px-5 py-2.5 border-b border-gray-100">
                 <div className="text-sm font-bold text-slate-900">
                   Monto total cobrado
                 </div>
@@ -469,16 +466,24 @@ export default function VizualisarPedidos({
                   Suma de montos (rechazados = 0)
                 </div>
               </div>
-              <div className="flex-1 flex items-center justify-center p-4 sm:p-5">
-                <div className="text-4xl sm:text-5xl font-extrabold text-slate-900 tabular-nums text-center">
+
+              <div className="flex-1 px-4 sm:px-5 py-3">
+                <div className="text-[22px] sm:text-[24px] font-bold tracking-tight text-slate-900 tabular-nums leading-tight">
                   {money(montoTotalCobrado)}
+                </div>
+
+                <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                  <span>Total de pedidos</span>
+                  <span className="font-semibold text-slate-700 tabular-nums">
+                    {rows.length}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* 2) Monto total de servicio */}
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
-              <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+            {/* 2) Monto total de servicio (más angosto) */}
+            <div className="lg:col-span-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
+              <div className="px-4 sm:px-5 py-2.5 border-b border-gray-100">
                 <div className="text-sm font-bold text-slate-900">
                   Monto total de servicio
                 </div>
@@ -486,16 +491,24 @@ export default function VizualisarPedidos({
                   Total del courier del día
                 </div>
               </div>
-              <div className="flex-1 flex items-center justify-center p-4 sm:p-5">
-                <div className="text-4xl sm:text-5xl font-extrabold text-slate-900 tabular-nums text-center">
+
+              <div className="flex-1 px-4 sm:px-5 py-3">
+                <div className="text-[22px] sm:text-[24px] font-bold tracking-tight text-slate-900 tabular-nums leading-tight">
                   {money(montoTotalServicio)}
+                </div>
+
+                <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                  <span>Descuento</span>
+                  <span className="font-semibold text-slate-700 tabular-nums">
+                    {money(servicioTotalEcommerce)}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* 3) Evidencia del abono */}
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
-              <div className="px-4 sm:px-5 py-3 border-b border-gray-100">
+            {/* 3) Evidencia del abono (más ancho) */}
+            <div className="lg:col-span-6 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
+              <div className="px-4 sm:px-5 py-2.5 border-b border-gray-100">
                 <div className="text-sm font-bold text-slate-900">
                   Evidencia del abono
                 </div>
@@ -504,21 +517,38 @@ export default function VizualisarPedidos({
                 </div>
               </div>
 
-              <div className="flex-1 p-4 sm:p-5">
+              <div className="flex-1 px-4 sm:px-5 py-3">
                 {!evidenciaGeneral ? (
-                  <div className="h-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-500 flex items-center justify-center text-center">
+                  <div className="h-full rounded-xl bg-gray-50 px-4 py-3 text-sm text-slate-500 flex items-center justify-center text-center">
                     — No hay evidencia registrada para este día —
                   </div>
                 ) : (
-                  <div className="h-full rounded-xl border border-gray-200 bg-white p-4 flex items-center justify-between gap-4">
-                    <div className="min-w-0">
+                  <div className="flex items-center gap-3">
+                    {/* Miniatura */}
+                    <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center">
+                      {isProbablyImageUrl(evidenciaGeneral) ? (
+                        <img
+                          src={evidenciaGeneral}
+                          alt="Voucher"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-slate-500 text-lg">📄</span>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
                       <div className="text-[11px] text-slate-500 font-semibold">
                         Archivo
                       </div>
-                      <div className="mt-1 text-sm font-semibold text-slate-900">
+                      <div className="text-sm font-semibold text-slate-900 leading-snug">
                         Voucher del abono
                       </div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-0.5 text-[11px] text-slate-500 truncate">
+                        {filenameFromUrl(evidenciaGeneral, "voucher-abono")}
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-500">
                         Fecha:{" "}
                         <span className="font-semibold text-slate-700">
                           {formatDMY(fecha)}
@@ -526,16 +556,19 @@ export default function VizualisarPedidos({
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 shrink-0">
+                    {/* Acciones (siempre horizontales) */}
+                    <div className="flex items-center gap-2 shrink-0">
                       <Buttonx
                         variant="outlined"
                         label="Ver"
+                        className="h-9 px-4 whitespace-nowrap"
                         onClick={() => setPreviewUrl(evidenciaGeneral)}
                       />
                       <Buttonx
-                        variant="secondary"
+                        variant="outlined"
                         label="Descargar"
                         icon="mdi:download"
+                        className="h-9 px-4 whitespace-nowrap"
                         onClick={() =>
                           handleDownload(
                             evidenciaGeneral,
@@ -616,7 +649,7 @@ export default function VizualisarPedidos({
                 onClick={() => setPreviewUrl(null)}
               />
               <Buttonx
-                variant="secondary"
+                variant="outlined"
                 label="Descargar"
                 icon="mdi:download"
                 onClick={() =>
