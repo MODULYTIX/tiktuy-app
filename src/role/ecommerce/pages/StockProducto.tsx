@@ -7,7 +7,6 @@ import StockTable from "@/shared/components/ecommerce/stock/StockTable";
 import { useAuth } from "@/auth/context";
 import {
   fetchProductosFiltrados,
-  fetchProductosMovidos,
 } from "@/services/ecommerce/producto/producto.api";
 import type { Producto } from "@/services/ecommerce/producto/producto.types";
 import ImportExcelFlow from "@/shared/components/ecommerce/excel/ImportExcelFlow";
@@ -75,11 +74,24 @@ export default function StockPage() {
     try {
       // -------- PRODUCTOS MOVIDOS -------- //
       if (filtros.movimientos_sedes && Number(filtros.movimientos_sedes) > 0) {
-        const resp = await fetchProductosMovidos(token, {
-          almacen_id: Number(filtros.movimientos_sedes),
-          page: pageToLoad,
-          perPage: PER_PAGE,
-        });
+        const resp = await fetchProductosFiltrados(
+          {
+            almacenamiento_id: Number(filtros.movimientos_sedes),
+            q: filtros.search,
+            categoria_id: filtros.categoria_id,
+            estado: filtros.estado,
+            precio_bajo: filtros.precio_bajo,
+            precio_alto: filtros.precio_alto,
+            stock_bajo: filtros.stock_bajo,
+            order: filtros.order ?? "new_first",
+
+            only_with_stock: false,
+
+            page: pageToLoad,
+            perPage: PER_PAGE,
+          },
+          token
+        );
 
         setProductosVisibles(resp?.data ?? []);
         setTotalPages(resp?.pagination?.totalPages ?? 1);
