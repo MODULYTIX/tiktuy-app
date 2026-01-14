@@ -677,8 +677,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
                   <th className="px-4 py-3 text-left">Monto</th>
                   <th className="px-4 py-3 text-left">Servicio motorizado</th>
                   <th className="px-4 py-3 text-left">Servicio courier</th>
-                  <th className="px-4 py-3 text-left">Abono</th>
-                  <th className="px-4 py-3 text-right">Acciones</th>
+                  <th className="px-4 py-3 text-center">Abono</th>
+                  <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
 
@@ -750,11 +750,10 @@ const CuadreSaldoTable: React.FC<Props> = ({
                             )}
                           </div>
                         </td>
-
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-center">
                           <span
                             className={[
-                              "inline-block rounded-full px-3 py-1 text-[11px] font-semibold",
+                              "inline-flex items-center justify-center rounded-full px-3 py-1 text-[11px] font-semibold",
                               r.abonado
                                 ? "bg-emerald-600 text-white"
                                 : "bg-gray-200 text-gray-900",
@@ -763,8 +762,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
                             {r.abonado ? "Abonado" : "Sin abonar"}
                           </span>
                         </td>
-
-
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
                             <TableActionx
