@@ -554,22 +554,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
     return totalCobrado - totalServicioMotorizado;
   }, [totalCobrado, totalServicioMotorizado]);
 
-  const toggleAbono = useCallback(
-    async (row: any) => {
-      try {
-        const next = !row.abonado;
-        await abonarPedidos(token, { pedidoIds: [row.id], abonado: next, sedeId });
-        setRows((prev) =>
-          prev.map((r: any) => (r.id === row.id ? { ...r, abonado: next } : r))
-        );
-        if (next) setSelectedIds((prev) => prev.filter((id) => id !== row.id));
-      } catch (e) {
-        console.error(e);
-        alert("No se pudo actualizar el abono.");
-      }
-    },
-    [token, sedeId]
-  );
 
   const abrirModalAbono = useCallback(() => {
     if (selectedIds.length === 0) return;
@@ -768,19 +752,18 @@ const CuadreSaldoTable: React.FC<Props> = ({
                         </td>
 
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => toggleAbono(r)}
+                          <span
                             className={[
-                              "rounded-full px-3 py-1 text-[11px] font-semibold",
+                              "inline-block rounded-full px-3 py-1 text-[11px] font-semibold",
                               r.abonado
                                 ? "bg-emerald-600 text-white"
                                 : "bg-gray-200 text-gray-900",
                             ].join(" ")}
-                            title={r.abonado ? "Quitar abono" : "Marcar abonado"}
                           >
                             {r.abonado ? "Abonado" : "Sin abonar"}
-                          </button>
+                          </span>
                         </td>
+
 
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">

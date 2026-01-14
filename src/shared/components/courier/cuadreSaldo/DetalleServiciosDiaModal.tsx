@@ -291,16 +291,16 @@ export default function DetalleServiciosDiaModal({
     const monto = montoVisual(pedido);
     const rep = servicios.rep.value;
     const cour = servicios.cour.value;
-    const servTotal = rep + cour;
 
     return {
       monto,
       servicioRepartidor: rep,
       servicioCourier: cour,
-      servicioTotal: servTotal,
-      neto: monto - servTotal,
+      servicioTotal: rep + cour,
+      neto: monto - cour, // ✅ SOLO resta el servicio del courier
     };
   }, [pedido, servicios]);
+
 
   if (!open) return null;
 
@@ -498,7 +498,7 @@ export default function DetalleServiciosDiaModal({
                       </div>
                     </div>
 
-                   
+
                   </div>
 
                   <div className="mt-4 rounded-xl border border-gray20 bg-gray10 p-3">
