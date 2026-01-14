@@ -15,8 +15,8 @@ const PARTICIPANTES: Participante[] = [
   {
     title: 'Ecommerce',
     img: imgEcommerce,
-    desc: `Son las tiendas en línea que registran sus pedidos en la plataforma. 
-Gracias a TIKTUY, pueden centralizar sus ventas, enviar solicitudes de despacho y asegurar que sus productos lleguen al cliente final de manera eficiente.`,
+    desc: `Son las tiendas en línea que registran sus pedidos en la plataforma.
+Gracias a TIKTUY, pueden centralizar sus ventas, vender a contraentrega, enviar solicitudes de despacho y asegurar que sus productos lleguen al cliente final de manera eficiente.`,
   },
   {
     title: 'Courier',
