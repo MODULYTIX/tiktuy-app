@@ -137,7 +137,7 @@ export interface PedidoDetalle {
   fecha_entrega_programada: string | null;
   cantidad_productos: number;
   monto_total: number;
-
+  referencia: string;
   items: Array<{
     producto_id: number;
     nombre: string;

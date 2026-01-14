@@ -14,7 +14,7 @@ interface Props {
 function formatFechaPE(fecha: string | null | undefined) {
   if (!fecha) return "—";
 
-  // ✅ SIEMPRE tomar SOLO la parte YYYY-MM-DD
+  //  SIEMPRE tomar SOLO la parte YYYY-MM-DD
   const dateOnly = fecha.slice(0, 10);
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
@@ -50,13 +50,18 @@ export default function DetallePedidoDrawer({
   const cliente = detalle?.cliente ?? "—";
   const direccion = detalle?.direccion_entrega ?? "—";
   const fechaEntrega = detalle ? formatFechaPE(detalle.fecha_entrega_programada) : "—";
+  const referencia = detalle?.referencia ?? "—";
   const productos = detalle?.cantidad_productos ?? 0;
+
+  const referenciaHref =
+    referencia && referencia !== "—"
+      ? referencia.startsWith("http")
+        ? referencia
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          referencia
+        )}`
+      : undefined;
   const total = detalle?.monto_total ?? 0;
-  console.log(
-    "RAW fecha_entrega_programada:",
-    detalle?.fecha_entrega_programada,
-    typeof detalle?.fecha_entrega_programada
-  );
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -124,6 +129,26 @@ export default function DetallePedidoDrawer({
                         <div className="text-sm font-medium text-gray-800 break-words">
                           {direccion}
                         </div>
+                      </div>
+                    </div>
+                    {/* Referencia */}
+                    <div className="mt-2 flex items-start gap-2 text-sm">
+                      <Icon
+                        icon="mdi:map-marker-outline"
+                        className="text-lg text-gray-400 mt-[1px]"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-gray-500">Referencia</div>
+                        <a
+                          className={`block ${!referenciaHref ? "pointer-events-none" : ""}`}
+                          target="_blank"
+                          href={referenciaHref}
+                          rel="noreferrer"
+                        >
+                          <div className="text-sm font-medium text-gray-800 break-words">
+                            {referencia}
+                          </div>
+                        </a>
                       </div>
                     </div>
                   </div>

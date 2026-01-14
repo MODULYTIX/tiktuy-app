@@ -36,9 +36,9 @@ export default function LoginForm() {
 
       {/* Formulario de login */}
       <div className="p-8">
-        <h2 className="text-center text-xl font-bold tracking-widest text-[#1b1b77] mb-6">
+        <div className="text-center text-xl font-bold tracking-widest text-[#1b1b77] mb-6">
           ─ INICIAR SESIÓN ─
-        </h2>
+        </div>
 
         <div className="flex flex-col gap-4">
           <Inputx

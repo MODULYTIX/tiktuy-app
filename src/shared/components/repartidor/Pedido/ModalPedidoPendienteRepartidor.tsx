@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import Buttonx from "@/shared/common/Buttonx";
 import { InputxTextarea } from "@/shared/common/Inputx";
 
-// ✅ tus componentes
+//  tus componentes
 import ImageUploadx from "@/shared/common/ImageUploadx";
 import ImagePreviewModalx from "@/shared/common/ImagePreviewModalx";
 
@@ -14,13 +14,13 @@ type MetodoPagoUI = "EFECTIVO" | "BILLETERA" | "DIRECTO_ECOMMERCE";
 type ConfirmPayload =
   | { pedidoId: number; resultado: "RECHAZADO"; observacion?: string }
   | {
-      pedidoId: number;
-      resultado: "ENTREGADO";
-      metodo_pago_id: number; // ✅ ID REAL de MetodoPago (DB)
-      observacion?: string;
-      evidenciaFile?: File;
-      fecha_entrega_real?: string;
-    };
+    pedidoId: number;
+    resultado: "ENTREGADO";
+    metodo_pago_id: number; // ✅ ID REAL de MetodoPago (DB)
+    observacion?: string;
+    evidenciaFile?: File;
+    fecha_entrega_real?: string;
+  };
 
 type Props = {
   isOpen: boolean;
@@ -29,7 +29,7 @@ type Props = {
   onConfirm?: (data: ConfirmPayload) => Promise<void> | void;
 
   /**
-   * ✅ IDs reales de tu tabla MetodoPago
+   * IDs reales de tu tabla MetodoPago
    * Ejemplo: { EFECTIVO: 1, BILLETERA: 2, DIRECTO_ECOMMERCE: 3 }
    */
   metodoPagoIds?: {
@@ -41,7 +41,7 @@ type Props = {
 
 type Paso = "resultado" | "pago" | "evidencia" | "rechazo";
 
-/** ✅ fallback (evita undefined.EFECTIVO) */
+/** fallback (evita undefined.EFECTIVO) */
 const DEFAULT_METODO_PAGO_IDS = {
   EFECTIVO: 1,
   BILLETERA: 2,
@@ -113,14 +113,14 @@ export default function ModalEntregaRepartidor({
   const requiresEvidencia = (m: MetodoPagoUI | null): boolean =>
     m === "BILLETERA" || m === "DIRECTO_ECOMMERCE";
 
-  // ✅ reset SOLO de evidencia (archivo + preview)
+  //  reset SOLO de evidencia (archivo + preview)
   const resetEvidence = useCallback(() => {
     setEvidenciaFile(undefined);
     setPreviewOpen(false);
     setPreviewSrc("");
   }, []);
 
-  // ✅ picking unificado (inputs + ImageUploadx)
+  //  picking unificado (inputs + ImageUploadx)
   const pickImage = useCallback(
     (file?: File | null) => {
       setErrorMsg("");
@@ -134,7 +134,7 @@ export default function ModalEntregaRepartidor({
     [resetEvidence]
   );
 
-  // ✅ si cambia el método, resetea evidencia
+  //  si cambia el método, resetea evidencia
   const handleMetodo = useCallback(
     (m: MetodoPagoUI) => {
       setErrorMsg("");
@@ -215,8 +215,8 @@ export default function ModalEntregaRepartidor({
       m === "EFECTIVO"
         ? metodoIdMap.EFECTIVO
         : m === "BILLETERA"
-        ? metodoIdMap.BILLETERA
-        : metodoIdMap.DIRECTO_ECOMMERCE;
+          ? metodoIdMap.BILLETERA
+          : metodoIdMap.DIRECTO_ECOMMERCE;
 
     return Number(id);
   }
@@ -284,9 +284,19 @@ export default function ModalEntregaRepartidor({
       ? `https://wa.me/${resumen.telefono.replace(/\D/g, "")}`
       : undefined;
 
+
   const fechaFormateada = resumen.fechaProg
     ? new Date(resumen.fechaProg).toLocaleDateString("es-PE")
     : "—";
+
+  const referenciaHref =
+    resumen.referencia && resumen.referencia !== "—"
+      ? resumen.referencia.startsWith("http")
+        ? resumen.referencia
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          resumen.referencia
+        )}`
+      : undefined;
 
   const montoFormateado = new Intl.NumberFormat("es-PE", {
     style: "currency",
@@ -332,7 +342,14 @@ export default function ModalEntregaRepartidor({
                   <ResumenRow label="Código" value={resumen.codigo} />
                   <ResumenRow label="Distrito" value={resumen.distrito} />
                   <ResumenRow label="Dirección" value={resumen.direccion} />
-                  <ResumenRow label="Referencia" value={resumen.referencia} />
+                  <a
+                    className={`block ${!referenciaHref ? "pointer-events-none" : ""}`}
+                    target="_blank"
+                    href={referenciaHref}
+                    rel="noreferrer"
+                  >
+                    <ResumenRow label="Referencia" value={resumen.referencia} />
+                  </a>
                 </div>
 
                 <div className="space-y-2 text-sm">
@@ -359,7 +376,7 @@ export default function ModalEntregaRepartidor({
               <div className="mt-4 flex items-center justify-center gap-5">
                 <AccionCircular icon="mdi:phone" label="Llamar" href={telHref} />
                 <AccionCircular icon="mdi:whatsapp" label="WhatsApp" href={waHref} />
-                <AccionCircular icon="mdi:account-voice" label="Otros" onClick={() => {}} />
+                <AccionCircular icon="mdi:account-voice" label="Otros" onClick={() => { }} />
               </div>
 
               <div className="mt-4 bg-white rounded-md overflow-hidden shadow-default border border-gray30">

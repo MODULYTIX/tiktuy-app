@@ -63,7 +63,7 @@ function isoToYMD(iso?: string | null): string {
 }
 
 /**
- * ✅ Normaliza value de input date a YYYY-MM-DD (sin TZ).
+ *  Normaliza value de input date a YYYY-MM-DD (sin TZ).
  * Acepta:
  * - "YYYY-MM-DD" (ideal)
  * - ISO "YYYY-MM-DDTHH:mm..."
@@ -95,7 +95,7 @@ function EstadoBadge({ estado }: { estado?: string | null }) {
   const raw = String(estado ?? "").trim();
   const s = raw.toLowerCase();
 
-  // ✅ colores: verde / amarillo / rojo
+  //  colores: verde / amarillo / rojo
   const cls = s.includes("entregado")
     ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
     : s.includes("rechaz") || s.includes("cancel") || s.includes("devuelt")
@@ -494,7 +494,7 @@ export default function BaseTablaPedidos({
                         {PEN.format(Number(p.monto_recaudar || 0))}
                       </td>
 
-                      {/* ✅ ESTADO con Badgex */}
+                      {/*  ESTADO con Badgex */}
                       <td className="h-12 px-4 py-3 whitespace-nowrap">
                         <EstadoBadge estado={p.estado_nombre as any} />
                       </td>

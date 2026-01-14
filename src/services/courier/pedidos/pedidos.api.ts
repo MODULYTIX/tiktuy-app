@@ -24,8 +24,7 @@ const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
 
-/**
- * ✅ Normaliza a YYYY-MM-DD (en zona Perú) para evitar corrimientos.
+/** Normaliza a YYYY-MM-DD (en zona Perú) para evitar corrimientos.
  * Acepta Date | string (YYYY-MM-DD o ISO).
  */
 const TZ_PE = "America/Lima";

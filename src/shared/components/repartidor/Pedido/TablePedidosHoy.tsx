@@ -8,7 +8,7 @@ import type {
 import { fetchPedidosHoy } from "@/services/repartidor/pedidos/pedidos.api";
 
 /**
- * ✅ Normaliza query para que nunca pase Date al backend
+ * Normaliza query para que nunca pase Date al backend
  * y evitar el error de TS / corrimientos por timezone.
  */
 function normalizeHoyQuery(q: ListPedidosHoyQuery): ListPedidosHoyQuery {

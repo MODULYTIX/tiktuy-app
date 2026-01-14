@@ -170,9 +170,19 @@ export default function ModalRepartidorMotorizado({
       ? `https://wa.me/${resumen.telefono.replace(/\D/g, "")}`
       : undefined;
 
+  const referenciaHref =
+    resumen.referencia && resumen.referencia !== "—"
+      ? resumen.referencia.startsWith("http")
+        ? resumen.referencia
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          resumen.referencia
+        )}`
+      : undefined;
+
   const fechaFormateada = resumen.fechaProg
     ? new Date(resumen.fechaProg).toLocaleDateString("es-PE")
     : "—";
+
 
   const montoFormateado = new Intl.NumberFormat("es-PE", {
     style: "currency",
@@ -202,7 +212,6 @@ export default function ModalRepartidorMotorizado({
         return;
       }
 
-      // ✅ SOLO nueva pestaña
       window.open(link, "_blank", "noopener,noreferrer");
     } catch (e: any) {
       alert(e?.message || "No se pudo abrir el grupo de WhatsApp.");
@@ -245,7 +254,15 @@ export default function ModalRepartidorMotorizado({
                   <ResumenRow label="Código" value={resumen.codigo} />
                   <ResumenRow label="Distrito" value={resumen.distrito} />
                   <ResumenRow label="Dirección" value={resumen.direccion} />
-                  <ResumenRow label="Referencia" value={resumen.referencia} />
+                  <ResumenRow label="Dirección" value={resumen.direccion} />
+                  <a
+                    className={`block ${!referenciaHref ? "pointer-events-none" : ""}`}
+                    target="_blank"
+                    href={referenciaHref}
+                    rel="noreferrer"
+                  >
+                    <ResumenRow label="Referencia" value={resumen.referencia} />
+                  </a>
                 </div>
 
                 <div className="space-y-1 text-sm">
