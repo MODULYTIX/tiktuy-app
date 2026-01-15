@@ -265,7 +265,13 @@ export default function ModalEntregaRepartidor({
         metodo_pago_id,
         evidenciaFile,
         observacion: undefined,
-        fecha_entrega_real: undefined,
+        fecha_entrega_real: (() => {
+          const d = new Date();
+          const off = d.getTimezoneOffset();
+          // Ajuste para enviar "hora local" como si fuera UTC
+          const local = new Date(d.getTime() - off * 60000);
+          return local.toISOString();
+        })(),
       });
 
       closeAll();
