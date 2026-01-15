@@ -92,7 +92,7 @@ export default function TablePanelAdmin({
     if (!val) return;
     try {
       await navigator.clipboard.writeText(val);
-    } catch {}
+    } catch { }
   };
 
   async function handleAssociate(uuid: string) {
@@ -130,8 +130,8 @@ export default function TablePanelAdmin({
           {/* ⬇️ OJO: quitamos border-b del table para que la línea gris se dibuje en el footer (border-t) */}
           <table className="min-w-full table-fixed text-[12px] bg-white rounded-t-md">
             <colgroup>
-              {["16%", "16%", "22%", "16%", "12%", "10%", "8%"].map((w) => (
-                <col key={w} style={{ width: w }} />
+              {["16%", "16%", "22%", "16%", "12%", "10%", "8%"].map((w, i) => (
+                <col key={i} style={{ width: w }} />
               ))}
             </colgroup>
 

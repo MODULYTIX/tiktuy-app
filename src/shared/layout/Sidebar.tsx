@@ -52,7 +52,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     admin: [
       { to: "/", label: "Panel de Control", icon: <MdDashboard /> },
       { to: "/ventas", label: "Ventas", icon: <FaCashRegister /> },
-      { to: "/reportes", label: "Stock / Sede", icon: <FaBoxes /> },
+      { to: "/reportes", label: "Reportes", icon: <FaBoxes /> },
       /*
       {
         to: "/saldos",

@@ -34,7 +34,7 @@ const Buttonx: React.FC<ButtonProps> = ({
   iconPosition = "left",
   type = "button",
   form,
-  ...rest // ✅ aquí entra: role, title, aria-*, data-*, id, name, etc.
+  ...rest
 }) => {
   const baseStyle =
     "flex items-center gap-2 font-roboto text-sm justify-center rounded-md";

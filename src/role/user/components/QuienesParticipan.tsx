@@ -46,7 +46,7 @@ export default function QuienesParticipan() {
         {PARTICIPANTES.map((p) => (
           <div
             key={p.title}
-            className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-200"
+            className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-200 wrap-break-word"
           >
             {/* Imagen “superpuesta” */}
             <div className="-mb-7 relative h-64 w-full overflow-hidden rounded-t-xl z-10">
