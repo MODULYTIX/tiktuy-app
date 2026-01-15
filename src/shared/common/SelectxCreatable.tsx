@@ -163,16 +163,15 @@ export function SelectxCreatable({
         {/* Dropdown */}
         {open && (
           <div className={popCls}>
-            <ul className="max-h-56 overflow-auto">
+            <ul className="">
               {suggestions.length === 0 && (
                 <li className="px-3 py-2 text-sm text-gray-500">Sin coincidencias…</li>
               )}
               {suggestions.map((opt) => (
                 <li
                   key={opt.id}
-                  className={`px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer ${
-                    String(opt.id) === String(selectedId) ? "bg-gray-50" : ""
-                  }`}
+                  className={`px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer ${String(opt.id) === String(selectedId) ? "bg-gray-50" : ""
+                    }`}
                   onMouseDown={(e) => {
                     e.preventDefault(); // evita blur antes del click
                     onSelectOption(opt);

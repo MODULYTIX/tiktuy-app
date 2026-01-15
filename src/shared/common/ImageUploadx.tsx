@@ -1,4 +1,3 @@
-// src/shared/common/ImageUploadx.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 
@@ -14,33 +13,24 @@ export interface ImageUploadxProps {
   helperText?: string;
   size?: Size;
   className?: string;
-
-  /** Modo: create | edit | view (default: create) */
   mode?: Mode;
-
-  /** Compat anterior: si true, equivale a mode="view" */
   readOnly?: boolean;
-
-  /** Carga controlada por el padre */
   uploading?: boolean;
-  /** Progreso 0–100 (alias: uploadProgress) */
   progress?: number;
   uploadProgress?: number;
-  /** Texto y tiempo mínimo visible del overlay */
   uploadText?: string;
-  minUploadMs?: number; // default 2000
-
-  /** Confirmación al eliminar */
-  confirmOnDelete?: boolean; // default true
-  confirmMessage?: string;   // default "¿Seguro que quieres eliminar esta imagen?"
-  confirmYesLabel?: string;  // default "Sí"
-  confirmNoLabel?: string;   // default "Cancelar"
-
+  minUploadMs?: number;
+  confirmOnDelete?: boolean;
+  confirmMessage?: string;
+  confirmYesLabel?: string;
+  confirmNoLabel?: string;
   onChange?: (file: File | null) => void;
   onView?: (url: string) => void;
   onDownload?: (url: string) => void;
   onDelete?: () => void;
 }
+
+// --- FUNCIONES AUXILIARES CONSERVADAS ---
 
 const formatBytes = (bytes: number) => {
   if (!Number.isFinite(bytes)) return "";
@@ -102,18 +92,15 @@ const ImageUploadx: React.FC<ImageUploadxProps> = ({
   className = "",
   mode = "create",
   readOnly = false,
-
   uploading = false,
   progress,
   uploadProgress,
   uploadText = "Subiendo imagen…",
   minUploadMs = 2000,
-
   confirmOnDelete = true,
   confirmMessage = "¿Seguro que quieres eliminar esta imagen?",
   confirmYesLabel = "Sí",
   confirmNoLabel = "Cancelar",
-
   onChange,
   onView,
   onDownload,
@@ -125,25 +112,67 @@ const ImageUploadx: React.FC<ImageUploadxProps> = ({
   const showEmptyCTA = effectiveMode !== "view";
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Estados
   const [file, setFile] = useState<File | null>(null);
   const [externalUrl, setExternalUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
-  // --- Overlay de carga con tiempo mínimo visible ---
+  // --- Sincronización de props (value) ---
+  useEffect(() => {
+    if (!value) {
+      setFile(null);
+      setExternalUrl(null);
+      return;
+    }
+    if (value instanceof File) {
+      setFile(value);
+      setExternalUrl(null);
+    } else if (typeof value === "string") {
+      setFile(null);
+      setExternalUrl(value);
+    }
+  }, [value]);
+
+  // --- 2. EL CAMBIO CLAVE: BASE64 (A prueba de fallos) ---
+  useEffect(() => {
+    let isMounted = true;
+
+    if (file) {
+      // Usamos FileReader (Base64) en lugar de Blob.
+      // Esto evita que el navegador "pierda" la referencia a la imagen.
+      const reader = new FileReader();
+
+      reader.onloadend = () => {
+        if (isMounted && typeof reader.result === "string") {
+          setPreviewUrl(reader.result);
+        }
+      };
+
+      // Leemos el archivo
+      reader.readAsDataURL(file);
+
+    } else if (externalUrl) {
+      setPreviewUrl(externalUrl);
+    } else {
+      setPreviewUrl(null);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [file, externalUrl]);
+
+  // --- Overlay de carga ---
   const startedAtRef = useRef<number | null>(null);
   const hideTRef = useRef<number | null>(null);
   const [busyVisible, setBusyVisible] = useState(false);
-
-  // alias de progress
   const incomingProgress = typeof progress === "number" ? progress : uploadProgress;
-  const safeProgress =
-    typeof incomingProgress === "number"
-      ? Math.max(0, Math.min(100, incomingProgress))
-      : undefined;
-
+  const safeProgress = typeof incomingProgress === "number" ? Math.max(0, Math.min(100, incomingProgress)) : undefined;
   const wantBusy = (effectiveMode !== "view") && (processing || uploading);
 
   useEffect(() => {
@@ -170,7 +199,7 @@ const ImageUploadx: React.FC<ImageUploadxProps> = ({
 
   useEffect(() => () => { if (hideTRef.current) clearTimeout(hideTRef.current); }, []);
 
-  // --- Confirmación de borrado (popover anclado al botón) ---
+  // --- Modal Confirmación ---
   const [confirmOpen, setConfirmOpen] = useState(false);
   const confirmRef = useRef<HTMLDivElement | null>(null);
   const anchorRef = useRef<HTMLDivElement | null>(null);
@@ -179,10 +208,7 @@ const ImageUploadx: React.FC<ImageUploadxProps> = ({
     if (!confirmOpen) return;
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (
-        !confirmRef.current?.contains(t) &&
-        !anchorRef.current?.contains(t)
-      ) setConfirmOpen(false);
+      if (!confirmRef.current?.contains(t) && !anchorRef.current?.contains(t)) setConfirmOpen(false);
     };
     const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setConfirmOpen(false); };
     document.addEventListener("mousedown", onDown);
@@ -196,33 +222,9 @@ const ImageUploadx: React.FC<ImageUploadxProps> = ({
   const doDelete = () => {
     setFile(null);
     setExternalUrl(null);
-    setPreviewUrl(null);
     onDelete?.();
     onChange?.(null);
   };
-
-  // --- Sincroniza prop `value` ---
-  useEffect(() => {
-    if (!value) { setFile(null); setExternalUrl(null); setPreviewUrl(null); return; }
-    if (value instanceof File) {
-      setFile(value); setExternalUrl(null);
-      const url = URL.createObjectURL(value); setPreviewUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else if (typeof value === "string") {
-      setFile(null); setExternalUrl(value); setPreviewUrl(value);
-    }
-  }, [value]);
-
-  // Limpia objectURL si cambia el file interno
-  useEffect(() => {
-    let localUrl: string | null = null;
-    if (file) { localUrl = URL.createObjectURL(file); setPreviewUrl(localUrl); }
-    return () => { if (localUrl) URL.revokeObjectURL(localUrl); };
-  }, [file]);
-
-  const thumbClasses = size === "sm" ? "w-12 h-12" : "w-[72px] h-[72px]";
-  const iconBtnClasses = size === "sm" ? "w-8 h-8" : "w-9 h-9";
-  const hasImage = Boolean(previewUrl);
 
   const validateAndSet = useCallback(
     async (f: File | null) => {
@@ -230,6 +232,7 @@ const ImageUploadx: React.FC<ImageUploadxProps> = ({
       setError(null);
       if (!f.type.startsWith("image/")) { setError("El archivo debe ser una imagen."); return; }
       if (f.size > maxSizeMB * 1024 * 1024) { setError(`La imagen supera ${maxSizeMB} MB.`); return; }
+
       try {
         setProcessing(true);
         setFile(f);
@@ -277,11 +280,13 @@ const ImageUploadx: React.FC<ImageUploadxProps> = ({
 
     try {
       if (file instanceof File) {
+        // Para descarga local, usamos blob fresco para evitar errores de red
         const url = URL.createObjectURL(file);
         forceDownload(url, file.name || "imagen");
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         return;
       }
+
       const resp = await fetch(previewUrl, { mode: "cors" });
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
@@ -299,236 +304,113 @@ const ImageUploadx: React.FC<ImageUploadxProps> = ({
   const handleDelete = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!showChangeDelete) return;
-    if (confirmOnDelete) {
-      setConfirmOpen(true);
-    } else {
-      doDelete();
-    }
+    if (confirmOnDelete) setConfirmOpen(true);
+    else doDelete();
   };
 
   const fileName = useMemo(() => file?.name ?? externalUrl?.split("/").pop() ?? "", [file, externalUrl]);
   const fileSize = useMemo(() => (file ? formatBytes(file.size) : ""), [file]);
-
+  const thumbClasses = size === "sm" ? "w-12 h-12" : "w-[72px] h-[72px]";
+  const iconBtnClasses = size === "sm" ? "w-8 h-8" : "w-9 h-9";
+  const hasImage = Boolean(previewUrl);
   const isBusy = busyVisible;
 
   return (
-    <div
-      className={`w-full ${className}`}
-      onPaste={handlePaste}
-      aria-readonly={effectiveMode === "view"}
-      aria-busy={isBusy}
-    >
-      {/* Label */}
-      {label && (
-        <label className="block text-base font-normal text-gray90 text-left mb-2">
-          {label}
-        </label>
-      )}
+    <div className={`w-full ${className}`} onPaste={handlePaste} aria-readonly={effectiveMode === "view"} aria-busy={isBusy}>
+      {label && <label className="block text-base font-normal text-gray90 text-left mb-2">{label}</label>}
 
-      {/* Zona interactiva */}
       <div
         onDragOver={(e) => { if (!canPick) return; e.preventDefault(); setDragActive(true); }}
         onDragLeave={() => canPick && setDragActive(false)}
         onDrop={handleDrop}
         className={[
           "relative rounded-md border transition-colors bg-white p-3",
-          canPick
-            ? dragActive ? "border-gray-500 bg-gray-50" : "border-gray-300 hover:border-gray-400"
-            : "border-gray-300",
+          canPick ? (dragActive ? "border-gray-500 bg-gray-50" : "border-gray-300 hover:border-gray-400") : "border-gray-300",
           disabled && effectiveMode !== "view" ? "opacity-60 pointer-events-none" : "",
         ].join(" ")}
       >
-        {/* Estado vacío */}
         {!hasImage && (
           <div className="flex items-center gap-3 select-none">
             <div className={`${thumbClasses} rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center`}>
               <Icon icon="mdi:image-off-outline" className="text-gray-400 text-xl" />
             </div>
-
             <div className="flex-1 min-w-0">
               <div className="text-sm text-gray90 font-roboto">
                 {showEmptyCTA ? (
-                  <>
-                    Arrastra una imagen o{" "}
-                    <button type="button" onClick={openPicker} className="text-blue-700 hover:underline focus:outline-none">
-                      selecciónala
-                    </button>
-                  </>
+                  <>Arrastra una imagen o <button type="button" onClick={openPicker} className="text-blue-700 hover:underline focus:outline-none">selecciónala</button></>
                 ) : ("Sin imagen")}
               </div>
-              {showEmptyCTA && (
-                <div className="text-xs text-gray-500">
-                  {helperText ?? `PNG/JPG hasta ${maxSizeMB} MB. También puedes pegar desde el portapapeles.`}
-                </div>
-              )}
+              {showEmptyCTA && <div className="text-xs text-gray-500">{helperText ?? `PNG/JPG hasta ${maxSizeMB} MB.`}</div>}
             </div>
-
             {showEmptyCTA && (
               <>
-                <button
-                  type="button"
-                  onClick={openPicker}
-                  className={`${iconBtnClasses} rounded-md border border-gray-300 bg-white text-gray90 inline-flex items-center justify-center hover:bg-gray-50`}
-                  aria-label="Elegir archivo"
-                >
-                  {(processing || uploading) ? (
-                    <Icon icon="line-md:loading-twotone-loop" className="text-lg animate-spin" />
-                  ) : (
-                    <Icon icon="tabler:upload" className="text-lg" />
-                  )}
+                <button type="button" onClick={openPicker} className={`${iconBtnClasses} rounded-md border border-gray-300 bg-white text-gray90 inline-flex items-center justify-center hover:bg-gray-50`}>
+                  {(processing || uploading) ? <Icon icon="line-md:loading-twotone-loop" className="text-lg animate-spin" /> : <Icon icon="tabler:upload" className="text-lg" />}
                 </button>
-
-                <input
-                  ref={inputRef}
-                  type="file"
-                  accept={accept}
-                  className="hidden"
-                  onChange={handlePick}
-                  disabled={disabled}
-                />
+                <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={handlePick} disabled={disabled} />
               </>
             )}
           </div>
         )}
 
-        {/* Estado con imagen */}
         {hasImage && (
           <div className="flex items-center gap-3 select-none">
             <div className={`${thumbClasses} overflow-hidden rounded-md border border-gray-200 bg-gray-50 shrink-0`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* Aquí se mostrará la imagen en Base64 que es imposible que falle */}
               <img src={previewUrl!} alt="Vista previa" className="w-full h-full object-cover" draggable={false} />
             </div>
-
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-roboto text-gray90 truncate" title={fileName}>
-                {fileName || "imagen"}
-              </div>
+              <div className="text-sm font-roboto text-gray90 truncate" title={fileName}>{fileName || "imagen"}</div>
               {fileSize && <div className="text-xs text-gray-500">{fileSize}</div>}
             </div>
-
             <div className={`flex items-center gap-2 ${isBusy ? "pointer-events-none opacity-70" : ""}`}>
-              <button
-                type="button"
-                onClick={(e) => handleDownload(e)}
-                className={`${iconBtnClasses} rounded-md bg-gray-900 text-white inline-flex items-center justify-center hover:bg-gray-800`}
-                title="Descargar"
-                aria-label="Descargar imagen"
-              >
+              <button type="button" onClick={(e) => handleDownload(e)} className={`${iconBtnClasses} rounded-md bg-gray-900 text-white inline-flex items-center justify-center hover:bg-gray-800`}>
                 <Icon icon="tabler:download" className="text-lg" />
               </button>
 
-              <button
-                type="button"
-                onClick={(e) => handleView(e)}
-                className={`${iconBtnClasses} rounded-md bg-gray-900 text-white inline-flex items-center justify-center hover:bg-gray-800`}
-                title="Ver"
-                aria-label="Ver imagen"
-              >
+              <button type="button" onClick={handleView} className={`${iconBtnClasses} rounded-md bg-gray-900 text-white inline-flex items-center justify-center hover:bg-gray-800`}>
                 <Icon icon="tabler:eye" className="text-lg" />
               </button>
 
               {showChangeDelete && (
                 <>
-                  <button
-                    type="button"
-                    onClick={openPicker}
-                    className={`${iconBtnClasses} rounded-md border border-gray-300 bg-white text-gray90 inline-flex items-center justify-center hover:bg-gray-50`}
-                    title="Cambiar imagen"
-                    aria-label="Cambiar imagen"
-                  >
+                  <button type="button" onClick={openPicker} className={`${iconBtnClasses} rounded-md border border-gray-300 bg-white text-gray90 inline-flex items-center justify-center hover:bg-gray-50`}>
                     <Icon icon="tabler:photo-edit" className="text-lg" />
                   </button>
-
-                  {/* Botón eliminar + popover anclado a la derecha */}
                   <div ref={anchorRef} className="relative">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(e); }}
-                      className={`${iconBtnClasses} rounded-md bg-gray-900 text-white inline-flex items-center justify-center hover:bg-gray-800`}
-                      title="Eliminar"
-                      aria-label="Eliminar imagen"
-                    >
+                    <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(e); }} className={`${iconBtnClasses} rounded-md bg-gray-900 text-white inline-flex items-center justify-center hover:bg-gray-800`}>
                       <Icon icon="tabler:trash" className="text-lg" />
                     </button>
-
                     {confirmOpen && (
-                      <div
-                        id="img-del-confirm"
-                        ref={confirmRef}
-                        role="dialog"
-                        aria-modal="true"
-                        className="absolute top-full right-0 mt-2 z-50 w-[260px] rounded-lg border border-gray-200 bg-white shadow-xl p-3"
-                        style={{ maxWidth: "min(260px, calc(100vw - 32px))" }}
-                      >
+                      <div ref={confirmRef} className="absolute top-full right-0 mt-2 z-50 w-[260px] rounded-lg border border-gray-200 bg-white shadow-xl p-3">
                         <div className="flex items-start gap-2">
                           <Icon icon="tabler:alert-circle" className="text-gray-700 mt-0.5" />
-                          <p className="text-sm text-gray-800">
-                            {confirmMessage}
-                          </p>
+                          <p className="text-sm text-gray-800">{confirmMessage}</p>
                         </div>
                         <div className="mt-3 flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setConfirmOpen(false)}
-                            className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 text-sm hover:bg-gray-50"
-                          >
-                            {confirmNoLabel}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { setConfirmOpen(false); doDelete(); }}
-                            className="px-3 py-1.5 rounded-md bg-gray-900 text-white text-sm hover:bg-gray-800"
-                          >
-                            {confirmYesLabel}
-                          </button>
+                          <button type="button" onClick={() => setConfirmOpen(false)} className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 text-sm hover:bg-gray-50">{confirmNoLabel}</button>
+                          <button type="button" onClick={() => { setConfirmOpen(false); doDelete(); }} className="px-3 py-1.5 rounded-md bg-gray-900 text-white text-sm hover:bg-gray-800">{confirmYesLabel}</button>
                         </div>
                       </div>
                     )}
                   </div>
-
-                  <input
-                    ref={inputRef}
-                    type="file"
-                    accept={accept}
-                    className="hidden"
-                    onChange={handlePick}
-                    disabled={disabled}
-                  />
+                  <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={handlePick} disabled={disabled} />
                 </>
               )}
             </div>
           </div>
         )}
 
-        {/* Overlay de carga con mínimo visible */}
         {isBusy && (
           <div className="absolute inset-0 z-40 bg-white/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 rounded-md">
-            <div className="flex items-center gap-2 text-gray-800">
-              <Icon icon="tabler:cloud-upload" className="text-xl" />
-              <span className="text-sm font-medium">{uploadText}</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-700 animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-700 animate-bounce" style={{ animationDelay: "120ms" }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-700 animate-bounce" style={{ animationDelay: "240ms" }} />
-            </div>
+            <div className="flex items-center gap-2 text-gray-800"><Icon icon="tabler:cloud-upload" className="text-xl" /><span className="text-sm font-medium">{uploadText}</span></div>
             <div className="w-[220px] h-1 rounded bg-gray-200 overflow-hidden mt-2">
-              {typeof safeProgress === "number" ? (
-                <div className="h-full bg-gray-900 transition-all" style={{ width: `${safeProgress}%` }} />
-              ) : (
-                <div className="h-full bg-gray-900 w-2/3 animate-pulse rounded" />
-              )}
+              {typeof safeProgress === "number" ? <div className="h-full bg-gray-900 transition-all" style={{ width: `${safeProgress}%` }} /> : <div className="h-full bg-gray-900 w-2/3 animate-pulse rounded" />}
             </div>
           </div>
         )}
       </div>
-
-      {/* Mensajes */}
-      {error ? (
-        <p className="mt-2 text-sm text-red-600">{error}</p>
-      ) : helperText && !hasImage && showEmptyCTA ? (
-        <p className="mt-2 text-sm text-gray-500">{helperText}</p>
-      ) : null}
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </div>
   );
 };

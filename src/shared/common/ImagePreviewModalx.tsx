@@ -10,13 +10,10 @@ import { Icon } from "@iconify/react";
 type Props = {
   open: boolean;
 
-  /** ✅ compat: tu prop actual */
   src?: string;
 
-  /** ✅ nuevo: alias para usar como `url` */
   url?: string;
 
-  /** ✅ nuevo: título opcional */
   title?: string;
 
   alt?: string;
