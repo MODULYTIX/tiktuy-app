@@ -27,6 +27,16 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         secure: true,
       },
+      '/admin-reportes': {
+        target: 'https://tiktuy-app-backend-production.up.railway.app',
+        changeOrigin: true,
+        secure: true,
+      },
+      '/repartidor-reportes': {
+        target: 'https://tiktuy-app-backend-production.up.railway.app',
+        changeOrigin: true,
+        secure: true,
+      },
       // si luego quieres más rutas:
       // '/pedido': { target: 'https://...', changeOrigin: true },
       // '/producto': { target: 'https://...', changeOrigin: true },

@@ -24,7 +24,7 @@ import {
 import { Icon } from "@iconify/react";
 
 /* ========================= */
-const hoyISO = () => new Date().toISOString().slice(0, 10);
+const hoyISO = () => new Date().toLocaleDateString('en-CA');
 
 const COLORS = [
   "#22c55e",

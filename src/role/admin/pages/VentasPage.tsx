@@ -38,7 +38,7 @@ function getFirstDayOfMonth() {
 }
 /* Helper para hoy */
 function getToday() {
-  return new Date().toISOString().split("T")[0];
+  return new Date().toLocaleDateString('en-CA');
 }
 
 export default function VentasPage() {

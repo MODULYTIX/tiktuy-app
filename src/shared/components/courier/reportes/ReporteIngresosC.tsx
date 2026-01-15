@@ -24,7 +24,7 @@ import {
 /* =========================
    Helpers
 ========================= */
-const hoyISO = () => new Date().toISOString().slice(0, 10);
+const hoyISO = () => new Date().toLocaleDateString('en-CA');
 
 export default function ReporteIngresosC() {
   const { token } = useAuth();
