@@ -303,12 +303,6 @@ export default function ReportesPage() {
   );
 }
 
-function getIconByEstado(estado: string, tipo: string) {
-  if (tipo === 'REPROGRAMACION') return "mdi:clock-time-four-outline";
-  if (estado === 'Entregado') return "mdi:check-bold";
-  if (estado === 'Anulado' || estado === 'Rechazado') return "mdi:close-octagon-outline";
-  return "mdi:package-variant-closed";
-}
 
 function formatDate(isoStr: string) {
   if (!isoStr) return "";
