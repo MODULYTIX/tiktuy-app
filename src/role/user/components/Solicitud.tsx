@@ -290,7 +290,7 @@ export default function Solicitud() {
                 </span>
                 <p className="font-semibold">Telefono</p>
               </div>
-              <p className="text-gray-700">(+51) 987 654 321</p>
+              <p className="text-gray-700">(+51) 987 704 197</p>
             </div>
 
             <div className="px-6 py-4 border rounded-xl border-[#99BCDA] min-w-[260px] flex-1">
