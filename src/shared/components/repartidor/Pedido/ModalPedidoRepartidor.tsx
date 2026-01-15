@@ -41,7 +41,8 @@ function normalizeWhatsappGroupLink(raw: string): string | null {
   try {
     const u = new URL(t);
     const hostOk =
-      u.hostname === "chat.whatsapp.com" || u.hostname.endsWith(".whatsapp.com");
+      u.hostname === "chat.whatsapp.com" ||
+      u.hostname.endsWith(".whatsapp.com");
     if (!hostOk) return null;
     if (!u.pathname || u.pathname === "/") return null;
     return u.toString();
@@ -175,14 +176,13 @@ export default function ModalRepartidorMotorizado({
       ? resumen.referencia.startsWith("http")
         ? resumen.referencia
         : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-          resumen.referencia
-        )}`
+            resumen.referencia
+          )}`
       : undefined;
 
   const fechaFormateada = resumen.fechaProg
     ? new Date(resumen.fechaProg).toLocaleDateString("es-PE")
     : "—";
-
 
   const montoFormateado = new Intl.NumberFormat("es-PE", {
     style: "currency",
@@ -254,9 +254,10 @@ export default function ModalRepartidorMotorizado({
                   <ResumenRow label="Código" value={resumen.codigo} />
                   <ResumenRow label="Distrito" value={resumen.distrito} />
                   <ResumenRow label="Dirección" value={resumen.direccion} />
-                  <ResumenRow label="Dirección" value={resumen.direccion} />
                   <a
-                    className={`block ${!referenciaHref ? "pointer-events-none" : ""}`}
+                    className={`block ${
+                      !referenciaHref ? "pointer-events-none" : ""
+                    } max-w-full overflow-hidden line-clamp-2`}
                     target="_blank"
                     href={referenciaHref}
                     rel="noreferrer"
@@ -291,7 +292,11 @@ export default function ModalRepartidorMotorizado({
 
               {/* Acciones rápidas */}
               <div className="mt-4 flex items-center justify-center gap-5">
-                <AccionCircular icon="mdi:phone" label="Llamar" href={telHref} />
+                <AccionCircular
+                  icon="mdi:phone"
+                  label="Llamar"
+                  href={telHref}
+                />
                 <AccionCircular
                   icon="mdi:whatsapp"
                   label="WhatsApp"
@@ -631,7 +636,9 @@ function OpcionCard({
         <Icon icon={icon} className="text-lg" />
       </div>
 
-      <div className="text-sm font-medium leading-snug text-center">{title}</div>
+      <div className="text-sm font-medium leading-snug text-center">
+        {title}
+      </div>
 
       {active && <Icon icon="mdi:check" className="ml-2 text-xl text-white" />}
     </button>
