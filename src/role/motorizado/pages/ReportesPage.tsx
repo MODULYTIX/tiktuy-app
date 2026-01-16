@@ -26,22 +26,24 @@ export default function ReportesPage() {
 
   // --- Paginación ---
   const [, setPage] = useState(1);
-  const [limit, ] = useState(6);
+  const [limit,] = useState(6);
 
   // --- Data ---
   const [data, setData] = useState<RepartidorHistorialResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Estado para el total global calculado
+  const [totalGananciaGlobal, setTotalGananciaGlobal] = useState(0);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  // Función para cargar los datos paginados
   const loadData = async (newPage = 1) => {
     if (!token) return;
 
     // Extraer IDs del perfil del trabajador (motorizado) si existen
-    const motorizadoId = user?.perfil_trabajador?.id ?? 5; // Fallback MOCK
-    const courierId = user?.perfil_trabajador?.courier_id ?? 1; // Fallback MOCK
-
-    // Si realmente necesitamos bloquear, descomentar:
-    // if (!courierId) return;
+    const motorizadoId = user?.perfil_trabajador?.id ?? 5; 
+    const courierId = user?.perfil_trabajador?.courier_id ?? 1;
 
     setLoading(true);
     setError("");
@@ -68,35 +70,57 @@ export default function ReportesPage() {
     }
   };
 
+  // Función separada para calcular el TOTAL global en el rango seleccionado
+  // Se llama cuando cambian los filtros (desde/hasta)
+  const loadGlobalStats = async () => {
+    if (!token) return;
+    const motorizadoId = user?.perfil_trabajador?.id ?? 5;
+    const courierId = user?.perfil_trabajador?.courier_id ?? 1;
+
+    setLoadingStats(true);
+    try {
+      // Pedimos un limit alto para traer TODO lo del rango y sumar
+      // OJO: Esto es un workaround porque la API no devuelve la suma total.
+      const params: RepartidorHistorialParams = {
+        courierId,
+        motorizadoId,
+        desde: desde || undefined,
+        hasta: hasta || undefined,
+        page: 1,
+        limit: 10000 // Traer "todos" (o un número suficientemente grande)
+      };
+
+      const res = await getHistorialRepartidor(params, token);
+
+      // Calcular suma total
+      const total = res.items.reduce((acc, item) => {
+        const val = parseFloat(item.ganancia || "0");
+        return acc + (isNaN(val) ? 0 : val);
+      }, 0);
+
+      setTotalGananciaGlobal(total);
+
+    } catch (err) {
+      console.error("Error calculando estadisticas globales", err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   useEffect(() => {
     loadData(1);
+    loadGlobalStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
   const handleFiltrar = () => {
     loadData(1);
+    loadGlobalStats();
   };
 
   const handlePageChange = (p: number) => {
     loadData(p);
   };
-
-  // Calcular total pagado en el rango mostrado
-  // OJO: Si paginamos, 'items' solo trae la página actual.
-  // El KPI de "Total en Periodo" debería venir del backend si queremos el total global.
-  // Por ahora sumamos lo visible o lo que el backend nos de si ajusta la API.
-  // Si la API no devuelve total global de dinero, solo mostraremos lo de la página actual 
-  // o el usuario tendrá que aceptar que es "Total en esta página".
-  // REVISIÓN: El backend no devuleve 'totalMontoGlobal'. 
-  // Sin embargo, el usuario pidió "pago de hoy". Si paginas "hoy", y tienes 100 pedidos, 
-  // verás el total solo de los 6 primeros. 
-  // *Mejora Ideal*: Backend debería devolver `stats` con totalMonto.
-  // *Por ahora*: Sumamos lo visible.
-  // Calcular total GANANCIA en el rango mostrado
-  const totalGananciaVisible = data?.items.reduce((acc, item) => {
-    const val = parseFloat(item.ganancia || "0");
-    return acc + (isNaN(val) ? 0 : val);
-  }, 0) ?? 0;
 
   const items = data?.items ?? [];
   const paginacion = data?.paginacion;
@@ -114,19 +138,23 @@ export default function ReportesPage() {
       {/* FILTROS Y KPI */}
       <div className="flex flex-col lg:flex-row gap-6">
 
-        {/* KPI: Recaudación / Pago del periodo (Visible) */}
+        {/* KPI: Recaudación / Pago del periodo (GLOBAL) */}
         <div className="lg:w-1/3 bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-center items-center text-center">
           <div className="w-12 h-12 mb-3 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
             <Icon icon="mdi:cash-multiple" className="text-2xl" />
           </div>
           <p className="text-gray-500 text-sm font-medium">
-            {desde === getToday() && hasta === getToday() ? "Ganancia de Hoy" : "Ganancia Total (Visible)"}
+            {desde === getToday() && hasta === getToday() ? "Ganancia de Hoy" : "Ganancia Total (Rango)"}
           </p>
           <h3 className="text-3xl font-bold text-gray-900 mt-1">
-            S/. {totalGananciaVisible.toFixed(2)}
+            {loadingStats ? (
+              <span className="text-gray-300 text-2xl animate-pulse">...</span>
+            ) : (
+              `S/. ${totalGananciaGlobal.toFixed(2)}`
+            )}
           </h3>
           <span className="text-xs text-gray-400 mt-2">
-            {paginacion?.total ? `Hiciste ${paginacion.total} entregas` : 'Sin registros'}
+            {loadingStats ? "Calculando..." : (paginacion?.total ? `Hiciste ${paginacion.total} entregas` : 'Sin registros')}
           </span>
         </div>
 
