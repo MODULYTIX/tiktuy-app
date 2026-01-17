@@ -5,10 +5,10 @@ export default function QueEs() {
   return (
     <section className="w-full py-28 bg-white">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-        {/* 🟦 Texto Izquierda */}
         <div className="flex-1 h-full justify-center items-center max-w-xl">
           <h2 className=" mb-12">
-            <TittleX>¿Qué es Tiktuy?</TittleX>
+            <TittleX><h2>¿Qué es Tiktuy?</h2>
+            </TittleX>
           </h2>
           <p className="font-normal text-gray-600 leading-relaxed text-lg">
             Nuestra plataforma ha sido diseñada especialmente para couriers,
@@ -20,10 +20,10 @@ export default function QueEs() {
         </div>
 
         <img
-            src={queEsImg}
-            alt="Qué es TIKTUY"
-            className="relative z-10 w-[760px] max-w-full rounded-t-lg"
-          />
+          src={queEsImg}
+          alt="Qué es TIKTUY"
+          className="relative z-10 w-[760px] max-w-full rounded-t-lg"
+        />
       </div>
     </section>
   );
