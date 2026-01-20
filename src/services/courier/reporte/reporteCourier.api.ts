@@ -15,11 +15,11 @@ function authHeaders(token: string) {
 
 function withQuery(
     path: string,
-    params: Record<string, string | undefined>
+    params: Record<string, string | number | undefined>
 ) {
     const url = new URL(path, API);
     Object.entries(params).forEach(([k, v]) => {
-        if (v) url.searchParams.set(k, v);
+        if (v) url.searchParams.set(k, String(v));
     });
     return url.toString();
 }
@@ -34,6 +34,7 @@ export async function getCourierEntregasReporte(
         vista: VistaReporte;
         desde?: string;
         hasta?: string;
+        motorizadoId?: number;
     }
 ): Promise<CourierEntregasReporteResp> {
     const url = withQuery('/courier/reportes/entregas', query);

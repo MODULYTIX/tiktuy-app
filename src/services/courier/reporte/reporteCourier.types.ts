@@ -28,6 +28,10 @@ export type CourierEntregasReporteResp = {
     };
     donut: CourierEntregaDonutItem[];
     motorizados: CourierMotorizadoItem[];
+    historial?: {
+        label: string; // e.g. "Ene", "Feb" or "2024-01-01"
+        [key: string]: any; // dynamic keys for states
+    }[];
 };
 
 export type CourierIngresosReporteResp = {
@@ -39,6 +43,7 @@ export type CourierIngresosReporteResp = {
     kpis: {
         ingresosTotales: number;
         totalPedidos: number;
+        ingresosRepartidor?: number;
     };
     tabla: {
         fecha: string;

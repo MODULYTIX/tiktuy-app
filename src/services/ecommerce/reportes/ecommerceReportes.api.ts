@@ -103,10 +103,10 @@ export async function getIngresosReporte(
 
     tabla: Array.isArray(raw.tabla)
       ? raw.tabla.map((t) => ({
-          fecha: t.fecha,
-          ingresos: Number(t.ingresos ?? 0),
-          totalPedidos: Number(t.totalPedidos ?? 0),
-        }))
+        fecha: t.fecha,
+        ingresos: Number(t.ingresos ?? 0),
+        totalPedidos: Number(t.totalPedidos ?? 0),
+      }))
       : [],
 
     grafico: {
@@ -153,27 +153,27 @@ export async function getEntregasReporte(
 
     donut: Array.isArray(raw.donut)
       ? raw.donut.map((d) => ({
-          label: d.label,
-          value: Number(d.value ?? 0),
-        }))
+        label: d.label,
+        value: Number(d.value ?? 0),
+      }))
       : [],
 
     couriers: Array.isArray(raw.couriers)
       ? raw.couriers.map(c => ({
-          courierId: Number(c.courierId),
-          courier: c.courier,
-          total: Number(c.total ?? 0),
-          entregados: Number(c.entregados ?? 0),
-        }))
+        courierId: Number(c.courierId),
+        courier: c.courier,
+        total: Number(c.total ?? 0),
+        entregados: Number(c.entregados ?? 0),
+      }))
       : [],
 
     motorizados: Array.isArray(raw.motorizados)
       ? raw.motorizados.map(m => ({
-          motorizadoId: Number(m.motorizadoId),
-          motorizado: m.motorizado,
-          total: Number(m.total ?? 0),
-          entregados: Number(m.entregados ?? 0),
-        }))
+        motorizadoId: Number(m.motorizadoId),
+        motorizado: m.motorizado,
+        total: Number(m.total ?? 0),
+        entregados: Number(m.entregados ?? 0),
+      }))
       : [],
   };
 }

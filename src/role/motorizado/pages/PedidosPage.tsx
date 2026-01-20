@@ -43,14 +43,7 @@ export default function PedidosPage() {
 
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const [vista, setVista] = useState<VistaUI>(() => {
-    const saved = localStorage.getItem("repartidor_vista_pedidos") as VistaUI | null;
-    return saved ?? "asignados";
-  });
-
-  useEffect(() => {
-    localStorage.setItem("repartidor_vista_pedidos", vista);
-  }, [vista]);
+  const [vista, setVista] = useState<VistaUI>("asignados");
 
   const [openModalCambio, setOpenModalCambio] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<PedidoListItem | null>(null);

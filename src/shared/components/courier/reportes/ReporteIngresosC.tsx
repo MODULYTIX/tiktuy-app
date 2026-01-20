@@ -49,7 +49,7 @@ export default function ReporteIngresosC() {
 
       const resp = await getCourierIngresosReporte(token, {
         vista,
-        desde: vista === "diario" ? desde : undefined,
+        desde: ["diario", "mensual"].includes(vista) ? desde : undefined,
         hasta: vista === "diario" ? hasta : undefined,
       });
 
@@ -69,12 +69,13 @@ export default function ReporteIngresosC() {
   /* =========================
      KPIs
   ========================= */
+
   const kpis = useMemo(() => {
     if (!data) {
       return {
         ingresos: 0,
         pedidos: 0,
-        promedio: 0,
+        netoGanancia: 0,
       };
     }
 
@@ -84,7 +85,7 @@ export default function ReporteIngresosC() {
     return {
       ingresos,
       pedidos,
-      promedio: pedidos > 0 ? ingresos / pedidos : 0,
+      netoGanancia: ingresos - (Number(data.kpis.ingresosRepartidor) || 0),
     };
   }, [data]);
 
@@ -116,20 +117,22 @@ export default function ReporteIngresosC() {
           ))}
         </div>
 
-        {vista === "diario" && (
+        {(vista === "diario" || vista === "mensual") && (
           <div className="flex gap-3 items-end">
             <Inputx
               type="date"
-              label="Desde"
+              label={vista === "mensual" ? "Fecha (Mes)" : "Desde"}
               value={desde}
               onChange={e => setDesde(e.target.value)}
             />
-            <Inputx
-              type="date"
-              label="Hasta"
-              value={hasta}
-              onChange={e => setHasta(e.target.value)}
-            />
+            {vista === "diario" && (
+              <Inputx
+                type="date"
+                label="Hasta"
+                value={hasta}
+                onChange={e => setHasta(e.target.value)}
+              />
+            )}
             <Buttonx
               label="Filtrar"
               icon="mdi:filter"
@@ -167,10 +170,10 @@ export default function ReporteIngresosC() {
           <Cardx>
             <div className="flex items-center gap-2 text-gray60 text-xs mb-1">
               <Icon icon="mdi:chart-line" />
-              Promedio por Pedido
+              Neto Ganancia
             </div>
             <p className="text-2xl font-semibold">
-              S/ {kpis.promedio.toFixed(2)}
+              S/ {kpis.netoGanancia.toFixed(2)}
             </p>
           </Cardx>
 
@@ -185,6 +188,11 @@ export default function ReporteIngresosC() {
             {vista === "diario" && (
               <p className="text-xs text-gray60">
                 {desde} → {hasta}
+              </p>
+            )}
+            {vista === "mensual" && (
+              <p className="text-xs text-gray60">
+                Ref: {desde}
               </p>
             )}
           </Cardx>
