@@ -76,12 +76,13 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
  */
 export async function getIngresosReporte(
   token: string,
-  query: IngresosReporteQuery
+  query: IngresosReporteQuery & { courierId?: number }
 ): Promise<IngresosReporteResp> {
   const url = withQuery('/ecommerce/reportes/ingresos', {
     vista: query.vista,
     desde: query.desde,
     hasta: query.hasta,
+    courierId: query.courierId,
   });
 
   const raw = await request<IngresosReporteResp>(url, {
@@ -99,6 +100,8 @@ export async function getIngresosReporte(
     kpis: {
       ingresosTotales: Number(raw.kpis?.ingresosTotales ?? 0),
       totalPedidos: Number(raw.kpis?.totalPedidos ?? 0),
+      servicioCourier: Number(raw.kpis?.servicioCourier ?? 0),
+      gananciaNeta: Number(raw.kpis?.gananciaNeta ?? 0),
     },
 
     tabla: Array.isArray(raw.tabla)
@@ -111,8 +114,9 @@ export async function getIngresosReporte(
 
     grafico: {
       labels: raw.grafico?.labels ?? [],
-      series: (raw.grafico?.series ?? []).map((n) => Number(n ?? 0)),
+      series: (raw.grafico?.series ?? []).map((n: any) => Number(n ?? 0)),
     },
+
   };
 }
 
@@ -126,15 +130,17 @@ export async function getEntregasReporte(
     vista: VistaReporte;
     desde?: string;
     hasta?: string;
+    courierId?: number;
   }
 ): Promise<EntregasReporteResp> {
   const url = withQuery('/ecommerce/reportes/entregas', {
     vista: query.vista,
     desde: query.desde,
-    hasta: query.hasta,
+    hasta: query.hasta, // Fixed comma
+    courierId: query.courierId,
   });
 
-  const raw = await request<EntregasReporteResp>(url, {
+  const raw = await request<EntregasReporteResp & { couriers?: any[] }>(url, {
     headers: authHeaders(token),
   });
 
@@ -148,6 +154,7 @@ export async function getEntregasReporte(
     kpis: {
       totalPedidos: Number(raw.kpis?.totalPedidos ?? 0),
       entregados: Number(raw.kpis?.entregados ?? 0),
+      rechazados: Number(raw.kpis?.rechazados ?? 0),
       tasaEntrega: Number(raw.kpis?.tasaEntrega ?? 0),
     },
 
@@ -158,8 +165,16 @@ export async function getEntregasReporte(
       }))
       : [],
 
-    couriers: Array.isArray(raw.couriers)
-      ? raw.couriers.map(c => ({
+    evolucion: Array.isArray(raw.evolucion)
+      ? raw.evolucion.map((e) => ({
+        label: e.label,
+        entregados: Number(e.entregados ?? 0),
+        rechazados: Number(e.rechazados ?? 0),
+      }))
+      : [],
+
+    couriersRanking: Array.isArray(raw.couriersRanking)
+      ? raw.couriersRanking.map((c) => ({
         courierId: Number(c.courierId),
         courier: c.courier,
         total: Number(c.total ?? 0),
@@ -168,7 +183,7 @@ export async function getEntregasReporte(
       : [],
 
     motorizados: Array.isArray(raw.motorizados)
-      ? raw.motorizados.map(m => ({
+      ? raw.motorizados.map((m) => ({
         motorizadoId: Number(m.motorizadoId),
         motorizado: m.motorizado,
         total: Number(m.total ?? 0),
@@ -176,4 +191,17 @@ export async function getEntregasReporte(
       }))
       : [],
   };
+}
+
+
+/**
+ * GET /ecommerce/reportes/couriers
+ * Listado simple de Couriers para filtro
+ */
+export async function listCouriers(token: string): Promise<{ id: number; nombre: string }[]> {
+  const url = withQuery('/ecommerce/reportes/couriers', {});
+  const raw = await request<{ id: number; nombre: string }[]>(url, {
+    headers: authHeaders(token),
+  });
+  return Array.isArray(raw) ? raw : [];
 }

@@ -29,7 +29,9 @@ export type IngresoTablaItem = {
 /** KPIs de ingresos */
 export type IngresosKpis = {
   ingresosTotales: number;
-  totalPedidos: number; 
+  totalPedidos: number;
+  servicioCourier?: number;
+  gananciaNeta?: number;
 };
 
 /** Datos para gráfico de ingresos */
@@ -46,15 +48,13 @@ export type IngresosReporteResp = {
     hasta?: string;
   };
 
-  kpis: {
-    ingresosTotales: number;
-    totalPedidos: number;
-  }
 
+  kpis: IngresosKpis;
+
+  grafico: IngresosGrafico;
 
   tabla: IngresoTablaItem[];
 
-  grafico: IngresosGrafico;
 };
 
 /* =========================================================
@@ -75,11 +75,14 @@ export type EntregasKpis = {
   /** Total de pedidos entregados */
   entregados?: number;
 
+  /** Total de pedidos rechazados */
+  rechazados?: number;
+
   /** % de entregas exitosas */
   tasaEntrega?: number;
 };
 
-/** Métrica por courier */
+/** Métrica por courier (Ranking) */
 export type EntregaCourierItem = {
   courierId: number;
   courier: string;
@@ -95,6 +98,12 @@ export type EntregaMotorizadoItem = {
   entregados: number;
 };
 
+export type EvolucionDiariaItem = {
+  label: string; // "1", "2" (día)
+  entregados: number;
+  rechazados: number;
+};
+
 /** Response completa del dashboard de entregas */
 export type EntregasReporteResp = {
   filtros: {
@@ -108,8 +117,11 @@ export type EntregasReporteResp = {
   /** Donut por estado de pedidos */
   donut: EntregaDonutItem[];
 
+  /** Evolución diaria (gráfico) */
+  evolucion?: EvolucionDiariaItem[];
+
   /** Breakdown por courier (ranking) */
-  couriers?: EntregaCourierItem[];
+  couriersRanking?: EntregaCourierItem[];
 
   /** Breakdown por motorizado (ranking) */
   motorizados?: EntregaMotorizadoItem[];
