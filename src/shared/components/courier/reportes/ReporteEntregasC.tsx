@@ -340,34 +340,42 @@ export default function ReporteEntregasC() {
               </ResponsiveContainer>
             </div>
           ) : vista === "mensual" ? (
-            // VISTA MENSUAL: Vertical Bar Chart Only (No Donut)
-            <div className="w-full h-[350px] mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={donutData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis
-                    dataKey="label"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#6B7280', fontSize: 12 }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#6B7280', fontSize: 12 }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: '#F3F4F6' }}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  />
-                  <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={60}>
-                    {donutData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+            // VISTA MENSUAL: Vertical Bar Chart + Daily Evolution
+            <div className="w-full flex flex-col gap-8 mt-4">
+              {/* Daily Breakdown Only (Totales por Estado removed) */}
+              <div className="w-full h-[300px]">
+                <h3 className="text-sm font-semibold text-gray-500 mb-2 ml-4">Evolución Diaria (Días con más entregas)</h3>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={(() => {
+                      if (data?.evolucion && data.evolucion.length > 0) {
+                        return data.evolucion.map(d => ({
+                          label: d.label,
+                          "Pedidos Entregados": d.entregados,
+                          "Pedidos Rechazados": d.rechazados,
+                          "Pedidos Anulados": d.anulados,
+                        }));
+                      }
+                      return [];
+                    })()}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="label" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                    <Tooltip cursor={{ fill: '#F3F4F6' }} contentStyle={{ borderRadius: '8px' }} />
+                    <Legend />
+                    {donutData.map((item, i) => (
+                      <Bar
+                        key={item.label}
+                        dataKey={item.label}
+                        stackId="a" // Stacked for cleaner daily view
+                        fill={COLORS[i % COLORS.length]}
+                      />
                     ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           ) : (
             // VISTA DIARIO: Donut Only
@@ -395,11 +403,12 @@ export default function ReporteEntregasC() {
                 </ResponsiveContainer>
               </div>
             </div>
-          )}
-        </Cardx>
+          )
+          }
+        </Cardx >
       )}
       {loading && <p className="text-sm text-gray60">Cargando…</p>}
       {error && <p className="text-sm text-red-500">{error}</p>}
-    </div>
+    </div >
   );
 }

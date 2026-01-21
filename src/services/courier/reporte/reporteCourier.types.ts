@@ -32,6 +32,12 @@ export type CourierEntregasReporteResp = {
         label: string; // e.g. "Ene", "Feb" or "2024-01-01"
         [key: string]: any; // dynamic keys for states
     }[];
+    evolucion?: {
+        label: string;
+        entregados: number;
+        rechazados: number;
+        anulados: number;
+    }[];
 };
 
 export type CourierIngresosReporteResp = {

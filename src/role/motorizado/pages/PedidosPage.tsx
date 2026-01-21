@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import { AuthContext } from "@/auth/context/AuthContext";
 import type { RepartidorVista, PedidoListItem } from "@/services/repartidor/pedidos/pedidos.types";
 
