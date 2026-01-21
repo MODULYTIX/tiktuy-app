@@ -443,7 +443,7 @@ export default function DetalleServiciosDiaModal({
                         Método de pago
                       </div>
                       <div className="mt-1 text-[13px] font-semibold text-gray90 truncate">
-                        {metodoPagoLabel((pedido as any)?.metodoPago)}
+                        {metodoPagoLabel((pedido as any)?.metodoPago)}/ Pagado
                       </div>
                     </div>
                   </div>

@@ -23,7 +23,7 @@ function normalizeMotorizados(input: any): MotorizadoItem[] {
   if (Array.isArray(input)) return input as MotorizadoItem[];
   if (input && Array.isArray(input.items))
     return input.items as MotorizadoItem[];
-  if (input && Array.isArray(input.data)) return input.data as MotorizadoItem[]; // por si tu wrapper usa data
+  if (input && Array.isArray(input.data)) return input.data as MotorizadoItem[]; 
   return [];
 }
 

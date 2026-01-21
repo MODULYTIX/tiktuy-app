@@ -57,16 +57,16 @@ const normMetodoPago = (v: unknown) =>
 /** solo contar efectivo */
 const isEfectivo = (metodoPago: unknown) => normMetodoPago(metodoPago) === "EFECTIVO";
 
-/** ✅ Etiqueta visual para método de pago (NO afecta lógica) */
+/**  Etiqueta visual para método de pago (NO afecta lógica) */
 const metodoPagoLabel = (metodoPago: unknown) => {
   const m = normMetodoPago(metodoPago);
 
-  // ✅ si no hay método => Pedido rechazado
+  //  si no hay método => Pedido rechazado
   if (!m) return "Pedido rechazado";
 
-  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
-  if (m === "BILLETERA") return "Pago Digital al Courier";
-  if (m === "EFECTIVO") return "Efectivo";
+  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce / Pagado";
+  if (m === "BILLETERA") return "Pago Digital al Courier / Pagado";
+  if (m === "EFECTIVO") return "Efectivo / Pagado";
 
   // fallback (si llega un nuevo método)
   return String(metodoPago ?? "Pedido rechazado");
@@ -79,7 +79,7 @@ const isRechazadoByMetodoPago = (metodoPago: unknown) =>
   metodoPago == null || String(metodoPago).trim() === "";
 
 /**
- * ✅ Servicios SIEMPRE se muestran normal (aunque el pedido sea rechazado).
+ *  Servicios SIEMPRE se muestran normal (aunque el pedido sea rechazado).
  * - Motorizado: usa servicioEfectivo (que ya incluye editado por onSavedServicio).
  * - Courier: usa servicioCourierEfectivo o servicioCourier.
  */

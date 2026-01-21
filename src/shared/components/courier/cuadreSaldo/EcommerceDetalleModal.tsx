@@ -397,7 +397,7 @@ const EcommerceDetalleModal: React.FC<Props> = ({
 
                               {/* método con label */}
                               <td className="px-4 py-3 text-gray70">
-                                {metodoPagoLabel(it.metodoPago)}
+                                {metodoPagoLabel(it.metodoPago)} / Pagado
                               </td>
 
                               {/* monto 0 si rechazado o DIRECTO_ECOMMERCE */}
