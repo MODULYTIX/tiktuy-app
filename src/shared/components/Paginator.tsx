@@ -1,15 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useMemo } from "react";
 
 interface PaginatorProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
 
-  /** Apariencia opcional. Por defecto mantiene el estilo actual (naranja). */
-  appearance?: 'default' | 'grayRounded';
-  /** Muestra botones anterior/siguiente. Por defecto no se muestran (no cambia tus tablas). */
+  /** Apariencia opcional. Ahora por defecto usa el estilo "grayRounded" (modelo). */
+  appearance?: "default" | "grayRounded";
+  /** Muestra botones anterior/siguiente. */
   showArrows?: boolean;
-  /** Clases extra para el contenedor, por si quieres alinearlo o añadir bordes fuera. */
+  /** Clases extra para el contenedor. Si lo pasas, se añaden al final. */
   containerClassName?: string;
 }
 
@@ -17,9 +17,10 @@ const Paginator: React.FC<PaginatorProps> = ({
   currentPage,
   totalPages,
   onPageChange,
-  appearance = 'default',
+  // ✅ CAMBIO: por defecto usamos el estilo modelo
+  appearance = "grayRounded",
   showArrows = false,
-  containerClassName = '',
+  containerClassName = "",
 }) => {
   const pages = useMemo<(number | string)[]>(() => {
     const out: (number | string)[] = [];
@@ -29,36 +30,56 @@ const Paginator: React.FC<PaginatorProps> = ({
       for (let i = 1; i <= totalPages; i++) out.push(i);
     } else {
       if (currentPage <= 3) {
-        out.push(1, 2, 3, 4, '...', totalPages);
+        out.push(1, 2, 3, 4, "...", totalPages);
       } else if (currentPage >= totalPages - 2) {
-        out.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        out.push(
+          1,
+          "...",
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages
+        );
       } else {
-        out.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+        out.push(
+          1,
+          "...",
+          currentPage - 1,
+          currentPage,
+          currentPage + 1,
+          "...",
+          totalPages
+        );
       }
     }
     return out;
   }, [currentPage, totalPages]);
 
-  const isGray = appearance === 'grayRounded';
+  const isGray = appearance === "grayRounded";
+
+  // ===== ✅ TU MODELO EXACTO =====
+  const MODEL_WRAP =
+    "flex flex-wrap items-center justify-center sm:justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2";
+  const MODEL_BTN_BASE =
+    "w-8 h-8 flex items-center justify-center rounded bg-gray10 text-gray70 hover:bg-gray20 border-0 outline-none " +
+    "disabled:opacity-50 disabled:hover:bg-gray10 disabled:cursor-not-allowed";
+  const MODEL_BTN_ACTIVE = "bg-gray90 text-white hover:bg-gray90";
+  const MODEL_DOTS = "px-2 text-gray70 select-none";
+
+  // ===== Default (si alguna vez lo quieres mantener) =====
+  const DEFAULT_WRAP = "flex items-center gap-2 text-sm p-1";
+  const DEFAULT_BTN_BASE =
+    "px-2 py-1 border rounded w-7 h-7 text-center transition-colors";
+  const DEFAULT_BTN_ACTIVE = "bg-orange-500 text-white";
+  const DEFAULT_DOTS =
+    "px-2 py-1 text-gray-500 select-none w-7 h-7 text-center";
 
   const wrapCls = [
-    'flex items-center gap-2 text-sm',
-    // en tus otras tablas era: "flex items-center gap-1 text-sm p-1"
-    // mantenemos el padding como opcional via containerClassName
-    containerClassName || (isGray ? '' : 'p-1'),
-  ].join(' ');
-
-  const btnBaseDefault =
-    'px-2 py-1 border rounded w-7 h-7 text-center transition-colors';
-  const btnActiveDefault = 'bg-orange-500 text-white';
-  const btnInactiveDefault = '';
-
-  const btnBaseGray =
-    'w-8 h-8 flex items-center justify-center rounded transition-colors';
-  const btnActiveGray = 'bg-gray90 text-white';
-  const btnInactiveGray = 'bg-gray10 text-gray70 hover:bg-gray20';
-
-  const dotsCls = isGray ? 'px-2 text-gray70 select-none w-7 h-7 text-center' : 'px-2 py-1 text-gray-500 select-none w-7 h-7 text-center';
+    isGray ? MODEL_WRAP : DEFAULT_WRAP,
+    containerClassName,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const prevDisabled = currentPage <= 1;
   const nextDisabled = currentPage >= totalPages;
@@ -73,8 +94,10 @@ const Paginator: React.FC<PaginatorProps> = ({
           aria-label="Página anterior"
           className={
             isGray
-              ? `${btnBaseGray} ${prevDisabled ? 'opacity-50 cursor-not-allowed' : btnInactiveGray}`
-              : `${btnBaseDefault} ${prevDisabled ? 'opacity-50 cursor-not-allowed' : btnInactiveDefault}`
+              ? MODEL_BTN_BASE
+              : `${DEFAULT_BTN_BASE} ${
+                  prevDisabled ? "opacity-50 cursor-not-allowed" : ""
+                }`
           }
         >
           &lt;
@@ -82,23 +105,29 @@ const Paginator: React.FC<PaginatorProps> = ({
       )}
 
       {pages.map((p, i) =>
-        typeof p === 'number' ? (
+        typeof p === "number" ? (
           <button
             type="button"
             key={`p-${p}-${i}`}
             onClick={() => onPageChange(p)}
-            aria-current={p === currentPage ? 'page' : undefined}
+            aria-current={p === currentPage ? "page" : undefined}
+            disabled={false}
             className={
               isGray
-                ? `${btnBaseGray} ${p === currentPage ? btnActiveGray : btnInactiveGray}`
-                : `${btnBaseDefault} ${p === currentPage ? btnActiveDefault : btnInactiveDefault}`
+                ? [
+                    MODEL_BTN_BASE,
+                    p === currentPage ? MODEL_BTN_ACTIVE : "",
+                  ].join(" ")
+                : `${DEFAULT_BTN_BASE} ${
+                    p === currentPage ? DEFAULT_BTN_ACTIVE : ""
+                  }`
             }
           >
             {p}
           </button>
         ) : (
-          <span key={`dots-${i}`} className={dotsCls} aria-hidden="true">
-            …
+          <span key={`dots-${i}`} className={isGray ? MODEL_DOTS : DEFAULT_DOTS}>
+            {p}
           </span>
         )
       )}
@@ -111,8 +140,10 @@ const Paginator: React.FC<PaginatorProps> = ({
           aria-label="Página siguiente"
           className={
             isGray
-              ? `${btnBaseGray} ${nextDisabled ? 'opacity-50 cursor-not-allowed' : btnInactiveGray}`
-              : `${btnBaseDefault} ${nextDisabled ? 'opacity-50 cursor-not-allowed' : btnInactiveDefault}`
+              ? MODEL_BTN_BASE
+              : `${DEFAULT_BTN_BASE} ${
+                  nextDisabled ? "opacity-50 cursor-not-allowed" : ""
+                }`
           }
         >
           &gt;
