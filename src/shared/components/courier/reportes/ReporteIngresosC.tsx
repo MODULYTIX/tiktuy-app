@@ -4,7 +4,6 @@ import { useAuth } from "@/auth/context";
 import Buttonx from "@/shared/common/Buttonx";
 import { Selectx } from "@/shared/common/Selectx";
 import { Inputx } from "@/shared/common/Inputx";
-import Cardx from "@/shared/common/Cards";
 import { Skeleton } from "@/shared/components/ui/Skeleton";
 
 import { getCourierIngresosReporte } from "@/services/courier/reporte/reporteCourier.api";
