@@ -312,7 +312,7 @@ export default function ReportesPage() {
                   paddingAngle={2}
                   dataKey="value"
                 >
-                  {(graficos?.distribucion || []).map((entry, index) => (
+                  {(graficos?.distribucion || []).map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
