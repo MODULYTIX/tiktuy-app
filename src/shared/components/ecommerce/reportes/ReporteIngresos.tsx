@@ -158,7 +158,7 @@ export default function ReporteIngresos() {
   }, [data]);
 
   return (
-    <div className="flex flex-col gap-6 min-w-0">
+    <div className="mt-5 flex flex-col gap-6 min-w-0">
       {/* ================= FILTROS (separados: Periodo + Filtros) ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4 min-w-0">
         {/* ===== Card: Periodo (Segmented control) ===== */}

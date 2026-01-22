@@ -1,13 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useAuth } from "@/auth/context/useAuth";
-import {
-  FaSignOutAlt,
-  FaCashRegister,
-  FaBoxes,
-} from "react-icons/fa";
-import { MdDashboard } from "react-icons/md";
-// import { RiMoneyDollarCircleLine, RiFileChartLine } from "react-icons/ri";
+import { FaSignOutAlt } from "react-icons/fa";
 import { useEffect, useState } from "react";
 
 import LOGOTIKTUY from "@/assets/logos/LOGO-TIKTUY-SIDEBAR.svg";
@@ -49,21 +43,35 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       modulo?: string;
     }>
   > = {
+    // ✅ ADMIN: mismos iconos (Iconify) que el resto
     admin: [
-      { to: "/", label: "Panel de Control", icon: <MdDashboard /> },
-      { to: "/cuadre-saldo", label: "Cuadre de Saldo", icon: <FaCashRegister /> },
-      { to: "/reportes", label: "Reportes", icon: <FaBoxes /> },
+      {
+        to: "/",
+        label: "Panel de Control",
+        icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
+      },
+      {
+        to: "/cuadre-saldo",
+        label: "Cuadre de Saldo",
+        icon: <Icon icon="prime:wallet" width="24" height="24" />,
+      },
+      {
+        to: "/reportes",
+        label: "Reportes",
+        icon: <Icon icon="carbon:report-data" width="24" height="24" />,
+      },
       /*
       {
         to: "/saldos",
         label: "Cuadre de Saldos",
-        icon: <RiMoneyDollarCircleLine />,
+        icon: <Icon icon="prime:wallet" width="24" height="24" />,
       },
-      { to: "/perfiles", label: "Perfiles", icon: <FaUsersCog /> },
-      { to: "/reportes", label: "Reportes", icon: <RiFileChartLine /> },
-      { to: "/configuracion", label: "Configuración", icon: <MdSettings /> },
+      { to: "/perfiles", label: "Perfiles", icon: <Icon icon="hugeicons:access" width="24" height="24" /> },
+      { to: "/reportes", label: "Reportes", icon: <Icon icon="carbon:report-data" width="24" height="24" /> },
+      { to: "/configuracion", label: "Configuración", icon: <Icon icon="mdi:settings-outline" width="24" height="24" /> },
        */
     ],
+
     ecommerce: [
       {
         to: "/",
@@ -88,20 +96,14 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         to: "/movimientos",
         label: "Movimientos",
         icon: (
-          <Icon
-            icon="icon-park-outline:cycle-movement"
-            width="24"
-            height="24"
-          />
+          <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />
         ),
         modulo: "movimiento",
       },
       {
         to: "/pedidos",
         label: "Gestión de Pedidos",
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
+        icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />,
         modulo: "pedidos",
       },
       {
@@ -122,6 +124,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         icon: <Icon icon="carbon:report-data" width="24" height="24" />,
       },
     ],
+
     courier: [
       {
         to: "/",
@@ -144,19 +147,13 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         to: "/movimientos",
         label: "Movimientos",
         icon: (
-          <Icon
-            icon="icon-park-outline:cycle-movement"
-            width="24"
-            height="24"
-          />
+          <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />
         ),
       },
       {
         to: "/pedidos",
         label: "Gestión de Pedidos",
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
+        icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />,
       },
       {
         to: "/zonas",
@@ -181,6 +178,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         icon: <Icon icon="carbon:report-data" width="24" height="24" />,
       },
     ],
+
     motorizado: [
       {
         to: "/",
@@ -190,9 +188,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       {
         to: "/pedidos",
         label: "Gestión de Pedidos",
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
+        icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />,
       },
       {
         to: "/cuadreSaldo",
@@ -244,20 +240,14 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         to: "/movimientos",
         label: "Movimientos",
         icon: (
-          <Icon
-            icon="icon-park-outline:cycle-movement"
-            width="24"
-            height="24"
-          />
+          <Icon icon="icon-park-outline:cycle-movement" width="24" height="24" />
         ),
         modulo: "movimiento",
       },
       {
         to: "/pedidos",
         label: "Gestión de Pedidos",
-        icon: (
-          <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />
-        ),
+        icon: <Icon icon="lsicon:shopping-cart-filled" width="24" height="24" />,
         modulo: "pedidos",
       },
       {
@@ -313,7 +303,6 @@ export default function Sidebar({ isOpen, toggle }: Props) {
           "border-r border-gray-200/70",
           "shadow-[0_10px_30px_rgba(0,0,0,0.06)]",
           "overflow-x-hidden",
-          // ✅ contenedor suave
           "transition-[width] duration-500 motion-reduce:transition-none",
           ease,
           "will-change-[width]",
@@ -378,7 +367,6 @@ export default function Sidebar({ isOpen, toggle }: Props) {
                     [
                       "group relative grid items-center",
                       "h-11 rounded-xl px-2.5",
-                      // ✅ transición suave SIN saltos: solo grid cols + colores
                       "transition-[grid-template-columns] duration-500 motion-reduce:transition-none",
                       ease,
                       "transition-colors",
@@ -416,7 +404,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
                         </span>
                       </span>
 
-                      {/* Label (siempre montado, sin w-0/ml brusco) */}
+                      {/* Label */}
                       <span className="pl-2 min-w-0 overflow-hidden">
                         <span
                           className={[
@@ -454,11 +442,11 @@ export default function Sidebar({ isOpen, toggle }: Props) {
             </div>
           </nav>
 
-          {/* Footer (✅ sin saltos: reservamos espacio del texto versión) */}
+          {/* Footer */}
           <div className="px-2 py-3 border-t border-gray-200/70">
             <p
               className={[
-                "px-2 text-xs text-gray-400 mb-2 h-4", // ✅ reserva altura
+                "px-2 text-xs text-gray-400 mb-2 h-4",
                 "transition-opacity duration-200",
                 isOpen ? "opacity-100" : "opacity-0",
               ].join(" ")}
@@ -466,7 +454,6 @@ export default function Sidebar({ isOpen, toggle }: Props) {
               Versión 1.0
             </p>
 
-            {/* Logout menos protagonista */}
             <button
               onClick={() => setIsLogoutModalOpen(true)}
               title={!isOpen ? "Cerrar sesión" : undefined}
@@ -532,13 +519,11 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       {/* Modal confirmación logout */}
       {isLogoutModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Overlay */}
           <div
             className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
             onClick={() => setIsLogoutModalOpen(false)}
           />
 
-          {/* Card */}
           <div
             role="dialog"
             aria-modal="true"
@@ -546,7 +531,6 @@ export default function Sidebar({ isOpen, toggle }: Props) {
             aria-describedby="logout-desc"
             className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_25px_70px_rgba(0,0,0,0.18)]"
           >
-            {/* Header */}
             <div className="px-6 pt-6 pb-4 bg-[#F7F8FA] border-b border-gray-200">
               <div className="flex flex-col items-center text-center gap-2">
                 <div className="h-12 w-12 rounded-2xl bg-red-50 text-red-600 grid place-items-center">
@@ -570,7 +554,6 @@ export default function Sidebar({ isOpen, toggle }: Props) {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="px-6 py-5">
               <div className="flex flex-col sm:flex-row gap-2 sm:justify-center">
                 <Buttonx
@@ -584,7 +567,6 @@ export default function Sidebar({ isOpen, toggle }: Props) {
                   variant="quartery"
                   icon="solar:logout-2-linear"
                   onClick={confirmLogout}
-                  // ✅ “danger” suave (sin ser el centro de atención)
                 />
               </div>
             </div>
