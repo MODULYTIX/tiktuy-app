@@ -153,11 +153,11 @@ export default function Navbar({ isOpen, open, setOpen }: Props) {
         label: "Panel de Control",
         icon: <Icon icon="lucide:layout-panel-top" width="20" height="20" />,
       },
-      {
-        to: "/almacen",
-        label: "Sede",
-        icon: <Icon icon="hugeicons:warehouse" width="20" height="20" />,
-      },
+      // {
+      //   to: "/almacen",
+      //   label: "Sede",
+      //   icon: <Icon icon="hugeicons:warehouse" width="20" height="20" />,
+      // },
       {
         to: "/stock",
         label: "Stock de Productos",
