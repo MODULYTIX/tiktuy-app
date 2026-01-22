@@ -34,6 +34,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isLogoutModalOpen]);
 
+  // ✅ Ahora soporta end para resolver el "activo" en rutas tipo /admin vs /admin/
   const linksByRole: Record<
     string,
     Array<{
@@ -41,9 +42,9 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       label: string;
       icon: JSX.Element;
       modulo?: string;
+      end?: boolean;
     }>
   > = {
-    // ✅ ADMIN: mismos iconos (Iconify) que el resto
     admin: [
       {
         to: "/",
@@ -223,6 +224,8 @@ export default function Sidebar({ isOpen, toggle }: Props) {
         to: "/panel",
         label: "Panel de Control",
         icon: <Icon icon="lucide:layout-panel-top" width="24" height="24" />,
+        end: true,
+        modulo: "panel",
       },
       {
         to: "/almacen",
@@ -273,6 +276,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     const modulosAsignados = user?.perfil_trabajador?.modulo_asignado
       ?.split(",")
       .map((m) => m.trim());
+
     links = modulosAsignados
       ? links.filter((l) => modulosAsignados.includes(l.modulo ?? ""))
       : [];
@@ -290,7 +294,15 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     links = [];
   }
 
-  links = links.map((link) => ({ ...link, to: `${basePath}${link.to}` }));
+  // ✅ FIX: evita /admin/ y usa /admin (sin slash final) para el index
+  // ✅ además, setea "end" correcto para panel/index
+  links = links.map((link) => {
+    const isIndex = link.to === "/" || link.to === "/panel";
+    const finalTo =
+      link.to === "/" ? basePath || "/" : `${basePath}${link.to}`;
+
+    return { ...link, to: finalTo, end: link.end ?? isIndex };
+  });
 
   const ease = "ease-[cubic-bezier(0.16,1,0.3,1)]";
 
@@ -354,11 +366,11 @@ export default function Sidebar({ isOpen, toggle }: Props) {
           {/* Enlaces */}
           <nav className="flex flex-col flex-1 px-2 py-3 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
             <div className="space-y-1">
-              {links.map(({ to, label, icon }) => (
+              {links.map(({ to, label, icon, end }) => (
                 <NavLink
                   key={to}
                   to={to}
-                  end={to.endsWith("/") || to.endsWith("/panel")}
+                  end={!!end}
                   title={!isOpen ? label : undefined}
                   style={{
                     gridTemplateColumns: isOpen ? "36px 1fr" : "36px 0fr",
@@ -404,7 +416,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
                         </span>
                       </span>
 
-                      {/* Label */}
+                      {/* Label (siempre montado) */}
                       <span className="pl-2 min-w-0 overflow-hidden">
                         <span
                           className={[
@@ -519,11 +531,13 @@ export default function Sidebar({ isOpen, toggle }: Props) {
       {/* Modal confirmación logout */}
       {isLogoutModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Overlay */}
           <div
             className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
             onClick={() => setIsLogoutModalOpen(false)}
           />
 
+          {/* Card */}
           <div
             role="dialog"
             aria-modal="true"
@@ -531,6 +545,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
             aria-describedby="logout-desc"
             className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_25px_70px_rgba(0,0,0,0.18)]"
           >
+            {/* Header */}
             <div className="px-6 pt-6 pb-4 bg-[#F7F8FA] border-b border-gray-200">
               <div className="flex flex-col items-center text-center gap-2">
                 <div className="h-12 w-12 rounded-2xl bg-red-50 text-red-600 grid place-items-center">
@@ -554,6 +569,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
               </div>
             </div>
 
+            {/* Actions */}
             <div className="px-6 py-5">
               <div className="flex flex-col sm:flex-row gap-2 sm:justify-center">
                 <Buttonx

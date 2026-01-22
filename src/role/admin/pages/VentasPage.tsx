@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import Tittlex from "@/shared/common/Tittlex";
 import Buttonx from "@/shared/common/Buttonx";
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
+import { Skeleton } from "@/shared/components/ui/Skeleton";
 
 import { useAuth } from "@/auth/context";
 
@@ -29,13 +30,13 @@ function getFirstDayOfMonth() {
 }
 /* Helper para hoy */
 function getToday() {
-  return new Date().toLocaleDateString('en-CA');
+  return new Date().toLocaleDateString("en-CA");
 }
 
 export default function VentasPage() {
   const { token } = useAuth();
 
-  const [vista, setVista] = useState<'diario' | 'mensual' | 'anual'>('diario');
+  const [vista, setVista] = useState<"diario" | "mensual" | "anual">("diario");
   const [desde, setDesde] = useState(getFirstDayOfMonth());
   const [hasta, setHasta] = useState(getToday());
 
@@ -44,13 +45,15 @@ export default function VentasPage() {
     const saved = localStorage.getItem("admin_ventas_precio");
     return saved ? parseFloat(saved) : 1;
   });
-  const [editPrecio, setEditPrecio] = useState(false); // Toggle de edición
+  const [editPrecio, setEditPrecio] = useState(false);
 
   const [courierId, setCourierId] = useState<string>("");
 
   // Estados de data
-  const [dashboardData, setDashboardData] = useState<VentasDiariasResponse | null>(null);
-  const [cobranzaData, setCobranzaData] = useState<CobranzaCouriersResponse | null>(null);
+  const [dashboardData, setDashboardData] =
+    useState<VentasDiariasResponse | null>(null);
+  const [cobranzaData, setCobranzaData] =
+    useState<CobranzaCouriersResponse | null>(null);
 
   // Lista de couriers del endpoint
   const [allCouriers, setAllCouriers] = useState<any[]>([]);
@@ -61,23 +64,37 @@ export default function VentasPage() {
 
   const [pdfLoadingId, setPdfLoadingId] = useState<number | null>(null);
 
+  // ====== Estilo modelo (mismo que reportes) ======
+  const WRAP_MODEL =
+    "bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 min-w-0";
+  const CARD_MODEL =
+    "bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 border-0 min-w-0";
+  const TABLE_MODEL =
+    "bg-white rounded shadow-default border-b-4 border-gray90 border-0 overflow-hidden min-w-0";
+
+  const vistas: Array<"diario" | "mensual" | "anual"> = [
+    "diario",
+    "mensual",
+    "anual",
+  ];
+
   // Helper para cambio de vista
-  const handleVistaChange = (v: 'diario' | 'mensual' | 'anual') => {
+  const handleVistaChange = (v: "diario" | "mensual" | "anual") => {
     setVista(v);
     const d = new Date();
     const y = d.getFullYear();
     const m = d.getMonth();
 
-    if (v === 'mensual') {
+    if (v === "mensual") {
       const f0 = new Date(y, m, 1);
       const f1 = new Date(y, m + 1, 0);
-      setDesde(f0.toISOString().split('T')[0]);
-      setHasta(f1.toISOString().split('T')[0]);
-    } else if (v === 'anual') {
+      setDesde(f0.toISOString().split("T")[0]);
+      setHasta(f1.toISOString().split("T")[0]);
+    } else if (v === "anual") {
       const f0 = new Date(y, 0, 1);
       const f1 = new Date(y, 11, 31);
-      setDesde(f0.toISOString().split('T')[0]);
-      setHasta(f1.toISOString().split('T')[0]);
+      setDesde(f0.toISOString().split("T")[0]);
+      setHasta(f1.toISOString().split("T")[0]);
     } else {
       setDesde(getFirstDayOfMonth());
       setHasta(getToday());
@@ -88,8 +105,8 @@ export default function VentasPage() {
   useEffect(() => {
     if (!token) return;
     getAdminAllCouriers(token)
-      .then(res => setAllCouriers(res))
-      .catch(err => console.error(err));
+      .then((res) => setAllCouriers(res))
+      .catch((err) => console.error(err));
   }, [token]);
 
   // Cargar datos
@@ -97,11 +114,8 @@ export default function VentasPage() {
     if (!token) return;
     setLoading(true);
     setError("");
-    try {
-      // Si el modo edición está activo, no recargamos necesariamente hasta que guarde
-      // Pero el usuario dijo "dependiendo de eso cambiar pdf". 
-      // Si hacemos click en icono, guardamos precio.
 
+    try {
       const filtros: AdminVentasFiltros = {
         desde: desde || undefined,
         hasta: hasta || undefined,
@@ -136,7 +150,6 @@ export default function VentasPage() {
   // Toggle Edición Precio
   const togglePrecioEdit = () => {
     if (editPrecio) {
-      // Guardar (recargar data con nuevo precio) y persistir
       localStorage.setItem("admin_ventas_precio", String(precio));
       loadData();
     }
@@ -167,7 +180,7 @@ export default function VentasPage() {
   const couriersList = cobranzaData?.data ?? [];
 
   return (
-    <section className="flex flex-col gap-6">
+    <section className="mt-6 flex flex-col gap-6 min-w-0">
       {/* Header */}
       <div>
         <Tittlex
@@ -176,262 +189,426 @@ export default function VentasPage() {
         />
       </div>
 
-      {/* FILTROS */}
-      <div className="bg-white p-5 rounded-md shadow-default border-t border-gray-100 flex flex-col md:flex-row gap-4 items-end flex-wrap">
+      {/* ================= FILTROS (Periodo + Filtros) ================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4 min-w-0">
+        {/* ===== Card: Periodo (Segmented) ===== */}
+        <div className={WRAP_MODEL}>
+          <div className="flex items-center gap-2 mb-3">
+            <Icon icon="mdi:calendar-clock" className="text-gray70" />
+            <p className="text-sm font-semibold text-gray-900">Periodo</p>
+          </div>
 
-        {/* Selector de Vista */}
-        <div className="flex bg-slate-50 p-1 rounded-lg">
-          {(["diario", "mensual", "anual"] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => handleVistaChange(v)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${vista === v
-                ? "bg-white text-gray-800 shadow-sm border border-gray-100"
-                : "text-gray-500 hover:text-gray-700"
-                }`}
-            >
-              {v.charAt(0).toUpperCase() + v.slice(1)}
-            </button>
+          <div className="inline-flex rounded-xl bg-gray10 p-1">
+            {vistas.map((v) => {
+              const active = vista === v;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => handleVistaChange(v)}
+                  className={[
+                    "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                    active
+                      ? "bg-gray90 text-white shadow-sm"
+                      : "text-gray70 hover:bg-gray20",
+                  ].join(" ")}
+                >
+                  {v.charAt(0).toUpperCase() + v.slice(1)}
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="text-[11px] text-gray60 mt-3">
+            Elige cómo quieres ver el reporte.
+          </p>
+        </div>
+
+        {/* ===== Card: Filtros ===== */}
+        <div className={WRAP_MODEL}>
+          <div className="flex items-center gap-2 mb-3">
+            <Icon icon="mdi:filter-variant" className="text-gray70" />
+            <p className="text-sm font-semibold text-gray-900">Filtros</p>
+          </div>
+
+          {/* -- DIARIO -- */}
+          {vista === "diario" && (
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 items-end min-w-0">
+              <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[260px] min-w-0">
+                <SelectxDate
+                  label="Desde"
+                  value={desde}
+                  onChange={(e) => setDesde(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[260px] min-w-0">
+                <SelectxDate
+                  label="Hasta"
+                  value={hasta}
+                  onChange={(e) => setHasta(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[300px] min-w-0">
+                <Selectx
+                  label="Courier"
+                  value={courierId}
+                  onChange={(e) => setCourierId(e.target.value)}
+                  className="w-full"
+                >
+                  <option value="">Todos</option>
+                  {allCouriers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre_comercial || c.nombre || "Courier"}
+                    </option>
+                  ))}
+                </Selectx>
+              </div>
+
+              <div className="w-full sm:w-auto shrink-0">
+                <Buttonx
+                  label={loading ? "Cargando..." : "Filtrar"}
+                  onClick={handleFiltrar}
+                  disabled={loading}
+                  icon="mdi:filter"
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* -- MENSUAL -- */}
+          {vista === "mensual" && (
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 items-end min-w-0">
+              <div className="w-full sm:w-[140px] min-w-0">
+                <Selectx
+                  label="Año"
+                  value={parseInt(desde.split("-")[0])}
+                  onChange={(e) => {
+                    const y = Number(e.target.value);
+                    const m = parseInt(desde.split("-")[1]) - 1;
+                    const f0 = new Date(y, m, 1);
+                    const f1 = new Date(y, m + 1, 0);
+                    setDesde(f0.toISOString().split("T")[0]);
+                    setHasta(f1.toISOString().split("T")[0]);
+                  }}
+                  className="w-full"
+                >
+                  {[2026, 2027, 2028, 2029, 2030].map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </Selectx>
+              </div>
+
+              <div className="w-full sm:w-[190px] min-w-0">
+                <Selectx
+                  label="Mes"
+                  value={parseInt(desde.split("-")[1]) - 1}
+                  onChange={(e) => {
+                    const m = Number(e.target.value);
+                    const y = parseInt(desde.split("-")[0]);
+                    const f0 = new Date(y, m, 1);
+                    const f1 = new Date(y, m + 1, 0);
+                    setDesde(f0.toISOString().split("T")[0]);
+                    setHasta(f1.toISOString().split("T")[0]);
+                  }}
+                  className="w-full"
+                >
+                  {[
+                    "Enero",
+                    "Febrero",
+                    "Marzo",
+                    "Abril",
+                    "Mayo",
+                    "Junio",
+                    "Julio",
+                    "Agosto",
+                    "Septiembre",
+                    "Octubre",
+                    "Noviembre",
+                    "Diciembre",
+                  ].map((mes, i) => (
+                    <option key={i} value={i}>
+                      {mes}
+                    </option>
+                  ))}
+                </Selectx>
+              </div>
+
+              <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[300px] min-w-0">
+                <Selectx
+                  label="Courier"
+                  value={courierId}
+                  onChange={(e) => setCourierId(e.target.value)}
+                  className="w-full"
+                >
+                  <option value="">Todos</option>
+                  {allCouriers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre_comercial || c.nombre || "Courier"}
+                    </option>
+                  ))}
+                </Selectx>
+              </div>
+
+              <div className="w-full sm:w-auto shrink-0">
+                <Buttonx
+                  label={loading ? "Cargando..." : "Filtrar"}
+                  onClick={handleFiltrar}
+                  disabled={loading}
+                  icon="mdi:filter"
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* -- ANUAL -- */}
+          {vista === "anual" && (
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 items-end min-w-0">
+              <div className="w-full sm:w-[140px] min-w-0">
+                <Selectx
+                  label="Año"
+                  value={parseInt(desde.split("-")[0])}
+                  onChange={(e) => {
+                    const y = Number(e.target.value);
+                    const f0 = new Date(y, 0, 1);
+                    const f1 = new Date(y, 11, 31);
+                    setDesde(f0.toISOString().split("T")[0]);
+                    setHasta(f1.toISOString().split("T")[0]);
+                  }}
+                  className="w-full"
+                >
+                  {[2026, 2027, 2028, 2029, 2030].map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </Selectx>
+              </div>
+
+              <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[300px] min-w-0">
+                <Selectx
+                  label="Courier"
+                  value={courierId}
+                  onChange={(e) => setCourierId(e.target.value)}
+                  className="w-full"
+                >
+                  <option value="">Todos</option>
+                  {allCouriers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre_comercial || c.nombre || "Courier"}
+                    </option>
+                  ))}
+                </Selectx>
+              </div>
+
+              <div className="w-full sm:w-auto shrink-0">
+                <Buttonx
+                  label={loading ? "Cargando..." : "Filtrar"}
+                  onClick={handleFiltrar}
+                  disabled={loading}
+                  icon="mdi:filter"
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded border border-red-200 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* ================= KPI CARDS ================= */}
+      {loading && !dashboardData ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0">
+          {[1, 2, 3].map((k) => (
+            <div key={k} className={CARD_MODEL}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-8 w-24 mt-3" />
+                </div>
+                <Skeleton className="h-12 w-12 rounded-full" />
+              </div>
+            </div>
           ))}
         </div>
-
-        {/* --- DIARIO --- */}
-        {vista === 'diario' && (
-          <>
-            <div className="w-full md:w-40">
-              <SelectxDate
-                label="Desde"
-                value={desde}
-                onChange={(e) => setDesde(e.target.value)}
-                labelVariant="left"
-              />
-            </div>
-            <div className="w-full md:w-40">
-              <SelectxDate
-                label="Hasta"
-                value={hasta}
-                onChange={(e) => setHasta(e.target.value)}
-                labelVariant="left"
-              />
-            </div>
-          </>
-        )}
-
-        {/* --- MENSUAL --- */}
-        {vista === 'mensual' && (
-          <>
-            <div className="w-full md:w-32">
-              <Selectx
-                label="Año"
-                value={parseInt(desde.split("-")[0])}
-                onChange={(e) => {
-                  const y = Number(e.target.value);
-                  const m = parseInt(desde.split("-")[1]) - 1;
-                  const f0 = new Date(y, m, 1);
-                  const f1 = new Date(y, m + 1, 0);
-                  setDesde(f0.toISOString().split('T')[0]);
-                  setHasta(f1.toISOString().split('T')[0]);
-                }}
-                labelVariant="left"
-              >
-                {[2026, 2027, 2028, 2029, 2030].map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </Selectx>
-            </div>
-            <div className="w-full md:w-40">
-              <Selectx
-                label="Mes"
-                value={parseInt(desde.split("-")[1]) - 1}
-                onChange={(e) => {
-                  const m = Number(e.target.value);
-                  const y = parseInt(desde.split("-")[0]);
-                  const f0 = new Date(y, m, 1);
-                  const f1 = new Date(y, m + 1, 0);
-                  setDesde(f0.toISOString().split('T')[0]);
-                  setHasta(f1.toISOString().split('T')[0]);
-                }}
-                labelVariant="left"
-              >
-                {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((mes, i) => (
-                  <option key={i} value={i}>{mes}</option>
-                ))}
-              </Selectx>
-            </div>
-          </>
-        )}
-
-        {/* --- ANUAL --- */}
-        {vista === 'anual' && (
-          <div className="w-full md:w-32">
-            <Selectx
-              label="Año"
-              value={parseInt(desde.split("-")[0])}
-              onChange={(e) => {
-                const y = Number(e.target.value);
-                const f0 = new Date(y, 0, 1);
-                const f1 = new Date(y, 11, 31);
-                setDesde(f0.toISOString().split('T')[0]);
-                setHasta(f1.toISOString().split('T')[0]);
-              }}
-              labelVariant="left"
-            >
-              {[2026, 2027, 2028, 2029, 2030].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </Selectx>
-          </div>
-        )}
-
-        <div className="w-full md:w-56">
-          <Selectx
-            label="Courier"
-            value={courierId}
-            onChange={(e) => setCourierId(e.target.value)}
-            labelVariant="left"
-          >
-            <option value="">Todos</option>
-            {allCouriers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre_comercial || c.nombre || "Courier"}
-              </option>
-            ))}
-          </Selectx>
-        </div>
-
-        <Buttonx
-          label={loading ? "Cargando..." : "Filtrar"}
-          onClick={handleFiltrar}
-          disabled={loading}
-          icon="mdi:filter-outline"
-        />
-      </div>
-
-      {
-        error && (
-          <div className="bg-red-50 text-red-600 p-4 rounded border border-red-200">
-            {error}
-          </div>
-        )
-      }
-
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Card 1: Pedidos Totales */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Pedidos Totales</p>
-            <h3 className="text-3xl font-bold text-gray-900 mt-1">
-              {totalPedidos}
-            </h3>
-          </div>
-          <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-            <Icon icon="mdi:shopping-outline" className="text-2xl" />
-          </div>
-        </div>
-
-        {/* Card 2: Precio por Pedido (Editable) */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative group">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Precio por Pedido</p>
-              <div className="flex items-center gap-2 mt-1">
-                {editPrecio ? (
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.1"
-                    value={precio}
-                    onChange={e => setPrecio(parseFloat(e.target.value) || 0)}
-                    className="text-2xl font-bold text-gray-900 w-24 border-b-2 border-blue-500 focus:outline-none bg-transparent"
-                    autoFocus
-                  />
-                ) : (
-                  <h3 className="text-3xl font-bold text-gray-900">
-                    S/. {precio.toFixed(2)}
-                  </h3>
-                )}
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0">
+          {/* Card 1: Pedidos Totales */}
+          <div className={CARD_MODEL}>
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs text-gray60 font-medium">
+                  Pedidos Totales
+                </p>
+                <h3 className="text-3xl font-bold text-gray-900 mt-1">
+                  {totalPedidos}
+                </h3>
               </div>
-              <p className="text-xs text-gray-400 mt-1">
-                {editPrecio ? "Presiona check para recalcular" : "Costo por entrega"}
-              </p>
-            </div>
-            <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
-              <Icon icon="mdi:tag-outline" className="text-2xl" />
+              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                <Icon icon="mdi:shopping-outline" className="text-2xl" />
+              </div>
             </div>
           </div>
-          {/* Botón de Edición flotante en esquina superior derecha (o al lado del titulo) */}
-          <button
-            onClick={togglePrecioEdit}
-            className="absolute top-3 right-3 text-gray-400 hover:text-blue-600 p-1 transition-colors"
-            title={editPrecio ? "Guardar y Recalcular" : "Editar Precio"}
-          >
-            <Icon icon={editPrecio ? "mdi:check-circle" : "mdi:pencil-outline"} className="text-xl" />
-          </button>
-        </div>
 
-        {/* Card 3: Total a Cobrar (Backend calculated) */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Total a Cobrar</p>
-            <h3 className="text-3xl font-bold text-emerald-600 mt-1">
-              S/. {totalCobrar.toFixed(2)}
-            </h3>
+          {/* Card 2: Precio por Pedido (Editable) */}
+          <div className={CARD_MODEL}>
+            <div className="flex items-start justify-between gap-4">
+              {/* Texto */}
+              <div className="min-w-0">
+                <p className="text-xs text-gray60 font-medium">
+                  Precio por Pedido
+                </p>
+
+                <div className="flex items-center gap-2 mt-1">
+                  {editPrecio ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.1"
+                      value={precio}
+                      onChange={(e) =>
+                        setPrecio(parseFloat(e.target.value) || 0)
+                      }
+                      className="text-2xl font-bold text-gray-900 w-28 border-b-2 border-blue-500 focus:outline-none bg-transparent"
+                      autoFocus
+                    />
+                  ) : (
+                    <h3 className="text-3xl font-bold text-gray-900">
+                      S/. {precio.toFixed(2)}
+                    </h3>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-gray60 mt-1">
+                  {editPrecio
+                    ? "Presiona check para recalcular"
+                    : "Costo por entrega"}
+                </p>
+              </div>
+
+              {/* Acciones + Icono (derecha) */}
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Botón Editar/Guardar (reubicado) */}
+                <button
+                  onClick={togglePrecioEdit}
+                  type="button"
+                  className={[
+                    "w-11 h-11 rounded-full border border-gray20 flex items-center justify-center transition-colors",
+                    editPrecio
+                      ? "bg-emerald-50 text-emerald-600"
+                      : "bg-gray10 text-gray70 hover:bg-gray20",
+                  ].join(" ")}
+                  title={editPrecio ? "Guardar y Recalcular" : "Editar Precio"}
+                >
+                  <Icon
+                    icon={editPrecio ? "mdi:check" : "mdi:pencil-outline"}
+                    className="text-xl"
+                  />
+                </button>
+
+                {/* Icono morado */}
+                <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                  <Icon icon="mdi:tag-outline" className="text-2xl" />
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-            <Icon icon="mdi:cash-multiple" className="text-2xl" />
+
+          {/* Card 3: Total a Cobrar */}
+          <div className={CARD_MODEL}>
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs text-gray60 font-medium">
+                  Total a Cobrar
+                </p>
+                <h3 className="text-3xl font-bold text-emerald-600 mt-1">
+                  S/. {totalCobrar.toFixed(2)}
+                </h3>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                <Icon icon="mdi:cash-multiple" className="text-2xl" />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-
-      {/* TABLA POR COURIER */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">
+      {/* ================= TABLA POR COURIER ================= */}
+      <div className={TABLE_MODEL}>
+        <div className="px-4 sm:px-5 py-4 border-b border-gray20">
+          <h3 className="text-sm font-semibold text-gray-900">
             Cobranza por Courier
           </h3>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
+            <thead className="bg-gray10 text-gray70 font-medium border-b border-gray20">
               <tr>
-                <th className="px-6 py-3">Courier</th>
-                <th className="px-6 py-3">RUC</th>
-                <th className="px-6 py-3 text-center">Pedidos Entregados</th>
-                <th className="px-6 py-3 text-right">Monto a Pagar</th>
-                <th className="px-6 py-3 text-center">Acciones</th>
+                <th className="px-4 sm:px-5 py-3">Courier</th>
+                <th className="px-4 sm:px-5 py-3">RUC</th>
+                <th className="px-4 sm:px-5 py-3 text-center">
+                  Pedidos Entregados
+                </th>
+                <th className="px-4 sm:px-5 py-3 text-right">Monto a Pagar</th>
+                <th className="px-4 sm:px-5 py-3 text-center">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+
+            <tbody className="divide-y divide-gray20">
               {couriersList.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                  <td
+                    colSpan={5}
+                    className="px-4 sm:px-5 py-10 text-center text-gray60"
+                  >
                     No se encontraron registros para este rango.
                   </td>
                 </tr>
               ) : (
                 couriersList.map((item) => (
-                  <tr key={item.courier_id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 text-gray-900 font-medium">
+                  <tr
+                    key={item.courier_id}
+                    className="hover:bg-gray10 transition"
+                  >
+                    <td className="px-4 sm:px-5 py-4 text-gray-900 font-medium">
                       {item.courier_nombre}
                     </td>
-                    <td className="px-6 py-4 text-gray-600">
+                    <td className="px-4 sm:px-5 py-4 text-gray70">
                       {item.ruc || "—"}
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-blue-50 text-blue-700 py-1 px-3 rounded-full text-xs font-semibold">
+                    <td className="px-4 sm:px-5 py-4 text-center">
+                      <span className="bg-gray10 text-gray70 py-1 px-3 rounded-full text-xs font-semibold">
                         {item.pedidos_entregados}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right text-gray-900 font-bold">
+                    <td className="px-4 sm:px-5 py-4 text-right text-gray-900 font-bold">
                       S/. {item.monto_a_pagar.toFixed(2)}
                     </td>
-                    <td className="px-6 py-4 flex justify-center">
+                    <td className="px-4 sm:px-5 py-4 flex justify-center">
                       <Buttonx
                         label={pdfLoadingId === item.courier_id ? "..." : "PDF"}
                         variant="outlined"
-                        icon={pdfLoadingId === item.courier_id ? undefined : "mdi:file-pdf-box"}
+                        icon={
+                          pdfLoadingId === item.courier_id
+                            ? undefined
+                            : "mdi:file-pdf-box"
+                        }
                         onClick={() => handleDownloadPdf(item.courier_id)}
                         disabled={pdfLoadingId === item.courier_id}
                         className="px-3! py-1! text-xs"
@@ -444,7 +621,6 @@ export default function VentasPage() {
           </table>
         </div>
       </div>
-
-    </section >
+    </section>
   );
 }
