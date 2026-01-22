@@ -80,16 +80,16 @@ const normMetodoPago = (v: unknown) =>
     .toUpperCase()
     .replace(/\s+/g, "_");
 
-/* ✅ Mapeo visual del método de pago */
+/* Mapeo visual del método de pago */
 function metodoPagoLabel(metodoPago: unknown) {
   const m = normMetodoPago(metodoPago);
 
-  // ❌ Sin método → pedido rechazado
+  // Sin método → pedido rechazado
   if (!m) return "Pedido rechazado";
 
-  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
-  if (m === "BILLETERA") return "Pago Digital al Courier";
-  if (m === "EFECTIVO") return "Efectivo";
+  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce / Pagado";
+  if (m === "BILLETERA") return "Pago Digital al Courier / Pagado";
+  if (m === "EFECTIVO") return "Efectivo / Pagado";
 
   return String(metodoPago ?? "Pedido rechazado");
 }
@@ -110,10 +110,10 @@ function isRejectedPedido(p: any): boolean {
     "no hizo el pedido",
   ];
 
-  // 1️⃣ Rechazado por estado
+  //  Rechazado por estado
   if (estadosRechazados.includes(estado)) return true;
 
-  // 2️⃣ Sin método de pago → rechazo
+  //  Sin método de pago → rechazo
   if (!metodo) return true;
 
   return false;
