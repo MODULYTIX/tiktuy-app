@@ -54,7 +54,9 @@ function EmptyState({
   heightClass?: string;
 }) {
   return (
-    <div className={`${heightClass} flex flex-col items-center justify-center text-center gap-2 px-4`}>
+    <div
+      className={`${heightClass} flex flex-col items-center justify-center text-center gap-2 px-4`}
+    >
       <div className="w-10 h-10 rounded-full bg-gray10 flex items-center justify-center text-gray70">
         <Icon icon={icon} className="text-xl" />
       </div>
@@ -106,7 +108,7 @@ export default function ReporteEntregasC() {
   const [desde, setDesde] = useState(hoyISO());
   const [hasta, setHasta] = useState(hoyISO());
   const [motorizadoId, setMotorizadoId] = useState<number | undefined>(
-    undefined
+    undefined,
   );
 
   const [loading, setLoading] = useState(false);
@@ -133,7 +135,9 @@ export default function ReporteEntregasC() {
 
       const resp = await getCourierEntregasReporte(token, {
         vista,
-        desde: ["diario", "mensual", "anual"].includes(vista) ? desde : undefined,
+        desde: ["diario", "mensual", "anual"].includes(vista)
+          ? desde
+          : undefined,
         hasta: vista === "diario" ? hasta : undefined,
         motorizadoId,
       });
@@ -156,12 +160,12 @@ export default function ReporteEntregasC() {
   ========================= */
   const donutData: CourierEntregaDonutItem[] = useMemo(
     () => data?.donut ?? [],
-    [data]
+    [data],
   );
 
   const motorizados: CourierMotorizadoItem[] = useMemo(
     () => data?.motorizados ?? [],
-    [data]
+    [data],
   );
 
   const totalDonut = useMemo(() => {
@@ -175,27 +179,15 @@ export default function ReporteEntregasC() {
   }, [donutData]);
 
   const entregados = useMemo(() => {
-    return (
-      byLabel.get("Pedidos Entregados") ??
-      byLabel.get("Entregados") ??
-      0
-    );
+    return byLabel.get("Pedidos Entregados") ?? byLabel.get("Entregados") ?? 0;
   }, [byLabel]);
 
   const rechazados = useMemo(() => {
-    return (
-      byLabel.get("Pedidos Rechazados") ??
-      byLabel.get("Rechazados") ??
-      0
-    );
+    return byLabel.get("Pedidos Rechazados") ?? byLabel.get("Rechazados") ?? 0;
   }, [byLabel]);
 
   const anulados = useMemo(() => {
-    return (
-      byLabel.get("Pedidos Anulados") ??
-      byLabel.get("Anulados") ??
-      0
-    );
+    return byLabel.get("Pedidos Anulados") ?? byLabel.get("Anulados") ?? 0;
   }, [byLabel]);
 
   const successRate = useMemo(() => {
@@ -205,7 +197,7 @@ export default function ReporteEntregasC() {
 
   const hasDonutData = useMemo(() => totalDonut > 0, [totalDonut]);
 
-  // ======= Propuesta extra (DIARIO): Bar horizontal por estado =======
+  // ======= Bar horizontal por estado =======
   const statusBarData = useMemo(() => {
     if (!donutData?.length) return [];
     return donutData.map((d) => ({
@@ -280,7 +272,8 @@ export default function ReporteEntregasC() {
 
       let validMonthsCount = 0;
       if (selectedYear < currentYear) validMonthsCount = 12;
-      else if (selectedYear === currentYear) validMonthsCount = currentMonth + 1;
+      else if (selectedYear === currentYear)
+        validMonthsCount = currentMonth + 1;
       else validMonthsCount = 0;
 
       const keys =
@@ -313,9 +306,9 @@ export default function ReporteEntregasC() {
 
   return (
     <div className="mt-6 flex flex-col gap-6 min-w-0">
-      {/* ================= FILTROS (mismo formato que Ingresos) ================= */}
+      {/* ================= FILTROS ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4 min-w-0">
-        {/* ===== Card: Periodo (Segmented control) ===== */}
+        {/* ===== Periodo ===== */}
         <div className={WRAP_MODEL}>
           <div className="flex items-center gap-2 mb-3">
             <Icon icon="mdi:calendar-clock" className="text-gray70" />
@@ -348,7 +341,7 @@ export default function ReporteEntregasC() {
           </p>
         </div>
 
-        {/* ===== Card: Filtros específicos ===== */}
+        {/* ===== Filtros ===== */}
         <div className={WRAP_MODEL}>
           <div className="flex items-center gap-2 mb-3">
             <Icon icon="mdi:filter-variant" className="text-gray70" />
@@ -551,20 +544,18 @@ export default function ReporteEntregasC() {
 
       {/* ================= LOADING SKELETON ================= */}
       {loading && (
-        <>
-          <div className={CARD_MODEL}>
-            <div className="w-full h-[400px] flex flex-col gap-4">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-full w-full rounded-xl" />
-            </div>
+        <div className={CARD_MODEL}>
+          <div className="w-full h-[400px] flex flex-col gap-4">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-full w-full rounded-xl" />
           </div>
-        </>
+        </div>
       )}
 
       {/* ================= CONTENT ================= */}
       {!loading && data && data.filtros?.vista === vista && (
         <>
-          {/* ======= DIARIO: KPIs arriba + Donut + Bar horizontal ======= */}
+          {/* ======= DIARIO ======= */}
           {vista === "diario" && (
             <>
               {/* KPIs */}
@@ -638,13 +629,16 @@ export default function ReporteEntregasC() {
                             {donutData.map((d, i) => (
                               <Cell
                                 key={i}
-                                fill={colorByLabel(String(d.label)) || COLORS[i % COLORS.length]}
+                                fill={
+                                  colorByLabel(String(d.label)) ||
+                                  COLORS[i % COLORS.length]
+                                }
                                 strokeWidth={0}
                               />
                             ))}
                           </Pie>
 
-                          {/* Texto perfectamente centrado */}
+                          {/* Texto centrado */}
                           <text
                             x="50%"
                             y="50%"
@@ -674,7 +668,7 @@ export default function ReporteEntregasC() {
                     </div>
                   </div>
 
-                  {/* Bar horizontal (propuesta extra) */}
+                  {/* Bar horizontal (AJUSTADO a ecommerce) */}
                   <div className={CARD_MODEL}>
                     <div className="flex items-center gap-2 mb-4">
                       <Icon icon="mdi:chart-bar" className="text-indigo-500" />
@@ -683,15 +677,24 @@ export default function ReporteEntregasC() {
                       </p>
                     </div>
 
-                    <div className="w-full h-[320px] min-w-0">
+                    {/* ✅ mismo alto que ecommerce para el “look” */}
+                    <div className="w-full h-[260px] min-w-0">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                           data={statusBarData}
                           layout="vertical"
                           margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
                         >
-                          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                          <XAxis type="number" tickLine={false} axisLine={false} fontSize={12} />
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            horizontal={false}
+                          />
+                          <XAxis
+                            type="number"
+                            tickLine={false}
+                            axisLine={false}
+                            fontSize={12}
+                          />
                           <YAxis
                             type="category"
                             dataKey="label"
@@ -704,6 +707,8 @@ export default function ReporteEntregasC() {
                             formatter={(v: any) => [Number(v || 0), "Cantidad"]}
                             contentStyle={{ borderRadius: "10px" }}
                           />
+
+                          {/* ✅ sin barSize (igual que ecommerce) */}
                           <Bar dataKey="value" radius={[8, 8, 8, 8]}>
                             {statusBarData.map((row, i) => (
                               <Cell key={i} fill={row.fill} />
@@ -722,7 +727,9 @@ export default function ReporteEntregasC() {
                       <div className="mt-2 h-2 rounded-full bg-gray20 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-emerald-500"
-                          style={{ width: `${Math.min(100, Math.max(0, successRate))}%` }}
+                          style={{
+                            width: `${Math.min(100, Math.max(0, successRate))}%`,
+                          }}
                         />
                       </div>
                       <p className="mt-2 text-[11px] text-gray60">
@@ -744,7 +751,7 @@ export default function ReporteEntregasC() {
             </>
           )}
 
-          {/* ======= MENSUAL: Evolución diaria stacked ======= */}
+          {/* ======= MENSUAL ======= */}
           {vista === "mensual" && (
             <div className={CARD_MODEL}>
               <div className="flex items-center gap-2 mb-4">
@@ -803,7 +810,7 @@ export default function ReporteEntregasC() {
             </div>
           )}
 
-          {/* ======= ANUAL: barras por mes (grouped) ======= */}
+          {/* ======= ANUAL ======= */}
           {vista === "anual" && (
             <div className={CARD_MODEL}>
               <div className="flex items-center gap-2 mb-4">
@@ -821,21 +828,31 @@ export default function ReporteEntregasC() {
                       margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="label" fontSize={12} tickLine={false} axisLine={false} />
+                      <XAxis
+                        dataKey="label"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
                       <YAxis fontSize={12} tickLine={false} axisLine={false} />
                       <Tooltip contentStyle={{ borderRadius: "10px" }} />
                       <Legend />
 
-                      {(donutData.length ? donutData.map((d) => String(d.label)) : ["Pedidos Entregados", "Pedidos Rechazados", "Pedidos Anulados"]).map(
-                        (k, i) => (
-                          <Bar
-                            key={k}
-                            dataKey={k}
-                            fill={colorByLabel(k) || COLORS[i % COLORS.length]}
-                            radius={[6, 6, 0, 0]}
-                          />
-                        )
-                      )}
+                      {(donutData.length
+                        ? donutData.map((d) => String(d.label))
+                        : [
+                            "Pedidos Entregados",
+                            "Pedidos Rechazados",
+                            "Pedidos Anulados",
+                          ]
+                      ).map((k, i) => (
+                        <Bar
+                          key={k}
+                          dataKey={k}
+                          fill={colorByLabel(k) || COLORS[i % COLORS.length]}
+                          radius={[6, 6, 0, 0]}
+                        />
+                      ))}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
