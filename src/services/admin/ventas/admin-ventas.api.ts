@@ -17,7 +17,8 @@ function buildQuery(params: AdminVentasFiltros) {
 }
 
 // ==========================================
-// 1. Dashboard: Ventas por día
+// 1. Dashboard: Ventas por día y Totales
+// Endpoint: /admin-ventas/dashboard
 // ==========================================
 export async function getAdminVentasDashboard(
     token: string,
@@ -42,6 +43,7 @@ export async function getAdminVentasDashboard(
 
 // ==========================================
 // 2. Resumen de Cobranza por Courier
+// Endpoint: /admin-ventas/courier-cobranza
 // ==========================================
 export async function getAdminCobranzaCouriers(
     token: string,
@@ -66,6 +68,7 @@ export async function getAdminCobranzaCouriers(
 
 // ==========================================
 // 3. Descargar PDF de Cobranza
+// Endpoint: /admin-ventas/pdf-cobranza
 // ==========================================
 export async function downloadPdfCobranza(
     token: string,
@@ -91,15 +94,34 @@ export async function downloadPdfCobranza(
         throw new Error(errorData.error || "Error al descargar PDF");
     }
 
-    // Manejo de descarga de archivo (blob)
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    // Nombre sugerido para el archivo
     link.setAttribute("download", `cobranza_courier_${courierId}.pdf`);
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
+}
+
+// ==========================================
+// 4. Listar todos los Couriers
+// Endpoint: /admin-ventas/couriers
+// ==========================================
+export async function getAdminAllCouriers(token: string): Promise<any[]> {
+    const res = await fetch(`${VITE_API_URL}/admin-ventas/couriers`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Error al obtener lista de couriers");
+    }
+
+    return await res.json();
 }

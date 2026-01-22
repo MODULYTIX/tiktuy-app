@@ -28,6 +28,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Icon } from "@iconify/react";
+import { Skeleton } from "@/shared/components/ui/Skeleton";
 
 /* ========================= */
 const hoyISO = () => new Date().toLocaleDateString('en-CA');
@@ -94,6 +95,38 @@ export default function ReporteEntregasC() {
     () => data?.motorizados ?? [],
     [data]
   );
+
+  /* =========================
+     CHART DATA (Mensual - Fill Gaps)
+  ========================= */
+  const chartData = useMemo(() => {
+    if (vista !== "mensual" || !data?.evolucion || data.filtros?.vista !== vista) return [];
+
+    const [yStr, mStr] = desde.split("-");
+    const year = Number(yStr);
+    const month = Number(mStr);
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    const fullMonth = Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      return {
+        label: String(day),
+        "Pedidos Entregados": 0,
+        "Pedidos Rechazados": 0,
+        "Pedidos Anulados": 0
+      };
+    });
+
+    data.evolucion.forEach(d => {
+      const dayIndex = Number(d.label) - 1;
+      if (dayIndex >= 0 && dayIndex < daysInMonth) {
+        fullMonth[dayIndex]["Pedidos Entregados"] = d.entregados || 0;
+        fullMonth[dayIndex]["Pedidos Rechazados"] = d.rechazados || 0;
+        fullMonth[dayIndex]["Pedidos Anulados"] = d.anulados || 0;
+      }
+    });
+    return fullMonth;
+  }, [data, vista, desde]);
 
   // MOCK HISTORIAL DATA IF MISSING (For Anual Visualization)
   const historialData = useMemo(() => {
@@ -308,9 +341,19 @@ export default function ReporteEntregasC() {
         )}
       </Cardx>
 
-      {/* ================= DONUT & HISTOGRAMA (Split 50/50) ================= */}
-      {data && (
+      {/* ================= LOADING SKELETON ================= */}
+      {loading && (
         <Cardx>
+          <div className="w-full h-[400px] flex flex-col gap-4 p-4">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-full w-full rounded-xl" />
+          </div>
+        </Cardx>
+      )}
+
+      {/* ================= DONUT & HISTOGRAMA (Split 50/50) ================= */}
+      {!loading && data && data.filtros?.vista === vista && (
+        <Cardx key={vista}>
           {vista === 'diario' && (
             <div className="flex items-center gap-2 mb-4">
               <Icon icon="mdi:chart-donut" className="text-indigo-500" />
@@ -347,21 +390,11 @@ export default function ReporteEntregasC() {
                 <h3 className="text-sm font-semibold text-gray-500 mb-2 ml-4">Evolución Diaria (Días con más entregas)</h3>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={(() => {
-                      if (data?.evolucion && data.evolucion.length > 0) {
-                        return data.evolucion.map(d => ({
-                          label: d.label,
-                          "Pedidos Entregados": d.entregados,
-                          "Pedidos Rechazados": d.rechazados,
-                          "Pedidos Anulados": d.anulados,
-                        }));
-                      }
-                      return [];
-                    })()}
+                    data={chartData}
                     margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="label" fontSize={12} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="label" fontSize={12} tickLine={false} axisLine={false} interval={0} />
                     <YAxis fontSize={12} tickLine={false} axisLine={false} />
                     <Tooltip cursor={{ fill: '#F3F4F6' }} contentStyle={{ borderRadius: '8px' }} />
                     <Legend />
@@ -407,7 +440,7 @@ export default function ReporteEntregasC() {
           }
         </Cardx >
       )}
-      {loading && <p className="text-sm text-gray60">Cargando…</p>}
+
       {error && <p className="text-sm text-red-500">{error}</p>}
     </div >
   );
