@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Icon } from "@iconify/react";
 import {
   AreaChart,
@@ -124,17 +124,102 @@ export default function ReportesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, vista, courierId, desde, hasta]); // Auto-refresh filters
 
+  /* --- PROCESAMIENTO DE DATOS GRAFICO (Relleno de ceros y formateo) --- */
+  const chartData = useMemo(() => {
+    if (!data?.graficos?.evolucion) return [];
+
+    const rawData = data.graficos.evolucion;
+    const processed = [];
+
+    // --- VISTA ANUAL: 12 Meses ---
+    if (vista === 'anual') {
+      const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+      for (let i = 1; i <= 12; i++) {
+        // Filtramos todos los items que pertenezcan al mes 'i'
+        // Esto maneja tanto si el backend devuelve "1" (Agrupado) como "2026-01-05" (Diario/No-Agrupado)
+        const monthItems = rawData.filter(d => {
+          const label = String(d.label);
+          // Caso 1: Es un número simple (1-12)
+          if (!label.includes("-") && !isNaN(Number(label))) {
+            return Number(label) === i;
+          }
+          // Caso 2: Es una fecha (2026-01-05)
+          const dateObj = new Date(label.includes('T') ? label : label + "T00:00:00");
+          if (!isNaN(dateObj.getTime())) {
+            return (dateObj.getMonth() + 1) === i;
+          }
+          return false;
+        });
+
+        // Agregamos (Sumamos) los valores encontrados
+        const cantidadInfo = monthItems.reduce((acc, curr) => ({
+          cantidad: acc.cantidad + (Number(curr.cantidad) || 0),
+          entregados: acc.entregados + (Number(curr.entregados) || 0),
+          ganancia: acc.ganancia + (Number(curr.ganancia) || 0),
+        }), { cantidad: 0, entregados: 0, ganancia: 0 });
+
+        processed.push({
+          label: months[i - 1],
+          cantidad: cantidadInfo.cantidad,
+          entregados: cantidadInfo.entregados,
+          ganancia: cantidadInfo.ganancia
+        });
+      }
+    }
+    // --- VISTA DIARIO / MENSUAL: Rango de fechas ---
+    else {
+      // Asegurar fechas validas
+      const dStart = new Date(`${desde}T00:00:00`);
+      const dEnd = new Date(`${hasta}T00:00:00`);
+
+      // Loop día a día
+      for (let d = new Date(dStart); d <= dEnd; d.setDate(d.getDate() + 1)) {
+
+        // Formato YYYY-MM-DD para machear con backend
+        const isoDate = d.toISOString().split('T')[0];
+
+        // Buscar data por label (puede venir como '2026-01-05' o date string completo)
+        const found = rawData.find(item => {
+          // Normalizar label del item a YYYY-MM-DD
+          if (!item.label) return false;
+          let itemDate = item.label;
+          // Si parece ISO string largo
+          if (item.label.includes('T')) {
+            itemDate = item.label.split('T')[0];
+          }
+          return itemDate === isoDate;
+        });
+
+        // Label Eje X: Solo el día (1, 2, 3...)
+        // Si cambiamos de mes en el rango, quizás querriamos 'd/M', pero user pidió '1-2-3'.
+        // Usaremos d.getDate()
+        processed.push({
+          label: d.getDate(), // 1, 2, 3...
+          fullDate: isoDate,  // Para tooltip si hiciera falta
+          cantidad: found?.cantidad || 0,
+          entregados: found?.entregados || 0,
+          ganancia: found?.ganancia || 0
+        });
+      }
+    }
+
+    return processed;
+  }, [data, vista, desde, hasta]);
+
   /* --- RENDER HELPERS --- */
   const kpis = data?.kpis;
   const graficos = data?.graficos;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      // Si es diario, label es numero (d), mostrar fecha completa si está disponible
+      const fullLabel = payload[0].payload.fullDate || label;
+
       return (
-        <div className="bg-white p-3 border border-gray-100 shadow-lg rounded-lg">
-          <p className="font-bold text-gray-700 mb-2">{label}</p>
+        <div className="bg-white p-3 border border-gray-100 shadow-lg rounded-lg z-50">
+          <p className="font-bold text-gray-700 mb-2">{fullLabel}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
+            <p key={index} className="text-sm font-medium" style={{ color: entry.color }}>
               {entry.name}: {entry.value}
             </p>
           ))}
@@ -194,7 +279,7 @@ export default function ReportesPage() {
                 setDesde(f0.toISOString().split('T')[0]);
                 setHasta(f1.toISOString().split('T')[0]);
               }} labelVariant="left">
-                {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={y}>{y}</option>)}
+                {[2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={y}>{y}</option>)}
               </Selectx>
             </div>
             <div className="w-full md:w-36">
@@ -220,7 +305,7 @@ export default function ReportesPage() {
               setDesde(f0.toISOString().split('T')[0]);
               setHasta(f1.toISOString().split('T')[0]);
             }} labelVariant="left">
-              {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={y}>{y}</option>)}
+              {[2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={y}>{y}</option>)}
             </Selectx>
           </div>
         )}
@@ -271,7 +356,7 @@ export default function ReportesPage() {
           </h3>
           <div className="w-full h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={graficos?.evolucion || []}>
+              <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorEntregas" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />

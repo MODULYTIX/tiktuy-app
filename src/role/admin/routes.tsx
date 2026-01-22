@@ -5,6 +5,6 @@ import ReportesPage from './pages/ReportesPage';
 
 export const adminRoutes: RouteObject[] = [
   { path: '', element: <AdminHomePage /> },
-  { path: 'ventas', element: <VentasPage /> },
+  { path: 'cuadre-saldo', element: <VentasPage /> },
   { path: 'reportes', element: <ReportesPage /> },
 ];

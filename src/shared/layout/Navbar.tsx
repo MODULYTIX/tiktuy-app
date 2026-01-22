@@ -45,36 +45,36 @@ export default function Navbar({ isOpen, open, setOpen }: Props) {
         label: "Panel de Control",
         icon: <Icon icon="mdi:view-dashboard" width="20" height="20" />,
       },
+      // {
+      //   to: "/cuadre-saldo",
+      //   label: "Cuadre de Saldo",
+      //   icon: <Icon icon="mdi:cash-register" width="20" height="20" />,
+      // },
+      // {
+      //   to: "/reportes",
+      //   label: "Stock / Sede",
+      //   icon: <Icon icon="mdi:package-variant" width="20" height="20" />,
+      // },
       {
-        to: "/usuarios",
-        label: "Ventas",
-        icon: <Icon icon="mdi:cash-register" width="20" height="20" />,
-      },
-      {
-        to: "/reportes",
-        label: "Stock / Sede",
-        icon: <Icon icon="mdi:package-variant" width="20" height="20" />,
-      },
-      {
-        to: "/saldos",
+        to: "/cuadre-saldo",
         label: "Cuadre de Saldos",
         icon: <Icon icon="prime:wallet" width="20" height="20" />,
       },
-      {
-        to: "/perfiles",
-        label: "Perfiles",
-        icon: <Icon icon="mdi:account-group" width="20" height="20" />,
-      },
+      // {
+      //   to: "/perfiles",
+      //   label: "Perfiles",
+      //   icon: <Icon icon="mdi:account-group" width="20" height="20" />,
+      // },
       {
         to: "/reportes",
         label: "Reportes",
         icon: <Icon icon="carbon:report-data" width="20" height="20" />,
       },
-      {
-        to: "/configuracion",
-        label: "Configuración",
-        icon: <Icon icon="mdi:cog-outline" width="20" height="20" />,
-      },
+      // {
+      //   to: "/configuracion",
+      //   label: "Configuración",
+      //   icon: <Icon icon="mdi:cog-outline" width="20" height="20" />,
+      // },
 
       // Notificaciones NO es ruta real; solo UI
       // { to: "/__notificaciones__", label: "Notificaciones", icon: <Icon icon="mdi:bell-outline" width="20" height="20" /> },
