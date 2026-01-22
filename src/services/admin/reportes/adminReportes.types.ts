@@ -2,6 +2,8 @@ export interface AdminReportesFiltros {
   desde?: string; // YYYY-MM-DD
   hasta?: string; // YYYY-MM-DD
   courierId?: number;
+  vista?: 'diario' | 'mensual' | 'anual';
+  precio?: number;
 }
 // ==========================================
 // Resumen Operativo (KPIs)
@@ -35,4 +37,34 @@ export interface BalanceFinancieroResponse {
     totalRecaudado: string; // Ejemplo: "1500.00"
     ingresosNetos: string;
   };
+}
+
+// ==========================================
+// Dashboard Graficos
+// ==========================================
+export interface DashboardGraficosResponse {
+  filtros: any;
+  kpis: {
+    totalPedidos: number;
+    entregados: number;
+    anulados: number;
+    gananciaTotal: string;
+  };
+  graficos: {
+    evolucion: {
+      label: string;
+      cantidad: number;
+      entregados: number;
+      ganancia: number;
+    }[];
+    distribucion: {
+      name: string;
+      value: number;
+    }[];
+    ranking: {
+      courier: string;
+      entregados: number;
+      ganancia: number;
+    }[];
+  }
 }

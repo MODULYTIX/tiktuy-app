@@ -12,6 +12,8 @@ function buildQuery(params: AdminReportesFiltros) {
     if (params.desde) query.append("desde", params.desde);
     if (params.hasta) query.append("hasta", params.hasta);
     if (params.courierId) query.append("courierId", String(params.courierId));
+    if (params.vista) query.append("vista", params.vista);
+    if (params.precio) query.append("precio", String(params.precio));
     return query.toString();
 }
 
@@ -59,6 +61,30 @@ export const getAdminBalanceFinanciero = async (
     if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || "Error al obtener balance financiero");
+    }
+
+    return await res.json();
+};
+
+// ==========================================
+// 3. Obtener Dashboard con Gráficos
+// ==========================================
+export const getAdminDashboardGraficos = async (
+    token: string,
+    params: AdminReportesFiltros
+): Promise<any> => {
+    const qs = buildQuery(params);
+    const res = await fetch(`${VITE_API_URL}/admin-reportes/dashboard?${qs}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Error al obtener dashboard graficos");
     }
 
     return await res.json();

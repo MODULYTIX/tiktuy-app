@@ -1,25 +1,35 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  Legend
+} from "recharts";
 
 import Tittlex from "@/shared/common/Tittlex";
 import Buttonx from "@/shared/common/Buttonx";
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
-
 import { useAuth } from "@/auth/context";
 
-// API para Reportes
 import {
-  getAdminResumenCourier,
-  getAdminBalanceFinanciero,
+  getAdminDashboardGraficos,
 } from "@/services/admin/reportes/adminReportes.api";
+import { getAdminCobranzaCouriers } from "@/services/admin/ventas/admin-ventas.api";
+
 import type {
-  ResumenCourierResponse,
-  BalanceFinancieroResponse,
+  DashboardGraficosResponse,
   AdminReportesFiltros,
 } from "@/services/admin/reportes/adminReportes.types";
-
-// API para obtener lista de couriers (reusamos la de ventas)
-import { getAdminCobranzaCouriers } from "@/services/admin/ventas/admin-ventas.api";
 
 /* Helpers fechas */
 function getFirstDayOfMonth() {
@@ -28,30 +38,66 @@ function getFirstDayOfMonth() {
     .toISOString()
     .split("T")[0];
 }
-/* Helpers fechas */
 function getToday() {
   return new Date().toLocaleDateString('en-CA');
 }
 
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1919'];
+
 export default function ReportesPage() {
   const { token } = useAuth();
 
-  // --- Filtros ---
+  // Filtros
+  const [vista, setVista] = useState<'diario' | 'mensual' | 'anual'>('diario');
   const [desde, setDesde] = useState(getFirstDayOfMonth());
   const [hasta, setHasta] = useState(getToday());
   const [courierId, setCourierId] = useState<string>("");
+  // Precio para cálculo de ganancia (opcional, default 1 en backend)
+  const [precio, setPrecio] = useState<number>(1);
 
-  // --- Data ---
-  const [resumenData, setResumenData] = useState<ResumenCourierResponse | null>(null);
-  const [balanceData, setBalanceData] = useState<BalanceFinancieroResponse | null>(null);
-
-  // Lista de couriers para el select
+  // Data
+  const [data, setData] = useState<DashboardGraficosResponse | null>(null);
   const [allCouriers, setAllCouriers] = useState<any[]>([]);
 
-  // --- UI States ---
+  // UI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Helper cambio vista
+  const handleVistaChange = (v: 'diario' | 'mensual' | 'anual') => {
+    setVista(v);
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = d.getMonth();
+
+    if (v === 'mensual') {
+      const f0 = new Date(y, m, 1);
+      const f1 = new Date(y, m + 1, 0);
+      setDesde(f0.toISOString().split('T')[0]);
+      setHasta(f1.toISOString().split('T')[0]);
+    } else if (v === 'anual') {
+      const f0 = new Date(y, 0, 1);
+      const f1 = new Date(y, 11, 31);
+      setDesde(f0.toISOString().split('T')[0]);
+      setHasta(f1.toISOString().split('T')[0]);
+    } else {
+      setDesde(getFirstDayOfMonth());
+      setHasta(getToday());
+    }
+  };
+
+  // Cargar Lista Couriers
+  useEffect(() => {
+    if (!token) return;
+    // Reusamos endpoint de ventas para lista simple
+    getAdminCobranzaCouriers(token, { precio: 1 }) // dummy params
+      .then(res => {
+        if (res.data) setAllCouriers(res.data);
+      })
+      .catch(err => console.error("Error loading couriers list", err));
+  }, [token]);
+
+  // Cargar Dashboard
   const loadData = async () => {
     if (!token) return;
     setLoading(true);
@@ -61,32 +107,13 @@ export default function ReportesPage() {
         desde: desde || undefined,
         hasta: hasta || undefined,
         courierId: courierId ? Number(courierId) : undefined,
+        vista,
+        precio
       };
-
-      // 1. Cargamos reportes
-      const [resResumen, resBalance] = await Promise.all([
-        getAdminResumenCourier(token, filtros),
-        getAdminBalanceFinanciero(token, filtros),
-      ]);
-
-      setResumenData(resResumen);
-      setBalanceData(resBalance);
-
-      // 2. Si NO hay filtro de courier, cargamos la lista de couriers para llenar el select
-      //    (Usamos la API de ventas solo para obtener el listado, pasando filtros vacíos o básicos)
-      if (allCouriers.length === 0) {
-        /* 
-           Nota: Usamos getAdminCobranzaCouriers como "helper" para sacar la lista.
-           Si filtro por precio no afecta la lista de couriers disponibles, enviamos precio=1 por defecto.
-        */
-        const cob = await getAdminCobranzaCouriers(token, { ...filtros, precio: 1 });
-        if (cob.data) {
-          setAllCouriers(cob.data);
-        }
-      }
-
+      const result = await getAdminDashboardGraficos(token, filtros);
+      setData(result);
     } catch (err: any) {
-      setError(err?.message || "Error al cargar reportes.");
+      setError(err?.message || "Error cargando gráficos");
     } finally {
       setLoading(false);
     }
@@ -95,140 +122,261 @@ export default function ReportesPage() {
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, vista, courierId, desde, hasta]); // Auto-refresh filters
 
-  const handleFiltrar = () => {
-    loadData();
+  /* --- RENDER HELPERS --- */
+  const kpis = data?.kpis;
+  const graficos = data?.graficos;
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-100 shadow-lg rounded-lg">
+          <p className="font-bold text-gray-700 mb-2">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {entry.value}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
 
-  // --- Extraction de valores para render ---
-  const kpis = resumenData?.kpis;
-  const balance = balanceData?.balance;
-
   return (
-    <section className="flex flex-col gap-6">
-      {/* Header */}
+    <section className="flex flex-col gap-6 pb-10">
       <div>
         <Tittlex
-          title="Reportes Operativos y Financieros"
-          description="Visualiza el rendimiento y balance de los couriers"
+          title="Reportes Avanzados"
+          description="Análisis gráfico de rendimiento, estados y ganancias."
         />
       </div>
 
       {/* FILTROS */}
-      <div className="bg-white p-5 rounded-md shadow-default border-t border-gray-100 flex flex-col md:flex-row gap-4 items-end">
-        <div className="w-full md:w-40">
-          <SelectxDate
-            label="Desde"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-            labelVariant="left"
-          />
-        </div>
-        <div className="w-full md:w-40">
-          <SelectxDate
-            label="Hasta"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-            labelVariant="left"
-          />
+      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col xl:flex-row gap-4 items-end flex-wrap">
+
+        {/* VISTA */}
+        <div className="flex bg-slate-50 p-1 rounded-lg self-start xl:self-end">
+          {(["diario", "mensual", "anual"] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => handleVistaChange(v)}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${vista === v
+                ? "bg-white text-gray-800 shadow-sm border border-gray-100"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              {v.charAt(0).toUpperCase() + v.slice(1)}
+            </button>
+          ))}
         </div>
 
-        <div className="w-full md:w-56">
-          <Selectx
-            label="Courier"
-            value={courierId}
-            onChange={(e) => setCourierId(e.target.value)}
-            labelVariant="left"
-          >
+        {/* FECHAS */}
+        {vista === 'diario' && (
+          <>
+            <div className="w-full md:w-36">
+              <SelectxDate label="Desde" value={desde} onChange={e => setDesde(e.target.value)} labelVariant="left" />
+            </div>
+            <div className="w-full md:w-36">
+              <SelectxDate label="Hasta" value={hasta} onChange={e => setHasta(e.target.value)} labelVariant="left" />
+            </div>
+          </>
+        )}
+        {vista === 'mensual' && (
+          <>
+            <div className="w-full md:w-28">
+              <Selectx label="Año" value={parseInt(desde.split("-")[0])} onChange={e => {
+                const y = Number(e.target.value);
+                const m = parseInt(desde.split("-")[1]) - 1;
+                const f0 = new Date(y, m, 1);
+                const f1 = new Date(y, m + 1, 0);
+                setDesde(f0.toISOString().split('T')[0]);
+                setHasta(f1.toISOString().split('T')[0]);
+              }} labelVariant="left">
+                {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={y}>{y}</option>)}
+              </Selectx>
+            </div>
+            <div className="w-full md:w-36">
+              <Selectx label="Mes" value={parseInt(desde.split("-")[1]) - 1} onChange={e => {
+                const m = Number(e.target.value);
+                const y = parseInt(desde.split("-")[0]);
+                const f0 = new Date(y, m, 1);
+                const f1 = new Date(y, m + 1, 0);
+                setDesde(f0.toISOString().split('T')[0]);
+                setHasta(f1.toISOString().split('T')[0]);
+              }} labelVariant="left">
+                {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((mes, i) => <option key={i} value={i}>{mes}</option>)}
+              </Selectx>
+            </div>
+          </>
+        )}
+        {vista === 'anual' && (
+          <div className="w-full md:w-32">
+            <Selectx label="Año" value={parseInt(desde.split("-")[0])} onChange={e => {
+              const y = Number(e.target.value);
+              const f0 = new Date(y, 0, 1);
+              const f1 = new Date(y, 11, 31);
+              setDesde(f0.toISOString().split('T')[0]);
+              setHasta(f1.toISOString().split('T')[0]);
+            }} labelVariant="left">
+              {[2025, 2026, 2027, 2028, 2029, 2030].map(y => <option key={y} value={y}>{y}</option>)}
+            </Selectx>
+          </div>
+        )}
+
+        {/* COURIER */}
+        <div className="w-full md:w-48">
+          <Selectx label="Courier" value={courierId} onChange={e => setCourierId(e.target.value)} labelVariant="left">
             <option value="">Todos</option>
-            {allCouriers.map((c) => (
-              <option key={c.courier_id} value={c.courier_id}>
-                {c.courier_nombre}
-              </option>
+            {allCouriers.map(c => (
+              <option key={c.courier_id} value={c.courier_id}>{c.courier_nombre}</option>
             ))}
           </Selectx>
         </div>
 
-        <Buttonx
-          label={loading ? "Cargando..." : "Filtrar"}
-          onClick={handleFiltrar}
-          disabled={loading}
-          icon="mdi:filter-outline"
-        />
+        {/* PRECIO (Recalculo Ganancia) */}
+        <div className="w-full md:w-32 flex flex-col justify-end">
+          <label className="text-[10px] text-gray-500 font-bold uppercase mb-1">Precio Ref. (S/.)</label>
+          <input
+            type="number" step="0.1" min="0"
+            value={precio}
+            onChange={e => setPrecio(Number(e.target.value))}
+            onBlur={() => loadData()} // Recarga al salir
+            className="w-full border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:border-blue-500 text-sm"
+          />
+        </div>
+
+        <Buttonx label={loading ? "..." : "Actualizar"} onClick={() => loadData()} disabled={loading} icon="mdi:refresh" />
       </div>
 
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded border border-red-200">
-          {error}
-        </div>
-      )}
+      {error && <div className="bg-red-50 text-red-600 p-4 rounded border border-red-200">{error}</div>}
 
-      {/* 1. SECCION RESUMEN OPERATIVO */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex items-center gap-2 mb-6">
-          <Icon icon="mdi:chart-box-outline" className="text-blue-600 text-xl" />
-          <h3 className="text-lg font-semibold text-gray-800">Resumen Operativo</h3>
-        </div>
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard label="Total Pedidos" value={kpis?.totalPedidos} icon="mdi:package-variant-closed" color="blue" />
+        <KpiCard label="Entregados" value={kpis?.entregados} icon="mdi:check-circle-outline" color="emerald" />
+        <KpiCard label="Anulados" value={kpis?.anulados} icon="mdi:close-circle-outline" color="red" />
+        <KpiCard label="Ganancia Est." value={kpis ? `S/. ${kpis.gananciaTotal}` : '-'} sub="Basado en Precio Ref." icon="mdi:cash-multiple" color="amber" />
+      </div>
 
-        {!kpis ? (
-          <div className="text-gray-400 text-sm">Sin datos para mostrar.</div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
-            {/* KPI Tasa Entrega */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex flex-col items-center justify-center text-center">
-              <span className="text-blue-600 font-medium mb-1">Tasa de Entrega</span>
-              <span className="text-3xl font-bold text-blue-800">{kpis.tasaEntrega}</span>
-            </div>
+      {/* GRAFICOS FILA 1: EVOLUCION + DISTRIBUCION */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            {/* Total Pedidos */}
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col items-center justify-center text-center">
-              <div className="text-gray-500 text-sm font-medium">Total Pedidos</div>
-              <div className="text-2xl font-bold text-gray-900 mt-1">{kpis.totalPedidos}</div>
-            </div>
-
-            {/* Entregados */}
-            <div className="bg-green-50 p-4 rounded-lg border border-green-100 flex flex-col items-center justify-center text-center">
-              <div className="text-green-600 text-sm font-medium">Entregados</div>
-              <div className="text-2xl font-bold text-green-700 mt-1">{kpis.entregados}</div>
-            </div>
-
-            {/* Anulados */}
-            <div className="bg-red-50 p-4 rounded-lg border border-red-100 flex flex-col items-center justify-center text-center">
-              <div className="text-red-600 text-sm font-medium">Anulados</div>
-              <div className="text-2xl font-bold text-red-700 mt-1">{kpis.anulados}</div>
-            </div>
-
+        {/* EVOLUCION */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 lg:col-span-2">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <Icon icon="mdi:chart-timeline-variant" className="text-blue-600" />
+            Evolución de Entregas
+          </h3>
+          <div className="w-full h-[320px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={graficos?.evolucion || []}>
+                <defs>
+                  <linearGradient id="colorEntregas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Area type="monotone" dataKey="cantidad" name="Total Pedidos" stroke="#3B82F6" fillOpacity={1} fill="url(#colorTotal)" strokeWidth={2} />
+                <Area type="monotone" dataKey="entregados" name="Entregados" stroke="#10B981" fillOpacity={1} fill="url(#colorEntregas)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-        )}
-      </div>
-
-      {/* 2. SECCION BALANCE FINANCIERO */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex items-center gap-2 mb-6 ">
-          <Icon icon="mdi:cash-register" className="text-primary text-xl" />
-          <h3 className="text-lg font-semibold text-gray-800">Balance Financiero</h3>
         </div>
 
-        {!balance ? (
-          <div className="text-gray-400 text-sm">Sin datos financieros.</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex flex-col p-4 bg-gray-50 rounded-lg border border-gray-200 items-center justify-center text-center">
-              <span className="text-gray-500 text-sm">Pedidos que generaron ingreso</span>
-              <span className="text-2xl font-bold text-gray-900 mt-2">{balance.pedidosEntregados}</span>
-            </div>
-
-            <div className="flex flex-col p-4 bg-emerald-50 rounded-lg border border-emerald-100 md:col-span-2 items-center justify-center text-center">
-              <span className="text-emerald-700 text-sm font-medium uppercase tracking-wide">Recaudación Total (Bruto)</span>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-bold text-emerald-800">S/. {balance.totalRecaudado}</span>
-              </div>
-              {/* Nota: si tuvieras "ingresosNetos" o comisiones, podrías agregarlos aquí */}
-            </div>
+        {/* DISTRIBUCION */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <Icon icon="mdi:chart-pie" className="text-purple-600" />
+            Estados
+          </h3>
+          <div className="w-full h-[320px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={graficos?.distribucion || []}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {(graficos?.distribucion || []).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* GRAFICO FILA 2: RANKING */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Icon icon="mdi:trophy-outline" className="text-amber-500" />
+          Top Couriers (Por entregas)
+        </h3>
+        <div className="w-full h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={graficos?.ranking || []} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+              <XAxis type="number" hide />
+              <YAxis dataKey="courier" type="category" width={120} tick={{ fontSize: 11, fontWeight: 600 }} />
+              <Tooltip cursor={{ fill: '#F9FAFB' }} content={<CustomTooltip />} />
+              <Bar dataKey="entregados" name="Pedidos Entregados" fill="#8B5CF6" radius={[0, 4, 4, 0]} barSize={24} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
     </section>
+  );
+}
+
+// Subcomponente KPI
+function KpiCard({ label, value, icon, color, sub }: any) {
+  // Map colors to tailwind classes roughly
+  const bgMap: any = {
+    blue: 'bg-blue-50 text-blue-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
+    red: 'bg-red-50 text-red-600',
+    amber: 'bg-amber-50 text-amber-600',
+  };
+  const textMap: any = {
+    blue: 'text-blue-900',
+    emerald: 'text-emerald-900',
+    red: 'text-red-900',
+    amber: 'text-amber-900',
+  };
+
+  return (
+    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${bgMap[color] || bgMap.blue}`}>
+        <Icon icon={icon} className="text-2xl" />
+      </div>
+      <div>
+        <p className="text-sm text-gray-500 font-medium">{label}</p>
+        <div className="flex items-baseline gap-2">
+          <h3 className={`text-2xl font-bold ${textMap[color] || 'text-gray-900'}`}>
+            {value !== undefined ? value : '-'}
+          </h3>
+        </div>
+        {sub && <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>}
+      </div>
+    </div>
   );
 }
