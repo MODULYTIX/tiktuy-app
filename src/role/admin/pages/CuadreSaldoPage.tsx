@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import Tittlex from "@/shared/common/Tittlex";
 import Buttonx from "@/shared/common/Buttonx";
 import TableActionx from "@/shared/common/TableActionx";
-import { Selectx, SelectxDate } from "@/shared/common/Selectx";
+import { Selectx } from "@/shared/common/Selectx";
 import { Skeleton } from "@/shared/components/ui/Skeleton";
 import CuadreSaldoValidate from "@/shared/components/admin/cuadre-saldo/Cuadre-SaldoModalValidate";
 
@@ -31,17 +31,20 @@ function getFirstDayOfMonth() {
     .toISOString()
     .split("T")[0];
 }
-/* Helper para hoy */
-function getToday() {
-  return new Date().toLocaleDateString("en-CA");
+/* Helper para último día del mes actual */
+function getLastDayOfMonth() {
+  const date = new Date();
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0)
+    .toISOString()
+    .split("T")[0];
 }
 
 export default function CuadreSaldoPage() {
   const { token } = useAuth();
 
-  const [vista, setVista] = useState<"diario" | "mensual" | "anual">("diario");
+  // Siempre mensual
   const [desde, setDesde] = useState(getFirstDayOfMonth());
-  const [hasta, setHasta] = useState(getToday());
+  const [hasta, setHasta] = useState(getLastDayOfMonth());
 
   // Precio: Estado activo y valor
   const [precio, setPrecio] = useState<number>(() => {
@@ -77,40 +80,11 @@ export default function CuadreSaldoPage() {
 
   // ====== Estilo modelo (mismo que reportes) ======
   const WRAP_MODEL =
-    "bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 min-w-0";
+    "bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 min-w-0 flex flex-row items-end gap-3";
   const CARD_MODEL =
     "bg-white p-4 sm:p-5 rounded shadow-default border-b-4 border-gray90 border-0 min-w-0";
   const TABLE_MODEL =
     "bg-white rounded shadow-default border-b-4 border-gray90 border-0 overflow-hidden min-w-0";
-
-  const vistas: Array<"diario" | "mensual" | "anual"> = [
-    "diario",
-    "mensual",
-    "anual",
-  ];
-
-  // Helper para cambio de vista
-  const handleVistaChange = (v: "diario" | "mensual" | "anual") => {
-    setVista(v);
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = d.getMonth();
-
-    if (v === "mensual") {
-      const f0 = new Date(y, m, 1);
-      const f1 = new Date(y, m + 1, 0);
-      setDesde(f0.toISOString().split("T")[0]);
-      setHasta(f1.toISOString().split("T")[0]);
-    } else if (v === "anual") {
-      const f0 = new Date(y, 0, 1);
-      const f1 = new Date(y, 11, 31);
-      setDesde(f0.toISOString().split("T")[0]);
-      setHasta(f1.toISOString().split("T")[0]);
-    } else {
-      setDesde(getFirstDayOfMonth());
-      setHasta(getToday());
-    }
-  };
 
   // Cargar listas
   useEffect(() => {
@@ -152,7 +126,7 @@ export default function CuadreSaldoPage() {
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, vista, courierId, desde, hasta]);
+  }, [token, courierId, desde, hasta]);
 
   const handleFiltrar = () => {
     loadData();
@@ -212,8 +186,8 @@ export default function CuadreSaldoPage() {
   };
 
   // Totales
-  const totalPedidos = dashboardData?.totales.totalPedidos ?? 0;
-  const totalCobrar = dashboardData?.totales.totalCobrar ?? 0;
+  const totalPedidos = courierId ? (dashboardData?.totales.totalPedidos ?? 0) : 0;
+  const totalCobrar = courierId ? (dashboardData?.totales.totalCobrar ?? 0) : 0;
   const couriersList = cobranzaData?.data ?? [];
 
   return (
@@ -221,247 +195,102 @@ export default function CuadreSaldoPage() {
       {/* Header */}
       <div>
         <Tittlex
-          title="Ventas"
-          description="Resumen de ventas y cobranza por Courier"
+          title="Cuadre de saldos"
+          description="Resumen mensual de pedidos por Courier"
         />
       </div>
 
-      {/* ================= FILTROS (Periodo + Filtros) ================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-4 min-w-0">
-        {/* ===== Card: Periodo (Segmented) ===== */}
-        <div className={WRAP_MODEL}>
-          <div className="flex items-center gap-2 mb-3">
-            <Icon icon="mdi:calendar-clock" className="text-gray70" />
-            <p className="text-sm font-semibold text-gray-900">Periodo</p>
+      {/* ================= FILTROS Mensuales ================= */}
+      <div className={WRAP_MODEL}>
+        <div className="flex flex-row sm:flex-row sm:flex-wrap gap-3 items-end min-w-0">
+
+
+
+          <div className="w-full sm:w-[190px] min-w-0">
+            <Selectx
+              label="Mes"
+              value={parseInt(desde.split("-")[1]) - 1}
+              onChange={(e) => {
+                const m = Number(e.target.value);
+                const y = parseInt(desde.split("-")[0]);
+                const f0 = new Date(y, m, 1);
+                const f1 = new Date(y, m + 1, 0);
+                setDesde(f0.toISOString().split("T")[0]);
+                setHasta(f1.toISOString().split("T")[0]);
+              }}
+              className="w-full"
+            >
+              {[
+                "Enero",
+                "Febrero",
+                "Marzo",
+                "Abril",
+                "Mayo",
+                "Junio",
+                "Julio",
+                "Agosto",
+                "Septiembre",
+                "Octubre",
+                "Noviembre",
+                "Diciembre",
+              ].map((mes, i) => (
+                <option key={i} value={i}>
+                  {mes}
+                </option>
+              ))}
+            </Selectx>
           </div>
 
-          <div className="inline-flex rounded-xl bg-gray10 p-1">
-            {vistas.map((v) => {
-              const active = vista === v;
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => handleVistaChange(v)}
-                  className={[
-                    "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                    active
-                      ? "bg-gray90 text-white shadow-sm"
-                      : "text-gray70 hover:bg-gray20",
-                  ].join(" ")}
-                >
-                  {v.charAt(0).toUpperCase() + v.slice(1)}
-                </button>
-              );
-            })}
+          <div className="w-full sm:w-[140px] min-w-0">
+            <Selectx
+              label="Año"
+              value={parseInt(desde.split("-")[0])}
+              onChange={(e) => {
+                const y = Number(e.target.value);
+                const m = parseInt(desde.split("-")[1]) - 1;
+                const f0 = new Date(y, m, 1);
+                const f1 = new Date(y, m + 1, 0);
+                setDesde(f0.toISOString().split("T")[0]);
+                setHasta(f1.toISOString().split("T")[0]);
+              }}
+              className="w-full"
+            >
+              {[2026, 2027, 2028, 2029, 2030].map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </Selectx>
           </div>
-
-          <p className="text-[11px] text-gray60 mt-3">
-            Elige cómo quieres ver el reporte.
-          </p>
         </div>
 
-        {/* ===== Card: Filtros ===== */}
-        <div className={WRAP_MODEL}>
-          <div className="flex items-center gap-2 mb-3">
-            <Icon icon="mdi:filter-variant" className="text-gray70" />
-            <p className="text-sm font-semibold text-gray-900">Filtros</p>
-          </div>
+        <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[300px] min-w-0">
+          <Selectx
+            label="Courier"
+            value={courierId}
+            onChange={(e) => setCourierId(e.target.value)}
+            className="w-full"
+          >
+            <option value="">Todos</option>
+            {allCouriers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre_comercial || c.nombre || "Courier"}
+              </option>
+            ))}
+          </Selectx>
+        </div>
 
-          {/* -- DIARIO -- */}
-          {vista === "diario" && (
-            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 items-end min-w-0">
-              <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[260px] min-w-0">
-                <SelectxDate
-                  label="Desde"
-                  value={desde}
-                  onChange={(e) => setDesde(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[260px] min-w-0">
-                <SelectxDate
-                  label="Hasta"
-                  value={hasta}
-                  onChange={(e) => setHasta(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[300px] min-w-0">
-                <Selectx
-                  label="Courier"
-                  value={courierId}
-                  onChange={(e) => setCourierId(e.target.value)}
-                  className="w-full"
-                >
-                  <option value="">Todos</option>
-                  {allCouriers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre_comercial || c.nombre || "Courier"}
-                    </option>
-                  ))}
-                </Selectx>
-              </div>
-
-              <div className="w-full sm:w-auto shrink-0">
-                <Buttonx
-                  label={loading ? "Cargando..." : "Filtrar"}
-                  onClick={handleFiltrar}
-                  disabled={loading}
-                  icon="mdi:filter"
-                  variant="secondary"
-                  className="w-full sm:w-auto"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* -- MENSUAL -- */}
-          {vista === "mensual" && (
-            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 items-end min-w-0">
-              <div className="w-full sm:w-[140px] min-w-0">
-                <Selectx
-                  label="Año"
-                  value={parseInt(desde.split("-")[0])}
-                  onChange={(e) => {
-                    const y = Number(e.target.value);
-                    const m = parseInt(desde.split("-")[1]) - 1;
-                    const f0 = new Date(y, m, 1);
-                    const f1 = new Date(y, m + 1, 0);
-                    setDesde(f0.toISOString().split("T")[0]);
-                    setHasta(f1.toISOString().split("T")[0]);
-                  }}
-                  className="w-full"
-                >
-                  {[2026, 2027, 2028, 2029, 2030].map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </Selectx>
-              </div>
-
-              <div className="w-full sm:w-[190px] min-w-0">
-                <Selectx
-                  label="Mes"
-                  value={parseInt(desde.split("-")[1]) - 1}
-                  onChange={(e) => {
-                    const m = Number(e.target.value);
-                    const y = parseInt(desde.split("-")[0]);
-                    const f0 = new Date(y, m, 1);
-                    const f1 = new Date(y, m + 1, 0);
-                    setDesde(f0.toISOString().split("T")[0]);
-                    setHasta(f1.toISOString().split("T")[0]);
-                  }}
-                  className="w-full"
-                >
-                  {[
-                    "Enero",
-                    "Febrero",
-                    "Marzo",
-                    "Abril",
-                    "Mayo",
-                    "Junio",
-                    "Julio",
-                    "Agosto",
-                    "Septiembre",
-                    "Octubre",
-                    "Noviembre",
-                    "Diciembre",
-                  ].map((mes, i) => (
-                    <option key={i} value={i}>
-                      {mes}
-                    </option>
-                  ))}
-                </Selectx>
-              </div>
-
-              <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[300px] min-w-0">
-                <Selectx
-                  label="Courier"
-                  value={courierId}
-                  onChange={(e) => setCourierId(e.target.value)}
-                  className="w-full"
-                >
-                  <option value="">Todos</option>
-                  {allCouriers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre_comercial || c.nombre || "Courier"}
-                    </option>
-                  ))}
-                </Selectx>
-              </div>
-
-              <div className="w-full sm:w-auto shrink-0">
-                <Buttonx
-                  label={loading ? "Cargando..." : "Filtrar"}
-                  onClick={handleFiltrar}
-                  disabled={loading}
-                  icon="mdi:filter"
-                  variant="secondary"
-                  className="w-full sm:w-auto"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* -- ANUAL -- */}
-          {vista === "anual" && (
-            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 items-end min-w-0">
-              <div className="w-full sm:w-[140px] min-w-0">
-                <Selectx
-                  label="Año"
-                  value={parseInt(desde.split("-")[0])}
-                  onChange={(e) => {
-                    const y = Number(e.target.value);
-                    const f0 = new Date(y, 0, 1);
-                    const f1 = new Date(y, 11, 31);
-                    setDesde(f0.toISOString().split("T")[0]);
-                    setHasta(f1.toISOString().split("T")[0]);
-                  }}
-                  className="w-full"
-                >
-                  {[2026, 2027, 2028, 2029, 2030].map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </Selectx>
-              </div>
-
-              <div className="w-full sm:w-auto sm:min-w-[220px] sm:max-w-[300px] min-w-0">
-                <Selectx
-                  label="Courier"
-                  value={courierId}
-                  onChange={(e) => setCourierId(e.target.value)}
-                  className="w-full"
-                >
-                  <option value="">Todos</option>
-                  {allCouriers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre_comercial || c.nombre || "Courier"}
-                    </option>
-                  ))}
-                </Selectx>
-              </div>
-
-              <div className="w-full sm:w-auto shrink-0">
-                <Buttonx
-                  label={loading ? "Cargando..." : "Filtrar"}
-                  onClick={handleFiltrar}
-                  disabled={loading}
-                  icon="mdi:filter"
-                  variant="secondary"
-                  className="w-full sm:w-auto"
-                />
-              </div>
-            </div>
-          )}
+        <div className="w-full sm:w-auto shrink-0 ">
+          <Buttonx
+            label={loading ? "Cargando..." : "Filtrar"}
+            onClick={handleFiltrar}
+            disabled={loading}
+            icon="mdi:filter"
+            variant="secondary"
+            className="w-full sm:w-auto"
+          />
         </div>
       </div>
-
       {error && (
         <div className="bg-red-50 text-red-600 p-4 rounded border border-red-200 text-sm">
           {error}
@@ -539,7 +368,7 @@ export default function CuadreSaldoPage() {
               </div>
 
               {/* Acciones + Icono (derecha) */}
-              <div className="flex items-center gap-2 shrink-0 flex-row-reverse">
+              <div className="flex items-center gap-2 shrink-0 flex-row">
                 {/* Botón Editar/Guardar (reubicado) */}
                 <button
                   onClick={togglePrecioEdit}
@@ -606,7 +435,16 @@ export default function CuadreSaldoPage() {
             </thead>
 
             <tbody className="divide-y divide-gray20">
-              {couriersList.length === 0 ? (
+              {!courierId ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-4 sm:px-5 py-10 text-center text-gray60"
+                  >
+                    Seleccione un courier para ver el detalle.
+                  </td>
+                </tr>
+              ) : couriersList.length === 0 ? (
                 <tr>
                   <td
                     colSpan={5}
