@@ -127,25 +127,25 @@ export default function Solicitud() {
   // Handlers de cambio (Courier)
   const onChange =
     (key: keyof SolicitudCourierInput) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      const value = e.target.value;
-      setForm((s) => ({
-        ...s,
-        [key]: value,
-        ...(key === 'departamento' ? { ciudad: '' } : null),
-      }));
-    };
+      (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const value = e.target.value;
+        setForm((s) => ({
+          ...s,
+          [key]: value,
+          ...(key === 'departamento' ? { ciudad: '' } : null),
+        }));
+      };
 
   // Handlers de cambio (Ecommerce)
   const onChangeE =
     (key: keyof SolicitudEcommerceInput) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      const value = e.target.value;
-      setFormE((s) => ({
-        ...s,
-        [key]: value,
-      }));
-    };
+      (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const value = e.target.value;
+        setFormE((s) => ({
+          ...s,
+          [key]: value,
+        }));
+      };
 
   // Validación (Courier)
   function validateCourier(data: SolicitudCourierInput): string | null {
@@ -261,7 +261,7 @@ export default function Solicitud() {
   }
 
   return (
-    <div className="flex flex-col gap-15 my-15">
+    <div className="flex flex-col gap-15 my-15 px-6 lg:px-0">
       {/* Título principal con subrayado corto (usa tu TittleX) */}
       <TittleX className="text-5xl">Únete a nosotros</TittleX>
 
@@ -327,22 +327,20 @@ export default function Solicitud() {
             <button
               type="button"
               onClick={() => setTipo('courier')}
-              className={`px-3 py-1.5 rounded-md border ${
-                tipo === 'courier'
+              className={`px-3 py-1.5 rounded-md border ${tipo === 'courier'
                   ? 'bg-[#0057A3] text-white border-[#0057A3]'
                   : 'bg-white text-[#0057A3] border-[#99BCDA]'
-              }`}
+                }`}
             >
               Courier
             </button>
             <button
               type="button"
               onClick={() => setTipo('ecommerce')}
-              className={`px-3 py-1.5 rounded-md border ${
-                tipo === 'ecommerce'
+              className={`px-3 py-1.5 rounded-md border ${tipo === 'ecommerce'
                   ? 'bg-[#0057A3] text-white border-[#0057A3]'
                   : 'bg-white text-[#0057A3] border-[#99BCDA]'
-              }`}
+                }`}
             >
               Ecommerce
             </button>
@@ -351,11 +349,10 @@ export default function Solicitud() {
           {/* mensaje */}
           {msg && (
             <div
-              className={`mb-4 rounded-md px-3 py-2 text-sm ${
-                msg.type === 'ok'
+              className={`mb-4 rounded-md px-3 py-2 text-sm ${msg.type === 'ok'
                   ? 'bg-green-50 text-green-700 border border-green-200'
                   : 'bg-red-50 text-red-700 border border-red-200'
-              }`}>
+                }`}>
               {msg.text}
             </div>
           )}
@@ -570,8 +567,8 @@ export default function Solicitud() {
                       {!form.departamento
                         ? 'Seleccione un departamento primero'
                         : loadingCiudades
-                        ? 'Cargando…'
-                        : 'Seleccione su ciudad'}
+                          ? 'Cargando…'
+                          : 'Seleccione su ciudad'}
                     </option>
                     {ciudades.map((c) => (
                       <option key={c} value={c}>

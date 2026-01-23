@@ -35,7 +35,7 @@ y confirman la llegada del producto al destino final.`,
 
 export default function QuienesParticipan() {
   return (
-    <div className="flex flex-col gap-10 items-center text-center h-auto w-screen py-25">
+    <div className="flex flex-col gap-10 items-center text-center h-auto w-full py-25 px-6">
       {/* 🔹 Título principal */}
       <TittleX className="text-5xl mb-10">
         ¿Quiénes participan en TIKTUY?

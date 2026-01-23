@@ -4,7 +4,7 @@ import TittleX from '../common/TittleX';
 export default function QueEs() {
   return (
     <section className="w-full py-28 bg-white">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+      <div className="max-w-7xl mx-auto px-6 md:px-0 flex flex-col md:flex-row items-center justify-between gap-10 ">
         <div className="flex-1 h-full justify-center items-center max-w-xl">
           <h2 className=" mb-12">
             <TittleX><h2>¿Qué es Tiktuy?</h2>
