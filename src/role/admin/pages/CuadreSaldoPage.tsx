@@ -3,8 +3,10 @@ import { Icon } from "@iconify/react";
 
 import Tittlex from "@/shared/common/Tittlex";
 import Buttonx from "@/shared/common/Buttonx";
+import TableActionx from "@/shared/common/TableActionx";
 import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import { Skeleton } from "@/shared/components/ui/Skeleton";
+import CuadreSaldoValidate from "@/shared/components/admin/cuadre-saldo/Cuadre-SaldoModalValidate";
 
 import { useAuth } from "@/auth/context";
 
@@ -13,13 +15,14 @@ import {
   getAdminCobranzaCouriers,
   downloadPdfCobranza,
   getAdminAllCouriers,
-} from "@/services/admin/ventas/admin-ventas.api";
+  validateCobranza,
+} from "@/services/admin/ventas/admin-cuadreSaldo.api";
 
 import type {
   VentasDiariasResponse,
   CobranzaCouriersResponse,
   AdminVentasFiltros,
-} from "@/services/admin/ventas/admin-ventas.types";
+} from "@/services/admin/ventas/admin-cuadreSaldo.types";
 
 /* Helper para fecha por defecto (primer día del mes actual) */
 function getFirstDayOfMonth() {
@@ -33,7 +36,7 @@ function getToday() {
   return new Date().toLocaleDateString("en-CA");
 }
 
-export default function VentasPage() {
+export default function CuadreSaldoPage() {
   const { token } = useAuth();
 
   const [vista, setVista] = useState<"diario" | "mensual" | "anual">("diario");
@@ -63,6 +66,14 @@ export default function VentasPage() {
   const [error, setError] = useState("");
 
   const [pdfLoadingId, setPdfLoadingId] = useState<number | null>(null);
+
+  // Modal State
+  const [modalVal, setModalVal] = useState<{
+    open: boolean;
+    id?: number;
+    nombre?: string;
+    monto?: number;
+  }>({ open: false });
 
   // ====== Estilo modelo (mismo que reportes) ======
   const WRAP_MODEL =
@@ -171,6 +182,32 @@ export default function VentasPage() {
       alert(e?.message || "Error al descargar PDF");
     } finally {
       setPdfLoadingId(null);
+    }
+  };
+
+  // Abrir modal de validacion
+  const openValidateModal = (
+    id: number,
+    nombre: string,
+    monto: number
+  ) => {
+    setModalVal({ open: true, id, nombre, monto });
+  };
+
+  // Confirmar validación (llamado desde el modal)
+  const onConfirmValidate = async () => {
+    if (!token || !modalVal.id) return;
+    try {
+      await validateCobranza(token, {
+        courierId: modalVal.id,
+        desde,
+        hasta,
+        precio: precio > 0 ? precio : 1,
+      });
+      // Recargar datos
+      loadData();
+    } catch (e: any) {
+      alert(e?.message || "Error al validar cobranza");
     }
   };
 
@@ -502,7 +539,7 @@ export default function VentasPage() {
               </div>
 
               {/* Acciones + Icono (derecha) */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-row-reverse">
                 {/* Botón Editar/Guardar (reubicado) */}
                 <button
                   onClick={togglePrecioEdit}
@@ -562,10 +599,8 @@ export default function VentasPage() {
               <tr>
                 <th className="px-4 sm:px-5 py-3">Courier</th>
                 <th className="px-4 sm:px-5 py-3">RUC</th>
-                <th className="px-4 sm:px-5 py-3 text-center">
-                  Pedidos Entregados
-                </th>
-                <th className="px-4 sm:px-5 py-3 text-right">Monto a Pagar</th>
+                <th className="px-4 sm:px-5 py-3 text-center">Entregas</th>
+                <th className="px-4 sm:px-5 py-3 text-right">Monto</th>
                 <th className="px-4 sm:px-5 py-3 text-center">Acciones</th>
               </tr>
             </thead>
@@ -581,46 +616,78 @@ export default function VentasPage() {
                   </td>
                 </tr>
               ) : (
-                couriersList.map((item) => (
-                  <tr
-                    key={item.courier_id}
-                    className="hover:bg-gray10 transition"
-                  >
-                    <td className="px-4 sm:px-5 py-4 text-gray-900 font-medium">
-                      {item.courier_nombre}
-                    </td>
-                    <td className="px-4 sm:px-5 py-4 text-gray70">
-                      {item.ruc || "—"}
-                    </td>
-                    <td className="px-4 sm:px-5 py-4 text-center">
-                      <span className="bg-gray10 text-gray70 py-1 px-3 rounded-full text-xs font-semibold">
-                        {item.pedidos_entregados}
-                      </span>
-                    </td>
-                    <td className="px-4 sm:px-5 py-4 text-right text-gray-900 font-bold">
-                      S/. {item.monto_a_pagar.toFixed(2)}
-                    </td>
-                    <td className="px-4 sm:px-5 py-4 flex justify-center">
-                      <Buttonx
-                        label={pdfLoadingId === item.courier_id ? "..." : "PDF"}
-                        variant="outlined"
-                        icon={
-                          pdfLoadingId === item.courier_id
-                            ? undefined
-                            : "mdi:file-pdf-box"
-                        }
-                        onClick={() => handleDownloadPdf(item.courier_id)}
-                        disabled={pdfLoadingId === item.courier_id}
-                        className="px-3! py-1! text-xs"
-                      />
-                    </td>
-                  </tr>
-                ))
+                couriersList.map((item) => {
+                  const isValidado = ['Admin Validado', 'Validado'].includes(item.estado_cobranza);
+                  return (
+                    <tr
+                      key={item.courier_id}
+                      className="hover:bg-gray10 transition"
+                    >
+                      <td className="px-4 sm:px-5 py-4 text-gray-900 font-medium">
+                        {item.courier_nombre}
+                      </td>
+                      <td className="px-4 sm:px-5 py-4 text-gray70">
+                        {item.ruc || "—"}
+                      </td>
+
+                      <td className="px-4 sm:px-5 py-4 text-center">
+                        <span className="bg-gray10 text-gray70 py-1 px-3 rounded-full text-xs font-semibold">
+                          {item.pedidos_entregados}
+                        </span>
+                      </td>
+                      <td className="px-4 sm:px-5 py-4 text-right text-gray-900 font-bold">
+                        S/. {item.monto_a_pagar.toFixed(2)}
+                      </td>
+                      <td className="px-4 sm:px-5 py-4 flex justify-center gap-2 items-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {/* Validar / Validado */}
+                          {isValidado ? (
+                            <TableActionx
+                              variant="custom"
+                              icon="mdi:lock-check-outline"
+                              colorClassName="bg-red-100 text-red-700 ring-1 ring-red-300 hover:bg-red-200 hover:ring-red-400 focus-visible:ring-red-500 cursor-not-allowed"
+                              title="Validado (Bloqueado)"
+                              onClick={() => { }}
+                              size="sm"
+                              disabled
+                            />
+                          ) : (
+                            <TableActionx
+                              variant="custom"
+                              icon="mdi:check-decagram-outline"
+                              colorClassName="bg-green-100 text-green-700 ring-1 ring-green-300 hover:bg-green-200 hover:ring-green-400 focus-visible:ring-green-500"
+                              title="Validar Cobranza"
+                              onClick={() => openValidateModal(item.courier_id, item.courier_nombre, item.monto_a_pagar)}
+                              size="sm"
+                            />
+                          )}
+
+                          <TableActionx
+                            variant="export"
+                            title="Ver PDF"
+                            icon="carbon:generate-pdf"
+                            colorClassName="bg-primary text-white ring-1 ring-primary hover:bg-primary/80 hover:ring-primary focus-visible:ring-primary"
+                            onClick={() => handleDownloadPdf(item.courier_id)}
+                            disabled={pdfLoadingId === item.courier_id}
+                            size="sm"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
+      <CuadreSaldoValidate
+        open={modalVal.open}
+        onClose={() => setModalVal({ ...modalVal, open: false })}
+        onConfirm={onConfirmValidate}
+        courierNombre={modalVal.nombre}
+        monto={modalVal.monto}
+      />
     </section>
   );
 }

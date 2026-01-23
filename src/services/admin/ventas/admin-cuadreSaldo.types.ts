@@ -35,6 +35,8 @@ export interface CobranzaCourierItem {
     ruc: string;
     pedidos_entregados: number;
     monto_a_pagar: number;
+    estado_cobranza: string;
+    cobranza_id?: number;
 }
 
 export interface CobranzaCouriersResponse {
@@ -44,4 +46,21 @@ export interface CobranzaCouriersResponse {
         precio: number;
     };
     data: CobranzaCourierItem[];
+}
+
+export interface ValidateCobranzaInput {
+    courierId: number;
+    desde?: string;
+    hasta?: string;
+    precio?: number;
+}
+
+export interface CobranzaValidationResponse {
+    id: number;
+    courier_id: number;
+    fecha_inicio: string;
+    fecha_fin: string;
+    cantidad_pedidos: number;
+    monto_total: string;
+    validado: boolean;
 }

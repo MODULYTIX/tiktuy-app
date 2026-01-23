@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
 
-type Variant = "view" | "edit" | "custom";
+type Variant = "view" | "edit" | "custom" | "export";
 
 type Props = {
   /** view | edit | custom */
@@ -75,6 +75,12 @@ const variantStyle: Record<
       "hover:bg-orange-200 hover:ring-orange-400 " +
       "focus-visible:ring-orange-500",
   },
+  export: {
+    icon: "carbon:generate-pdf",
+    fallbackTitle: "Exportar",
+    cls:
+      "bg-primaryDark text-white ring-1 ring-primaryDark hover:bg-primaryDark/80 hover:ring-primaryDark focus-visible:ring-primaryDark",
+  },
 };
 
 export default function TableActionx({
@@ -95,7 +101,7 @@ export default function TableActionx({
 
   const resolvedColors = isCustom
     ? colorClassName ??
-      "bg-violet-50 text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100 hover:ring-violet-300 focus-visible:ring-violet-400"
+    "bg-violet-50 text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100 hover:ring-violet-300 focus-visible:ring-violet-400"
     : variantStyle[variant].cls;
 
   return (

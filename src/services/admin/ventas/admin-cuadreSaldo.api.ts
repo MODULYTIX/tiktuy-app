@@ -2,7 +2,9 @@ import type {
     AdminVentasFiltros,
     VentasDiariasResponse,
     CobranzaCouriersResponse,
-} from "./admin-ventas.types";
+    ValidateCobranzaInput,
+    CobranzaValidationResponse,
+} from "./admin-cuadreSaldo.types";
 
 const VITE_API_URL = import.meta.env.VITE_API_URL as string;
 
@@ -25,7 +27,7 @@ export async function getAdminVentasDashboard(
     params: AdminVentasFiltros
 ): Promise<VentasDiariasResponse> {
     const qs = buildQuery(params);
-    const res = await fetch(`${VITE_API_URL}/admin-ventas/dashboard?${qs}`, {
+    const res = await fetch(`${VITE_API_URL}/admin-cuadre-saldo/dashboard?${qs}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -50,7 +52,7 @@ export async function getAdminCobranzaCouriers(
     params: AdminVentasFiltros
 ): Promise<CobranzaCouriersResponse> {
     const qs = buildQuery(params);
-    const res = await fetch(`${VITE_API_URL}/admin-ventas/courier-cobranza?${qs}`, {
+    const res = await fetch(`${VITE_API_URL}/admin-cuadre-saldo/courier-cobranza?${qs}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -75,7 +77,7 @@ export async function downloadPdfCobranza(
     courierId: number,
     params: AdminVentasFiltros
 ): Promise<void> {
-    const res = await fetch(`${VITE_API_URL}/admin-ventas/pdf-cobranza`, {
+    const res = await fetch(`${VITE_API_URL}/admin-cuadre-saldo/pdf-cobranza`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -110,7 +112,7 @@ export async function downloadPdfCobranza(
 // Endpoint: /admin-ventas/couriers
 // ==========================================
 export async function getAdminAllCouriers(token: string): Promise<any[]> {
-    const res = await fetch(`${VITE_API_URL}/admin-ventas/couriers`, {
+    const res = await fetch(`${VITE_API_URL}/admin-cuadre-saldo/couriers`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -121,6 +123,35 @@ export async function getAdminAllCouriers(token: string): Promise<any[]> {
     if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || "Error al obtener lista de couriers");
+    }
+
+    return await res.json();
+}
+// ==========================================
+// 5. Validar Cobranza (Congelar monto)
+// Endpoint: /admin-ventas/validate
+// ==========================================
+export async function validateCobranza(
+    token: string,
+    params: ValidateCobranzaInput
+): Promise<CobranzaValidationResponse> {
+    const res = await fetch(`${VITE_API_URL}/admin-cuadre-saldo/validate`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            courierId: params.courierId,
+            desde: params.desde,
+            hasta: params.hasta,
+            precio: params.precio,
+        }),
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Error al validar cobranza");
     }
 
     return await res.json();

@@ -22,7 +22,7 @@ import { Selectx, SelectxDate } from "@/shared/common/Selectx";
 import { useAuth } from "@/auth/context";
 
 import { getAdminDashboardGraficos } from "@/services/admin/reportes/adminReportes.api";
-import { getAdminCobranzaCouriers } from "@/services/admin/ventas/admin-ventas.api";
+import { getAdminCobranzaCouriers } from "@/services/admin/ventas/admin-cuadreSaldo.api";
 
 import type {
   DashboardGraficosResponse,

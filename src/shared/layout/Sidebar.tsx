@@ -34,7 +34,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isLogoutModalOpen]);
 
-  // ✅ Ahora soporta end para resolver el "activo" en rutas tipo /admin vs /admin/
+  //  Ahora soporta end para resolver el "activo" en rutas tipo /admin vs /admin/
   const linksByRole: Record<
     string,
     Array<{
@@ -211,10 +211,10 @@ export default function Sidebar({ isOpen, toggle }: Props) {
   const basePath = isRepEcom
     ? "/ecommerce"
     : isRepCour
-    ? "/courier"
-    : roleName
-    ? `/${roleName}`
-    : "";
+      ? "/courier"
+      : roleName
+        ? `/${roleName}`
+        : "";
 
   let links: (typeof linksByRole)[keyof typeof linksByRole] = [];
 
