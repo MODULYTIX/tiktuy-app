@@ -188,7 +188,10 @@ export default function CuadreSaldoPage() {
   // Totales
   const totalPedidos = courierId ? (dashboardData?.totales.totalPedidos ?? 0) : 0;
   const totalCobrar = courierId ? (dashboardData?.totales.totalCobrar ?? 0) : 0;
-  const couriersList = cobranzaData?.data ?? [];
+  const couriersList = (cobranzaData?.data ?? []).filter((item) => {
+    if (!courierId) return true;
+    return item.courier_id === Number(courierId);
+  });
 
   return (
     <section className="mt-6 flex flex-col gap-6 min-w-0">
