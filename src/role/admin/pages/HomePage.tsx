@@ -36,7 +36,7 @@ export default function AdminHomePage() {
   const [rowsCourier, setRowsCourier] = useState<SolicitudCourier[]>([]);
   const [rowsCourierCompleto, setRowsCourierCompleto] = useState<
     SolicitudCourierCompleto[]
-  >([]); // ✅ ya existía
+  >([]); 
   const [rowsEcom, setRowsEcom] = useState<SolicitudEcommerce[]>([]);
 
   // UI

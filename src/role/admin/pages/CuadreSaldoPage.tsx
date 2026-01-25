@@ -128,8 +128,10 @@ export default function CuadreSaldoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, courierId, desde, hasta]);
 
-  const handleFiltrar = () => {
-    loadData();
+  const limpiarFiltros = () => {
+    setCourierId("");
+    setDesde(getFirstDayOfMonth());
+    setHasta(getLastDayOfMonth());
   };
 
   // Toggle Edición Precio
@@ -285,11 +287,10 @@ export default function CuadreSaldoPage() {
 
         <div className="w-full sm:w-auto shrink-0 ">
           <Buttonx
-            label={loading ? "Cargando..." : "Filtrar"}
-            onClick={handleFiltrar}
-            disabled={loading}
-            icon="mdi:filter"
-            variant="secondary"
+            label="Limpiar Filtros"
+            onClick={limpiarFiltros}
+            icon="mynaui:delete"
+            variant="outlined"
             className="w-full sm:w-auto"
           />
         </div>
