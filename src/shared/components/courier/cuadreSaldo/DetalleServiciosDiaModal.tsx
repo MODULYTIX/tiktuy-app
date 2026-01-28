@@ -76,21 +76,21 @@ const normMetodoPago = (v: unknown) =>
     .toUpperCase()
     .replace(/\s+/g, "_");
 
-/** ✅ Etiqueta visual (NO toca lógica) */
+/** Etiqueta visual (NO toca lógica) */
 const metodoPagoLabel = (metodoPago: unknown) => {
   const m = normMetodoPago(metodoPago);
 
-  // ✅ si no hay método => Pedido rechazado
+  // si no hay método => Pedido rechazado
   if (!m) return "Pedido rechazado";
 
-  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
-  if (m === "BILLETERA") return "Pago Digital al Courier";
-  if (m === "EFECTIVO") return "Efectivo";
+  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce / Pagado";
+  if (m === "BILLETERA") return "Pago Digital al Courier / Pagado";
+  if (m === "EFECTIVO") return "Efectivo / Pagado";
 
   return String(metodoPago ?? "Pedido rechazado");
 };
 
-/* ===================== ✅ FIX SERVICIOS (igual que CuadreSaldoTable) ===================== */
+/* ===================== FIX SERVICIOS (igual que CuadreSaldoTable) ===================== */
 
 const isMetodoPagoNullOEmpty = (p: any) => {
   const raw = p?.metodoPago ?? p?.metodo_pago ?? null;
@@ -109,7 +109,7 @@ const numOr0 = (v: any): number => {
 };
 
 /**
- * ✅ En detalle: mostrar servicios NORMAL siempre (aunque sea rechazado)
+ * En detalle: mostrar servicios NORMAL siempre (aunque sea rechazado)
  * - Motorizado: servicioEfectivo -> servicioSugerido -> 0
  * - Courier: servicioCourierEfectivo -> servicioCourier -> 0
  * - "editado" se marca si viene servicioRepartidor/servicioCourier (camel o snake) no-null
@@ -151,12 +151,12 @@ function calcServicioCour(p: any): { value: number; edited: boolean } {
   return { value: getCourValueNormal(p), edited: false };
 }
 
-/** ✅ Monto visual: si no hay método de pago => 0 */
+/** Monto visual: si no hay método de pago => 0 */
 const montoVisual = (p: any) => (isMetodoPagoNullOEmpty(p) ? 0 : numOr0(p?.monto ?? 0));
 
 /* ===================== evidencia helpers ===================== */
 
-// ✅ soporta url absoluta y relativa
+// soporta url absoluta y relativa
 const isProbablyImageUrl = (url: string) => {
   const clean = String(url || "").trim();
   if (!clean) return false;
@@ -443,7 +443,7 @@ export default function DetalleServiciosDiaModal({
                         Método de pago
                       </div>
                       <div className="mt-1 text-[13px] font-semibold text-gray90 truncate">
-                        {metodoPagoLabel((pedido as any)?.metodoPago)}/ Pagado
+                        {metodoPagoLabel((pedido as any)?.metodoPago)}
                       </div>
                     </div>
                   </div>

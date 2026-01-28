@@ -424,13 +424,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const [detallePedidoId, setDetallePedidoId] = useState<number | null>(null);
   const [detalleItems, setDetalleItems] = useState<DetalleServicioPedidoItem[]>([]);
 
-  // ✅ IMPORTANTE:
   // No mostrar datos hasta que el usuario seleccione un filtro "mínimo".
   // En tu caso: no consultar si NO hay motorizado seleccionado.
   const canFetch = Boolean(motorizadoId);
 
   const load = useCallback(async () => {
-    // ✅ Si aún no hay filtros, NO llames al API
+    // Si aún no hay filtros, NO llames al API
     if (!canFetch) {
       setRows([]);
       setTotal(0);
@@ -470,7 +469,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
   }, [motorizadoId, sedeId, desde, hasta, pageSize]);
 
   useEffect(() => {
-    // ✅ Solo cargar si ya hay filtro mínimo
+    // Solo cargar si ya hay filtro mínimo
     if (!canFetch) {
       setRows([]);
       setTotal(0);
@@ -539,7 +538,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     [selectedRows]
   );
 
-  // ✅ Total cobrado: SOLO EFECTIVO
+  // Total cobrado: SOLO EFECTIVO
   const totalCobrado = useMemo(
     () =>
       selectedRows.reduce((acc: number, r: any) => {
@@ -549,7 +548,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     [selectedRows]
   );
 
-  // ✅ Total courier: (total cobrado efectivo) - (servicio motorizado)
+  // Total courier: (total cobrado efectivo) - (servicio motorizado)
   const totalCourier = useMemo(() => {
     return totalCobrado - totalServicioMotorizado;
   }, [totalCobrado, totalServicioMotorizado]);
@@ -590,7 +589,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     });
   }, [exposeActions, abrirModalAbono]);
 
-  // ✅ Mantengo el contrato: totalServicio = total servicio motorizado
+  // Mantengo el contrato: totalServicio = total servicio motorizado
   useEffect(() => {
     if (!onSelectionChange) return;
     onSelectionChange({
@@ -714,7 +713,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                         <td className="px-4 py-3 text-gray70">{r.cliente}</td>
                         <td className="px-4 py-3 text-gray70">{r.distrito ?? "-"}</td>
 
-                        {/* ✅ método de pago amigable */}
+                        {/* método de pago amigable */}
                         <td className="px-4 py-3 text-gray70">
                           {metodoPagoLabel(r.metodoPago)}
                         </td>
@@ -723,7 +722,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           {formatPEN(isRechazadoByMetodoPago(r.metodoPago) ? 0 : Number(r.monto ?? 0))}
                         </td>
 
-                        {/* ✅ Servicio motorizado (rechazado => 0 salvo editado) */}
+                        {/* Servicio motorizado (rechazado => 0 salvo editado) */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray80">
@@ -737,7 +736,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           </div>
                         </td>
 
-                        {/* ✅ Servicio courier (rechazado => 0 salvo editado) */}
+                        {/* Servicio courier (rechazado => 0 salvo editado) */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray80">
