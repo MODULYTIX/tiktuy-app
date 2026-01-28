@@ -21,7 +21,7 @@ export async function fetchNotificaciones(
 
 export async function markNotificacionLeida(id: number, token: string): Promise<void> {
   const r = await fetch(`${API}/notificaciones/${id}/read`, {
-    method: 'PATCH', // PATCH según tu backend
+    method: 'PATCH', 
     headers: authHeaders(token),
   });
   if (!r.ok) throw new Error('Error al marcar notificación');
@@ -29,7 +29,7 @@ export async function markNotificacionLeida(id: number, token: string): Promise<
 
 export async function markTodasLeidas(token: string): Promise<void> {
   const r = await fetch(`${API}/notificaciones/read-all`, {
-    method: 'PATCH', // PATCH según tu backend
+    method: 'PATCH',
     headers: authHeaders(token),
   });
   if (!r.ok) throw new Error('Error al marcar todas');

@@ -14,7 +14,6 @@ function joinUrl(base: string, path: string) {
 }
 
 const API_BASE = getApiBase();
-// 👇 Esta ES tu ruta real (sin /api y en singular)
 const PATH = joinUrl(API_BASE, '/motorizado/me/disponibilidad');
 
 type FetchOpts = {

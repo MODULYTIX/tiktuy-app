@@ -70,7 +70,7 @@ export async function fetchProductos(
   });
 
   if (!res.ok) {
-    console.error('[fetchProductos] ERROR RESPONSE →', res.statusText);
+    console.error(' ERROR RESPONSE', res.statusText);
     throw new Error('Error al obtener productos');
   }
 

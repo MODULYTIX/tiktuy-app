@@ -22,7 +22,7 @@ function withQuery(
   basePath: string,
   params: Record<string, string | number | boolean | undefined | null>
 ) {
-  // ✅ soporta basePath con o sin "/"
+  // soporta basePath con o sin "/"
   const path = basePath.startsWith("/") ? basePath : `/${basePath}`;
   const url = new URL(path, BASE_URL);
 
@@ -75,7 +75,7 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
   }
 }
 
-/* ================== ✅ Normalizers (NO cambian lógica, solo compat de campos) ================== */
+/* ================== Normalizers (NO cambian lógica, solo compat de campos) ================== */
 
 /**
  * Normaliza un item de pedido para soportar:
@@ -134,7 +134,7 @@ export async function listPedidos(token: string, params: ListPedidosParams): Pro
 
   const url = withQuery("/courier/cuadre-saldo/pedidos", {
     motorizadoId: params.motorizadoId,
-    sedeId: params.sedeId, // ✅
+    sedeId: params.sedeId, 
     desde: params.desde,
     hasta: params.hasta,
     page: params.page ?? 1,
@@ -222,7 +222,7 @@ export async function abonarPedidos(
 
 /**
  * GET /courier/cuadre-saldo/motorizados
- * ✅ IMPORTANTE: devolvemos SIEMPRE un ARRAY para que `motorizados.map(...)` no reviente.
+ * IMPORTANTE: devolvemos SIEMPRE un ARRAY para que `motorizados.map(...)` no reviente.
  */
 export async function listMotorizados(token: string): Promise<ListMotorizadosResp> {
   if (!token) throw new Error("Token vacío: no se envió Authorization.");
@@ -250,7 +250,6 @@ export async function listSedesCuadre(token: string): Promise<ListSedesCuadreRes
 }
 
 /**
- * ✅ NUEVO
  * GET /courier/cuadre-saldo/detalle-servicios-dia?fecha=YYYY-MM-DD&sedeId?&motorizadoId?
  */
 export async function getDetalleServiciosDia(

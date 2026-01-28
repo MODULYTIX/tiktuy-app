@@ -115,11 +115,6 @@ export async function crearZonaTarifaria(
  * Crea una zona tarifaria **para el usuario autenticado**.
  *
  * Endpoint: POST /zona-tarifaria/mias
- *
- * ✅ IMPORTANTE:
- *  - El payload **NO** incluye `sede_id`.
- *  - El backend resuelve (courier_id, sede_id) a partir del usuario autenticado.
- *  - El campo de ubicación que envías es `ciudad` (en BD se guarda en `distrito`).
  */
 export async function crearZonaTarifariaParaMiUsuario(
   payload: CrearZonaTarifariaParaMiUsuarioPayload,

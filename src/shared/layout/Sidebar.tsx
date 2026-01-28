@@ -355,7 +355,7 @@ export default function Sidebar({ isOpen, toggle }: Props) {
                 className={[
                   "transition-transform duration-500",
                   ease,
-                  isOpen ? "rotate-180" : "rotate-0",
+                  isOpen ? "rotate-0" : "rotate-180",
                 ].join(" ")}
               >
                 <Icon icon="octicon:sidebar-expand-24" width="22" height="22" />

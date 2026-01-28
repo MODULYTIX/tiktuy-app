@@ -121,9 +121,9 @@ export async function getResumen(
 
 /**
  * GET /ecommerce/cuadre-saldo/courier/:courierId/dia/:fecha/pedidos?soloPorValidar=true|false
- * ✅ Ruta alineada con tu controller actual
+ * Ruta alineada con tu controller actual
  *
- * ✅ Incluye:
+ * Incluye:
  * - evidenciaRepartidor (pago_evidencia_url)
  * - motivoRepartidor (servicio_repartidor_motivo)
  * - observadoEstado (Pedido.observacion_estado) para rechazados
@@ -155,11 +155,11 @@ export async function getPedidosDia(
       // voucher del abono (abono_evidencia_url) si lo mandas por pedido
       evidencia?: string | null;
 
-      // ✅ Repartidor
+      // Repartidor
       evidenciaRepartidor?: string | null; // pago_evidencia_url
       motivoRepartidor?: string | null; // servicio_repartidor_motivo
 
-      // ✅ Observación de estado (rechazado)
+      // Observación de estado (rechazado)
       // Recomendado desde BE:
       observadoEstado?: string | null; // camelCase
       // Compat si tu BE lo mandara en snake_case (opcional):
@@ -170,7 +170,7 @@ export async function getPedidosDia(
   return raw.map((r: any) => {
     const metodoPago: string | null = r.metodoPago ?? r.metodo_pago ?? null;
 
-    // ✅ toma observado: camelCase primero; si no, snake_case compat
+    // toma observado: camelCase primero; si no, snake_case compat
     const observadoEstado: string | null =
       (r.observadoEstado ?? r.observacion_estado ?? null) as any;
 
@@ -195,8 +195,6 @@ export async function getPedidosDia(
 
       evidenciaRepartidor: r.evidenciaRepartidor ?? null,
       motivoRepartidor: r.motivoRepartidor ?? null,
-
-      // ✅ NUEVO
       observadoEstado,
     } as any;
   });

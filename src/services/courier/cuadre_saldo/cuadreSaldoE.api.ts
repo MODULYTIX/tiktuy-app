@@ -104,7 +104,6 @@ export async function listCourierSedesCuadre(token: string): Promise<SedesCuadre
 }
 
 /**
- * ✅ NUEVA LÓGICA (Ecommerce)
  * GET /courier/cuadre-saldo/ecommerce/resumen
  *
  * Backend (actualizado) debería devolver:
@@ -130,7 +129,7 @@ export async function getEcommerceResumen(
       fecha: string | Date;
       totalPedidos: number;
       totalCobrado: number;
-      totalServicioCourier: number; // ✅ SOLO courier
+      totalServicioCourier: number; 
       totalNeto: number;
       abonoEstado: AbonoEstado | null;
     }>
@@ -162,10 +161,8 @@ export async function getEcommerceResumen(
 }
 
 /**
- * ✅ Modal del día (Ecommerce)
  * GET /courier/cuadre-saldo/ecommerce/:ecommerceId/dia/:fecha/pedidos
  *
- * ✅ Ajuste pedido:
  * - mostrar observacionEstado SOLO si estado_nombre/estadoNombre == "Pedido rechazado"
  * - soporta snake_case y camelCase del backend sin romper
  */
@@ -192,7 +189,7 @@ export async function getEcommercePedidosDia(
       motivo?: string | null;
       pagoEvidenciaUrl?: string | null;
 
-      // ✅ NUEVO (compat): estado + observación (pueden venir en snake o camel)
+      // estado + observación (pueden venir en snake o camel)
       estadoNombre?: string | null;
       estado_nombre?: string | null;
 
@@ -210,7 +207,7 @@ export async function getEcommercePedidosDia(
     const estadoNombre = (r.estadoNombre ?? r.estado_nombre ?? null) as string | null;
     const observacionRaw = (r.observacionEstado ?? r.observacion_estado ?? null) as string | null;
 
-    // ✅ SOLO si es rechazado, exponemos observacionEstado
+    // SOLO si es rechazado, exponemos observacionEstado
     const observacionEstado = isRejectedEstadoNombre(estadoNombre) ? observacionRaw : null;
 
     return {
@@ -231,7 +228,7 @@ export async function getEcommercePedidosDia(
       // evidencia del repartidor
       pagoEvidenciaUrl: r.pagoEvidenciaUrl ?? null,
 
-      // ✅ observación del estado (solo cuando es rechazado)
+      // observación del estado (solo cuando es rechazado)
       observacionEstado,
 
       abonado: Boolean(r.abonado),
@@ -240,7 +237,7 @@ export async function getEcommercePedidosDia(
 }
 
 /**
- * ✅ Abono Ecommerce
+ * Abono Ecommerce
  * PUT /courier/cuadre-saldo/ecommerce/abonar
  */
 export async function abonarEcommerceFechas(
@@ -250,7 +247,7 @@ export async function abonarEcommerceFechas(
 ): Promise<AbonarEcommerceFechasResp> {
   const url = `${BASE_URL}/courier/cuadre-saldo/ecommerce/abonar`;
 
-  // ✅ FormData (con voucher)
+  // FormData (con voucher)
   if (isFormData || payload instanceof FormData) {
     const res = await fetch(url, {
       method: "PUT",
@@ -263,7 +260,7 @@ export async function abonarEcommerceFechas(
 
     const data = text ? (JSON.parse(text) as AbonarEcommerceFechasResp) : ({} as any);
 
-    // ✅ fallback por si el BE aún no manda totalAbonoSeleccionado
+    // fallback por si el BE aún no manda totalAbonoSeleccionado
     if ((data as any).totalAbonoSeleccionado == null) {
       const cob = Number((data as any).totalCobradoSeleccionado ?? 0);
       const serv = Number((data as any).totalServicioCourierSeleccionado ?? 0);
@@ -273,7 +270,7 @@ export async function abonarEcommerceFechas(
     return data;
   }
 
-  // ✅ JSON estándar
+  // JSON estándar
   const jsonPayload = payload as AbonarEcommerceFechasPayload;
 
   const body: AbonarEcommerceFechasPayload = {
@@ -293,7 +290,7 @@ export async function abonarEcommerceFechas(
     body: JSON.stringify(body),
   });
 
-  // ✅ fallback por si el BE aún no manda totalAbonoSeleccionado
+  // fallback por si el BE aún no manda totalAbonoSeleccionado
   if ((data as any).totalAbonoSeleccionado == null) {
     const cob = Number((data as any).totalCobradoSeleccionado ?? 0);
     const serv = Number((data as any).totalServicioCourierSeleccionado ?? 0);

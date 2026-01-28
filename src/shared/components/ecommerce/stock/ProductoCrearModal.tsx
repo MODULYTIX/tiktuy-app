@@ -90,16 +90,15 @@ type CreateProductoPayload =
     categoria_id?: undefined;
   } & BasePayload);
 
-function generarCodigoConFecha(): string {
+const MONTH_ES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function generateCodigoIdentificacion(): string {
+  // Usamos hora de Perú para la generación del código
   const now = new Date();
-  const hora = String(now.getHours()).padStart(2, "0");
-  const minutos = String(now.getMinutes()).padStart(2, "0");
-  const year = String(now.getFullYear()).slice(2);
-  const meses = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
-  const mesAbrev = meses[now.getMonth()];
-  const charset = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ0123456789";
-  const aleatorio = charset[Math.floor(Math.random() * charset.length)];
-  return `${hora}${mesAbrev}${year}${aleatorio}${minutos}`;
+  const d = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+
+  return `${String(d.getDate()).padStart(2, '0')}${MONTH_ES[d.getMonth()]}${String(d.getFullYear()).slice(-2)}${LETTERS[Math.floor(Math.random() * 26)]}${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 type FormState = {
@@ -120,7 +119,7 @@ type FormState = {
 };
 
 const getInitialForm = (almacenamientoId: number): FormState => ({
-  codigo_identificacion: generarCodigoConFecha(),
+  codigo_identificacion: generateCodigoIdentificacion(),
   nombre_producto: "",
   descripcion: "",
   categoriaInput: "",

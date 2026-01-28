@@ -30,7 +30,7 @@ function isYMD(s: string) {
 }
 
 /**
- * ✅ Normaliza fechas para QUERY / fecha_nueva (REPROGRAMADO)
+ * Normaliza fechas para QUERY / fecha_nueva (REPROGRAMADO)
  * - Acepta string ISO o "YYYY-MM-DD" o Date
  * - Devuelve SIEMPRE "YYYY-MM-DD" en TZ Perú (evita corrimientos)
  */
@@ -50,7 +50,7 @@ function toDateOnly(val?: string | Date): string | undefined {
   const s = String(val).trim();
   if (!s) return undefined;
 
-  // si ya es YYYY-MM-DD
+  //  YYYY-MM-DD
   if (isYMD(s)) return s;
 
   // si es ISO u otro formato que empiece con fecha
@@ -70,7 +70,7 @@ function toDateOnly(val?: string | Date): string | undefined {
 }
 
 /**
- * ✅ Para body: fecha_entrega_real (ENTREGADO) puede ser ISO (datetime).
+ * Para body: fecha_entrega_real (ENTREGADO) puede ser ISO (datetime).
  * Aquí mantenemos ISO si es Date o string.
  */
 function toIsoDateTime(val?: string | Date): string | undefined {
@@ -90,7 +90,7 @@ function toQueryHoy(q: ListPedidosHoyQuery = {}): string {
   if (q.page !== undefined) sp.set("page", String(q.page));
   if (q.perPage !== undefined) sp.set("perPage", String(q.perPage));
 
-  // ✅ manda YYYY-MM-DD (TZ Perú)
+  // manda YYYY-MM-DD (TZ Perú)
   const desde = toDateOnly(q.desde);
   const hasta = toDateOnly(q.hasta);
   if (desde) sp.set("desde", desde);
@@ -108,7 +108,7 @@ function toQueryEstado(q: ListByEstadoQuery = {}): string {
   if (q.page !== undefined) sp.set("page", String(q.page));
   if (q.perPage !== undefined) sp.set("perPage", String(q.perPage));
 
-  // ✅ manda YYYY-MM-DD (TZ Perú)
+  // manda YYYY-MM-DD (TZ Perú)
   const desde = toDateOnly(q.desde);
   const hasta = toDateOnly(q.hasta);
   if (desde) sp.set("desde", desde);
@@ -205,7 +205,7 @@ export async function fetchPedidosTerminados(
 
 /* --------------------------
    PATCH: Estado inicial
-   ✅ clave: fecha_nueva debe enviarse como YYYY-MM-DD
+   clave: fecha_nueva debe enviarse como YYYY-MM-DD
 ---------------------------*/
 export async function patchEstadoInicial(
   token: string,
@@ -266,7 +266,6 @@ export async function patchResultado(
       const fer = toIsoDateTime(body.fecha_entrega_real);
       if (fer) fd.set("fecha_entrega_real", fer);
 
-      // ✅ IMPORTANTE: backend usa upload.single('evidencia')
       fd.set("evidencia", body.evidenciaFile);
 
       const res = await fetch(`${BASE_URL}/${id}/resultado`, {

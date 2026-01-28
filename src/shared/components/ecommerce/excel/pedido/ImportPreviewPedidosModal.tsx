@@ -704,12 +704,12 @@ export default function ImportPreviewPedidosModal({
             <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
               <colgroup>
                 <col className="w-9" />
+                <col className="w-[16%]" />
                 <col className="w-[14%]" />
                 <col className="w-[10%]" />
                 <col className="w-[10%]" />
                 <col className="w-[18%]" />
                 <col className="w-[14%]" />
-                <col className="w-[16%]" />
                 <col className="w-[16%]" />
                 <col className="w-[100px]" />
                 <col className="w-[120px]" />
@@ -719,6 +719,9 @@ export default function ImportPreviewPedidosModal({
               <thead>
                 <tr className="sticky top-0 z-10 bg-[#F3F6FA] text-xs font-semibold text-slate-600">
                   <th className="border-b border-gray-200 px-2 py-3" />
+                  <th className="border-b border-gray-200 px-3 py-3 text-center">
+                    Sede
+                  </th>
                   <th className="border-b border-gray-200 px-3 py-3 text-center">
                     Nombre
                   </th>
@@ -733,9 +736,6 @@ export default function ImportPreviewPedidosModal({
                   </th>
                   <th className="border-b border-gray-200 px-3 py-3 text-center">
                     Referencia
-                  </th>
-                  <th className="border-b border-gray-200 px-3 py-3 text-center">
-                    Sede
                   </th>
                   <th className="border-b border-gray-200 px-3 py-3 text-center">
                     Producto
@@ -780,6 +780,28 @@ export default function ImportPreviewPedidosModal({
                             onChange={() => toggleRow(gi)}
                             className="h-4 w-4 rounded accent-primary"
                           />
+                        </td>
+
+                        {/* Sede */}
+                        <td
+                          className={[
+                            "border-b border-gray-200 px-3 py-2 align-middle",
+                            sedeClass,
+                          ].join(" ")}
+                        >
+                          <Autocomplete
+                            value={g.courier || ""}
+                            onChange={(v: string) => handleSedeChange(gi, v)}
+                            options={sedeOptions}
+                            placeholder="Sede"
+                            invalid={isInvalidSedeRow}
+                            className="w-full"
+                          />
+                          {isInvalidSedeRow && g.courier ? (
+                            <div className="text-[11px] text-red-600 mt-1">
+                              La sede no coincide con las sedes asociadas al ecommerce.
+                            </div>
+                          ) : null}
                         </td>
 
                         <td className="border-b border-gray-200 px-3 py-2 align-middle">
@@ -843,27 +865,7 @@ export default function ImportPreviewPedidosModal({
                           />
                         </td>
 
-                        {/* Sede */}
-                        <td
-                          className={[
-                            "border-b border-gray-200 px-3 py-2 align-middle",
-                            sedeClass,
-                          ].join(" ")}
-                        >
-                          <Autocomplete
-                            value={g.courier || ""}
-                            onChange={(v: string) => handleSedeChange(gi, v)}
-                            options={sedeOptions}
-                            placeholder="Sede"
-                            invalid={isInvalidSedeRow}
-                            className="w-full"
-                          />
-                          {isInvalidSedeRow && g.courier ? (
-                            <div className="text-[11px] text-red-600 mt-1">
-                              La sede no coincide con las sedes asociadas al ecommerce.
-                            </div>
-                          ) : null}
-                        </td>
+
 
                         {/* PRODUCTOS */}
                         <td className="border-b border-gray-200 px-3 py-2 align-middle">

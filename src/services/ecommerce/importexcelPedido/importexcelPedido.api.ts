@@ -91,7 +91,7 @@ export async function importVentasDesdeArchivo(args: {
     const errJson = await res.json().catch(async () => ({
       message: await res.text().catch(() => 'Error desconocido'),
     }));
-    console.error('❌ Error al importar desde archivo — backend respondió:', errJson);
+    console.error('Error al importar desde archivo', errJson);
     throw new Error(errJson?.message || 'Error al importar desde archivo');
   }
 

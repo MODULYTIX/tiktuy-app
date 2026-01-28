@@ -282,7 +282,7 @@ export async function assignPedidos(
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({ message: "Sin cuerpo de error" }));
-    console.error("❌ Error al asignar pedidos - backend:", errBody);
+    console.error("Error al asignar pedidos ", errBody);
   }
 
   return handle<AssignPedidosResponse>(res, "Error al asignar pedidos");
@@ -318,7 +318,7 @@ export async function reassignPedido(
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({ message: "Sin cuerpo de error" }));
-    console.error("❌ Error al reasignar pedido - backend:", errBody);
+    console.error("Error al reasignar pedido - backend:", errBody);
   }
 
   return handle<ReassignPedidoApiResponse>(res, "Error al reasignar pedido");
@@ -354,7 +354,7 @@ export async function reprogramarPedido(
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({ message: "Sin cuerpo de error" }));
-    console.error("❌ Error al reprogramar pedido - backend:", errBody);
+    console.error("Error al reprogramar pedido", errBody);
   }
 
   return handle<ReprogramarPedidoResponse>(res, "Error al reprogramar pedido");

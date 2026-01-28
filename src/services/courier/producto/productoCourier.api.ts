@@ -2,8 +2,6 @@
 import type { CreateCourierProductoInput, Producto } from "./productoCourier.type";
 
 // Base URL del backend.
-// Recomiendo que VITE_API_URL ya venga con el prefijo correcto, ej: "http://localhost:4000"
-// o "http://localhost:4000/api". Aquí solo limpiamos barras finales.
 const BASE_URL =
   (import.meta as any).env?.VITE_API_URL?.replace(/\/+$/, "") ||
   "http://localhost:4000";
