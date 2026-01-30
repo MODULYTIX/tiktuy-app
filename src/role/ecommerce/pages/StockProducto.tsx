@@ -35,6 +35,7 @@ export default function StockPage() {
   // ---------------- PAGINACIÓN ----------------
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   // ---------------- MODALES ----------------
   const [openCrear, setOpenCrear] = useState(false);
@@ -95,6 +96,7 @@ export default function StockPage() {
 
         setProductosVisibles(resp?.data ?? []);
         setTotalPages(resp?.pagination?.totalPages ?? 1);
+        setTotalItems(resp?.pagination?.total ?? 0);
         return;
       }
 
@@ -112,6 +114,7 @@ export default function StockPage() {
 
       setProductosVisibles(resp?.data ?? []);
       setTotalPages(resp?.pagination?.totalPages ?? 1);
+      setTotalItems(resp?.pagination?.total ?? 0);
     } catch (err) {
       console.error("Error cargando productos:", err);
     } finally {
@@ -235,6 +238,7 @@ export default function StockPage() {
         soloLectura={Boolean(filters.movimientos_sedes)}
         currentPage={page}
         totalPages={totalPages}
+        total={totalItems}
         onPageChange={setPage}
         onVer={(p) => {
           setProductoSel(p);

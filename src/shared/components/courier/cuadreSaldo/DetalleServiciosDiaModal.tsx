@@ -90,7 +90,7 @@ const metodoPagoLabel = (metodoPago: unknown) => {
   return String(metodoPago ?? "Pedido rechazado");
 };
 
-/* ===================== FIX SERVICIOS (igual que CuadreSaldoTable) ===================== */
+/* ===================== FIX SERVICIOS  ===================== */
 
 const isMetodoPagoNullOEmpty = (p: any) => {
   const raw = p?.metodoPago ?? p?.metodo_pago ?? null;

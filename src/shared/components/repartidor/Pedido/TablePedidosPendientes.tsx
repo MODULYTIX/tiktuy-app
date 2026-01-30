@@ -7,7 +7,7 @@ import type {
 } from "@/services/repartidor/pedidos/pedidos.types";
 import { fetchPedidosPendientes } from "@/services/repartidor/pedidos/pedidos.api";
 
-/** ✅ Normaliza query para que nunca pase Date al backend */
+/** Normaliza query para que nunca pase Date al backend */
 function normalizeEstadoQuery(q: ListByEstadoQuery): ListByEstadoQuery {
   const toDateOnly = (v?: string | Date) => {
     if (!v) return undefined;

@@ -120,6 +120,7 @@ export default function ImportProductosPreviewModal({
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
   const categoriaNames = useMemo(
     () =>
@@ -299,16 +300,37 @@ export default function ImportProductosPreviewModal({
       return;
     }
 
+    if (groupsToSend.length === 0) return;
+
     try {
       setSubmitting(true);
-      const payload: ImportProductosPayload = { groups: groupsToSend };
-      await importProductosDesdePreview(payload, token);
+      setError(null);
+      setProgress(0);
+
+      // Calculamos un tamaño de lote dinámico para tener aprox 10 actualizaciones de barra
+      // Si son pocos (<10), será de 1 en 1. Si son 100, de 10 en 10.
+      const total = groupsToSend.length;
+      const chunksTarget = 10;
+      const BATCH_SIZE = Math.max(1, Math.ceil(total / chunksTarget));
+
+      let processed = 0;
+
+      for (let i = 0; i < total; i += BATCH_SIZE) {
+        const batch = groupsToSend.slice(i, i + BATCH_SIZE);
+        const payload: ImportProductosPayload = { groups: batch };
+        await importProductosDesdePreview(payload, token);
+
+        processed += batch.length;
+        setProgress(Math.round((processed / total) * 100));
+      }
+
       onImported();
       onClose();
     } catch (e: any) {
       setError(e?.message || "Error al importar productos");
     } finally {
       setSubmitting(false);
+      setProgress(0);
     }
   };
 
@@ -771,6 +793,16 @@ export default function ImportProductosPreviewModal({
 
           {/* Footer */}
           <div className="mt-4 flex items-center justify-end gap-2">
+            {submitting && (
+              <div className="flex-1 mr-4">
+                <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300 ease-out"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <Buttonx
               variant="outlined"
               label="Cancelar"

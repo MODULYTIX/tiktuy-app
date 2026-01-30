@@ -143,12 +143,13 @@ export default function BaseTablaPedidos({
     setHasta("");
   }, [view]);
 
-  // si cambias filtros, vuelve a page 1
+  // si cambias filtros, vuelve a page 1 (refreshKey NO debe resetear page)
   useEffect(() => {
     if (page !== 1) {
       setPage(1);
     }
-  }, [filtroDistrito, filtroCantidad, searchProducto, desde, hasta, refreshKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroDistrito, filtroCantidad, searchProducto, desde, hasta]);
 
   const qHoy: ListPedidosHoyQuery = useMemo(
     () => ({
@@ -164,7 +165,7 @@ export default function BaseTablaPedidos({
     () => ({
       page,
       perPage,
-      // ⛔ NO mandar fechas al backend en TERMINADOS
+      //  NO mandar fechas al backend en TERMINADOS
       ...(view !== "terminados" && desde ? { desde } : {}),
       ...(view !== "terminados" && hasta ? { hasta } : {}),
       sortBy: "programada",

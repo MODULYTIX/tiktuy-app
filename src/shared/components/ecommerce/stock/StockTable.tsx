@@ -17,6 +17,7 @@ interface Props {
   filtrarInactivos?: boolean;
   soloLectura?: boolean;
   loading?: boolean;
+  total?: number;
 }
 
 const PAGE_SIZE = 5;
@@ -70,6 +71,7 @@ export default function StockTable({
   filtrarInactivos = true,
   soloLectura = false,
   loading = false,
+  total = 0,
 }: Props) {
   /* ---------------------------------------------------
      FILTRADO (NO PAGINA)
@@ -287,44 +289,51 @@ export default function StockTable({
       </div>
 
       {/* PAGINADOR (IGUAL A PEDIDOS) */}
-      <div className="flex items-center justify-end gap-2 border-b-[4px] border-gray90 py-3 px-3 mt-2">
-        <button
-          onClick={() => goToPage(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50"
-        >
-          &lt;
-        </button>
+      <div className="flex items-center justify-between border-b-[4px] border-gray90 py-3 px-3 mt-2">
+        <div className="text-gray-400 text-sm font-medium">
+          Total: {total}
+        </div>
 
-        {pagerItems.map((p, i) =>
-          typeof p === "string" ? (
-            <span key={`dots-${i}`} className="px-2 text-gray70">
-              {p}
-            </span>
-          ) : (
-            <button
-              key={`page-${p}-${i}`}
-              onClick={() => goToPage(p)}
-              className={[
-                "w-8 h-8 flex items-center justify-center rounded",
-                p === currentPage
-                  ? "bg-gray90 text-white"
-                  : "bg-gray10 text-gray70 hover:bg-gray20",
-              ].join(" ")}
-            >
-              {p}
-            </button>
-          )
-        )}
+        <div className="flex items-center gap-2">
+
+          <button
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50"
+          >
+            &lt;
+          </button>
+
+          {pagerItems.map((p, i) =>
+            typeof p === "string" ? (
+              <span key={`dots-${i}`} className="px-2 text-gray70">
+                {p}
+              </span>
+            ) : (
+              <button
+                key={`page-${p}-${i}`}
+                onClick={() => goToPage(p)}
+                className={[
+                  "w-8 h-8 flex items-center justify-center rounded",
+                  p === currentPage
+                    ? "bg-gray90 text-white"
+                    : "bg-gray10 text-gray70 hover:bg-gray20",
+                ].join(" ")}
+              >
+                {p}
+              </button>
+            )
+          )}
 
 
-        <button
-          onClick={() => goToPage(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50"
-        >
-          &gt;
-        </button>
+          <button
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50"
+          >
+            &gt;
+          </button>
+        </div>
       </div>
     </div>
   );

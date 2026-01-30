@@ -43,8 +43,13 @@ export default function PedidosTableGenerado({
      FETCH PAGINADO DEL BACKEND
      AHORA TRAE ESTADO "Asignado"
      ========================================================== */
+
+  // Cuando cambian los filtros, volvemos a la pág 1
   useEffect(() => {
     setPage(1);
+  }, [filtros]);
+
+  useEffect(() => {
     if (!token) return;
 
     setLoading(true);
