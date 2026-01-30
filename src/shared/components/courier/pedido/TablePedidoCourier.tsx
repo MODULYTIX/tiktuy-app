@@ -36,6 +36,7 @@ interface Props {
   onVerDetalle?: (id: number) => void;
   onAsignar?: (ids: number[]) => void;
   onReasignar?: (pedido: PedidoListItem) => void;
+  reloadTrigger?: number;
 }
 
 /* ---- utilidades de formato ---- */
@@ -82,6 +83,7 @@ export default function TablePedidoCourier({
   token,
   onAsignar,
   onReasignar,
+  reloadTrigger,
 }: Props) {
   /* paginación (server-side) */
   const [page, setPage] = useState(1);
@@ -139,6 +141,11 @@ export default function TablePedidoCourier({
   useEffect(() => {
     setPage(1);
   }, [desde, hasta]);
+
+  // Limpiar selección cuando se refresca la data (externa o internamente)
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [reloadTrigger, reloadTick]);
 
   // querys para backend
   const qHoy: ListPedidosHoyQuery = useMemo(
@@ -200,7 +207,7 @@ export default function TablePedidoCourier({
 
     load();
     return () => ac.abort();
-  }, [token, view, qHoy, qEstado, reloadTick]);
+  }, [token, view, qHoy, qEstado, reloadTick, reloadTrigger]);
 
   const itemsBase = data?.items ?? [];
 

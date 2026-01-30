@@ -97,7 +97,7 @@ export default function PedidosPage() {
       {/* Tabla (se vuelve a montar cuando cambia reloadKey) */}
       <div className="my-2">
         <TablePedidoCourier
-          key={reloadKey}
+          reloadTrigger={reloadKey}
           view={vista}
           token={token ?? ""}
           onAsignar={handleAbrirAsignar}
