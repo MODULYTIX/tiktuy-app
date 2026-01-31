@@ -74,7 +74,7 @@ export default function MovimientoRegistroFilters({
     }
   };
 
-  // ✅ comportamiento tipo tu modelo base: radio toggleable (si ya está marcado, lo desmarca)
+  //  comportamiento tipo tu modelo base: radio toggleable (si ya está marcado, lo desmarca)
   const togglePrecioOrden = (which: "precio_bajo" | "precio_alto") => {
     setFilters((prev) => {
       const isOn = prev[which];
@@ -170,7 +170,7 @@ export default function MovimientoRegistroFilters({
           </div>
 
           <div className="h-10 flex items-center justify-center lg:justify-start gap-4">
-            {/* ✅ Stock bajo (checkbox) */}
+            {/* | Stock bajo (checkbox) */}
             <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
                 type="checkbox"
@@ -182,7 +182,7 @@ export default function MovimientoRegistroFilters({
               <span>Stock bajo</span>
             </label>
 
-            {/* ✅ Precios bajos (radio) */}
+            {/* Precios bajos (radio) */}
             <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
                 type="radio"
@@ -194,7 +194,7 @@ export default function MovimientoRegistroFilters({
               <span>Precios bajos</span>
             </label>
 
-            {/* ✅ Precios altos (radio) */}
+            {/* Precios altos (radio) */}
             <label className="inline-flex items-center gap-2 text-gray-600 whitespace-nowrap">
               <input
                 type="radio"
@@ -209,7 +209,7 @@ export default function MovimientoRegistroFilters({
         </div>
 
         {/* Buscador + acciones */}
-        <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mt-2">
+        <div className="col-span-full flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mt-0">
           {/* Buscador */}
           <SearchInputx
             value={filters.search}
