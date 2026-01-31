@@ -346,13 +346,13 @@ export default function ImportProductosPreviewModal({
   return (
     <CenteredModal
       title=""
-      onClose={onClose}
+      onClose={submitting ? () => { } : onClose}
       widthClass="max-w-[1360px] w-[95vw]"
       hideCloseButton
       hideHeader
       bodyClassName="p-4 sm:p-5 md:p-6 bg-white max-h-[80vh] overflow-auto"
     >
-      {/* ✅ Esto “tapa” el header default del CenteredModal (X solita + línea) */}
+      {/* Esto “tapa” el header default del CenteredModal (X solita + línea) */}
       <div className="relative -mt-14 sm:-mt-16">
         {/* Barra de cobertura (blanca) */}
         <div className="h-14 sm:h-16 bg-white" />
@@ -398,13 +398,15 @@ export default function ImportProductosPreviewModal({
                     </span>
                   </span>
 
-                  {/* ✅ Nuestra X integrada (sin línea rara arriba) */}
+                  {/* Nuestra X integrada (sin línea rara arriba) */}
                   <button
                     type="button"
-                    onClick={onClose}
-                    className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-50 text-slate-700"
+                    onClick={() => !submitting && onClose()}
+                    className={`w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-50 text-slate-700 ${submitting ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
                     aria-label="Cerrar"
                     title="Cerrar"
+                    disabled={submitting}
                   >
                     ✕
                   </button>

@@ -60,6 +60,7 @@ export default function ImportPreviewPedidosModal({
     }))
   );
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   // selección por fila
@@ -453,28 +454,37 @@ export default function ImportPreviewPedidosModal({
       ? groups.filter((_, i) => selected[i])
       : groups;
 
-    const payload: ImportPayload = {
-      groups: groupsToSend.map(normalizeGroupForSend),
-    };
-
     try {
       setLoading(true);
+      setProgress(0);
 
-      const result = await importPedidosDesdePreview(payload, token);
+      const total = groupsToSend.length;
+      const chunksTarget = 10;
+      const BATCH_SIZE = Math.max(1, Math.ceil(total / chunksTarget));
+      let processed = 0;
 
-      if (result.estado === "parcial" || result.estado === "error") {
-        const errores = result.errores ?? [];
+      for (let i = 0; i < total; i += BATCH_SIZE) {
+        const batch = groupsToSend.slice(i, i + BATCH_SIZE);
+        const payload: ImportPayload = {
+          groups: batch.map(normalizeGroupForSend),
+        };
 
-        setError(
-          `Se importaron ${result.insertados} de ${result.total} pedidos.\n\n` +
-          errores
-            .map((e) => `Fila ${e.fila}: ${e.errores.join(", ")}`)
-            .join("\n")
-        );
-        return;
+        const result = await importPedidosDesdePreview(payload, token);
+
+        if (result.estado === "parcial" || result.estado === "error") {
+          const errores = result.errores ?? [];
+          throw new Error(
+            `Error en el proceso (filas probables ${i + 1} - ${Math.min(i + BATCH_SIZE, total)}).\n` +
+            `Se importaron ${result.insertados} de ${result.total} en este lote.\n\n` +
+            errores
+              .map((e) => `Fila ${e.fila}: ${e.errores.join(", ")}`)
+              .join("\n")
+          );
+        }
+
+        processed += batch.length;
+        setProgress(Math.round((processed / total) * 100));
       }
-
-
 
       onImported();
       onClose();
@@ -482,6 +492,7 @@ export default function ImportPreviewPedidosModal({
       setError(e?.message || "Error al importar");
     } finally {
       setLoading(false);
+      setProgress(0);
     }
   };
 
@@ -510,7 +521,7 @@ export default function ImportPreviewPedidosModal({
   return (
     <CenteredModal
       title=""
-      onClose={onClose}
+      onClose={loading ? () => { } : onClose}
       widthClass="max-w-[1680px] w-[98vw]"
       hideHeader
       hideCloseButton
@@ -577,8 +588,9 @@ export default function ImportPreviewPedidosModal({
               </div>
 
               <button
-                onClick={onClose}
-                className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-50 text-slate-700 shrink-0"
+                onClick={() => !loading && onClose()}
+                disabled={loading}
+                className={`w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-slate-50 text-slate-700 shrink-0 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
                 aria-label="Cerrar"
                 title="Cerrar"
               >
@@ -1065,11 +1077,26 @@ export default function ImportPreviewPedidosModal({
 
         {/* ================= FOOTER ================= */}
         <div className="flex items-center justify-end gap-2">
+          {loading && (
+            <div className="flex-1 mr-4">
+              <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="mt-1 text-xs text-slate-400 text-center">
+                Importando... {progress}%
+              </div>
+            </div>
+          )}
+
           <Buttonx
             variant="outlined"
             label="Cerrar"
             icon="mdi:close"
             onClick={onClose}
+            disabled={loading}
           />
 
           <Buttonx

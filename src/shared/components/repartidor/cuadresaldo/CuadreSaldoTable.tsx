@@ -351,7 +351,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
-  // ✅ SOLO seleccionables: NO validados
+  //  SOLO se seleccionables: NO validados
   const selectableKeys = useMemo(() => {
     return items
       .filter((it: any) => !it?.validado)
