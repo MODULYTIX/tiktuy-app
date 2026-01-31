@@ -169,7 +169,7 @@ export default function BaseTablaPedidos({
       ...(view !== "terminados" && desde ? { desde } : {}),
       ...(view !== "terminados" && hasta ? { hasta } : {}),
       sortBy: "programada",
-      order: "asc",
+      order: "desc",
     }),
     [page, perPage, desde, hasta, view]
   );
