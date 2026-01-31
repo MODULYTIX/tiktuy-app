@@ -7,9 +7,26 @@ import Buttonx from "@/shared/common/Buttonx";
 import { SelectxDate } from "@/shared/common/Selectx";
 import Tittlex from "@/shared/common/Tittlex";
 
+import type { CuadreResumenItem } from "@/services/repartidor/cuadreSaldo/cuadreSaldo.types";
+
 const pad2 = (n: number) => String(n).padStart(2, "0");
 const toYMD = (d: Date) =>
   `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+const formatPEN = (v: number) =>
+  `S/. ${Number(v || 0).toLocaleString("es-PE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const ymdToDMY = (ymd: string) => {
+  if (!ymd) return "-";
+  // Asume formato ISO o YYYY-MM-DD
+  const s = ymd.slice(0, 10);
+  const [y, m, d] = s.split("-");
+  return `${d}/${m}/${y}`;
+};
+
 const getToken = () => localStorage.getItem("token") ?? "";
 
 function defaultMonthRange() {
@@ -36,7 +53,7 @@ const Checkbox = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
 
 type ConfirmValidateAllModalProps = {
   open: boolean;
-  selectedCount: number;
+  selectedItems: CuadreResumenItem[];
   checked: boolean;
   busy: boolean;
   onToggleChecked: (v: boolean) => void;
@@ -46,7 +63,7 @@ type ConfirmValidateAllModalProps = {
 
 const ConfirmValidateAllModal: React.FC<ConfirmValidateAllModalProps> = ({
   open,
-  selectedCount,
+  selectedItems,
   checked,
   busy,
   onToggleChecked,
@@ -54,6 +71,12 @@ const ConfirmValidateAllModal: React.FC<ConfirmValidateAllModalProps> = ({
   onConfirm,
 }) => {
   if (!open) return null;
+
+  const count = selectedItems.length;
+  const totalMonto = selectedItems.reduce(
+    (acc, it: any) => acc + (it.totalServicioMotorizado ?? 0),
+    0
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
@@ -70,8 +93,8 @@ const ConfirmValidateAllModal: React.FC<ConfirmValidateAllModalProps> = ({
             </h3>
             <p className="text-sm text-gray-600">
               Vas a validar{" "}
-              <span className="font-semibold">{selectedCount}</span>{" "}
-              seleccionados en la tabla.
+              <span className="font-semibold">{count}</span>{" "}
+              {count === 1 ? "día seleccionado" : "días seleccionados"}.
             </p>
           </div>
 
@@ -95,51 +118,54 @@ const ConfirmValidateAllModal: React.FC<ConfirmValidateAllModalProps> = ({
                 icon="mdi:information-outline"
                 width={18}
                 height={18}
-                className="mt-0.5 text-emerald-700"
+                className="mt-0.5 text-emerald-700 shrink-0"
               />
               <div className="text-[12px] text-emerald-900">
-                <div className="font-semibold">Antes de continuar</div>
+                <div className="font-semibold">Resumen de selección</div>
                 <div className="text-emerald-800/90">
-                  Se marcarán como <b>Validado</b> los registros seleccionados.
-                  Verifica que la selección sea correcta.
+                  Verifica los montos de los días que vas a validar.
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Resumen rápido */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-gray30 bg-white p-3">
-              <div className="text-[11px] text-gray-500">Seleccionados</div>
-              <div className="text-[14px] font-semibold text-gray90">
-                {selectedCount}
-              </div>
+          {/* LISTA DE ITEMS (ACORDEON VIRTUAL / SCROLL) */}
+          <div className="border border-gray30 rounded-lg bg-gray-50 overflow-hidden">
+            <div className="max-h-[160px] overflow-y-auto p-2 space-y-1">
+              {selectedItems.map((item: any) => (
+                <div
+                  key={item.fecha}
+                  className="flex items-center justify-between text-xs text-gray70 px-2 py-1.5 border-b border-gray20 last:border-0 bg-white rounded-md"
+                >
+                  <span>{ymdToDMY(String(item.fecha))}</span>
+                  <span className="font-medium">
+                    {formatPEN(item.totalServicioMotorizado)}
+                  </span>
+                </div>
+              ))}
             </div>
-
-            <div className="rounded-xl border border-gray30 bg-white p-3">
-              <div className="text-[11px] text-gray-500">Acción</div>
-              <div className="text-[14px] font-semibold text-gray90">
-                Validar
-              </div>
+            <div className="bg-gray10 px-3 py-2 border-t border-gray30 flex justify-between items-center text-sm font-semibold text-gray90">
+              <span>Total a validar:</span>
+              <span>{formatPEN(totalMonto)}</span>
             </div>
           </div>
 
           {/* Checkbox de seguridad */}
-          <label className="flex items-start gap-3 rounded-xl border border-gray30 bg-gray10 p-3 cursor-pointer select-none">
+          <label className="flex items-start gap-3 rounded-xl border border-gray30 bg-white p-3 cursor-pointer select-none transition-colors hover:bg-gray-50">
             <Checkbox
               checked={checked}
               onChange={(e) => onToggleChecked(e.target.checked)}
               disabled={busy}
             />
             <div className="text-[12px] text-gray80">
-              Confirmo que deseo validar{" "}
-              <b>{selectedCount}</b> seleccionados.
+              He verificado los montos y confirmo la validación de{" "}
+              <b>{count}</b> registro(s).
             </div>
           </label>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-4 bg-white">
+        <div className="flex items-center justify-end gap-2 px-5 py-4 bg-white border-t border-gray10">
           <Buttonx
             label="Cancelar"
             variant="tertiary"
@@ -152,7 +178,7 @@ const ConfirmValidateAllModal: React.FC<ConfirmValidateAllModalProps> = ({
             variant="secondary"
             icon="mdi:clipboard-check-outline"
             onClick={onConfirm}
-            disabled={!checked || busy || selectedCount <= 0}
+            disabled={!checked || busy || count <= 0}
           />
         </div>
       </div>
@@ -181,14 +207,15 @@ const CuadreSaldoPage: React.FC = () => {
   // señal para validar lote desde el header (la tabla escucha cambios)
   const [validateSignal, setValidateSignal] = useState(0);
 
-  // ✅ conteo de seleccionados (viene desde la tabla)
-  const [selectedCount, setSelectedCount] = useState(0);
+  // conteo de seleccionados (viene desde la tabla)
+  const [selectedItems, setSelectedItems] = useState<CuadreResumenItem[]>([]);
 
-  // ✅ Modal confirmación masiva
+  // Modal confirmación masiva
   const [validateAllOpen, setValidateAllOpen] = useState(false);
   const [validateAllChecked, setValidateAllChecked] = useState(false);
   const [validateAllBusy, setValidateAllBusy] = useState(false);
 
+  const selectedCount = selectedItems.length;
   const canValidate = selectedCount > 0 && !validateAllBusy;
 
   const openValidateAll = () => {
@@ -210,7 +237,7 @@ const CuadreSaldoPage: React.FC = () => {
     try {
       setValidateAllBusy(true);
 
-      // 🔥 dispara validación de seleccionados en la tabla
+      // dispara validación de seleccionados en la tabla
       setValidateSignal((s) => s + 1);
 
       // cerramos modal
@@ -325,14 +352,14 @@ const CuadreSaldoPage: React.FC = () => {
           desde={appliedDesde}
           hasta={appliedHasta}
           triggerValidate={validateSignal}
-          onSelectionCountChange={setSelectedCount} // ✅ conteo desde tabla
+          onSelectionChange={setSelectedItems}
         />
       </div>
 
       {/* ===== Modal confirmación masiva ===== */}
       <ConfirmValidateAllModal
         open={validateAllOpen}
-        selectedCount={selectedCount}
+        selectedItems={selectedItems}
         checked={validateAllChecked}
         busy={validateAllBusy}
         onToggleChecked={setValidateAllChecked}

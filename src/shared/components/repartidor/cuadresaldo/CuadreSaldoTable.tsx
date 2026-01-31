@@ -324,8 +324,8 @@ type Props = {
   hasta?: string;
   triggerValidate?: number;
 
-  //  para que el header deshabilite/habilite
-  onSelectionCountChange?: (count: number) => void;
+  //  para que el header deshabilite/habilite y reciba los items seleccionados
+  onSelectionChange?: (items: CuadreResumenItem[]) => void;
 };
 
 const CuadreSaldoTable: React.FC<Props> = ({
@@ -333,7 +333,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
   desde,
   hasta,
   triggerValidate,
-  onSelectionCountChange,
+  onSelectionChange,
 }) => {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(6);
@@ -359,14 +359,17 @@ const CuadreSaldoTable: React.FC<Props> = ({
       .filter(Boolean);
   }, [items]);
 
-  const selectedCount = useMemo(
-    () => Object.values(selected).filter(Boolean).length,
-    [selected]
-  );
+  // Lista de objetos seleccionados
+  const selectedItemsList = useMemo(() => {
+    return items.filter((it: any) => {
+      const ymd = normalizeToYMD(it.fecha);
+      return ymd && selected[ymd];
+    });
+  }, [items, selected]);
 
   useEffect(() => {
-    onSelectionCountChange?.(selectedCount);
-  }, [selectedCount, onSelectionCountChange]);
+    onSelectionChange?.(selectedItemsList);
+  }, [selectedItemsList, onSelectionChange]);
 
   const allChecked = useMemo(() => {
     if (!selectableKeys.length) return false;
@@ -432,7 +435,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
       });
       setItems(data.items);
       setTotal(data.total);
-      setSelected({}); // ✅ limpia siempre la selección al cargar
+      setSelected({});
     } catch (e: any) {
       setErr(e?.message ?? "Error al cargar el resumen");
     } finally {
@@ -471,20 +474,8 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
   const doValidarYMD = async (ymd: string) => {
     await putCuadreValidacion(token, ymd, { validado: true });
-
-    setItems((prev: any[]) =>
-      prev.map((it) => {
-        const itYmd = normalizeToYMD((it as any).fecha);
-        return itYmd === ymd ? { ...it, validado: true } : it;
-      })
-    );
-
-    // limpia selección de ese día
-    setSelected((prev) => {
-      const next = { ...prev };
-      delete next[ymd];
-      return next;
-    });
+    // Recargar la tabla para mostrar loading/skeleton y actualizar datos reales
+    await loadResumen();
   };
 
   const onConfirmValidarFromModal = async () => {
@@ -497,6 +488,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
       closeValidateModal();
     } catch (e: any) {
       alert(e?.message ?? "Error al validar");
+    } finally {
       setValidateBusy(false);
     }
   };
@@ -512,20 +504,15 @@ const CuadreSaldoTable: React.FC<Props> = ({
     }
 
     try {
+      setLoading(true); // Forzar loading visual inmediato
       await Promise.all(
         list.map((ymd) => putCuadreValidacion(token, ymd, { validado: true }))
       );
-
-      setItems((prev: any[]) =>
-        prev.map((it) => {
-          const itYmd = normalizeToYMD((it as any).fecha);
-          return list.includes(itYmd) ? { ...it, validado: true } : it;
-        })
-      );
-
-      setSelected({});
+      // Recargar todo
+      await loadResumen();
     } catch (e: any) {
       alert(e?.message ?? "Error al validar seleccionados");
+      setLoading(false); // Si falló antes de loadResumen, quitamos loading
     }
   };
 
@@ -647,7 +634,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                 </tr>
               )}
 
-              {items.map((row: any) => {
+              {!loading && items.map((row: any) => {
                 const ymd = normalizeToYMD(row.fecha);
                 const isValidated = !!row.validado;
                 const estado: Estado = isValidated ? "Validado" : "Por Validar";
@@ -846,7 +833,6 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           {p.cliente}
                         </td>
 
-                        {/* ✅ AQUÍ el cambio: etiqueta amigable */}
                         <td className="h-12 px-4 py-3 text-gray70">
                           {metodoPagoLabel(p.metodoPago)}
                         </td>
