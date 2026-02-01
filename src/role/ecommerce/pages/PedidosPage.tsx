@@ -34,9 +34,7 @@ type Filtros = {
 export default function PedidosPage() {
   const { token } = useAuth();
 
-  const [vista, setVista] = useState<Vista>(
-    () => (localStorage.getItem('pedidos_vista') as Vista) || 'generado'
-  );
+  const [vista, setVista] = useState<Vista>('generado');
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [, setPedidoId] = useState<number | null>(null);
@@ -51,9 +49,7 @@ export default function PedidosPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const handleImported = () => setRefreshKey((k) => k + 1);
 
-  useEffect(() => {
-    localStorage.setItem('pedidos_vista', vista);
-  }, [vista]);
+
 
   /* ======================================================================
      OPCIONES PARA FILTROS (courier y productos)

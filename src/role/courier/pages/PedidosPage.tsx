@@ -1,5 +1,5 @@
 // src/pages/courier/PedidosPage.tsx
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import TablePedidoCourier from "@/shared/components/courier/pedido/TablePedidoCourier";
 import { useAuth } from "@/auth/context";
 import AsignarRepartidor from "@/shared/components/courier/pedido/AsignarRepartidor";
@@ -14,10 +14,8 @@ export default function PedidosPage() {
   const { token } = useAuth();
 
   // pestaña activa (persistida)
-  const [vista, setVista] = useState<Vista>(() => {
-    const saved = localStorage.getItem("courier_vista_pedidos") as Vista | null;
-    return saved ?? "asignados";
-  });
+  // pestaña activa (default: asignados)
+  const [vista, setVista] = useState<Vista>("asignados");
 
   // forzar recarga de la tabla después de asignar / reasignar
   const [reloadKey, setReloadKey] = useState(0);
@@ -31,9 +29,7 @@ export default function PedidosPage() {
   const [pedidoAReasignar, setPedidoAReasignar] =
     useState<PedidoListItem | null>(null);
 
-  useEffect(() => {
-    localStorage.setItem("courier_vista_pedidos", vista);
-  }, [vista]);
+
 
   // ---- Asignar (en lote) ----
   const handleAbrirAsignar = (ids: number[]) => {
