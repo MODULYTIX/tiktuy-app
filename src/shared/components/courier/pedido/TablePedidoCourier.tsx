@@ -312,7 +312,7 @@ export default function TablePedidoCourier({
     view,
   ]);
 
-  // ✅ Determina si un pedido puede seleccionarse según la vista
+  //  Determina si un pedido puede seleccionarse según la vista
   const puedeSeleccionar = (p: PedidoListItem) => {
     const estado = (p.estado_nombre ?? "").toLowerCase();
 
