@@ -412,7 +412,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
   const [error, setError] = useState<string | null>(null);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedMap, setSelectedMap] = useState<Map<number, PedidoListItem>>(() => new Map());
   const [editing, setEditing] = useState<PedidoListItem | undefined>(undefined);
   const [openEdit, setOpenEdit] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
@@ -465,7 +465,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
   useEffect(() => {
     setPage(1);
-    setSelectedIds([]);
+    setSelectedMap(new Map());
   }, [motorizadoId, sedeId, desde, hasta, pageSize]);
 
   useEffect(() => {
@@ -481,51 +481,74 @@ const CuadreSaldoTable: React.FC<Props> = ({
   }, [load, canFetch]);
 
   const onSavedServicio = useCallback((chg: EditModalChange) => {
-    setRows((prev) =>
-      prev.map((r) => {
-        if (r.id !== chg.id) return r;
-        const next: any = { ...r };
+    const apply = (r: PedidoListItem) => {
+      if (r.id !== chg.id) return r;
+      const next: any = { ...r };
 
-        if (chg.servicioRepartidor !== undefined) {
-          next.servicioRepartidor = chg.servicioRepartidor;
-          next.servicioEfectivo =
-            chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
+      if (chg.servicioRepartidor !== undefined) {
+        next.servicioRepartidor = chg.servicioRepartidor;
+        next.servicioEfectivo =
+          chg.servicioRepartidor ?? r.servicioSugerido ?? 0;
+      }
+      if (chg.motivo !== undefined) {
+        next.motivo = chg.motivo ?? null;
+      }
+      if (chg.servicioCourier !== undefined) {
+        next.servicioCourier = chg.servicioCourier;
+        if ("servicioCourierEfectivo" in next) {
+          next.servicioCourierEfectivo =
+            chg.servicioCourier ?? next.servicioCourierEfectivo ?? 0;
         }
-        if (chg.motivo !== undefined) {
-          next.motivo = chg.motivo ?? null;
-        }
-        if (chg.servicioCourier !== undefined) {
-          next.servicioCourier = chg.servicioCourier;
-          if ("servicioCourierEfectivo" in next) {
-            next.servicioCourierEfectivo =
-              chg.servicioCourier ?? next.servicioCourierEfectivo ?? 0;
-          }
-        }
-        return next;
-      })
-    );
+      }
+      return next;
+    };
+
+    setRows((prev) => prev.map(apply));
+
+    // Actualizar también en el mapa si existe
+    setSelectedMap((prev) => {
+      if (!prev.has(chg.id)) return prev;
+      const nextMap = new Map(prev);
+      nextMap.set(chg.id, apply(prev.get(chg.id)!));
+      return nextMap;
+    });
   }, []);
 
-  const selectableIds = useMemo(
-    () => rows.filter((r: any) => !r.abonado).map((r) => r.id),
+  const selectableRows = useMemo(
+    () => rows.filter((r: any) => !r.abonado),
     [rows]
   );
+
   const isAllSelected =
-    selectedIds.length > 0 && selectedIds.length === selectableIds.length;
+    selectableRows.length > 0 &&
+    selectableRows.every((r) => selectedMap.has(r.id));
 
   const toggleAll = useCallback(() => {
-    setSelectedIds(isAllSelected ? [] : selectableIds);
-  }, [isAllSelected, selectableIds]);
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
+      if (isAllSelected) {
+        // Desmarcar visibles
+        selectableRows.forEach((r) => next.delete(r.id));
+      } else {
+        // Marcar visibles
+        selectableRows.forEach((r) => next.set(r.id, r));
+      }
+      return next;
+    });
+  }, [isAllSelected, selectableRows]);
 
-  const toggleOne = useCallback((id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  const toggleOne = useCallback((r: PedidoListItem) => {
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
+      if (next.has(r.id)) next.delete(r.id);
+      else next.set(r.id, r);
+      return next;
+    });
   }, []);
 
   const selectedRows = useMemo(
-    () => rows.filter((r) => selectedIds.includes(r.id)),
-    [rows, selectedIds]
+    () => Array.from(selectedMap.values()),
+    [selectedMap]
   );
 
   // Total servicio motorizado (igual)
@@ -555,24 +578,25 @@ const CuadreSaldoTable: React.FC<Props> = ({
 
 
   const abrirModalAbono = useCallback(() => {
-    if (selectedIds.length === 0) return;
+    if (selectedMap.size === 0) return;
     setOpenConfirm(true);
-  }, [selectedIds.length]);
+  }, [selectedMap.size]);
 
   const confirmarAbono = useCallback(async () => {
     try {
+      const idsFull = Array.from(selectedMap.keys());
       setLoading(true);
       await abonarPedidos(token, {
-        pedidoIds: selectedIds,
+        pedidoIds: idsFull,
         abonado: true,
         sedeId,
       });
       setRows((prev) =>
         prev.map((r: any) =>
-          selectedIds.includes(r.id) ? { ...r, abonado: true } : r
+          selectedMap.has(r.id) ? { ...r, abonado: true } : r
         )
       );
-      setSelectedIds([]);
+      setSelectedMap(new Map());
       setOpenConfirm(false);
     } catch (e) {
       console.error(e);
@@ -580,7 +604,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
     } finally {
       setLoading(false);
     }
-  }, [token, selectedIds, sedeId]);
+  }, [token, selectedMap, sedeId]);
 
   useEffect(() => {
     if (!exposeActions) return;
@@ -593,12 +617,12 @@ const CuadreSaldoTable: React.FC<Props> = ({
   useEffect(() => {
     if (!onSelectionChange) return;
     onSelectionChange({
-      selectedCount: selectedIds.length,
+      selectedCount: selectedMap.size,
       totalServicio: totalServicioMotorizado,
       loading,
-      canAbonar: selectedIds.length > 0 && !loading,
+      canAbonar: selectedMap.size > 0 && !loading,
     });
-  }, [onSelectionChange, selectedIds.length, totalServicioMotorizado, loading]);
+  }, [onSelectionChange, selectedMap.size, totalServicioMotorizado, loading]);
 
   // OJITO: abre detalle SOLO del pedido clickeado
   const onViewDetallePedido = useCallback(
@@ -693,7 +717,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                   </tr>
                 ) : (
                   rows.map((r: any) => {
-                    const checked = selectedIds.includes(r.id);
+                    const checked = selectedMap.has(r.id);
                     const disableCheck = r.abonado;
 
                     return (
@@ -703,7 +727,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                             type="checkbox"
                             disabled={disableCheck}
                             checked={checked}
-                            onChange={() => toggleOne(r.id)}
+                            onChange={() => toggleOne(r)}
                             aria-label={`Seleccionar pedido ${r.id}`}
                             className="h-4 w-4 accent-blue-600"
                           />
@@ -789,7 +813,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                                 icon="mdi:cash-plus"
                                 colorClassName="bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-200 hover:ring-emerald-400 focus-visible:ring-emerald-500"
                                 onClick={() => {
-                                  setSelectedIds([r.id]);
+                                  setSelectedMap(new Map([[r.id, r]]));
                                   setOpenConfirm(true);
                                 }}
                                 size="sm"
@@ -852,7 +876,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
         ) : (
           <div className="flex flex-wrap items-center gap-3 text-[12px] text-gray-600">
             <span>
-              Seleccionados: <b>{selectedIds.length}</b>
+              Seleccionados: <b>{selectedMap.size}</b>
             </span>
 
             <span>
@@ -881,7 +905,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
       <ConfirmAbonoModal
         open={openConfirm}
         totalServicio={totalServicioMotorizado}
-        count={selectedIds.length}
+        count={selectedMap.size}
         resumenLeft="Pedidos seleccionados"
         resumenRight={todayDMY()}
         onCancel={() => setOpenConfirm(false)}
