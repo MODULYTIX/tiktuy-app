@@ -312,7 +312,7 @@ const ConfirmAbonoModal: React.FC<ConfirmAbonoModalProps> = ({
               </span>{" "}
               y que ya realicé la transferencia correspondiente.
               <span className="block mt-1 text-xs text-amber-800">
-                ⚠️ Esta acción es definitiva y no se puede deshacer.
+                Esta acción es definitiva y no se puede deshacer.
               </span>
             </div>
           </label>

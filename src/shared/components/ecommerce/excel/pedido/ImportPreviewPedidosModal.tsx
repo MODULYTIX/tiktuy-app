@@ -284,14 +284,15 @@ export default function ImportPreviewPedidosModal({
 
 
   // ================= DETECCIÓN DE DUPLICADOS =================
-  const getGroupSignature = (g: PreviewGroupDTO) => {
+  // ================= DETECCIÓN DE DUPLICADOS =================
+  const getStrictSignature = (g: PreviewGroupDTO) => {
     return JSON.stringify({
       c: g.courier ? norm(g.courier) : "",
       n: g.nombre ? norm(g.nombre) : "",
       d: g.distrito ? norm(g.distrito) : "",
       t: g.telefono ? g.telefono.trim() : "",
       dir: g.direccion ? norm(g.direccion) : "",
-      // f: g.fecha_entrega ? g.fecha_entrega.slice(0, 10) : "", // Opcional: incluir fecha si es relevante
+      f: g.fecha_entrega ? g.fecha_entrega.slice(0, 10) : "",
       i: g.items.map((it) => ({
         p: it.producto ? norm(it.producto) : "",
         c: it.cantidad,
@@ -299,21 +300,55 @@ export default function ImportPreviewPedidosModal({
     });
   };
 
-  const duplicateIndices = useMemo(() => {
-    const counts = new Map<string, number[]>();
+  const getContentSignature = (g: PreviewGroupDTO) => {
+    return JSON.stringify({
+      c: g.courier ? norm(g.courier) : "",
+      n: g.nombre ? norm(g.nombre) : "",
+      d: g.distrito ? norm(g.distrito) : "",
+      t: g.telefono ? g.telefono.trim() : "",
+      dir: g.direccion ? norm(g.direccion) : "",
+      // f: ignoramos fecha para soft duplicates
+      i: g.items.map((it) => ({
+        p: it.producto ? norm(it.producto) : "",
+        c: it.cantidad,
+      })),
+    });
+  };
+
+  const { blockingDuplicateIndices, warningDuplicateIndices } = useMemo(() => {
+    const strictCounts = new Map<string, number[]>();
+    const contentCounts = new Map<string, number[]>();
+
     groups.forEach((g, i) => {
-      const sig = getGroupSignature(g);
-      if (!counts.has(sig)) counts.set(sig, []);
-      counts.get(sig)?.push(i);
+      // 1. Strict (todo igual, incluida fecha) -> Bloquea
+      const sSig = getStrictSignature(g);
+      if (!strictCounts.has(sSig)) strictCounts.set(sSig, []);
+      strictCounts.get(sSig)?.push(i);
+
+      // 2. Content (todo igual, excepto fecha) -> Warn
+      const cSig = getContentSignature(g);
+      if (!contentCounts.has(cSig)) contentCounts.set(cSig, []);
+      contentCounts.get(cSig)?.push(i);
     });
 
-    const dups = new Set<number>();
-    counts.forEach((indices) => {
+    const blocking = new Set<number>();
+    strictCounts.forEach((indices) => {
       if (indices.length > 1) {
-        indices.forEach((idx) => dups.add(idx));
+        indices.forEach((idx) => blocking.add(idx));
       }
     });
-    return dups;
+
+    const warning = new Set<number>();
+    contentCounts.forEach((indices) => {
+      if (indices.length > 1) {
+        indices.forEach((idx) => warning.add(idx));
+      }
+    });
+
+    return {
+      blockingDuplicateIndices: blocking,
+      warningDuplicateIndices: warning,
+    };
   }, [groups]);
 
   // ================= PATCH HELPERS =================
@@ -468,14 +503,14 @@ export default function ImportPreviewPedidosModal({
   const hasInvalid = useMemo(() => {
     return (
       Object.keys(productoErrors).length > 0 ||
-      duplicateIndices.size > 0 ||
+      blockingDuplicateIndices.size > 0 ||
       groups.some(
         (g) =>
           g.valido === false ||
           (Array.isArray(g.errores) && g.errores.length > 0)
       )
     );
-  }, [groups, productoErrors, duplicateIndices]);
+  }, [groups, productoErrors, blockingDuplicateIndices]);
 
   const confirmarImportacion = async () => {
     setError(null);
@@ -813,7 +848,9 @@ export default function ImportPreviewPedidosModal({
                     : [];
 
                   const distritoInvalido = isInvalidDistritoBySede(g);
-                  const isDuplicate = duplicateIndices.has(gi);
+                  const isBlocking = blockingDuplicateIndices.has(gi);
+                  const isWarning = warningDuplicateIndices.has(gi);
+                  const isDuplicateAny = isBlocking || isWarning;
 
                   return (
                     <React.Fragment key={gi}>
@@ -821,7 +858,7 @@ export default function ImportPreviewPedidosModal({
                         key={gi}
                         className={[
                           "transition-colors duration-150",
-                          isDuplicate
+                          isDuplicateAny
                             ? "bg-red-100! border-red-200"
                             : "odd:bg-white even:bg-slate-50/40 hover:bg-[#F8FAFD]",
                         ].join(" ")}
@@ -856,7 +893,7 @@ export default function ImportPreviewPedidosModal({
                             </div>
                           ) : null}
 
-                          {isDuplicate && (
+                          {isDuplicateAny && (
                             <div className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-red-200 text-red-800 text-[10px] font-bold uppercase tracking-wide">
                               DUPLICADO
                             </div>
