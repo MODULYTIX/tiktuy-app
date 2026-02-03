@@ -282,6 +282,40 @@ export default function ImportPreviewPedidosModal({
 
 
 
+
+  // ================= DETECCIÓN DE DUPLICADOS =================
+  const getGroupSignature = (g: PreviewGroupDTO) => {
+    return JSON.stringify({
+      c: g.courier ? norm(g.courier) : "",
+      n: g.nombre ? norm(g.nombre) : "",
+      d: g.distrito ? norm(g.distrito) : "",
+      t: g.telefono ? g.telefono.trim() : "",
+      dir: g.direccion ? norm(g.direccion) : "",
+      // f: g.fecha_entrega ? g.fecha_entrega.slice(0, 10) : "", // Opcional: incluir fecha si es relevante
+      i: g.items.map((it) => ({
+        p: it.producto ? norm(it.producto) : "",
+        c: it.cantidad,
+      })),
+    });
+  };
+
+  const duplicateIndices = useMemo(() => {
+    const counts = new Map<string, number[]>();
+    groups.forEach((g, i) => {
+      const sig = getGroupSignature(g);
+      if (!counts.has(sig)) counts.set(sig, []);
+      counts.get(sig)?.push(i);
+    });
+
+    const dups = new Set<number>();
+    counts.forEach((indices) => {
+      if (indices.length > 1) {
+        indices.forEach((idx) => dups.add(idx));
+      }
+    });
+    return dups;
+  }, [groups]);
+
   // ================= PATCH HELPERS =================
 
   function validarStockAcumulado(
@@ -434,13 +468,14 @@ export default function ImportPreviewPedidosModal({
   const hasInvalid = useMemo(() => {
     return (
       Object.keys(productoErrors).length > 0 ||
+      duplicateIndices.size > 0 ||
       groups.some(
         (g) =>
           g.valido === false ||
           (Array.isArray(g.errores) && g.errores.length > 0)
       )
     );
-  }, [groups, productoErrors]);
+  }, [groups, productoErrors, duplicateIndices]);
 
   const confirmarImportacion = async () => {
     setError(null);
@@ -778,12 +813,18 @@ export default function ImportPreviewPedidosModal({
                     : [];
 
                   const distritoInvalido = isInvalidDistritoBySede(g);
+                  const isDuplicate = duplicateIndices.has(gi);
 
                   return (
                     <React.Fragment key={gi}>
                       <tr
                         key={gi}
-                        className="odd:bg-white even:bg-slate-50/40 hover:bg-[#F8FAFD] transition-colors duration-150"
+                        className={[
+                          "transition-colors duration-150",
+                          isDuplicate
+                            ? "bg-red-100! border-red-200"
+                            : "odd:bg-white even:bg-slate-50/40 hover:bg-[#F8FAFD]",
+                        ].join(" ")}
                       >
                         <td className="border-b border-gray-200 px-2 py-2 align-middle">
                           <input
@@ -814,6 +855,12 @@ export default function ImportPreviewPedidosModal({
                               La sede no coincide con las sedes asociadas al ecommerce.
                             </div>
                           ) : null}
+
+                          {isDuplicate && (
+                            <div className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-red-200 text-red-800 text-[10px] font-bold uppercase tracking-wide">
+                              DUPLICADO
+                            </div>
+                          )}
                         </td>
 
                         <td className="border-b border-gray-200 px-3 py-2 align-middle">
