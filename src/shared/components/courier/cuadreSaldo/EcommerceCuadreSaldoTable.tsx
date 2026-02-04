@@ -23,6 +23,7 @@ import Buttonx from "@/shared/common/Buttonx";
 import Badgex from "@/shared/common/Badgex";
 import TableActionx from "@/shared/common/TableActionx";
 import Tittlex from "@/shared/common/Tittlex";
+import { useNotification } from "@/shared/context/notificacionesDeskop/useNotification";
 
 const formatPEN = (v: number) =>
   `S/. ${Number(v || 0).toLocaleString("es-PE", {
@@ -146,6 +147,7 @@ const isSelectableEstado = (estado?: AbonoEstado) => {
 };
 
 const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
+  const { notify } = useNotification();
   // ==== sedes ====
   const [sedes, setSedes] = useState<SedeCuadreItem[]>([]);
   const [sedeId, setSedeId] = useState<number | "">("");
@@ -336,7 +338,7 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
           return {
             ...r,
             cobrado,
-            servicioCourier: servicio,  
+            servicioCourier: servicio,
             neto,
           } as ResumenRow;
         } catch {
@@ -527,11 +529,13 @@ const EcommerceCuadreSaldoTable: React.FC<Props> = ({ token }) => {
       setConfirmServicio(0);
       setConfirmCount(0);
 
-      alert("Abono enviado correctamente con voucher.");
+
+
+      notify("Abono enviado correctamente con voucher.", "success");
       await loadResumen();
     } catch (e: any) {
       console.error("Error al confirmar abono:", e);
-      alert(e?.message ?? "No se pudo procesar el abono.");
+      notify(e?.message ?? "No se pudo procesar el abono.", "error");
     } finally {
       setLoading(false);
     }

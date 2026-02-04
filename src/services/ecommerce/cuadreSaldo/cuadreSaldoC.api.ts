@@ -7,6 +7,8 @@ import type {
   ValidarFechasPayload,
   ValidarFechasResp,
   AbonoEstado,
+  AbonoResumenItem,
+  PedidoAbonoItem,
 } from "./cuadreSaldoC.types";
 
 /* ================== Config / Helpers ================== */
@@ -68,6 +70,41 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
   } catch {
     return text as unknown as T;
   }
+}
+
+/** GET /ecommerce/cuadre-saldo/abonos */
+export async function listAbonosMine(
+  token: string,
+  params: {
+    courierId: number;
+    estado?: "Todos" | "Por Validar" | "Validado";
+    desde?: string;
+    hasta?: string;
+  }
+): Promise<AbonoResumenItem[]> {
+  const url = withQuery("/ecommerce/cuadre-saldo/abonos", params);
+  return request<AbonoResumenItem[]>(url, { headers: authHeaders(token) });
+}
+
+/** GET /ecommerce/cuadre-saldo/abonos/:abonoId/pedidos */
+export async function listPedidosPorAbono(
+  token: string,
+  abonoId: number
+): Promise<PedidoAbonoItem[]> {
+  const url = `${BASE_URL}/ecommerce/cuadre-saldo/abonos/${abonoId}/pedidos`;
+  return request<PedidoAbonoItem[]>(url, { headers: authHeaders(token) });
+}
+
+/** PUT /ecommerce/cuadre-saldo/abonos/:abonoId/validar */
+export async function validarAbonoMine(
+  token: string,
+  abonoId: number
+): Promise<{ message: string }> {
+  const url = `${BASE_URL}/ecommerce/cuadre-saldo/abonos/${abonoId}/validar`;
+  return request<{ message: string }>(url, {
+    method: "PUT",
+    headers: authHeaders(token, "json"),
+  });
 }
 
 /* ================== API Calls (Ecommerce) ================== */
@@ -212,8 +249,8 @@ export async function validarFechas(
     ...(payload.fechas?.length
       ? { fechas: payload.fechas }
       : payload.fecha
-      ? { fecha: payload.fecha }
-      : {}),
+        ? { fecha: payload.fecha }
+        : {}),
   };
 
   return request<ValidarFechasResp>(url, {
@@ -223,9 +260,38 @@ export async function validarFechas(
   });
 }
 
+/** GET /ecommerce/cuadre-saldo/abonos/:abonoId/resumen-dias */
+export async function getResumenDiasPorAbono(
+  token: string,
+  abonoId: number
+): Promise<any[]> {
+  const url = `${BASE_URL}/ecommerce/cuadre-saldo/abonos/${abonoId}/resumen-dias`;
+  const raw = await request<any[]>(url, { headers: authHeaders(token) });
+
+  return raw.map((r) => {
+    const iso =
+      typeof r.fecha === "string" ? r.fecha : new Date(r.fecha).toISOString();
+
+    // Map to ResumenDia structure partially so we can reuse CuadreSaldoTable
+    return {
+      fecha: iso.slice(0, 10),
+      pedidos: Number(r.totalPedidos ?? 0),
+      cobrado: Number(r.totalCobrado ?? 0),
+      servicio: Number(r.totalServicioCourier ?? 0),
+      neto: Number(r.totalNeto ?? 0),
+      estado: "Validado", // Dummy for table reuse or use abono status
+      evidencia: r.evidencia ?? null,
+    };
+  });
+}
+
 export default {
   listCouriersMine,
   getResumen,
   getPedidosDia,
   validarFechas,
+  listAbonosMine,
+  listPedidosPorAbono,
+  validarAbonoMine,
+  getResumenDiasPorAbono,
 };

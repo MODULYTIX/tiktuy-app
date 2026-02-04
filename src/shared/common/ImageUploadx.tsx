@@ -28,6 +28,8 @@ export interface ImageUploadxProps {
   onView?: (url: string) => void;
   onDownload?: (url: string) => void;
   onDelete?: () => void;
+  thumbClassName?: string;
+  variant?: "standard" | "hero";
 }
 
 // --- FUNCIONES AUXILIARES CONSERVADAS ---
@@ -105,6 +107,8 @@ const ImageUploadx: React.FC<ImageUploadxProps> = ({
   onView,
   onDownload,
   onDelete,
+  thumbClassName,
+  variant = "standard",
 }) => {
   const effectiveMode: Mode = readOnly ? "view" : mode;
   const canPick = effectiveMode !== "view" && !disabled;
@@ -310,11 +314,97 @@ const ImageUploadx: React.FC<ImageUploadxProps> = ({
 
   const fileName = useMemo(() => file?.name ?? externalUrl?.split("/").pop() ?? "", [file, externalUrl]);
   const fileSize = useMemo(() => (file ? formatBytes(file.size) : ""), [file]);
-  const thumbClasses = size === "sm" ? "w-12 h-12" : "w-[72px] h-[72px]";
+  const thumbClasses = thumbClassName || (size === "sm" ? "w-12 h-12" : "w-[72px] h-[72px]");
   const iconBtnClasses = size === "sm" ? "w-8 h-8" : "w-9 h-9";
   const hasImage = Boolean(previewUrl);
   const isBusy = busyVisible;
 
+  // --- RENDER HERO ---
+  if (variant === "hero") {
+    return (
+      <div className={`w-full h-full ${className}`} onPaste={handlePaste} aria-readonly={effectiveMode === "view"} aria-busy={isBusy}>
+        {label && <label className="block text-base font-normal text-gray90 text-left mb-2">{label}</label>}
+
+        <div
+          onDragOver={(e) => { if (!canPick) return; e.preventDefault(); setDragActive(true); }}
+          onDragLeave={() => canPick && setDragActive(false)}
+          onDrop={handleDrop}
+          className={[
+            "relative w-full h-full min-h-[200px] rounded-lg border overflow-hidden flex flex-col items-center justify-center transition-colors bg-gray-50",
+            canPick ? (dragActive ? "border-gray-500 bg-gray-100" : "border-gray-300 hover:border-gray-400") : "border-gray-200",
+            disabled && effectiveMode !== "view" ? "opacity-60 pointer-events-none" : ""
+          ].join(" ")}
+        >
+          {/* Placeholder */}
+          {!hasImage && (
+            <div className="flex flex-col items-center justify-center text-center p-4">
+              <Icon icon="mdi:image-off-outline" className="text-gray-400 text-4xl mb-2" />
+              <div className="text-sm text-gray-500 font-medium">
+                {showEmptyCTA ? "Arrastra o selecciona una imagen" : "Sin imagen disponible"}
+              </div>
+              {showEmptyCTA && (
+                <div className="mt-3">
+                  <button type="button" onClick={openPicker} className="px-4 py-2 bg-white border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 font-medium shadow-sm">
+                    Seleccionar
+                  </button>
+                  <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={handlePick} disabled={disabled} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Image */}
+          {hasImage && (
+            <>
+              <img src={previewUrl!} alt="Vista previa" className="w-full h-full object-contain" draggable={false} />
+
+              {/* Controls Overlay */}
+              <div className="absolute inset-0 bg-black/5 opacity-0 hover:opacity-100 transition-opacity flex items-end justify-end p-2 gap-2">
+                <button type="button" onClick={(e) => handleDownload(e)} title="Descargar" className="w-9 h-9 rounded bg-white/90 text-gray-800 flex items-center justify-center shadow hover:bg-white hover:text-blue-600 transition-colors">
+                  <Icon icon="tabler:download" className="text-lg" />
+                </button>
+                <button type="button" onClick={handleView} title="Ver" className="w-9 h-9 rounded bg-white/90 text-gray-800 flex items-center justify-center shadow hover:bg-white hover:text-blue-600 transition-colors">
+                  <Icon icon="tabler:eye" className="text-lg" />
+                </button>
+                {showChangeDelete && (
+                  <>
+                    <button type="button" onClick={openPicker} className="w-9 h-9 rounded bg-white/90 text-gray-800 flex items-center justify-center shadow hover:bg-white hover:text-blue-600 transition-colors">
+                      <Icon icon="tabler:photo-edit" className="text-lg" />
+                    </button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(e); }} className="w-9 h-9 rounded bg-white/90 text-red-600 flex items-center justify-center shadow hover:bg-red-50 transition-colors">
+                      <Icon icon="tabler:trash" className="text-lg" />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Confirm Delete inside Hero?? Maybe simplified */}
+              {confirmOpen && (
+                <div ref={confirmRef} className="absolute bottom-12 right-2 z-50 w-[240px] rounded-lg border border-gray-200 bg-white shadow-xl p-3 text-left">
+                  <p className="text-xs text-gray-800 mb-2">{confirmMessage}</p>
+                  <div className="flex justify-end gap-2">
+                    <button type="button" onClick={() => setConfirmOpen(false)} className="text-xs px-2 py-1 border rounded">No</button>
+                    <button type="button" onClick={() => { setConfirmOpen(false); doDelete(); }} className="text-xs px-2 py-1 bg-red-600 text-white rounded">Sí</button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Loading Overlay */}
+          {isBusy && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] flex flex-col items-center justify-center z-20">
+              <Icon icon="line-md:loading-twotone-loop" className="text-3xl text-gray-500 animate-spin mb-2" />
+              <span className="text-sm font-medium text-gray-700">{uploadText}</span>
+            </div>
+          )}
+        </div>
+        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      </div>
+    );
+  }
+
+  // --- RENDER STANDARD ---
   return (
     <div className={`w-full ${className}`} onPaste={handlePaste} aria-readonly={effectiveMode === "view"} aria-busy={isBusy}>
       {label && <label className="block text-base font-normal text-gray90 text-left mb-2">{label}</label>}

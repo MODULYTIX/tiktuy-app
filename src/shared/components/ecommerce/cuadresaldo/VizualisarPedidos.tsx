@@ -5,7 +5,7 @@ import Buttonx from "@/shared/common/Buttonx";
 import TableActionx from "@/shared/common/TableActionx";
 
 /**
- * ✅ Compat para:
+ *Compat para:
  * - metodoPago / metodo_pago
  * - evidencia (voucher del abono)
  * - evidenciaRepartidor (pago_evidencia_url)
@@ -18,11 +18,11 @@ type Row = PedidoDiaItem & {
 
   evidencia?: string | null; // voucher del abono (abono_evidencia_url)
 
-  // ✅ (repartidor)
+  // (repartidor)
   evidenciaRepartidor?: string | null; // pago_evidencia_url
   motivoRepartidor?: string | null; // servicio_repartidor_motivo
 
-  // ✅ (rechazo)
+  // (rechazo)
   observadoEstado?: string | null;
   observado_estado?: string | null;
   observacionEstado?: string | null;
@@ -94,7 +94,7 @@ const isRejectedPedido = (p: any): boolean => {
 const metodoPagoLabel = (metodoPago: unknown) => {
   const m = normMetodoPago(metodoPago);
 
-  // ✅ si no hay método => Pedido rechazado
+  // si no hay método => Pedido rechazado
   if (!m) return "Pedido rechazado";
 
   if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
@@ -105,7 +105,7 @@ const metodoPagoLabel = (metodoPago: unknown) => {
 };
 
 /**
- * ✅ Reglas de monto:
+ * Reglas de monto:
  * - Pedido rechazado => 0
  * - DIRECTO_ECOMMERCE => muestra monto real (no se fuerza a 0)
  */
@@ -114,7 +114,7 @@ function montoVisual(p: any): number {
   return Number(p?.monto ?? 0);
 }
 
-/** ✅ Motivo de columna:
+/** Motivo de columna:
  * - Si RECHAZADO => observado_estado / observacion_estado
  * - Si TIENE método => motivoRepartidor (edición servicio)
  */
@@ -211,14 +211,6 @@ export default function VizualisarPedidos({
 
   const title = useMemo(() => `Pedidos del día ${formatDMY(fecha)}`, [fecha]);
 
-  const evidenciaGeneral = useMemo<string | null>(() => {
-    for (const r of rows) {
-      const ev = (r as any).evidencia ?? null;
-      if (ev) return ev;
-    }
-    return null;
-  }, [rows]);
-
   const servicioTotalEcommerce = useMemo(() => {
     return rows.reduce(
       (acc, r: any) => acc + Number(r?.servicioCourier ?? 0),
@@ -226,7 +218,7 @@ export default function VizualisarPedidos({
     );
   }, [rows]);
 
-  // ✅ Totales para cuadros
+  //  Totales para cuadros
   const montoTotalCobrado = useMemo(() => {
     return rows.reduce((acc, r: any) => acc + montoVisual(r), 0);
   }, [rows]);
@@ -238,7 +230,7 @@ export default function VizualisarPedidos({
     );
   }, [rows]);
 
-  // ✅ NUEVO: monto depositado = (EFECTIVO + BILLETERA) - Total servicio
+  //  NUEVO: monto depositado = (EFECTIVO + BILLETERA) - Total servicio
   const montoEfectivo = useMemo(() => {
     return rows.reduce((acc, r: any) => {
       const mp = normMetodoPago(metodoPagoDe(r));
@@ -332,7 +324,7 @@ export default function VizualisarPedidos({
                 <thead className="sticky top-0 z-10 bg-[#F3F6FA] text-slate-600">
                   <tr className="text-left text-xs font-semibold">
                     <th className="px-4 py-3 border-b border-gray-200">
-                      Cliente
+                      Clientes
                     </th>
                     <th className="px-4 py-3 border-b border-gray-200">
                       Método de pago / Estado
@@ -454,10 +446,10 @@ export default function VizualisarPedidos({
             </div>
           </div>
 
-          {/* ✅ Layout: evidencia más ancha (para horizontal), totales más compactos, menor altura */}
+          {/*  Layout: evidencia más ancha (para horizontal), totales más compactos, menor altura */}
           <div className="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
             {/* 1) Monto total cobrado (más angosto) */}
-            <div className="lg:col-span-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
+            <div className="lg:col-span-6 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
               <div className="px-4 sm:px-5 py-2.5 border-b border-gray-100">
                 <div className="text-sm font-bold text-slate-900">
                   Monto total cobrado
@@ -482,7 +474,7 @@ export default function VizualisarPedidos({
             </div>
 
             {/* 2) Monto total de servicio (más angosto) */}
-            <div className="lg:col-span-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
+            <div className="lg:col-span-6 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
               <div className="px-4 sm:px-5 py-2.5 border-b border-gray-100">
                 <div className="text-sm font-bold text-slate-900">
                   Monto total de servicio
@@ -506,81 +498,6 @@ export default function VizualisarPedidos({
               </div>
             </div>
 
-            {/* 3) Evidencia del abono (más ancho) */}
-            <div className="lg:col-span-6 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden h-full flex flex-col">
-              <div className="px-4 sm:px-5 py-2.5 border-b border-gray-100">
-                <div className="text-sm font-bold text-slate-900">
-                  Evidencia del abono
-                </div>
-                <div className="text-xs text-slate-500">
-                  Voucher registrado para este día
-                </div>
-              </div>
-
-              <div className="flex-1 px-4 sm:px-5 py-3">
-                {!evidenciaGeneral ? (
-                  <div className="h-full rounded-xl bg-gray-50 px-4 py-3 text-sm text-slate-500 flex items-center justify-center text-center">
-                    — No hay evidencia registrada para este día —
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    {/* Miniatura */}
-                    <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center">
-                      {isProbablyImageUrl(evidenciaGeneral) ? (
-                        <img
-                          src={evidenciaGeneral}
-                          alt="Voucher"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-slate-500 text-lg">📄</span>
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[11px] text-slate-500 font-semibold">
-                        Archivo
-                      </div>
-                      <div className="text-sm font-semibold text-slate-900 leading-snug">
-                        Voucher del abono
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-slate-500 truncate">
-                        {filenameFromUrl(evidenciaGeneral, "voucher-abono")}
-                      </div>
-                      <div className="mt-1 text-[11px] text-slate-500">
-                        Fecha:{" "}
-                        <span className="font-semibold text-slate-700">
-                          {formatDMY(fecha)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Acciones (siempre horizontales) */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Buttonx
-                        variant="outlined"
-                        label="Ver"
-                        className="h-9 px-4 whitespace-nowrap"
-                        onClick={() => setPreviewUrl(evidenciaGeneral)}
-                      />
-                      <Buttonx
-                        variant="outlined"
-                        label="Descargar"
-                        icon="mdi:download"
-                        className="h-9 px-4 whitespace-nowrap"
-                        onClick={() =>
-                          handleDownload(
-                            evidenciaGeneral,
-                            `evidencia-abono-${fecha ?? "dia"}`
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
 

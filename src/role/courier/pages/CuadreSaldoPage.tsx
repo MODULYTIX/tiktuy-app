@@ -66,7 +66,7 @@ const CuadreSaldoPage: React.FC = () => {
         setMotorizados(arr);
       } catch (e) {
         console.error("Error listMotorizados:", e);
-        setMotorizados([]); // ✅ garantiza array
+        setMotorizados([]); 
       } finally {
         setLoadingMotorizados(false);
       }

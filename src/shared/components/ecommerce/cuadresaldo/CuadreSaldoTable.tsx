@@ -1,4 +1,3 @@
-// src/shared/components/ecommerce/cuadreSaldo/CuadreSaldoTable.tsx
 import { useState, useMemo, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import type { ResumenDia } from "@/services/ecommerce/cuadreSaldo/cuadreSaldoC.types";
@@ -10,7 +9,6 @@ type Props = {
   selected: string[]; // YYYY-MM-DD[]
   onToggle(date: string): void; // check/uncheck una fecha
 
-  // ✅ actualizamos para recibir los montos del modal
   onView(
     date: string,
     estado: ResumenDia["estado"],
@@ -39,7 +37,6 @@ const num = (v: any) => {
 };
 
 
-/** ✅ Solo NO se puede seleccionar cuando está "Validado" */
 /**  Solo NO se puede seleccionar cuando está "Validado" */
 function isSelectable(estado: ResumenDia["estado"]) {
   return estado !== "Validado";
@@ -221,8 +218,7 @@ export default function CuadreSaldoTable({
               <col className="w-[18%]" />
               <col className="w-[18%]" />
               <col className="w-[18%]" />
-              <col className="w-[16%]" />
-              <col className="w-[12%]" />
+              <col className="w-[18%]" />
               <col className="w-[12%]" />
             </colgroup>
 
@@ -233,7 +229,6 @@ export default function CuadreSaldoTable({
                 <th className="px-4 py-3">Monto</th>
                 <th className="px-4 py-3">Servicio (total)</th>
                 <th className="px-4 py-3">Neto</th>
-                <th className="px-4 py-3">Estado</th>
                 <th className="px-4 py-3 text-right">Acciones</th>
               </tr>
             </thead>
@@ -242,13 +237,6 @@ export default function CuadreSaldoTable({
               {currentData.map((r) => {
                 const checked = selected.includes(r.fecha);
                 const selectable = isSelectable(r.estado);
-
-                const pill =
-                  r.estado === "Validado"
-                    ? "bg-gray-900 text-white"
-                    : r.estado === "Sin Validar"
-                      ? "bg-gray-100 text-gray-700 border border-gray-200"
-                      : "bg-blue-100 text-blue-900 border border-blue-200";
 
                 return (
                   <tr key={r.fecha} className="border-t">
@@ -278,18 +266,14 @@ export default function CuadreSaldoTable({
                     <td className="p-3">{money(getNeto(r))}</td>
 
 
-                    <td className="p-3">
-                      <span className={`px-3 py-1 text-xs rounded-full ${pill}`}>
-                        {r.estado}
-                      </span>
-                    </td>
                     <td className="p-3 text-right">
+
                       <TableActionx
                         variant="view"
                         title="Ver pedidos del día"
                         onClick={() =>
                           onView(r.fecha, r.estado, {
-                            totalCobrado: getMontoFiltrado(r), // suma de los métodos filtrados
+                            totalCobrado: getMontoFiltrado(r),
                             totalServicio: num(r.servicio),
                           })
                         }
@@ -305,7 +289,7 @@ export default function CuadreSaldoTable({
               {emptyRows > 0 &&
                 Array.from({ length: emptyRows }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="hover:bg-transparent">
-                    {Array.from({ length: 7 }).map((__, i) => (
+                    {Array.from({ length: 6 }).map((__, i) => (
                       <td key={i} className="px-4 py-3">
                         &nbsp;
                       </td>

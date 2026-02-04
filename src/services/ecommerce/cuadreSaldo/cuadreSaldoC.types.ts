@@ -94,6 +94,45 @@ export type ValidarFechasResp = {
   estadoNombre: "Validado";
   estadoId: number;
   fechas: string[]; // YYYY-MM-DD[]
-  totalCobradoSeleccionado: number;
   totalServicioCourierSeleccionado: number;
+};
+
+/* =========================================================
+ *  NUEVA LÓGICA POR ABONOS (Liquidaciones)
+ * ======================================================= */
+
+export type AbonoResumenItem = {
+  id: number;
+  codigo: string;
+  fechaCreacion: string; // ISO date string
+  montoTotal: number;
+  totalNeto?: number; // Possible backend field for Net
+  montoNeto?: number; // Another possible name
+  estado: string; // 'Por Validar' | 'Validado' | ...
+  evidenciaUrl: string | null;
+  cantidadPedidos: number;
+};
+
+export type PedidoAbonoItem = {
+  id: number;
+  fechaEntrega: string | null; // o Date si ya lo transformaste
+  cliente: string;
+  metodoPago: string | null;
+  monto: number;
+  servicioCourier: number;
+  servicioRepartidor: number;
+  abonado: boolean;
+  pagoEvidenciaUrl: string | null;
+  motivo: string | null;
+  observacion: string | null;
+  estadoPedido: string;
+};
+
+export type ResumenDiaAbono = {
+  fecha: string; // YYYY-MM-DD
+  totalPedidos: number;
+  totalCobrado: number;
+  totalServicioCourier: number;
+  totalNeto: number;
+  evidencia: string | null;
 };
