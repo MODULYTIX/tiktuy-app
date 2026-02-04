@@ -6,6 +6,7 @@ import {
   actualizarPedidoGenerado,
   fetchProductosPorSede,
 } from "@/services/ecommerce/pedidos/pedidos.api";
+import { fetchProductos } from "@/services/ecommerce/producto/producto.api";
 
 import type {
   Pedido,
@@ -67,13 +68,57 @@ export default function EditarPedidoGeneradoModal({
         }))
       );
 
+      // Helper to merge fetched products with existing ones from details (to avoid missing options)
+      const mergeProducts = (fetched: ProductoSede[], currentDetails: any[]) => {
+        const detailProducts = currentDetails
+          .map((d: any) => d.producto)
+          .filter((p: any) => !!p)
+          .map((p: any) => ({
+            id: p.id,
+            nombre_producto: p.nombre_producto,
+            precio: 0, // precio might not be in producto info inside detalle, usually comes separately or we use detalle price
+            stock: p.stock ?? 0,
+            descripcion: p.descripcion,
+            // other fields optional
+          }));
+
+        // Combine and deduplicate by ID
+        const combined = [...fetched];
+        detailProducts.forEach((dp: any) => {
+          if (!combined.find(c => c.id === dp.id)) {
+            combined.push(dp);
+          }
+        });
+        return combined;
+      };
+
       // 🔑 CLAVE: traer productos SOLO de la sede del pedido
       if (p.sede_id) {
         fetchProductosPorSede(p.sede_id, token)
           .then((prods) => {
-            if (mounted) setProductos(prods);
+            if (mounted) {
+              const finalProds = mergeProducts(prods, p.detalles || []);
+              setProductos(finalProds);
+            }
           })
           .catch(console.error);
+      } else {
+        // Fallback: si no hay sede (legacy o bug), traer productos generales del ecommerce
+        fetchProductos(token, { perPage: 100 }).then((res) => {
+          if (mounted && res.data) {
+            const mapped = res.data.map((prod) => ({
+              id: prod.id,
+              nombre_producto: prod.nombre_producto,
+              precio: prod.precio,
+              stock: prod.stock,
+              descripcion: prod.descripcion,
+              codigo_identificacion: prod.codigo_identificacion,
+              imagen_url: prod.imagen_url
+            }));
+            const finalProds = mergeProducts(mapped, p.detalles || []);
+            setProductos(finalProds);
+          }
+        }).catch(console.error);
       }
     });
 

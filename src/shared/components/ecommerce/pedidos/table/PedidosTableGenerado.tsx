@@ -75,37 +75,38 @@ export default function PedidosTableGenerado({
   /* ==========================================================
      PAGINADOR
      ========================================================== */
+  /* ==========================================================
+     PAGINADOR
+     ========================================================== */
   const pagerItems = useMemo(() => {
-    const maxButtons = 5;
-    const pages: (number | string)[] = [];
+    // Determine the range of pages to show
+    const total = totalPages;
+    const current = page;
+    const delta = 2; // Number of pages to show on each side of current
 
-    if (totalPages <= maxButtons) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      let start = Math.max(1, page - 2);
-      let end = Math.min(totalPages, page + 2);
-
-      if (page <= 3) {
-        start = 1;
-        end = maxButtons;
-      } else if (page >= totalPages - 2) {
-        start = totalPages - (maxButtons - 1);
-        end = totalPages;
-      }
-
-      for (let i = start; i <= end; i++) pages.push(i);
-
-      if (start > 1) {
-        pages.unshift("...");
-        pages.unshift(1);
-      }
-      if (end < totalPages) {
-        pages.push("...");
-        pages.push(totalPages);
-      }
+    // Always show 1 and last
+    // Always show current +/- delta
+    const range: number[] = [];
+    for (let i = Math.max(2, current - delta); i <= Math.min(total - 1, current + delta); i++) {
+      range.push(i);
     }
 
-    return pages;
+    if (current - delta > 2) {
+      range.unshift(-1); // -1 represents "..." (left)
+    }
+    if (current + delta < total - 1) {
+      range.push(-2); // -2 represents "..." (right)
+    }
+
+    // Add first and last if needed
+    range.unshift(1);
+    if (total > 1) {
+      range.push(total);
+    }
+
+    // Convert to numbers/strings and filter weird short ranges
+    // Simply mapping internal markers to "..."
+    return range.map(r => (r === -1 || r === -2) ? "..." : r);
   }, [page, totalPages]);
 
   const goToPage = (p: number) => {
