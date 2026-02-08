@@ -389,6 +389,7 @@ const CuadreSaldoPage: React.FC = () => {
             selected={[]} // No selection/checkbox needed in this view per request
             onToggle={() => { }}
             onView={handleViewPedidosDia}
+            totalAmount={selectedAbono?.totalNeto ?? selectedAbono?.montoNeto ?? selectedAbono?.montoTotal}
           />
         )}
       </div>

@@ -18,6 +18,11 @@ type Props = {
       totalServicio: number;
     }
   ): void;
+
+  /** 
+   * Monto total del abono (para mostrar en el paginador a la izquierda) 
+   */
+  totalAmount?: number;
 };
 
 
@@ -145,6 +150,7 @@ export default function CuadreSaldoTable({
   selected,
   onToggle,
   onView,
+  totalAmount,
 }: Props) {
   const [page, setPage] = useState(1);
 
@@ -302,45 +308,57 @@ export default function CuadreSaldoTable({
       )}
 
       {/* Paginador */}
+      {/* Paginador con Total a la izquierda */}
       {rows.length > 0 && (
-        <div className="flex items-center justify-end gap-2 border-b border-gray90 py-3 px-3 mt-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-          >
-            &lt;
-          </button>
+        <div className="flex items-center justify-between border-b border-gray90 py-3 px-3 mt-2">
 
-          {pagerItems.map((p, i) =>
-            typeof p === "string" ? (
-              <span key={`dots-${i}`} className="px-2 text-gray70">
-                {p}
-              </span>
-            ) : (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                aria-current={page === p ? "page" : undefined}
-                className={[
-                  "w-8 h-8 flex items-center justify-center rounded",
-                  page === p
-                    ? "bg-gray90 text-white"
-                    : "bg-gray10 text-gray70 hover:bg-gray20",
-                ].join(" ")}
-              >
-                {p}
-              </button>
-            )
-          )}
+          {/* Total del abono */}
+          <div className="text-sm font-semibold text-gray-500">
+            {typeof totalAmount === 'number' && (
+              <span>Total: {money(totalAmount)}</span>
+            )}
+          </div>
 
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
-          >
-            &gt;
-          </button>
+          {/* Botones de paginación agrupados a la derecha */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+            >
+              &lt;
+            </button>
+
+            {pagerItems.map((p, i) =>
+              typeof p === "string" ? (
+                <span key={`dots-${i}`} className="px-2 text-gray70">
+                  {p}
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  aria-current={page === p ? "page" : undefined}
+                  className={[
+                    "w-8 h-8 flex items-center justify-center rounded",
+                    page === p
+                      ? "bg-gray90 text-white"
+                      : "bg-gray10 text-gray70 hover:bg-gray20",
+                  ].join(" ")}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="w-8 h-8 flex items-center justify-center bg-gray10 text-gray70 rounded hover:bg-gray20 disabled:opacity-50 disabled:hover:bg-gray10"
+            >
+              &gt;
+            </button>
+          </div>
         </div>
       )}
     </div>
