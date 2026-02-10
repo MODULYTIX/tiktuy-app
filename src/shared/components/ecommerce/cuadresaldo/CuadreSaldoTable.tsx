@@ -19,9 +19,7 @@ type Props = {
     }
   ): void;
 
-  /** 
-   * Monto total del abono (para mostrar en el paginador a la izquierda) 
-   */
+  // Monto total del abono (para mostrar en el paginador a la izquierda) 
   totalAmount?: number;
 };
 
@@ -33,22 +31,19 @@ const money = (n: number) =>
 
 const PAGE_SIZE = 5;
 
-/* ============================
- * Helpers SOLO VISUALES
- * ============================ */
+// Helpers SOLO VISUALES
+
 const num = (v: any) => {
   const x = Number(v);
   return Number.isFinite(x) ? x : 0;
 };
 
 
-/**  Solo NO se puede seleccionar cuando está "Validado" */
+// Solo NO se puede seleccionar cuando está "Validado"
 function isSelectable(estado: ResumenDia["estado"]) {
   return estado !== "Validado";
 }
-/* =========================
- * Nuevo helper: monto filtrado por método de pago
- * ========================= */
+// Nuevo helper: monto filtrado por método de pago
 function getMontoFiltrado(r: any) {
   // r.pedidosDetalle?: PedidoDiaItem[]
   if (!Array.isArray(r.pedidosDetalle)) return num(r.cobrado);
@@ -59,18 +54,14 @@ function getMontoFiltrado(r: any) {
     .reduce((acc: number, p: any) => acc + num(p.monto), 0);
 }
 
-/* =========================
- * Nuevo helper: neto correcto
- * ========================= */
+// Nuevo helper: neto correcto
 function getNeto(r: any) {
   const monto = getMontoFiltrado(r);
   const servicio = num(r.servicio); // servicio total = courier + repartidor
   return monto - servicio;
 }
 
-/* ============================
- * Mensajes sutiles (solo visual)
- * ============================ */
+// Mensajes sutiles (solo visual)
 function HintChip({
   icon,
   label,
@@ -308,7 +299,6 @@ export default function CuadreSaldoTable({
       )}
 
       {/* Paginador */}
-      {/* Paginador con Total a la izquierda */}
       {rows.length > 0 && (
         <div className="flex items-center justify-between border-b border-gray90 py-3 px-3 mt-2">
 

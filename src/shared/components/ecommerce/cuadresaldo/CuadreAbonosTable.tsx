@@ -17,9 +17,7 @@ const money = (n: number) =>
 
 const PAGE_SIZE = 5;
 
-/* ============================
- * Mensajes sutiles (solo visual)
- * ============================ */
+// Mensajes sutiles (solo visual)
 function HintChip({ icon, label }: { icon: string; label: string }) {
     return (
         <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] text-gray70">
@@ -197,7 +195,7 @@ export default function CuadreAbonosTable({
                                                     size="sm"
                                                 />
 
-                                                {/* Validar (Custom action reusing styles usually, but for now manual button consistent with previous) */}
+                                                {/* Validar */}
                                                 {showCheck && (
                                                     <TableActionx
                                                         variant="custom"

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 
 import CuadreAbonosTable from "@/shared/components/ecommerce/cuadresaldo/CuadreAbonosTable";
-// import AbonoDetailView from "@/shared/components/ecommerce/cuadresaldo/AbonoDetailView"; // Replaced by CuadreSaldoTable logic
 import CuadreSaldoTable from "@/shared/components/ecommerce/cuadresaldo/CuadreSaldoTable";
 import CuadreAbonoValidar from "@/shared/components/ecommerce/cuadresaldo/CuadreAbonoValidar";
 import VizualisarPedidos from "@/shared/components/ecommerce/cuadresaldo/VizualisarPedidos";

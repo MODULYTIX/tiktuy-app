@@ -72,10 +72,16 @@ export default function CrearPedidoModal({
     fecha_entrega_programada: "",
   });
 
-  const montoTotal = useMemo(
+  const montoCalculado = useMemo(
     () => detalles.reduce((s, d) => s + d.cantidad * d.precio_unitario, 0),
     [detalles]
   );
+
+  const [montoPersonalizado, setMontoPersonalizado] = useState("");
+
+  useEffect(() => {
+    setMontoPersonalizado(montoCalculado.toFixed(2));
+  }, [montoCalculado]);
 
   const canSubmit = useMemo(() => {
     if (!form.sede_id) return false;
@@ -117,6 +123,7 @@ export default function CrearPedidoModal({
     setDistritoSeleccionado("");
     setZonaSeleccionada("");
     setDetalles([]);
+    setMontoPersonalizado("");
   };
 
   const handleClose = () => {
@@ -236,7 +243,7 @@ export default function CrearPedidoModal({
       direccion_envio: form.direccion_envio.trim(),
       referencia_direccion: form.referencia_direccion?.trim() || "",
       distrito: distritoSeleccionado,
-      monto_recaudar: montoTotal,
+      monto_recaudar: Number(montoPersonalizado),
       fecha_entrega_programada: form.fecha_entrega_programada,
       detalles: detalles.map((d) => ({
         producto_id: d.producto_id,
@@ -405,7 +412,7 @@ export default function CrearPedidoModal({
 
           {/* LISTA PRODUCTOS */}
           {detalles.length > 0 && (
-            <div className="bg-gray-50 border rounded-lg p-4 space-y-2">
+            <div className="bg-gray-50 border rounded-lg p-4 space-y-2 border-gray-700">
               <div className="flex items-center gap-2 font-semibold text-gray-700">
                 <Icon icon="mdi:cart-outline" />
                 Productos agregados
@@ -430,6 +437,20 @@ export default function CrearPedidoModal({
               ))}
             </div>
           )}
+
+          {/* TOTAL A COBRAR */}
+          <div className="flex justify-end">
+            <div className="w-full">
+              <InputxNumber
+                label="Total a cobrar"
+                name="montoPersonalizado"
+                value={montoPersonalizado}
+                onChange={(e) => setMontoPersonalizado(e.target.value)}
+                min={0}
+                step={0.01}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
@@ -442,7 +463,7 @@ export default function CrearPedidoModal({
               label={
                 submitting
                   ? "Guardando…"
-                  : `Guardar (S/ ${montoTotal.toFixed(2)})`
+                  : `Guardar (S/ ${Number(montoPersonalizado).toFixed(2)})`
               }
               icon={
                 submitting
