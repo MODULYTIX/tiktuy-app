@@ -51,10 +51,7 @@ export default function PedidosPage() {
 
 
 
-  /* ======================================================================
-     OPCIONES PARA FILTROS (courier y productos)
-     Nota: ahora fetchPedidos devuelve {data, pagination}
-     ====================================================================== */
+  // OPCIONES PARA FILTROS (courier y productos)
   const [pedidosForFilters, setPedidosForFilters] = useState<Pedido[]>([]);
   const [loadingFilters, setLoadingFilters] = useState(false);
 
@@ -97,9 +94,7 @@ export default function PedidosPage() {
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [pedidosForFilters]);
 
-  /* ======================================================================
-       CREAR / EDITAR
-     ====================================================================== */
+  // CREAR / EDITAR
   const handleNuevoPedido = () => {
     setPedidoId(null);
     setModalAbierto(true);
@@ -131,9 +126,7 @@ export default function PedidosPage() {
     completado: 'Pedidos en su estado final.',
   } as const;
 
-  /* ======================================================================
-       RENDER
-     ====================================================================== */
+  // RENDER
 
   return (
     <section className="mt-8 flex flex-col gap-[1.25rem]">

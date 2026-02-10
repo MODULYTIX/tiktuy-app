@@ -38,6 +38,44 @@ function dateOnlyToPeruISO(dateOnly: string) {
   return new Date(Date.UTC(y, m - 1, d, 5, 0, 0)).toISOString();
 }
 
+const DateInputRow = ({
+  value,
+  onChange,
+  className,
+}: {
+  value?: string;
+  onChange: (val: string) => void;
+  className?: string;
+}) => {
+  const [focused, setFocused] = useState(false);
+
+  // value viene como ISO string del backend/padre
+  // Para el input type="date" necesitamos YYYY-MM-DD
+  const dateValue = value ? value.slice(0, 10) : "";
+
+  // Para visualizar en texto queremos DD/MM/YYYY
+  const textValue = useMemo(() => {
+    if (!dateValue) return "";
+    const [y, m, d] = dateValue.split("-");
+    const safeY = y || "";
+    const safeM = m || "";
+    const safeD = d || "";
+    return `${safeD}/${safeM}/${safeY}`;
+  }, [dateValue]);
+
+  return (
+    <input
+      type={focused ? "date" : "text"}
+      value={focused ? dateValue : textValue}
+      onChange={(e) => onChange(e.target.value)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      className={className}
+      placeholder="DD/MM/YYYY"
+    />
+  );
+};
+
 export default function ImportPreviewPedidosModal({
   open,
   onClose,
@@ -208,7 +246,7 @@ export default function ImportPreviewPedidosModal({
   // ================= VALIDACIONES =================
 
   const isSinStock = (stock?: number | null) =>
-    stock == null || Number(stock) <= 0;
+    stock != null && Number(stock) <= 0;
 
 
   const isInvalidSede = (s: string) =>
@@ -280,10 +318,55 @@ export default function ImportPreviewPedidosModal({
     setProductoErrors(newErrors);
   }, [groups, productosPorSede, sedes]);
 
+  // ================= AUTO-MATCH PRODUCTOS =================
+  useEffect(() => {
+    let updateNeeded = false;
+    const newGroups = groups.map((g) => {
+      if (!g.courier) return g;
+      const sede = findSedeByNombre(g.courier);
+      if (!sede || !productosPorSede[sede.sede_id]) return g;
+
+      const productos = productosPorSede[sede.sede_id];
+
+      const newItems = g.items.map((it) => {
+        // If already has ID, skip
+        if (it.producto_id) return it;
+        // If no name, skip
+        if (!it.producto) return it;
+
+        const found = productos.find(
+          (p) =>
+            normalizeProducto(p.nombre_producto) ===
+            normalizeProducto(it.producto)
+        );
+
+        if (found) {
+          updateNeeded = true;
+          return {
+            ...it,
+            producto: found.nombre_producto, // Actualizar casing
+            producto_id: found.id,
+            precio_unitario: found.precio,
+            stock: found.stock,
+          };
+        }
+        return it;
+      });
+
+      if (newItems.some((it, i) => it !== g.items[i])) {
+        return { ...g, items: newItems };
+      }
+      return g;
+    });
+
+    if (updateNeeded) {
+      setGroups(newGroups);
+    }
+  }, [groups, productosPorSede]);
 
 
 
-  // ================= DETECCIÓN DE DUPLICADOS =================
+
   // ================= DETECCIÓN DE DUPLICADOS =================
   const getStrictSignature = (g: PreviewGroupDTO) => {
     return JSON.stringify({
@@ -1119,13 +1202,12 @@ export default function ImportPreviewPedidosModal({
 
                         {/* FECHA ENTREGA */}
                         <td className="border-b border-gray-200 px-3 py-2.5 align-middle">
-                          <input
-                            type="date"
-                            value={g.fecha_entrega ? g.fecha_entrega.slice(0, 10) : ""}
-                            onChange={(e) =>
+                          <DateInputRow
+                            value={g.fecha_entrega}
+                            onChange={(val) =>
                               patchGroup(gi, {
-                                fecha_entrega: e.target.value
-                                  ? new Date(e.target.value).toISOString()
+                                fecha_entrega: val
+                                  ? new Date(val).toISOString()
                                   : undefined,
                               })
                             }
