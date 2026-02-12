@@ -78,6 +78,18 @@ function getTodayPEYYYYMMDD() {
   return `${y}-${m}-${d}`;
 }
 
+/*  NUEVO: Formato LATINO DD/MM/YYYY para mostrar */
+function formatDateLatino(v?: string | null) {
+  if (!v) return undefined;
+  const sub = v.slice(0, 10); // "2026-01-31"
+  const parts = sub.split("-");
+  if (parts.length === 3) {
+    const [y, m, d] = parts;
+    return `${d}/${m}/${y}`;
+  }
+  return sub;
+}
+
 export default function TablePedidoCourier({
   view,
   token,
@@ -751,7 +763,7 @@ export default function TablePedidoCourier({
 
               <tbody className="divide-y divide-gray20">
                 {itemsFiltrados.map((p) => {
-                  const fecha = p.fecha_entrega_programada;
+                  const fecha = formatDateLatino(p.fecha_entrega_programada);
 
                   const cantidad =
                     p.items_total_cantidad ??
