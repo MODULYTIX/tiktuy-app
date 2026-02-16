@@ -184,7 +184,7 @@ export default function TableStockProductoCourier({
     const minimo = toNumber(p.stock_minimo);
 
     // igualito al base: "bajo" cuando stock < mínimo
-    const bajo = stock < minimo;
+    const bajo = stock <= minimo;
     const bg = bajo
       ? "bg-yellow-100 text-yellow-700"
       : "bg-green-100 text-green-700";

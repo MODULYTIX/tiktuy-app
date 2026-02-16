@@ -16,11 +16,7 @@ El proyecto utiliza tecnologías de vanguardia para garantizar rendimiento, esca
 - **Comunicación en Tiempo Real**: Socket.io Client (Actualizaciones en vivo de estados de pedidos).
 - **Iconografía**: Iconify, React Icons.
 
-## Arquitectura del Proyecto
-
-La estructura del código sigue un patrón basado en dominios y roles, lo que permite una clara separación de responsabilidades y facilita el mantenimiento a largo plazo.
-
-## Arquitectura del Proyecto
+## Estructura del Proyecto
 
 La estructura del código sigue un patrón modular basado en dominios. A continuación se detalla la organización principal de directorios:
 
