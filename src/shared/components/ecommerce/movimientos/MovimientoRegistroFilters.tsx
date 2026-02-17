@@ -23,7 +23,7 @@ export interface Filters {
 
 interface Props {
   onFilterChange?: (filters: Filters) => void;
-  onNuevoMovimientoClick?: () => void; // opcional desde fuera
+  onNuevoMovimientoClick?: () => void;
 }
 
 export default function MovimientoRegistroFilters({

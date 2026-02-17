@@ -37,28 +37,36 @@ const normalizeEstado = (value?: string): EstadoProducto | undefined => {
 const buildQuery = (
   filters: Filters,
   page: number
-): Partial<ProductoListQuery> => ({
-  page,
-  perPage: PAGE_SIZE,
+): Partial<ProductoListQuery> => {
+  let order: ProductoListQuery["order"] = "new_first";
 
-  q: filters.search?.trim() || undefined,
+  if (filters.precio_bajo) order = "price_asc";
+  if (filters.precio_alto) order = "price_desc";
 
-  almacenamiento_id: filters.almacenamiento_id
-    ? Number(filters.almacenamiento_id)
-    : undefined,
+  return {
+    page,
+    perPage: PAGE_SIZE,
+    order,
 
-  categoria_id: filters.categoria_id
-    ? Number(filters.categoria_id)
-    : undefined,
+    q: filters.search?.trim() || undefined,
 
-  estado: normalizeEstado(filters.estado),
+    almacenamiento_id: filters.almacenamiento_id
+      ? Number(filters.almacenamiento_id)
+      : undefined,
 
-  stock_bajo: filters.stock_bajo || undefined,
-  precio_bajo: filters.precio_bajo || undefined,
-  precio_alto: filters.precio_alto || undefined,
+    categoria_id: filters.categoria_id
+      ? Number(filters.categoria_id)
+      : undefined,
 
-  only_with_stock: true,
-});
+    estado: normalizeEstado(filters.estado),
+
+    stock_bajo: filters.stock_bajo || undefined,
+    precio_bajo: filters.precio_bajo || undefined,
+    precio_alto: filters.precio_alto || undefined,
+
+    only_with_stock: true,
+  };
+};
 
 export default function MovimientoRegistroTable({
   filters,
@@ -216,7 +224,7 @@ export default function MovimientoRegistroTable({
       return <span className="text-xs text-red-500">Datos no disponibles</span>;
     }
 
-    const bajo = stock < minimo;
+    const bajo = stock <= minimo;
     const bg = bajo
       ? "bg-yellow-100 text-yellow-700"
       : "bg-green-100 text-green-700";
