@@ -4,6 +4,8 @@ import { fetchPedidoById } from "@/services/ecommerce/pedidos/pedidos.api";
 import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
 import { useAuth } from "@/auth/context";
 import Tittlex from "@/shared/common/Tittlex";
+import { Icon } from "@iconify/react";
+import Buttonx from "@/shared/common/Buttonx";
 
 interface Props {
   isOpen: boolean;
@@ -13,7 +15,7 @@ interface Props {
   detalle?: Pedido | null;
 }
 
-export default function VerPedidoCompletadoModal({
+export default function VerPedidoAsignadoModal({
   isOpen,
   onClose,
   pedidoId,
@@ -63,49 +65,76 @@ export default function VerPedidoCompletadoModal({
 
   const fechaEntregaStr = fechaEntrega
     ? fechaEntrega.toLocaleDateString("es-PE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-    : "";
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+    : "—";
 
   const estado: string =
     (pedido as any)?.estado?.nombre ?? (pedido as any)?.estado_pedido ?? "";
 
   const estadoColor =
-    estado?.toLowerCase() === "entregado" ? "text-green-600" : "text-yellow-600";
+    estado?.toLowerCase() === "entregado"
+      ? "bg-green-50 text-green-700 ring-green-600/20"
+      : "bg-yellow-50 text-yellow-700 ring-yellow-600/20";
+
+  const codigo = pedido?.codigo_pedido ?? "—";
+  const courier = pedido?.courier?.nombre_comercial ?? "—";
+  const cliente = pedido?.nombre_cliente ?? "—";
+  const celular = pedido?.celular_cliente ? `+ 51 ${pedido.celular_cliente}` : "—";
+  const distrito = pedido?.distrito ?? "—";
+  const direccion = pedido?.direccion_envio ?? "—";
+  const referencia = pedido?.referencia_direccion ?? "—";
+  const productsCant = (pedido?.detalles ?? []).reduce(
+    (sum, d) => sum + (Number(d.cantidad) || 0),
+    0
+  );
+
+  const referenciaHref =
+    referencia && referencia !== "—"
+      ? referencia.startsWith("http")
+        ? referencia
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          referencia
+        )}`
+      : undefined;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/20 bg-opacity-40 flex justify-end">
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="flex-1 bg-black/40" />
+
       <div
         ref={modalRef}
         className={[
-          "h-full bg-white shadow-xl flex flex-col gap-5 p-5",
-          "w-[460px]", // ✅ ancho fijo para todos
-          "overflow-y-auto", // mantiene scroll interno si crece
-          "animate-slide-in-right", // no tocamos tu efecto actual
+          "h-full bg-white shadow-default flex flex-col gap-5 p-5",
+          "w-[520px]", // ✅ ancho fijo, un poco más ancho para el diseño nuevo
+          "overflow-y-auto",
+          "animate-slide-in-right",
         ].join(" ")}
       >
         {/* Header */}
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-1 justify-between items-center">
-            <Tittlex
-              variant="modal"
-              title="DETALLE DEL PEDIDO"
-              icon="lsicon:shopping-cart-filled"
-              description=""
-            />
+        <div className="flex items-start justify-between gap-3">
+          <Tittlex
+            variant="modal"
+            title="DETALLE DEL PEDIDO"
+            icon="lsicon:shopping-cart-filled"
+            description="Consulta toda la información registrada de este pedido."
+          />
+
+          <div className="flex flex-col items-end gap-2">
+            {/* Status Badge */}
             {estado && (
-              <div className="text-sm">
-                <span className="text-gray-500">Estado : </span>
-                <span className={`${estadoColor} font-medium`}>{estado}</span>
-              </div>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ring-1 ring-inset ${estadoColor}`}>
+                {estado}
+              </span>
             )}
+            {/* Code Badge */}
+            <div className="flex items-center gap-2 rounded-full bg-gray10 px-3 py-1 text-[11px] font-semibold text-gray-700 ring-1 ring-gray20">
+              <Icon icon="mdi:barcode-scan" className="text-base text-gray-500" />
+              {codigo}
+            </div>
           </div>
-          <p className="text-base text-gray-600 -mt-0.5">
-            Consulta toda la información registrada de este pedido, incluyendo
-            los datos del cliente, el producto y la entrega.
-          </p>
         </div>
 
         {loading ? (
@@ -117,95 +146,119 @@ export default function VerPedidoCompletadoModal({
         ) : !pedido ? (
           <p className="text-sm text-gray-500">No se pudo cargar el pedido.</p>
         ) : (
-          <>
-            {/* Cuerpo */}
-            <div className="border border-gray-200 rounded-xl flex flex-col gap-2 p-3">
-              <div className="w-full items-center flex flex-col">
-                <label className="block text-xs font-light text-gray-500">
-                  Courier
-                </label>
-                <div className="text-gray-800 font-semibold text-base">
-                  {pedido.courier?.nombre_comercial ?? ""}
+          <div className="flex flex-col gap-5 text-sm h-full overflow-y-auto p-1">
+            {/* ✅ BLOQUE INFO REDISEÑADO */}
+            <div className="bg-white rounded-md shadow-default ring-1 ring-gray20 p-4">
+              {/* Cliente Row */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-50 ring-1 ring-blue-100 flex items-center justify-center shrink-0">
+                  <Icon icon="mdi:account" className="text-xl text-blue-700" />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] text-gray-500">Cliente</div>
+                  <div className="text-base font-semibold text-gray-900 leading-tight truncate">
+                    {cliente}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">{celular}</div>
+
+                  {/* Dirección */}
+                  <div className="mt-3 flex items-start gap-2 text-sm">
+                    <Icon
+                      icon="mdi:map-marker-outline"
+                      className="text-lg text-gray-400 mt-px shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500">Dirección ({distrito})</div>
+                      <div className="text-sm font-medium text-gray-800 break-words">
+                        {direccion}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Referencia */}
+                  <div className="mt-2 flex items-start gap-2 text-sm">
+                    <Icon
+                      icon="mdi:map-marker-path"
+                      className="text-lg text-gray-400 mt-px shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500">Referencia</div>
+                      <a
+                        className={`block ${!referenciaHref ? "pointer-events-none" : ""}`}
+                        target="_blank"
+                        href={referenciaHref}
+                        rel="noreferrer"
+                      >
+                        <div className="text-sm font-medium text-gray-800 break-words hover:text-blue-600 hover:underline">
+                          {referencia}
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Courier (Original field maintained) */}
+                  <div className="mt-3 flex items-start gap-2 text-sm border-t border-gray10 pt-2">
+                    <Icon
+                      icon="mdi:truck-delivery-outline"
+                      className="text-lg text-gray-400 mt-px shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500">Courier Asignado</div>
+                      <div className="text-sm font-medium text-gray-800 break-words">
+                        {courier}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-500">
-                  Cliente:
-                </label>
-                <div className="text-gray-800 text-sm">
-                  {pedido.nombre_cliente}
+              {/* Divider */}
+              <div className="my-4 h-px bg-gray20" />
+
+              {/* Resumen en cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Total */}
+                <div className="rounded-md bg-gray10 ring-1 ring-gray20 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-gray-500">Total</span>
+                    <Icon icon="mdi:cash-multiple" className="text-lg text-gray-400" />
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900">
+                    {montoCalc ? `S/. ${Number(montoCalc).toLocaleString("es-PE", { minimumFractionDigits: 2 })}` : ""}
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-500">
-                  Teléfono:
-                </label>
-                <div className="text-gray-800 text-sm">
-                  + 51 {pedido.celular_cliente}
+                {/* Entrega */}
+                <div className="rounded-md bg-gray10 ring-1 ring-gray20 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-gray-500">Entrega</span>
+                    <Icon
+                      icon="mdi:calendar-check-outline"
+                      className="text-lg text-gray-400"
+                    />
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900">
+                    {fechaEntregaStr}
+                  </div>
+                  <div className="text-[11px] text-gray-500">Programada</div>
                 </div>
-              </div>
 
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-500">
-                  F. Entrega:
-                </label>
-                <div className="text-gray-800 text-sm">{fechaEntregaStr}</div>
-              </div>
-
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-500">
-                  Distrito:
-                </label>
-                <div className="text-gray-800 text-sm">{pedido.distrito}</div>
-              </div>
-
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-500">
-                  Dirección:
-                </label>
-                <div className="text-gray-800 text-sm">
-                  {pedido.direccion_envio}
-                </div>
-              </div>
-
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-500">
-                  Referencia:
-                </label>
-                <div className="text-gray-800 text-sm">
-                  {pedido.referencia_direccion ?? ""}
-                </div>
-              </div>
-
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-500">
-                  Cant. de Productos:
-                </label>
-                <div className="text-gray-800 text-sm">
-                  {(pedido?.detalles ?? []).reduce(
-                    (sum, d) => sum + (Number(d.cantidad) || 0),
-                    0
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-1">
-                <label className="block text-sm font-light text-gray-500">
-                  Monto:
-                </label>
-                <div className="text-gray-800 text-sm">
-                  {montoCalc
-                    ? `S/. ${Number(montoCalc).toLocaleString("es-PE", {
-                        minimumFractionDigits: 2,
-                      })}`
-                    : ""}
+                {/* Productos */}
+                <div className="rounded-md bg-gray10 ring-1 ring-gray20 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-gray-500">Productos</span>
+                    <Icon icon="mdi:cart-outline" className="text-lg text-gray-400" />
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900">
+                    {String(productsCant).padStart(2, "0")}
+                  </div>
+                  <div className="text-[11px] text-gray-500">Cantidad</div>
                 </div>
               </div>
             </div>
 
-            <div className="shadow-default rounded h-full">
+            {/* Table */}
+            <div className="bg-white rounded-md shadow-default mb-2">
               <table className="w-full text-sm">
                 <thead className="bg-gray20">
                   <tr>
@@ -246,7 +299,17 @@ export default function VerPedidoCompletadoModal({
                 </tbody>
               </table>
             </div>
-          </>
+
+            <div className="mt-auto flex items-center justify-end gap-3 pt-4 border-t border-gray20">
+              <Buttonx
+                variant="outlinedw"
+                onClick={onClose}
+                label="Cerrar"
+                icon="mdi:close"
+                className="px-4 text-sm border"
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
