@@ -284,6 +284,8 @@ export default function TablePedidoCourier({
 
     // 4) Filtro por estado según vista
     if (view === "pendientes") {
+      // DEBUG: COMENTADO TEMPORALMENTE para ver qué estados llegan realmente
+      /*
       const allowed = [
         "pendiente",
         "recepcionará entrega hoy",
@@ -292,6 +294,7 @@ export default function TablePedidoCourier({
       arr = arr.filter((x) =>
         allowed.includes((x.estado_nombre ?? "").toLowerCase())
       );
+      */
     }
     if (view === "asignados") {
       arr = arr.filter((p: any) => {

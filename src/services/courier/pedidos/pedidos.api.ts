@@ -93,7 +93,32 @@ function toQueryEstado(q: ListByEstadoQuery = {}) {
   }
 
   if (q.hasta !== undefined) {
-    sp.set("hasta", toDateOnly(q.hasta)); 
+    // Backend interpreta "hasta" como < fecha (exclusivo).
+    // La UI espera incluivo (<= fecha).
+    // Solución: Sumar 1 día a la fecha enviada.
+    try {
+      const s = String(q.hasta).trim();
+      // Esperamos YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        const [y, m, d] = s.split("-").map(Number);
+        // Creamos fecha local media noche
+        const date = new Date(y, m - 1, d);
+        date.setDate(date.getDate() + 1);
+        sp.set("hasta", toDateOnly(date));
+      } else {
+        // Fallback si no machea o es objeto Date directo
+        // (aunque en tu código siempre llega string vacío o YYYY-MM-DD)
+        const d = new Date(q.hasta);
+        if (!Number.isNaN(d.getTime())) {
+          d.setDate(d.getDate() + 1);
+          sp.set("hasta", toDateOnly(d));
+        } else {
+          sp.set("hasta", toDateOnly(q.hasta));
+        }
+      }
+    } catch {
+      sp.set("hasta", toDateOnly(q.hasta));
+    }
   }
 
   if (q.sortBy) sp.set("sortBy", q.sortBy);
