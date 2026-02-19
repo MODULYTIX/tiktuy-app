@@ -11,10 +11,11 @@ import type {
 import TableActionx from "@/shared/common/TableActionx";
 import { Icon } from "@iconify/react";
 import Buttonx from "@/shared/common/Buttonx";
+import Badgex from "@/shared/common/Badgex";
 
 /* ===================== Helpers UI ===================== */
 
-type Estado = "Validado" | "Por Validar";
+type Estado = "Validado" | "Por Validar" | "Validar" | "Abonado";
 
 const formatPEN = (v: number) =>
   `S/. ${Number(v || 0).toLocaleString("es-PE", {
@@ -138,24 +139,12 @@ function montoRecaudadoEfectivo(p: any): number {
   return Number(p?.monto ?? 0);
 }
 
-const EstadoPill: React.FC<{ estado: Estado }> = ({ estado }) => {
-  const ok = estado === "Validado";
-  return (
-    <span
-      className={[
-        "inline-flex items-center justify-center rounded-full px-3 py-[6px] text-[12px] font-semibold shadow-sm",
-        ok ? "bg-gray90 text-white" : "bg-gray-200 text-gray-900",
-      ].join(" ")}
-    >
-      {estado}
-    </span>
-  );
-};
+
 
 const Checkbox = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input
     type="checkbox"
-    className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-2 focus:ring-gray-900"
+    className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-2 focus:ring-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
     {...props}
   />
 );
@@ -354,7 +343,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
   //  SOLO se seleccionables: NO validados
   const selectableKeys = useMemo(() => {
     return items
-      .filter((it: any) => !it?.validado)
+      .filter((it: any) => !it?.validado && it?.abonado)
       .map((it: any) => normalizeToYMD(it.fecha))
       .filter(Boolean);
   }, [items]);
@@ -637,8 +626,35 @@ const CuadreSaldoTable: React.FC<Props> = ({
               {!loading && items.map((row: any) => {
                 const ymd = normalizeToYMD(row.fecha);
                 const isValidated = !!row.validado;
-                const estado: Estado = isValidated ? "Validado" : "Por Validar";
+                const isAbonado = !!row.abonado;
 
+                let estado: Estado = "Por Validar"; // Default (esperando al courier)
+                if (isValidated) {
+                  estado = "Validado";
+                } else if (isAbonado) {
+                  estado = "Abonado"; // Courier pagó -> Acción requerida: Validar
+                } else {
+                  estado = "Por Validar"; // Courier no pagó -> Esperando
+                }
+
+
+                let badgeClass = "";
+                switch (estado) {
+                  case "Abonado":
+                    // Acción requerida (Validar): Amber/Orange o Green?
+                    // Usuario pidió: "Abonado" -> Green (pero es el estado donde valida)
+                    // "Por Validar" -> Blue (esperando)
+                    badgeClass = "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200";
+                    break;
+                  case "Por Validar":
+                    // Esperando al courier
+                    badgeClass = "bg-blue-100 text-blue-700 ring-1 ring-blue-200";
+                    break;
+
+                  default:
+                    badgeClass = "bg-gray-100 text-gray-700";
+                    break;
+                }
 
                 return (
                   <tr
@@ -649,13 +665,16 @@ const CuadreSaldoTable: React.FC<Props> = ({
                       <Checkbox
                         checked={!!selected[ymd]}
                         onChange={() => {
-                          if (!isValidated && ymd) toggleOne(ymd);
+                          // Solo si abonado y no validado se puede seleccionar
+                          if (!isValidated && isAbonado && ymd) toggleOne(ymd);
                         }}
-                        disabled={!ymd || isValidated || loading}
+                        disabled={!ymd || isValidated || !isAbonado || loading}
                         title={
                           isValidated
                             ? "Ya está validado"
-                            : "Seleccionar registro"
+                            : !isAbonado
+                              ? "Esperando abono del courier"
+                              : "Seleccionar registro para validar"
                         }
                       />
                     </td>
@@ -669,7 +688,7 @@ const CuadreSaldoTable: React.FC<Props> = ({
                     </td>
 
                     <td className="h-12 px-4 py-3">
-                      <EstadoPill estado={estado} />
+                      <Badgex className={badgeClass}>{estado}</Badgex>
                     </td>
 
                     <td
@@ -690,13 +709,13 @@ const CuadreSaldoTable: React.FC<Props> = ({
                           size="sm"
                         />
 
-                        {!isValidated && (
+                        {estado === "Abonado" && (
                           <TableActionx
                             variant="custom"
                             title="Validar"
                             icon="mdi:clipboard-check-outline"
                             disabled={loading || !ymd}
-                            colorClassName="bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-200 hover:ring-emerald-400 focus-visible:ring-emerald-500"
+                            colorClassName="bg-amber-100 text-amber-700 ring-1 ring-amber-300 hover:bg-amber-200 hover:ring-amber-400 focus-visible:ring-amber-500"
                             onClick={() => openValidateModal(row)}
                             size="sm"
                           />

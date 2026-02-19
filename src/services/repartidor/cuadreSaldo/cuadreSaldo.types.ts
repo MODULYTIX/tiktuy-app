@@ -19,6 +19,7 @@ export type CuadreResumenItem = {
   totalServicioMotorizado: number;
   validado: boolean;
   validadoEn: string | null; // ISO o null
+  abonado: boolean;
 };
 
 /** Respuesta del resumen (paginada por días) */
