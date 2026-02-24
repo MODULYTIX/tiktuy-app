@@ -7,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 // Asignado  -> recién creado (ecommerce + courier lo ven aquí)
 // Pendiente -> ya tiene motorizado asignado
 // Entregado -> completado
-type EstadoTab = 'Asignado' | 'Pendiente' | 'Entregado';
+type EstadoTab = 'Asignado' | 'Pendiente' | 'Entregado' | 'Terminado';
 
 /* ==========================================================
    OBTENER CON PAGINACIÓN
@@ -36,9 +36,11 @@ export async function fetchPedidos(
     }
     if (filtros.productoId) url.searchParams.set('productoId', String(filtros.productoId));
     if (filtros.fechaInicio) {
-      url.searchParams.set('fechaInicio', filtros.fechaInicio.slice(0, 10));
+      url.searchParams.set('desde', filtros.fechaInicio.slice(0, 10));
     }
-    if (filtros.fechaFin) url.searchParams.set('fechaFin', filtros.fechaFin);
+    if (filtros.fechaFin) {
+      url.searchParams.set('hasta', filtros.fechaFin.slice(0, 10));
+    }
   }
 
   const res = await fetch(url.toString(), {
@@ -50,15 +52,15 @@ export async function fetchPedidos(
 }
 
 // Tabs nuevas (o actualizadas)
-export const fetchPedidosAsignados = (t: string, p = 1, pp = 10) =>
-  fetchPedidos(t, 'Asignado', p, pp);
+export const fetchPedidosAsignados = (t: string, p = 1, pp = 10, filters?: any) =>
+  fetchPedidos(t, 'Asignado', p, pp, filters);
 
-export const fetchPedidosPendientes = (t: string, p = 1, pp = 10) =>
-  fetchPedidos(t, 'Pendiente', p, pp);
+export const fetchPedidosPendientes = (t: string, p = 1, pp = 10, filters?: any) =>
+  fetchPedidos(t, 'Pendiente', p, pp, filters);
 
-// "Completados" en la UI = estado Entregado en BD
-export const fetchPedidosCompletados = (t: string, p = 1, pp = 10) =>
-  fetchPedidos(t, 'Entregado', p, pp);
+// "Completados" en la UI = estado Terminado en BD (incluye entregados, rechazados, etc.)
+export const fetchPedidosCompletados = (t: string, p = 1, pp = 10, filters?: any) =>
+  fetchPedidos(t, 'Terminado', p, pp, filters);
 
 // Si aún tienes algo usando "Generados", puedes:
 // - O bien apuntarlo a Asignado

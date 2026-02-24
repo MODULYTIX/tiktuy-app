@@ -1,6 +1,6 @@
 // src/shared/components/ecommerce/pedidos/table/PedidosTableCompletado.tsx
 import { useAuth } from "@/auth/context";
-import { fetchPedidosCompletados } from "@/services/ecommerce/pedidos/pedidos.api";
+import { fetchPedidos } from "@/services/ecommerce/pedidos/pedidos.api";
 import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
 import TableActionx from "@/shared/common/TableActionx";
 import { useEffect, useMemo, useState } from "react";
@@ -25,54 +25,51 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
 
   const PAGE_SIZE = 5;
   const [page, setPage] = useState(1);
+  const [serverPagination, setServerPagination] = useState({
+    page: 1,
+    perPage: PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  });
+
+  // Reset page if filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filtros]);
 
   /* ============================
-     CARGA INICIAL
+     CARGA
   ============================= */
   useEffect(() => {
     if (!token) return;
     setLoading(true);
 
-    fetchPedidosCompletados(token)
+    fetchPedidos(token, 'Terminado', page, PAGE_SIZE, {
+      courierId: Number.isFinite(Number(filtros.courier))
+        ? Number(filtros.courier)
+        : undefined,
+      productoId: filtros.producto ? Number(filtros.producto) : undefined,
+      fechaInicio: filtros.fechaInicio || undefined,
+      fechaFin: filtros.fechaFin || undefined,
+    })
       .then((res) => {
-        // AHORA el backend devuelve: { data: Pedido[], pagination: {...} }
-        setPedidos(res.data);
+        setPedidos(res.data || []);
+        setServerPagination(res.pagination || {
+          page: 1,
+          perPage: PAGE_SIZE,
+          total: (res.data || []).length,
+          totalPages: 1
+        });
       })
       .catch(() => setPedidos([]))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, page, filtros]);
+
+  const totalPages = serverPagination.totalPages;
 
   /* ============================
      HELPERS
   ============================= */
-  const parseDateInput = (s?: string) => {
-    if (!s) return undefined;
-    const str = s.trim();
-
-    const ddmmyyyy = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-    const m1 = str.match(ddmmyyyy);
-    if (m1) {
-      const dd = Number(m1[1]);
-      const mm = Number(m1[2]);
-      const yyyy = Number(m1[3]);
-      const d = new Date(yyyy, mm - 1, dd);
-      return isNaN(d.getTime()) ? undefined : d;
-    }
-
-    const yyyymmdd = /^(\d{4})-(\d{2})-(\d{2})$/;
-    const m2 = str.match(yyyymmdd);
-    if (m2) {
-      const yyyy = Number(m2[1]);
-      const mm = Number(m2[2]);
-      const dd = Number(m2[3]);
-      const d = new Date(yyyy, mm - 1, dd);
-      return isNaN(d.getTime()) ? undefined : d;
-    }
-
-    const d = new Date(str);
-    return isNaN(d.getTime()) ? undefined : d;
-  };
-
   const formatearFechaCorta = (iso?: string | null) => {
     if (!iso) return "-";
     const d = new Date(iso);
@@ -116,74 +113,7 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
     return <span className={`${base} ${classes}`}>{estado}</span>;
   };
 
-  /* ============================
-     A) FILTROS
-  ============================= */
-  const filteredPedidos = useMemo(() => {
-    const start = parseDateInput(filtros.fechaInicio);
-    const end = parseDateInput(filtros.fechaFin);
-    if (end) end.setHours(23, 59, 59);
-
-    return pedidos.filter((p) => {
-      const fechaRef =
-        (p as any).fecha_entrega_real ||
-        p.fecha_entrega_programada ||
-        p.fecha_creacion;
-
-      const d = fechaRef ? new Date(fechaRef) : undefined;
-
-      if (start && d && d < start) return false;
-      if (end && d && d > end) return false;
-
-      if (filtros.courier) {
-        const courierId = (p as any).courier_id ?? p.courier?.id;
-        const byId = courierId != null && String(courierId) === filtros.courier;
-        const byName = (p.courier?.nombre_comercial || "")
-          .toLowerCase()
-          .includes(filtros.courier.toLowerCase());
-        if (!(byId || byName)) return false;
-      }
-
-      if (filtros.producto) {
-        const needle = filtros.producto.toLowerCase();
-        const ok = (p.detalles || []).some((d) => {
-          const prod = d.producto;
-          const byId = prod?.id != null && String(prod.id) === filtros.producto;
-          const byCodigo =
-            (prod as any)?.codigo &&
-            String((prod as any).codigo)
-              .toLowerCase()
-              .includes(needle);
-          const byNombre = (prod?.nombre_producto || "")
-            .toLowerCase()
-            .includes(needle);
-          return byId || byCodigo || byNombre;
-        });
-        if (!ok) return false;
-      }
-
-      return true;
-    });
-  }, [pedidos, filtros]);
-
-  /* ============================
-     B) PAGINACIÓN
-  ============================= */
-  useEffect(() => {
-    setPage(1);
-  }, [filtros]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredPedidos.length / PAGE_SIZE));
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [totalPages, page]);
-
-  const visiblePedidos = useMemo(
-    () => filteredPedidos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredPedidos, page]
-  );
-
+  const visiblePedidos = pedidos;
   const emptyRowsCount = PAGE_SIZE - visiblePedidos.length;
 
   /* ============================
@@ -228,7 +158,7 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
                 ))}
               </tr>
             ))
-          ) : filteredPedidos.length === 0 ? (
+          ) : pedidos.length === 0 ? (
             <tr>
               <td
                 colSpan={8}
@@ -242,8 +172,8 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
               {visiblePedidos.map((pedido) => {
                 const fechaEntrega = formatearFechaCorta(
                   (pedido as any).fecha_entrega_real ||
-                    pedido.fecha_entrega_programada ||
-                    pedido.fecha_creacion
+                  pedido.fecha_entrega_programada ||
+                  pedido.fecha_creacion
                 );
 
                 const productoPrincipal =
@@ -336,11 +266,10 @@ export default function PedidosTableCompletado({ onVer, filtros }: Props) {
           <button
             key={idx}
             onClick={() => setPage(idx + 1)}
-            className={`w-8 h-8 rounded ${
-              page === idx + 1
-                ? "bg-gray90 text-white"
-                : "bg-gray10 text-gray70 hover:bg-gray20"
-            }`}
+            className={`w-8 h-8 rounded ${page === idx + 1
+              ? "bg-gray90 text-white"
+              : "bg-gray10 text-gray70 hover:bg-gray20"
+              }`}
           >
             {idx + 1}
           </button>

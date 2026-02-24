@@ -30,22 +30,47 @@ export default function PedidosTableAsignado({
 
   const PAGE_SIZE = 5;
   const [page, setPage] = useState(1);
+  const [serverPagination, setServerPagination] = useState({
+    page: 1,
+    perPage: PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  });
+
+  // Reset page if filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filtros]);
 
   // ================================
-  // FETCH — ahora trae estado "Pendiente"
+  // FETCH
   // ================================
   useEffect(() => {
     if (!token) return;
     setLoading(true);
 
-    // Antes: fetchPedidosAsignados(token)
-    fetchPedidos(token, "Pendiente", 1, 10)
+    fetchPedidos(token, "Pendiente", page, PAGE_SIZE, {
+      courierId: Number.isFinite(Number(filtros.courier))
+        ? Number(filtros.courier)
+        : undefined,
+      productoId: filtros.producto ? Number(filtros.producto) : undefined,
+      fechaInicio: filtros.fechaInicio || undefined,
+      fechaFin: filtros.fechaFin || undefined,
+    })
       .then((res) => {
         setPedidos(res.data || []);
+        setServerPagination(res.pagination || {
+          page: 1,
+          perPage: PAGE_SIZE,
+          total: (res.data || []).length,
+          totalPages: 1
+        });
       })
       .catch(() => setPedidos([]))
       .finally(() => setLoading(false));
-  }, [token, refreshKey]);
+  }, [token, page, refreshKey, filtros]);
+
+  const totalPages = serverPagination.totalPages;
 
   const goToPage = (n: number) => {
     if (n < 1 || n > totalPages) return;
@@ -53,24 +78,8 @@ export default function PedidosTableAsignado({
   };
 
   // ===============================
-  // Helpers formato fechas
+  // Helpers formato fechas (solo para UI)
   // ===============================
-  const parseDateInput = (s?: string) => {
-    if (!s) return undefined;
-    const str = s.trim();
-
-    const ddmmyyyy = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-    const m1 = str.match(ddmmyyyy);
-    if (m1) return new Date(Number(m1[3]), Number(m1[2]) - 1, Number(m1[1]));
-
-    const yyyymmdd = /^(\d{4})-(\d{2})-(\d{2})$/;
-    const m2 = str.match(yyyymmdd);
-    if (m2) return new Date(Number(m2[1]), Number(m2[2]) - 1, Number(m2[3]));
-
-    const d = new Date(str);
-    return isNaN(d.getTime()) ? undefined : d;
-  };
-
   const formatearFechaCorta = (iso?: string | null) => {
     if (!iso) return "-";
     const d = new Date(iso);
@@ -100,59 +109,7 @@ export default function PedidosTableAsignado({
     return <span className={`${base} ${classes}`}>{label}</span>;
   };
 
-  // ===============================
-  // FILTROS
-  // ===============================
-  const filteredPedidos = useMemo(() => {
-    const start = parseDateInput(filtros.fechaInicio);
-    const end = parseDateInput(filtros.fechaFin);
-    if (end) end.setHours(23, 59, 59, 999);
-
-    return pedidos.filter((p) => {
-      const fechaRef = p.fecha_entrega_programada || p.fecha_creacion;
-      const d = fechaRef ? new Date(fechaRef) : undefined;
-
-      if (start && d && d < start) return false;
-      if (end && d && d > end) return false;
-
-      if (filtros.courier) {
-        const courierId = (p as any).courier_id ?? p.courier?.id;
-        const byId = courierId && String(courierId) === filtros.courier;
-        const byName = p.courier?.nombre_comercial
-          ?.toLowerCase()
-          .includes(filtros.courier.toLowerCase());
-        if (!byId && !byName) return false;
-      }
-
-      if (filtros.producto) {
-        const needle = filtros.producto.toLowerCase();
-        const ok = p.detalles.some((d) => {
-          const prod = d.producto;
-          return (
-            (prod?.id && String(prod.id) === filtros.producto) ||
-            prod?.nombre_producto?.toLowerCase().includes(needle)
-          );
-        });
-        if (!ok) return false;
-      }
-
-      return true;
-    });
-  }, [pedidos, filtros]);
-
-  // Reset page si cambian filtros
-  useEffect(() => {
-    setPage(1);
-  }, [filtros]);
-
-  // ===============================
-  // PAGINACIÓN (client-side)
-  // ===============================
-  const totalPages = Math.max(1, Math.ceil(filteredPedidos.length / PAGE_SIZE));
-  const visiblePedidos = useMemo(
-    () => filteredPedidos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredPedidos, page]
-  );
+  const visiblePedidos = pedidos;
 
   const pagerItems = useMemo(() => {
     const maxButtons = 5;
@@ -222,7 +179,7 @@ export default function PedidosTableAsignado({
                 ))}
               </tr>
             ))
-          ) : filteredPedidos.length === 0 ? (
+          ) : pedidos.length === 0 ? (
             <tr>
               <td
                 colSpan={8}
