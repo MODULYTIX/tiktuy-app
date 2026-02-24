@@ -3,7 +3,7 @@ import { useAuth } from "@/auth/context";
 import { fetchPedidos } from "@/services/ecommerce/pedidos/pedidos.api";
 import type { Pedido } from "@/services/ecommerce/pedidos/pedidos.types";
 import TableActionx from "@/shared/common/TableActionx";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Filtros = {
   courier: string;
