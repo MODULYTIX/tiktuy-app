@@ -38,6 +38,7 @@ const colorByLabel = (label: string) => {
   const s = String(label || "").toLowerCase();
   if (s.includes("entreg")) return "#22c55e"; // green
   if (s.includes("rechaz")) return "#ef4444"; // red
+  if (s.includes("no responde") || s.includes("núm")) return "#eab308"; // yellow
   if (s.includes("anulad")) return "#f97316"; // orange
   return "#6366f1";
 };
@@ -186,6 +187,10 @@ export default function ReporteEntregasC() {
     return byLabel.get("Pedidos Rechazados") ?? byLabel.get("Rechazados") ?? 0;
   }, [byLabel]);
 
+  const noResponde = useMemo(() => {
+    return byLabel.get("No responde / Núm. equivocado") ?? 0;
+  }, [byLabel]);
+
   const anulados = useMemo(() => {
     return byLabel.get("Pedidos Anulados") ?? byLabel.get("Anulados") ?? 0;
   }, [byLabel]);
@@ -229,6 +234,7 @@ export default function ReporteEntregasC() {
         label: String(day),
         "Pedidos Entregados": 0,
         "Pedidos Rechazados": 0,
+        "No responde / Núm. equivocado": 0,
         "Pedidos Anulados": 0,
       };
     });
@@ -238,6 +244,7 @@ export default function ReporteEntregasC() {
       if (dayIndex >= 0 && dayIndex < daysInMonth) {
         fullMonth[dayIndex]["Pedidos Entregados"] = d.entregados || 0;
         fullMonth[dayIndex]["Pedidos Rechazados"] = d.rechazados || 0;
+        fullMonth[dayIndex]["No responde / Núm. equivocado"] = d.noResponde || 0;
         fullMonth[dayIndex]["Pedidos Anulados"] = d.anulados || 0;
       }
     });
@@ -559,7 +566,7 @@ export default function ReporteEntregasC() {
           {vista === "diario" && (
             <>
               {/* KPIs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 min-w-0">
                 <div className={CARD_MODEL}>
                   <div className="flex items-center gap-2 text-xs text-gray60 mb-1">
                     <Icon icon="mdi:check-circle" className="text-emerald-600" />
@@ -574,6 +581,14 @@ export default function ReporteEntregasC() {
                     Rechazados
                   </div>
                   <p className="text-xl font-bold text-gray-900">{rechazados}</p>
+                </div>
+
+                <div className={CARD_MODEL}>
+                  <div className="flex items-center gap-2 text-xs text-gray60 mb-1">
+                    <Icon icon="mdi:phone-off" className="text-yellow-500" />
+                    No responde
+                  </div>
+                  <p className="text-xl font-bold text-gray-900">{noResponde}</p>
                 </div>
 
                 <div className={CARD_MODEL}>
@@ -792,6 +807,11 @@ export default function ReporteEntregasC() {
                         fill={colorByLabel("Pedidos Rechazados")}
                       />
                       <Bar
+                        dataKey="No responde / Núm. equivocado"
+                        stackId="a"
+                        fill={colorByLabel("no responde")}
+                      />
+                      <Bar
                         dataKey="Pedidos Anulados"
                         stackId="a"
                         fill={colorByLabel("Pedidos Anulados")}
@@ -841,10 +861,10 @@ export default function ReporteEntregasC() {
                       {(donutData.length
                         ? donutData.map((d) => String(d.label))
                         : [
-                            "Pedidos Entregados",
-                            "Pedidos Rechazados",
-                            "Pedidos Anulados",
-                          ]
+                          "Pedidos Entregados",
+                          "Pedidos Rechazados",
+                          "Pedidos Anulados",
+                        ]
                       ).map((k, i) => (
                         <Bar
                           key={k}

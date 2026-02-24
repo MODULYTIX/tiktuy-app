@@ -36,6 +36,7 @@ export type CourierEntregasReporteResp = {
         label: string;
         entregados: number;
         rechazados: number;
+        noResponde: number;
         anulados: number;
     }[];
 };
