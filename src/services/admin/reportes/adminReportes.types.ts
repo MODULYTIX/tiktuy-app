@@ -47,6 +47,8 @@ export interface DashboardGraficosResponse {
   kpis: {
     totalPedidos: number;
     entregados: number;
+    noResponde: number;
+    noHizo: number;
     anulados: number;
     gananciaTotal: string;
   };

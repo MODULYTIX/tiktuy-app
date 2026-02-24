@@ -548,7 +548,7 @@ export default function ReportesPage() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 min-w-0">
         <KpiCard
           cardClass={CARD_MODEL}
           label="Total Pedidos"
@@ -569,6 +569,20 @@ export default function ReportesPage() {
           value={kpis?.anulados}
           icon="mdi:close-circle-outline"
           color="red"
+        />
+        <KpiCard
+          cardClass={CARD_MODEL}
+          label="No Responde"
+          value={kpis?.noResponde}
+          icon="mdi:phone-off"
+          color="yellow"
+        />
+        <KpiCard
+          cardClass={CARD_MODEL}
+          label="No hizo pedido"
+          value={kpis?.noHizo}
+          icon="mdi:account-cancel-outline"
+          color="orange"
         />
         <KpiCard
           cardClass={CARD_MODEL}
@@ -717,6 +731,8 @@ function KpiCard({ label, value, icon, color, sub, cardClass }: any) {
     emerald: "bg-emerald-50 text-emerald-600",
     red: "bg-red-50 text-red-600",
     amber: "bg-amber-50 text-amber-600",
+    yellow: "bg-yellow-50 text-yellow-600",
+    orange: "bg-orange-50 text-orange-600",
   };
 
   const textMap: any = {
@@ -724,6 +740,8 @@ function KpiCard({ label, value, icon, color, sub, cardClass }: any) {
     emerald: "text-emerald-900",
     red: "text-red-900",
     amber: "text-amber-900",
+    yellow: "text-yellow-900",
+    orange: "text-orange-900",
   };
 
   return (
