@@ -307,13 +307,14 @@ export default function TablePedidoCourier({
     }
 
     if (view === "terminados") {
-      arr = arr.filter((x) => {
-        const estado = (x.estado_nombre ?? "").toLowerCase();
-
-        return (
-          estado !== "no responde / número equivocado"
-        );
-      });
+      const allowed = [
+        "entregado",
+        "terminado",
+        "no responde / número equivocado",
+      ];
+      arr = arr.filter((x) =>
+        allowed.includes((x.estado_nombre ?? "").toLowerCase())
+      );
     }
 
 
