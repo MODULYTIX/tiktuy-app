@@ -306,16 +306,8 @@ export default function TablePedidoCourier({
       });
     }
 
-    if (view === "terminados") {
-      const allowed = [
-        "entregado",
-        "terminado",
-        "no responde / número equivocado",
-      ];
-      arr = arr.filter((x) =>
-        allowed.includes((x.estado_nombre ?? "").toLowerCase())
-      );
-    }
+    // terminados: el backend /terminados ya filtra los estados correctos,
+    // no se necesita filtro client-side adicional.
 
 
     return arr;

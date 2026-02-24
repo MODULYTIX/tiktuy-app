@@ -43,9 +43,9 @@ const metodoPagoLabel = (metodoPago: unknown) => {
   // si no hay método => Pedido rechazado
   if (!m) return "Pedido rechazado";
 
-  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce";
-  if (m === "BILLETERA") return "Pago Digital al Courier";
-  if (m === "EFECTIVO") return "Efectivo";
+  if (m === "DIRECTO_ECOMMERCE") return "Pago Digital al Ecommerce / Pagado";
+  if (m === "BILLETERA") return "Pago Digital al Courier / Pagado";
+  if (m === "EFECTIVO") return "Efectivo / Pagado";
 
   return String(metodoPago ?? "Pedido rechazado");
 };
@@ -397,7 +397,7 @@ const EcommerceDetalleModal: React.FC<Props> = ({
 
                               {/* método con label */}
                               <td className="px-4 py-3 text-gray70">
-                                {metodoPagoLabel(it.metodoPago)} / Pagado
+                                {metodoPagoLabel(it.metodoPago)}
                               </td>
 
                               {/* monto 0 si rechazado o DIRECTO_ECOMMERCE */}
