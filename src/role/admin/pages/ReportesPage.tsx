@@ -565,7 +565,7 @@ export default function ReportesPage() {
         />
         <KpiCard
           cardClass={CARD_MODEL}
-          label="Anulados"
+          label="Anulados / No hizo pedidos"
           value={kpis?.anulados}
           icon="mdi:close-circle-outline"
           color="red"
