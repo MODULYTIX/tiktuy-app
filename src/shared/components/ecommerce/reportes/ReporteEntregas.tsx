@@ -41,10 +41,11 @@ const COLORS = ["#22c55e", "#ef4444", "#f97316", "#eab308", "#6366f1"];
 
 const colorByLabel = (label: string) => {
   const s = String(label || "").toLowerCase();
-  if (s.includes("entreg")) return "#22c55e"; // green
-  if (s.includes("rechaz")) return "#ef4444"; // red
-  if (s.includes("anulad")) return "#f97316"; // orange
-  if (s.includes("problema")) return "#ef4444";
+  if (s.includes("entreg")) return "#22c55e";       // green
+  if (s.includes("rechaz")) return "#ef4444";       // red
+  if (s.includes("no responde") || s.includes("núm")) return "#eab308"; // yellow
+  if (s.includes("no hizo")) return "#a855f7";      // purple
+  if (s.includes("anulad")) return "#f97316";       // orange
   return "#6366f1";
 };
 
@@ -135,11 +136,20 @@ export default function ReporteEntregas() {
       setLoading(true);
       setError(null);
 
+      // Calcular 'hasta' según la vista
+      let hastaCalculado = hasta;
+      if (vista === "mensual") {
+        const [y, m] = desde.split("-").map(Number);
+        const lastDay = new Date(y, m, 0).getDate();
+        hastaCalculado = `${String(y)}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      } else if (vista === "anual") {
+        hastaCalculado = `${desde.split("-")[0]}-12-31`;
+      }
+
       const resp = await getEntregasReporte(token, {
         vista,
-        // ✅ importante: enviar desde también en mensual/anual para que el selector tenga efecto real
-        desde: ["diario", "mensual", "anual"].includes(vista) ? desde : undefined,
-        hasta: vista === "diario" ? hasta : undefined,
+        desde,
+        hasta: hastaCalculado,
         courierId: courierId !== "todos" ? Number(courierId) : undefined,
       });
 
@@ -154,7 +164,7 @@ export default function ReporteEntregas() {
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vista, courierId]);
+  }, [vista, courierId, desde]);
 
   /* =========================
      Cargar lista de couriers
@@ -210,6 +220,22 @@ export default function ReporteEntregas() {
     );
   }, [byLabel]);
 
+  const noResponde = useMemo(() => {
+    return (
+      Number(data?.kpis?.noResponde ?? 0) ||
+      byLabel.get("No responde / Núm. equivocado") ||
+      0
+    );
+  }, [data, byLabel]);
+
+  const noHizo = useMemo(() => {
+    return (
+      Number(data?.kpis?.noHizo ?? 0) ||
+      byLabel.get("No hizo el pedido / anuló") ||
+      0
+    );
+  }, [data, byLabel]);
+
   const anulados = useMemo(() => {
     return (
       byLabel.get("Pedidos Anulados") ||
@@ -252,13 +278,19 @@ export default function ReporteEntregas() {
         label,
         Entregados: 0,
         Rechazados: 0,
+        "No responde": 0,
+        "No hizo pedido": 0,
+        Anulados: 0,
       }));
 
       data.evolucion.forEach((d: any) => {
-        const monthIndex = Number(d.label) - 1; // 1..12
+        const monthIndex = Number(d.label) - 1;
         if (monthIndex >= 0 && monthIndex < 12) {
           fullYear[monthIndex].Entregados = d.entregados || 0;
           fullYear[monthIndex].Rechazados = d.rechazados || 0;
+          fullYear[monthIndex]["No responde"] = d.noResponde || 0;
+          fullYear[monthIndex]["No hizo pedido"] = d.noHizo || 0;
+          fullYear[monthIndex].Anulados = d.anulados || 0;
         }
       });
 
@@ -275,6 +307,9 @@ export default function ReporteEntregas() {
         label: String(i + 1),
         Entregados: 0,
         Rechazados: 0,
+        "No responde": 0,
+        "No hizo pedido": 0,
+        Anulados: 0,
       }));
 
       data.evolucion.forEach((d: any) => {
@@ -282,6 +317,9 @@ export default function ReporteEntregas() {
         if (dayIndex >= 0 && dayIndex < daysInMonth) {
           fullMonth[dayIndex].Entregados = d.entregados || 0;
           fullMonth[dayIndex].Rechazados = d.rechazados || 0;
+          fullMonth[dayIndex]["No responde"] = d.noResponde || 0;
+          fullMonth[dayIndex]["No hizo pedido"] = d.noHizo || 0;
+          fullMonth[dayIndex].Anulados = d.anulados || 0;
         }
       });
 
@@ -309,7 +347,15 @@ export default function ReporteEntregas() {
                 <button
                   key={v}
                   type="button"
-                  onClick={() => setVista(v)}
+                  onClick={() => {
+                    setVista(v);
+                    const now = new Date();
+                    const y = now.getFullYear();
+                    const m = String(now.getMonth() + 1).padStart(2, "0");
+                    if (v === "mensual") setDesde(`${y}-${m}-01`);
+                    else if (v === "anual") setDesde(`${y}-01-01`);
+                    else setDesde(hoyISO());
+                  }}
                   className={[
                     "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                     active
@@ -393,7 +439,7 @@ export default function ReporteEntregas() {
                   onChange={(e) => {
                     const y = Number(e.target.value);
                     const mStr = desde.split("-")[1];
-                    setDesde(`${y}-${mStr}-02`);
+                    setDesde(`${y}-${mStr}-01`);
                   }}
                   className="w-full"
                 >
@@ -413,7 +459,7 @@ export default function ReporteEntregas() {
                     const m = Number(e.target.value);
                     const yStr = desde.split("-")[0];
                     const mStr = String(m + 1).padStart(2, "0");
-                    setDesde(`${yStr}-${mStr}-02`);
+                    setDesde(`${yStr}-${mStr}-01`);
                   }}
                   className="w-full"
                 >
@@ -474,7 +520,7 @@ export default function ReporteEntregas() {
                   value={parseInt(desde.split("-")[0])}
                   onChange={(e) => {
                     const y = Number(e.target.value);
-                    setDesde(`${y}-01-02`);
+                    setDesde(`${y}-01-01`);
                   }}
                   className="w-full"
                 >
@@ -529,7 +575,7 @@ export default function ReporteEntregas() {
       {!loading && data && data.filtros?.vista === vista && (
         <>
           {/* ===== KPIs (como Courier) ===== */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 min-w-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 min-w-0">
             <div className={CARD_MODEL}>
               <div className="flex items-center gap-2 text-xs text-gray60 mb-1">
                 <Icon icon="mdi:check-circle" className="text-emerald-600" />
@@ -544,6 +590,22 @@ export default function ReporteEntregas() {
                 Rechazados
               </div>
               <p className="text-xl font-bold text-gray-900">{rechazados}</p>
+            </div>
+
+            <div className={CARD_MODEL}>
+              <div className="flex items-center gap-2 text-xs text-gray60 mb-1">
+                <Icon icon="mdi:phone-off" className="text-yellow-500" />
+                No responde
+              </div>
+              <p className="text-xl font-bold text-gray-900">{noResponde}</p>
+            </div>
+
+            <div className={CARD_MODEL}>
+              <div className="flex items-center gap-2 text-xs text-gray60 mb-1">
+                <Icon icon="mdi:account-cancel-outline" className="text-purple-500" />
+                No hizo pedido
+              </div>
+              <p className="text-xl font-bold text-gray-900">{noHizo}</p>
             </div>
 
             <div className={CARD_MODEL}>
@@ -745,6 +807,21 @@ export default function ReporteEntregas() {
                         stackId="a"
                         fill={colorByLabel("Rechazados")}
                       />
+                      <Bar
+                        dataKey="No responde"
+                        stackId="a"
+                        fill={colorByLabel("No responde")}
+                      />
+                      <Bar
+                        dataKey="No hizo pedido"
+                        stackId="a"
+                        fill={colorByLabel("No hizo")}
+                      />
+                      <Bar
+                        dataKey="Anulados"
+                        stackId="a"
+                        fill={colorByLabel("Anulados")}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -781,6 +858,9 @@ export default function ReporteEntregas() {
 
                       <Bar dataKey="Entregados" fill={colorByLabel("Entregados")} radius={[6, 6, 0, 0]} />
                       <Bar dataKey="Rechazados" fill={colorByLabel("Rechazados")} radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="No responde" fill={colorByLabel("No responde")} radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="No hizo pedido" fill={colorByLabel("No hizo")} radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="Anulados" fill={colorByLabel("Anulados")} radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

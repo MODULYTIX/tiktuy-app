@@ -78,6 +78,15 @@ export type EntregasKpis = {
   /** Total de pedidos rechazados */
   rechazados?: number;
 
+  /** No responde / número equivocado */
+  noResponde?: number;
+
+  /** No hizo el pedido / anuló */
+  noHizo?: number;
+
+  /** Anulados / cancelados */
+  anulados?: number;
+
   /** % de entregas exitosas */
   tasaEntrega?: number;
 };
@@ -102,6 +111,9 @@ export type EvolucionDiariaItem = {
   label: string; // "1", "2" (día)
   entregados: number;
   rechazados: number;
+  noResponde?: number;
+  noHizo?: number;
+  anulados?: number;
 };
 
 /** Response completa del dashboard de entregas */

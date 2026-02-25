@@ -95,10 +95,21 @@ export default function ReporteIngresos() {
       setLoading(true);
       setError(null);
 
+      // Calcular 'hasta' según la vista: fin del mes o del año
+      let hastaCalculado = hasta;
+      if (vista === "mensual") {
+        const [y, m] = desde.split("-").map(Number);
+        const lastDay = new Date(y, m, 0).getDate(); // último día del mes
+        hastaCalculado = `${String(y)}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      } else if (vista === "anual") {
+        const y = desde.split("-")[0];
+        hastaCalculado = `${y}-12-31`;
+      }
+
       const resp = await getIngresosReporte(token, {
         vista,
-        desde: vista === "diario" ? desde : undefined,
-        hasta: vista === "diario" ? hasta : undefined,
+        desde,
+        hasta: hastaCalculado,
         // Enviar courierId si no es "todos"
         courierId: courierId !== "todos" ? Number(courierId) : undefined,
       });
@@ -114,7 +125,7 @@ export default function ReporteIngresos() {
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vista, courierId]); // Recargar cuando cambia vista o courier
+  }, [vista, courierId, desde]); // Recargar cuando cambia vista, courier o mes/año
 
   /* =========================
      KPIs
@@ -175,7 +186,20 @@ export default function ReporteIngresos() {
                 <button
                   key={v}
                   type="button"
-                  onClick={() => setVista(v)}
+                  onClick={() => {
+                    setVista(v);
+                    // Reinicializar `desde` al periodo correcto cuando cambia la vista
+                    const now = new Date();
+                    const y = now.getFullYear();
+                    const m = String(now.getMonth() + 1).padStart(2, "0");
+                    if (v === "mensual") {
+                      setDesde(`${y}-${m}-01`);
+                    } else if (v === "anual") {
+                      setDesde(`${y}-01-01`);
+                    } else {
+                      setDesde(hoyISO());
+                    }
+                  }}
                   className={[
                     "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                     active
@@ -259,7 +283,7 @@ export default function ReporteIngresos() {
                   onChange={(e) => {
                     const y = Number(e.target.value);
                     const mStr = desde.split("-")[1];
-                    setDesde(`${y}-${mStr}-02`);
+                    setDesde(`${y}-${mStr}-01`);
                   }}
                   className="w-full"
                 >
@@ -279,7 +303,7 @@ export default function ReporteIngresos() {
                     const m = Number(e.target.value);
                     const yStr = desde.split("-")[0];
                     const mStr = String(m + 1).padStart(2, "0");
-                    setDesde(`${yStr}-${mStr}-02`);
+                    setDesde(`${yStr}-${mStr}-01`);
                   }}
                   className="w-full"
                 >
@@ -340,7 +364,7 @@ export default function ReporteIngresos() {
                   value={parseInt(desde.split("-")[0])}
                   onChange={(e) => {
                     const y = Number(e.target.value);
-                    setDesde(`${y}-01-02`);
+                    setDesde(`${y}-01-01`);
                   }}
                   className="w-full"
                 >
