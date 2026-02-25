@@ -565,7 +565,7 @@ export default function ReportesPage() {
         />
         <KpiCard
           cardClass={CARD_MODEL}
-          label="Anulados / No hizo pedidos"
+          label="Rechazados"
           value={kpis?.anulados}
           icon="mdi:close-circle-outline"
           color="red"
@@ -579,7 +579,7 @@ export default function ReportesPage() {
         />
         <KpiCard
           cardClass={CARD_MODEL}
-          label="No hizo pedido"
+          label="Anulados / No hizo pedidos"
           value={kpis?.noHizo}
           icon="mdi:account-cancel-outline"
           color="orange"
