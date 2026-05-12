@@ -104,7 +104,7 @@ export default function DetallePedidoDrawer({
             </p>
           ) : (
             <>
-              {/* ✅ BLOQUE INFO REDISEÑADO */}
+              {/*  BLOQUE INFO REDISEÑADO */}
               <div className="bg-white rounded-md shadow-default ring-1 ring-gray20 p-4">
                 {/* Cliente (perfil) */}
                 <div className="flex items-start gap-3">
@@ -116,6 +116,20 @@ export default function DetallePedidoDrawer({
                     <div className="text-[11px] text-gray-500">Cliente</div>
                     <div className="text-base font-semibold text-gray-900 leading-tight truncate">
                       {cliente}
+                    </div>
+
+                    {/* Telefono */}
+                    <div className="mt-2 flex items-start gap-2 text-sm">
+                      <Icon
+                        icon="mdi:phone-outline"
+                        className="text-lg text-gray-400 mt-[1px]"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-gray-500">Telefono</div>
+                        <div className="text-sm font-medium text-gray-800 break-words">
+                          {detalle.telefono}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Dirección */}

@@ -138,6 +138,7 @@ export interface PedidoDetalle {
   cantidad_productos: number;
   monto_total: number;
   referencia: string;
+  telefono: string;
   items: Array<{
     producto_id: number;
     nombre: string;
